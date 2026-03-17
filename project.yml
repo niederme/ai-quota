@@ -1,0 +1,75 @@
+name: AIQuota
+
+options:
+  bundleIdPrefix: com.aiquota
+  deploymentTarget:
+    macOS: "26.0"
+  createIntermediateGroups: true
+  groupOrdering:
+    - pattern: AIQuota
+      order: [Views, ViewModels, Resources]
+
+packages:
+  AIQuotaKit:
+    path: Packages/AIQuotaKit
+
+targets:
+
+  # ── Main App ──────────────────────────────────────────────────────────────
+
+  AIQuota:
+    type: application
+    platform: macOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: AIQuota
+        excludes:
+          - Resources/AIQuota.entitlements
+    resources:
+      - path: AIQuota/Resources
+        excludes:
+          - AIQuota.entitlements
+    dependencies:
+      - package: AIQuotaKit
+      - target: AIQuotaWidget
+        embed: true
+      - sdk: WebKit.framework
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.aiquota.AIQuota
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: AIQuota/Resources/AIQuota.entitlements
+        ENABLE_APP_SANDBOX: YES
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+        INFOPLIST_FILE: AIQuota/Resources/Info.plist
+        # Menubar-only app — no Dock icon
+        # LSUIElement is set in Info.plist
+      configs:
+        Debug:
+          DEBUG_INFORMATION_FORMAT: dwarf
+        Release:
+          DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
+          SWIFT_COMPILATION_MODE: wholemodule
+
+  # ── Widget Extension ──────────────────────────────────────────────────────
+
+  AIQuotaWidget:
+    type: app-extension
+    platform: macOS
+    deploymentTarget: "26.0"
+    sources:
+      - path: AIQuotaWidget
+        excludes:
+          - Resources/AIQuotaWidget.entitlements
+    dependencies:
+      - package: AIQuotaKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.aiquota.AIQuota.widget
+        SWIFT_VERSION: "6.0"
+        MACOSX_DEPLOYMENT_TARGET: "26.0"
+        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_ENTITLEMENTS: AIQuotaWidget/Resources/AIQuotaWidget.entitlements
+        INFOPLIST_FILE: AIQuotaWidget/Resources/Info.plist
