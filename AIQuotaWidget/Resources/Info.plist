@@ -4,6 +4,8 @@
 <dict>
 	<key>CFBundleName</key>
 	<string>AIQuotaWidget</string>
+	<key>CFBundleDisplayName</key>
+	<string>AIQuota Widget</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.niederme.AIQuota.widget</string>
 	<key>CFBundleVersion</key>
