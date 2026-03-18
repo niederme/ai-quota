@@ -66,7 +66,7 @@ struct MenuBarIconView: View {
             } else if remaining <= 15 {
                 fillColor = CGColor(red: 1.0, green: 0.65, blue: 0.0,  alpha: 1)   // amber
             } else {
-                fillColor = CGColor(red: 0.62, green: 0.22, blue: 0.93, alpha: 1)  // purple
+                fillColor = CGColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 1)     // white (system default)
             }
             ctx.setStrokeColor(fillColor)
             ctx.addArc(center: CGPoint(x: cx, y: cy), radius: r,

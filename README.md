@@ -10,7 +10,7 @@ A native macOS menubar utility to monitor your [OpenAI Codex](https://openai.com
 ## Features
 
 - **Menubar gauge icon** — arc gauge showing quota consumption in real time, color-coded:
-  - 🟣 Purple — plenty of quota remaining (>15%)
+  - ⚪ White — plenty of quota remaining (>15%)
   - 🟡 Amber — getting low (5–15%)
   - 🔴 Red — critical or limit reached (<5%)
 - **Optional percentage** — toggle a live countdown in the menu bar (e.g. `42%`)
@@ -79,6 +79,7 @@ ai-quota/
 ## Roadmap
 
 - [ ] Claude quota support (Anthropic Pro/Max plans)
+- [ ] Gemini quota support (Google AI plans)
 - [ ] Configurable default service shown in menu bar
 - [ ] Login item (launch at login)
 - [ ] Notification when quota drops below threshold
