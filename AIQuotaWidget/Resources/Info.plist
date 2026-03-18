@@ -5,7 +5,7 @@
 	<key>CFBundleName</key>
 	<string>AIQuotaWidget</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.aiquota.AIQuota.widget</string>
+	<string>com.niederme.AIQuota.widget</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>CFBundleShortVersionString</key>

@@ -7,7 +7,7 @@
 	<key>CFBundleDisplayName</key>
 	<string>AIQuota</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.aiquota.AIQuota</string>
+	<string>com.niederme.AIQuota</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>CFBundleShortVersionString</key>
@@ -28,7 +28,7 @@
 				<string>aiquota</string>
 			</array>
 			<key>CFBundleURLName</key>
-			<string>com.aiquota.oauth</string>
+			<string>com.niederme.oauth</string>
 		</dict>
 	</array>
 	<key>NSHumanReadableCopyright</key>

@@ -8,7 +8,6 @@ final class QuotaViewModel {
     var usage: CodexUsage?
     var isLoading = false
     var error: NetworkError?
-    var showSettings = false
     var settings: AppSettings = SharedDefaults.loadSettings()
 
     var isAuthenticated: Bool { authManager.isAuthenticated }

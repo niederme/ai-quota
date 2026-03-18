@@ -2,7 +2,7 @@ import Foundation
 import Security
 
 public enum KeychainStore {
-    private static let service = "com.aiquota.AIQuota"
+    private static let service = "com.niederme.AIQuota"
 
     public static func save(_ value: String, forKey key: String) {
         guard let data = value.data(using: .utf8) else { return }

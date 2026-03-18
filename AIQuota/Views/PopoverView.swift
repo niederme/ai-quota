@@ -3,10 +3,9 @@ import AIQuotaKit
 
 struct PopoverView: View {
     @Environment(QuotaViewModel.self) private var viewModel
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
-        @Bindable var vm = viewModel
-
         Group {
             if viewModel.isAuthenticated {
                 authenticatedContent
@@ -14,16 +13,12 @@ struct PopoverView: View {
                 signInContent
             }
         }
-        .frame(width: 320)
+        .frame(width: 340)
         .task {
             if viewModel.isAuthenticated && viewModel.usage == nil {
                 await viewModel.refresh()
                 viewModel.startAutoRefresh()
             }
-        }
-        .sheet(isPresented: $vm.showSettings) {
-            SettingsView()
-                .environment(viewModel)
         }
     }
 
@@ -51,9 +46,10 @@ struct PopoverView: View {
 
     @ViewBuilder private var header: some View {
         HStack(spacing: 8) {
-            Image(systemName: "brain.fill")
-                .foregroundStyle(.purple)
-            Text("Codex")
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 20, height: 20)
+            Text("AIQuota")
                 .font(.headline)
             Spacer()
             if viewModel.isLoading {
@@ -63,7 +59,7 @@ struct PopoverView: View {
                     Task { await viewModel.refresh() }
                 } label: {
                     Image(systemName: "arrow.clockwise")
-                        .font(.caption)
+                        .font(.footnote)
                 }
                 .buttonStyle(.borderless)
                 .help("Refresh now")
@@ -85,10 +81,10 @@ struct PopoverView: View {
                     Image(systemName: "exclamationmark.octagon.fill")
                         .foregroundStyle(.red)
                     Text("Weekly limit reached")
-                        .font(.caption.bold())
+                        .font(.subheadline.bold())
                     Spacer()
                     Text(countdownText(seconds: usage.weeklyResetAfterSeconds, short: true))
-                        .font(.caption2)
+                        .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
                 .padding(.horizontal, 14)
@@ -100,12 +96,18 @@ struct PopoverView: View {
             // Weekly usage
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("Weekly Usage")
-                        .font(.caption.bold())
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 5) {
+                        Text("Codex")
+                            .font(.subheadline.bold())
+                        Text("·")
+                            .foregroundStyle(.tertiary)
+                        Text("Weekly Usage")
+                            .font(.subheadline.bold())
+                    }
+                    .foregroundStyle(.secondary)
                     Spacer()
                     Text("\(usage.weeklyUsedPercent)%")
-                        .font(.caption.monospacedDigit().bold())
+                        .font(.subheadline.monospacedDigit().bold())
                         .foregroundStyle(weeklyColor(usage))
                 }
 
@@ -116,12 +118,14 @@ struct PopoverView: View {
 
                 HStack {
                     Text("\(usage.weeklyRemaining)% remaining")
-                        .font(.caption2)
+                        .font(.footnote)
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Label(countdownText(seconds: usage.weeklyResetAfterSeconds, short: false), systemImage: "clock.arrow.circlepath")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                    if !usage.limitReached {
+                        Label(countdownText(seconds: usage.weeklyResetAfterSeconds, short: false), systemImage: "clock.arrow.circlepath")
+                            .font(.footnote)
+                            .foregroundStyle(.tertiary)
+                    }
                 }
             }
             .padding(.horizontal, 14)
@@ -135,14 +139,14 @@ struct PopoverView: View {
                 HStack(spacing: 10) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Short window (\(formatWindowDuration(usage.hourlyWindowSeconds)))")
-                            .font(.caption2)
+                            .font(.footnote)
                             .foregroundStyle(.secondary)
                         Text("\(usage.hourlyUsedPercent)% used")
-                            .font(.caption.monospacedDigit())
+                            .font(.subheadline.monospacedDigit())
                     }
                     Spacer()
                     Text(countdownText(seconds: usage.hourlyResetAfterSeconds, short: true))
-                        .font(.caption2)
+                        .font(.footnote)
                         .foregroundStyle(.tertiary)
                 }
                 .padding(.horizontal, 14)
@@ -153,8 +157,8 @@ struct PopoverView: View {
             // Credits / message estimates
             if let balance = usage.creditBalance, let local = usage.approxLocalMessages, local.count == 2,
                let cloud = usage.approxCloudMessages, cloud.count == 2 {
-                VStack(spacing: 6) {
-                    creditsRow(label: "Credits", value: String(format: "$%.2f", balance), icon: "creditcard.fill")
+                VStack(spacing: 7) {
+                    creditsRow(label: "Credits", value: "\(Int(balance))", icon: "creditcard.fill")
                     creditsRow(label: "Local messages", value: "~\(local[0]) / \(local[1])", icon: "desktopcomputer")
                     creditsRow(label: "Cloud messages", value: "~\(cloud[0]) / \(cloud[1])", icon: "cloud.fill")
                 }
@@ -166,15 +170,12 @@ struct PopoverView: View {
             // Plan badge
             HStack {
                 Label(usage.planType.capitalized, systemImage: "person.fill")
-                    .font(.caption2)
+                    .font(.footnote)
                     .foregroundStyle(.secondary)
                 Spacer()
                 if let fetchedAt = viewModel.usage?.fetchedAt {
-                    Text(fetchedAt, style: .relative)
-                        .font(.caption2)
-                        .foregroundStyle(.quaternary)
-                    + Text(" ago")
-                        .font(.caption2)
+                    Text("\(Text(fetchedAt, style: .relative)) ago")
+                        .font(.footnote)
                         .foregroundStyle(.quaternary)
                 }
             }
@@ -186,15 +187,15 @@ struct PopoverView: View {
     private func creditsRow(label: String, value: String, icon: String) -> some View {
         HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.caption2)
+                .font(.footnote)
                 .foregroundStyle(.secondary)
-                .frame(width: 14)
+                .frame(width: 16)
             Text(label)
-                .font(.caption2)
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
             Spacer()
             Text(value)
-                .font(.caption2.monospacedDigit())
+                .font(.subheadline.monospacedDigit())
                 .foregroundStyle(.primary)
         }
     }
@@ -203,12 +204,15 @@ struct PopoverView: View {
 
     private var footer: some View {
         HStack {
-            Button("Settings") { viewModel.showSettings = true }
+            Button("Settings") {
+                NSApp.activate(ignoringOtherApps: true)
+                openSettings()
+            }
             Spacer()
             Button("Sign Out", role: .destructive) { viewModel.signOut() }
         }
         .buttonStyle(.borderless)
-        .font(.caption)
+        .font(.footnote)
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
     }
@@ -219,7 +223,7 @@ struct PopoverView: View {
         VStack(spacing: 10) {
             ProgressView()
             Text("Loading…")
-                .font(.caption)
+                .font(.footnote)
                 .foregroundStyle(.secondary)
         }
         .frame(height: 80)
@@ -227,7 +231,7 @@ struct PopoverView: View {
 
     private var emptyState: some View {
         Text("No data yet")
-            .font(.caption)
+            .font(.footnote)
             .foregroundStyle(.secondary)
             .frame(height: 60)
     }
@@ -236,9 +240,9 @@ struct PopoverView: View {
 
     private var signInContent: some View {
         VStack(spacing: 16) {
-            Image(systemName: "brain.fill")
-                .font(.system(size: 36))
-                .foregroundStyle(.purple)
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 64, height: 64)
 
             VStack(spacing: 4) {
                 Text("AIQuota")
@@ -253,7 +257,7 @@ struct PopoverView: View {
                 Task { await viewModel.signIn() }
             }
             .buttonStyle(.borderedProminent)
-            .tint(.purple)
+            .tint(Color(red: 0.62, green: 0.22, blue: 0.93))
             .controlSize(.large)
         }
         .padding(24)
@@ -265,14 +269,14 @@ struct PopoverView: View {
         HStack(spacing: 6) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(.orange)
-                .font(.caption)
+                .font(.footnote)
             Text(error.localizedDescription)
-                .font(.caption)
+                .font(.footnote)
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
             Spacer()
             Button { viewModel.error = nil } label: {
-                Image(systemName: "xmark").font(.caption2)
+                Image(systemName: "xmark").font(.caption)
             }
             .buttonStyle(.borderless)
         }

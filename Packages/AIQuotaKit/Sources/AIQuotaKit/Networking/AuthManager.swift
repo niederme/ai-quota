@@ -13,42 +13,40 @@ private struct SessionResponse: Decodable {
 // MARK: - AuthManager
 
 /// Authentication flow:
-/// 1. Show chatgpt.com in a WKWebView sheet (user logs in normally)
-/// 2. Monitor WKHTTPCookieStore for __Secure-next-auth.session-token
-/// 3. Once captured, exchange session token → Bearer JWT via /api/auth/session
-/// 4. Cache Bearer JWT (expires ~24h); refresh cheaply via /api/auth/session
-/// 5. Session token itself persists in Keychain (valid for weeks)
+/// 1. Check WKWebView default store for existing __Secure-next-auth.session-token cookie
+/// 2. If found → sync all chatgpt.com cookies to HTTPCookieStorage.shared, complete immediately
+/// 3. If not found → show chatgpt.com in a WKWebView window, wait for user to log in
+/// 4. Once session token captured → POST to /api/auth/session → Bearer JWT
+/// 5. Cache JWT (~24h); re-fetch cheaply via /api/auth/session on expiry
 
 @MainActor
 public final class AuthManager: NSObject, ObservableObject {
     @Published public var isAuthenticated = false
 
-    private let baseURL = URL(string: "https://chatgpt.com")!
     private let sessionEndpoint = URL(string: "https://chatgpt.com/api/auth/session")!
     private let loginURL = URL(string: "https://chatgpt.com")!
 
-    // In-memory token cache
+    // In-memory JWT cache
     private var cachedAccessToken: String?
     private var tokenExpiresAt: Date?
 
-    private weak var loginWindowController: LoginWindowController?
+    // Strong reference — keeps LoginWindowController alive until auth completes
+    private var loginWindowController: LoginWindowController?
 
     public override init() {
         super.init()
         loadSessionFromKeychain()
     }
 
-    // MARK: - Access Token (called before every API request)
+    // MARK: - Access Token
 
     public var accessToken: String {
         get async throws {
-            // Return cached token if still valid (with 60s buffer)
             if let token = cachedAccessToken,
                let exp = tokenExpiresAt,
                exp.addingTimeInterval(-60) > .now {
                 return token
             }
-            // Refresh from session endpoint using stored session token
             guard KeychainStore.load(forKey: "sessionToken") != nil else {
                 throw NetworkError.notAuthenticated
             }
@@ -56,14 +54,15 @@ public final class AuthManager: NSObject, ObservableObject {
         }
     }
 
-    // MARK: - Sign In (WKWebView sheet)
+    // MARK: - Sign In
 
     public func signIn() async throws {
-        // Show login window and wait for session token
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            // Strong capture — controller must outlive this closure
             let controller = LoginWindowController(baseURL: loginURL) { [weak self] result in
                 Task { @MainActor [weak self] in
                     guard let self else { return }
+                    self.loginWindowController = nil  // release after completion
                     switch result {
                     case .success(let sessionToken):
                         KeychainStore.save(sessionToken, forKey: "sessionToken")
@@ -79,6 +78,8 @@ public final class AuthManager: NSObject, ObservableObject {
                     }
                 }
             }
+            // Hold strong reference so the controller isn't deallocated
+            // before the async getAllCookies callback fires
             self.loginWindowController = controller
             controller.show()
         }
@@ -91,30 +92,49 @@ public final class AuthManager: NSObject, ObservableObject {
         tokenExpiresAt = nil
         isAuthenticated = false
         KeychainStore.deleteAll()
-        // Also clear WKWebView cookies so next login starts fresh
         WKWebsiteDataStore.default().removeData(
             ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(),
             modifiedSince: .distantPast
         ) {}
     }
 
+    // MARK: - Cookie Sync
+    // WKWebView and URLSession use separate cookie jars.
+    // Bridge WKWebView → HTTPCookieStorage.shared before any URLSession call.
+
+    private func syncWebKitCookies() async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
+                for cookie in cookies where
+                    cookie.domain.contains("chatgpt.com") || cookie.domain.contains("openai.com") {
+                    HTTPCookieStorage.shared.setCookie(cookie)
+                }
+                continuation.resume()
+            }
+        }
+    }
+
     // MARK: - Token Refresh
 
     @discardableResult
     private func refreshAccessToken() async throws -> String {
-        guard let sessionToken = KeychainStore.load(forKey: "sessionToken") else {
+        guard KeychainStore.load(forKey: "sessionToken") != nil else {
             isAuthenticated = false
             throw NetworkError.notAuthenticated
         }
 
+        await syncWebKitCookies()
+
         var req = URLRequest(url: sessionEndpoint)
-        req.setValue("__Secure-next-auth.session-token=\(sessionToken)", forHTTPHeaderField: "Cookie")
         req.setValue("https://chatgpt.com", forHTTPHeaderField: "Referer")
         req.setValue("application/json", forHTTPHeaderField: "Accept")
+        req.setValue("https://chatgpt.com", forHTTPHeaderField: "Origin")
 
         do {
             let (data, response) = try await URLSession.shared.data(for: req)
-            guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
+            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
+            print("[Auth] /api/auth/session → HTTP \(statusCode), body: \(String(data: data, encoding: .utf8)?.prefix(200) ?? "nil")")
+            guard statusCode == 200, !data.isEmpty else {
                 isAuthenticated = false
                 KeychainStore.deleteAll()
                 throw NetworkError.refreshFailed
@@ -123,13 +143,15 @@ public final class AuthManager: NSObject, ObservableObject {
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             let session = try decoder.decode(SessionResponse.self, from: data)
             cachedAccessToken = session.accessToken
-            // JWT expires in ~24h; parse from expires field or default
             tokenExpiresAt = parseExpiry(from: session.expires) ?? Date.now.addingTimeInterval(86400)
             isAuthenticated = true
+            print("[Auth] access token cached, expires: \(tokenExpiresAt?.description ?? "nil")")
             return session.accessToken
         } catch let e as NetworkError {
+            print("[Auth] NetworkError in refresh: \(e)")
             throw e
         } catch {
+            print("[Auth] unexpected error in refresh: \(error)")
             throw NetworkError.refreshFailed
         }
     }
@@ -137,23 +159,26 @@ public final class AuthManager: NSObject, ObservableObject {
     private func parseExpiry(from string: String?) -> Date? {
         guard let string else { return nil }
         let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime]
-        return f.date(from: string)
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f.date(from: string) ?? {
+            let f2 = ISO8601DateFormatter()
+            f2.formatOptions = [.withInternetDateTime]
+            return f2.date(from: string)
+        }()
     }
 
     // MARK: - Keychain bootstrap
 
     private func loadSessionFromKeychain() {
         guard KeychainStore.load(forKey: "sessionToken") != nil else { return }
-        isAuthenticated = true // will verify on first token fetch
+        isAuthenticated = true
     }
 }
 
 // MARK: - Login Window Controller
 
-/// Presents a WKWebView pointing at chatgpt.com and watches for the session cookie.
 @MainActor
-final class LoginWindowController: NSObject, WKNavigationDelegate {
+final class LoginWindowController: NSObject {
     private var window: NSWindow?
     private var webView: WKWebView?
     private var cookieObserver: CookieObserver?
@@ -168,16 +193,46 @@ final class LoginWindowController: NSObject, WKNavigationDelegate {
 
     func show() {
         let config = WKWebViewConfiguration()
-        // Use default data store so existing cookies are visible
         config.websiteDataStore = .default()
 
+        // Check for existing session cookie — if found, complete immediately
+        // without showing any window. Use Task {@MainActor} for proper isolation.
+        config.websiteDataStore.httpCookieStore.getAllCookies { [weak self] cookies in
+            guard let self else { return }
+
+            if let sessionCookie = cookies.first(where: {
+                $0.name == "__Secure-next-auth.session-token" && $0.domain.contains("chatgpt.com")
+            }) {
+                // Sync all cookies to URLSession before completing
+                for cookie in cookies where
+                    cookie.domain.contains("chatgpt.com") || cookie.domain.contains("openai.com") {
+                    HTTPCookieStorage.shared.setCookie(cookie)
+                }
+                let value = sessionCookie.value
+                Task { @MainActor [weak self] in
+                    self?.complete(with: .success(value))
+                }
+                return
+            }
+
+            // Not logged in — show the browser window
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.showWindow(config: config)
+            }
+        }
+    }
+
+    private func showWindow(config: WKWebViewConfiguration) {
         let webView = WKWebView(frame: .init(x: 0, y: 0, width: 520, height: 680), configuration: config)
-        webView.navigationDelegate = self
+        webView.navigationDelegate = self  // didFinish fires after every page load
         self.webView = webView
 
-        // Observe cookie store for session token
+        // CookieObserver fires when cookies *change* — catches fresh logins
         let observer = CookieObserver { [weak self] sessionToken in
-            self?.complete(with: .success(sessionToken))
+            Task { @MainActor [weak self] in
+                self?.complete(with: .success(sessionToken))
+            }
         }
         config.websiteDataStore.httpCookieStore.add(observer)
         self.cookieObserver = observer
@@ -206,17 +261,106 @@ final class LoginWindowController: NSObject, WKNavigationDelegate {
         window?.close()
         window = nil
         webView = nil
+        cookieObserver = nil
         onComplete(result)
     }
 }
 
-extension LoginWindowController: NSWindowDelegate {
-    nonisolated func windowWillClose(_ notification: Notification) {
-        Task { @MainActor in
-            if !hasCompleted {
-                complete(with: .failure(NetworkError.notAuthenticated))
+// MARK: - WKNavigationDelegate
+
+@MainActor
+extension LoginWindowController: WKNavigationDelegate {
+    /// Called after every page load.
+    /// Strategy:
+    ///   1. If on /api/auth/session → read JWT from page body via JS; sync cookies; complete.
+    ///   2. Otherwise check for __Secure-next-auth.session-token cookie.
+    ///   3. If logged-in page but no session cookie → navigate to /api/auth/session.
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        guard let currentURL = webView.url else { return }
+        print("[Auth] didFinish: \(currentURL.absoluteString)")
+
+        // ── Case 1: We're on /api/auth/session — read the JWT from the page body ──
+        if currentURL.host?.contains("chatgpt.com") == true,
+           currentURL.path == "/api/auth/session" {
+            webView.evaluateJavaScript("document.body.innerText") { [weak self] result, _ in
+                guard let self, !self.hasCompleted else { return }
+                guard let text = result as? String, let data = text.data(using: .utf8) else {
+                    print("[Auth] /api/auth/session body unreadable — not logged in")
+                    return
+                }
+                print("[Auth] /api/auth/session body: \(text.prefix(200))")
+
+                struct SessionBody: Decodable { let accessToken: String? }
+                let decoder = JSONDecoder()
+                decoder.keyDecodingStrategy = .convertFromSnakeCase
+
+                guard let body = try? decoder.decode(SessionBody.self, from: data),
+                      body.accessToken != nil else {
+                    print("[Auth] no accessToken in /api/auth/session — redirecting to login page")
+                    guard !self.hasCompleted else { return }
+                    let loginURL = URL(string: "https://chatgpt.com/auth/login")!
+                    webView.load(URLRequest(url: loginURL))
+                    return
+                }
+
+                // Sync all chatgpt.com / openai.com cookies to URLSession before completing
+                webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { [weak self] cookies in
+                    guard let self, !self.hasCompleted else { return }
+                    for cookie in cookies where
+                        cookie.domain.contains("chatgpt.com") || cookie.domain.contains("openai.com") {
+                        HTTPCookieStorage.shared.setCookie(cookie)
+                    }
+                    print("[Auth] synced \(cookies.count) cookies → completing with sentinel ✓")
+                    // Pass a sentinel — AuthManager.refreshAccessToken() will re-call
+                    // /api/auth/session via URLSession using the now-synced cookies.
+                    Task { @MainActor [weak self] in
+                        self?.complete(with: .success("session-via-cookies"))
+                    }
+                }
+            }
+            return
+        }
+
+        // ── Case 2: Any other page — check for the classic session-token cookie ──
+        webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { [weak self] cookies in
+            guard let self else { return }
+            print("[Auth] checking \(cookies.count) cookies on \(currentURL.path)")
+
+            if let sessionCookie = cookies.first(where: {
+                $0.name == "__Secure-next-auth.session-token" && $0.domain.contains("chatgpt.com")
+            }) {
+                print("[Auth] found __Secure-next-auth.session-token ✓")
+                for cookie in cookies where
+                    cookie.domain.contains("chatgpt.com") || cookie.domain.contains("openai.com") {
+                    HTTPCookieStorage.shared.setCookie(cookie)
+                }
+                let value = sessionCookie.value
+                Task { @MainActor [weak self] in
+                    self?.complete(with: .success(value))
+                }
+            } else if currentURL.host?.contains("chatgpt.com") == true,
+                      !currentURL.path.hasPrefix("/auth/"),
+                      !currentURL.path.hasPrefix("/login") {
+                // Appears logged in (not on an auth page) but session token missing —
+                // navigate directly to /api/auth/session to read the JWT.
+                print("[Auth] appears logged in but no session cookie — navigating to /api/auth/session")
+                let sessionURL = URL(string: "https://chatgpt.com/api/auth/session")!
+                Task { @MainActor [weak self] in
+                    guard let self, !self.hasCompleted else { return }
+                    webView.load(URLRequest(url: sessionURL))
+                }
+            } else {
+                print("[Auth] waiting for user to log in…")
             }
         }
+    }
+}
+
+@MainActor
+extension LoginWindowController: NSWindowDelegate {
+    func windowWillClose(_ notification: Notification) {
+        guard !hasCompleted else { return }
+        complete(with: .failure(NetworkError.notAuthenticated))
     }
 }
 
@@ -238,9 +382,12 @@ private final class CookieObserver: NSObject, WKHTTPCookieStoreObserver, @unchec
                 $0.name == "__Secure-next-auth.session-token" && $0.domain.contains("chatgpt.com")
             }) {
                 self.hasFound = true
-                DispatchQueue.main.async {
-                    self.onSessionToken(sessionCookie.value)
+                for cookie in cookies where
+                    cookie.domain.contains("chatgpt.com") || cookie.domain.contains("openai.com") {
+                    HTTPCookieStorage.shared.setCookie(cookie)
                 }
+                let value = sessionCookie.value
+                self.onSessionToken(value)
             }
         }
     }

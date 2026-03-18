@@ -16,6 +16,7 @@
 		779B5BCC2EBC1AC187C561A5 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716B00F14F1370CDAC33B5EB /* SettingsView.swift */; };
 		92585202E96046BAB9CFF37E /* QuotaTimelineProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACD5E0D36B8FCEF6F2E97EFA /* QuotaTimelineProvider.swift */; };
 		94EB3B6AC94DDB40E367306C /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDE2263EBEB7008EF6988081 /* WebKit.framework */; };
+		96ECF77AF4F522CAF9619D23 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FB0180B641391BD6AFC75C41 /* Assets.xcassets */; };
 		98B72F5B1196475CAB2D49DB /* AIQuotaWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 76D9EEAA0A27FF50A5E170F4 /* AIQuotaWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		98F43072074B245C01E279A4 /* CountdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D136AA90C5E64F0E69E5B51 /* CountdownView.swift */; };
 		9FD10589109C0FC5A53692FD /* AIQuotaKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6F3F89B4746C627C8A2D541C /* AIQuotaKit */; };
@@ -67,6 +68,7 @@
 		D5F53FC0B0CEEDEB3DD6488A /* QuotaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaViewModel.swift; sourceTree = "<group>"; };
 		E012B199A00FF2ABD9B06DA4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		EDE2263EBEB7008EF6988081 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
+		FB0180B641391BD6AFC75C41 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FB657B3EE7EFE0906CC89C7E /* MenuBarIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIconView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -94,6 +96,7 @@
 		0CF29E076C587EA866F75396 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				FB0180B641391BD6AFC75C41 /* Assets.xcassets */,
 				E012B199A00FF2ABD9B06DA4 /* Info.plist */,
 			);
 			path = Resources;
@@ -211,6 +214,7 @@
 			buildConfigurationList = 32BF432C6F21647FFE372D58 /* Build configuration list for PBXNativeTarget "AIQuota" */;
 			buildPhases = (
 				AEE023DFD7EC2C6153008C62 /* Sources */,
+				906B2306FDF27E3FE30B791C /* Resources */,
 				DD66FB466AD2525FA8FE8DAE /* Frameworks */,
 				6ED5D27AA229E2A93B14F611 /* Embed Foundation Extensions */,
 			);
@@ -256,9 +260,11 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					15F2C56050333A977220B1ED = {
+						DevelopmentTeam = 289GY9L343;
 						ProvisioningStyle = Automatic;
 					};
 					7F9C5CB955BB7645111CD8CE = {
+						DevelopmentTeam = 289GY9L343;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -285,6 +291,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		906B2306FDF27E3FE30B791C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				96ECF77AF4F522CAF9619D23 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		567E9072CF68BA2D318184C9 /* Sources */ = {
@@ -386,6 +403,7 @@
 				CODE_SIGN_ENTITLEMENTS = AIQuotaWidget/Resources/AIQuotaWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = AIQuotaWidget/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -393,7 +411,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.aiquota.AIQuota.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota.widget;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
 			};
@@ -407,11 +425,12 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_APP_SANDBOX = YES;
 				INFOPLIST_FILE = AIQuota/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.aiquota.AIQuota;
+				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
 			};
@@ -423,6 +442,7 @@
 				CODE_SIGN_ENTITLEMENTS = AIQuotaWidget/Resources/AIQuotaWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = AIQuotaWidget/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -430,7 +450,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.aiquota.AIQuota.widget;
+				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota.widget;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
 			};
@@ -507,11 +527,12 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_APP_SANDBOX = YES;
 				INFOPLIST_FILE = AIQuota/Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.aiquota.AIQuota;
+				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota;
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_VERSION = 6.0;

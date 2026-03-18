@@ -4,7 +4,6 @@ import AIQuotaKit
 
 struct SettingsView: View {
     @Environment(QuotaViewModel.self) private var viewModel
-    @Environment(\.dismiss) private var dismiss
 
     private let refreshOptions = [5, 15, 30, 60]
 
@@ -33,7 +32,6 @@ struct SettingsView: View {
                 if viewModel.isAuthenticated {
                     Button("Sign Out", role: .destructive) {
                         viewModel.signOut()
-                        dismiss()
                     }
                 } else {
                     Button("Sign In with OpenAI") {
@@ -43,15 +41,10 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 400, height: 300)
+        .frame(width: 400)
         .navigationTitle("Settings")
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("Done") {
-                    viewModel.saveSettings()
-                    dismiss()
-                }
-            }
+        .onChange(of: viewModel.settings) {
+            viewModel.saveSettings()
         }
     }
 }

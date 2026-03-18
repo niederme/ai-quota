@@ -1,12 +1,14 @@
 import Foundation
 
 public enum SharedDefaults {
-    private static let suite = "group.com.aiquota.shared"
+    private static let suite = "group.com.niederme.AIQuota"
     private static let usageKey = "cachedCodexUsage"
     private static let settingsKey = "appSettings"
 
     private static var defaults: UserDefaults {
-        UserDefaults(suiteName: suite) ?? .standard
+        if let d = UserDefaults(suiteName: suite) { return d }
+        print("⚠️ [SharedDefaults] App Group '\(suite)' unavailable — falling back to .standard (widget won't see data)")
+        return .standard
     }
 
     public static func saveUsage(_ usage: CodexUsage) {
