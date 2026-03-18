@@ -20,6 +20,26 @@ struct SettingsView: View {
                 .pickerStyle(.segmented)
             }
 
+            Section("Notifications") {
+                Toggle("Enable notifications", isOn: $vm.settings.notificationsEnabled)
+                    .onChange(of: vm.settings.notificationsEnabled) { _, enabled in
+                        if enabled {
+                            Task { await NotificationManager.shared.requestPermission() }
+                        }
+                    }
+
+                if viewModel.settings.notificationsEnabled {
+                    Button("Send test notifications") {
+                        Task { await viewModel.testNotifications() }
+                    }
+                    .foregroundStyle(.secondary)
+
+                    Text("Fires all four notification types (2 s apart) to verify they appear.")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+
             Section("Launch") {
                 LaunchAtLoginToggle()
             }

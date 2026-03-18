@@ -46,6 +46,9 @@ final class QuotaViewModel {
             usage = result
             SharedDefaults.saveUsage(result)
             WidgetCenter.shared.reloadTimelines(ofKind: "AIQuotaWidget")
+            if settings.notificationsEnabled {
+                await NotificationManager.shared.evaluate(current: result)
+            }
         } catch let e as NetworkError {
             error = e
         } catch {
@@ -54,6 +57,9 @@ final class QuotaViewModel {
     }
 
     func startAutoRefresh() {
+        if settings.notificationsEnabled {
+            Task { await NotificationManager.shared.requestPermission() }
+        }
         refreshTask?.cancel()
         refreshTask = Task { [weak self] in
             guard let self else { return }
@@ -88,5 +94,14 @@ final class QuotaViewModel {
     func saveSettings() {
         SharedDefaults.saveSettings(settings)
         if isAuthenticated { startAutoRefresh() }
+    }
+
+    // MARK: - Notification testing
+
+    /// Fires all four notification types immediately, ignoring threshold state.
+    /// For development/testing only.
+    func testNotifications() async {
+        await NotificationManager.shared.requestPermission()
+        await NotificationManager.shared.fireTestNotifications()
     }
 }
