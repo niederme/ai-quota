@@ -24,8 +24,10 @@ public actor NotificationManager {
 
     /// Asks the system for notification permission. Safe to call multiple times.
     public func requestPermission() async {
-        try? await UNUserNotificationCenter.current()
-            .requestAuthorization(options: [.alert, .sound])
+        do {
+            try await UNUserNotificationCenter.current()
+                .requestAuthorization(options: [.alert, .sound])
+        } catch {}
     }
 
     /// Called after every successful quota fetch. Fires at most one notification
