@@ -6,21 +6,12 @@ import AIQuotaKit
 struct MenuBarIconView: View {
     let usage: CodexUsage?
     let isLoading: Bool
-    let showPercent: Bool
 
     var body: some View {
-        HStack(spacing: 3) {
-            Image(nsImage: gaugeImage)
-                .interpolation(.high)
-                .antialiased(true)
-                .frame(width: 22, height: 22)
-
-            if showPercent, let u = usage {
-                Text("\(u.weeklyRemaining)%")
-                    .font(.system(size: 11, weight: .medium, design: .monospaced))
-                    .contentTransition(.numericText())
-            }
-        }
+        Image(nsImage: gaugeImage)
+            .interpolation(.high)
+            .antialiased(true)
+            .frame(width: 22, height: 22)
     }
 
     // MARK: - Gauge NSImage (lockFocusFlipped = y-up, same coords as icon generator)

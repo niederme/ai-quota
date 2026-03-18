@@ -10,8 +10,7 @@ struct AIQuotaApp: App {
             PopoverView()
                 .environment(viewModel)
         } label: {
-            MenuBarIconView(usage: viewModel.usage, isLoading: viewModel.isLoading,
-                            showPercent: viewModel.settings.showPercentInMenuBar)
+            MenuBarIconView(usage: viewModel.usage, isLoading: viewModel.isLoading)
         }
         .menuBarExtraStyle(.window)
 

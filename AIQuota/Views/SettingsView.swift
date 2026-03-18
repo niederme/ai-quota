@@ -20,10 +20,6 @@ struct SettingsView: View {
                 .pickerStyle(.segmented)
             }
 
-            Section("Menu Bar") {
-                Toggle("Show percentage in menu bar", isOn: $vm.settings.showPercentInMenuBar)
-            }
-
             Section("Launch") {
                 LaunchAtLoginToggle()
             }

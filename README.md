@@ -11,17 +11,15 @@ A native macOS menubar utility to monitor your [OpenAI Codex](https://openai.com
 
 ## Features
 
-- **Menubar gauge icon** — arc gauge showing quota consumption in real time, color-coded:
-  - ⚫ System Default — plenty of quota remaining (>15%)
+- **Menubar gauge icon** — color-coded arc gauge showing quota consumption at a glance:
+  - ⚫ White — plenty of quota remaining (>15%)
   - 🟡 Amber — getting low (5–15%)
   - 🔴 Red — critical or limit reached (<5%)
-- **Optional percentage** — toggle a live countdown in the menu bar (e.g. `42%`)
-- **Popover detail view** — weekly usage bar, short rolling window, Codex credits, estimated local/cloud messages, plan badge, last-fetched timestamp
+- **Popover detail view** — click the icon to see weekly usage bar, Codex credits, estimated local/cloud messages, plan badge, and last-fetched timestamp
 - **Limit reached banner** — prominent alert with reset countdown when your weekly cap is hit
 - **Auto-refresh** — background polling with manual refresh button
 - **WidgetKit widget** — small and medium desktop widgets that update alongside the app
 - **Sign in with ChatGPT** — OAuth via browser session, tokens stored securely in Keychain
-- **Settings** — toggle menu bar percentage, sign out
 
 ---
 

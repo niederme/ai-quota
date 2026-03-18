@@ -2,16 +2,13 @@ import Foundation
 
 public struct AppSettings: Codable, Sendable, Equatable {
     public var refreshIntervalMinutes: Int
-    public var showPercentInMenuBar: Bool
 
     public static let `default` = AppSettings(
-        refreshIntervalMinutes: 15,
-        showPercentInMenuBar: true
+        refreshIntervalMinutes: 15
     )
 
-    public init(refreshIntervalMinutes: Int, showPercentInMenuBar: Bool) {
+    public init(refreshIntervalMinutes: Int) {
         self.refreshIntervalMinutes = refreshIntervalMinutes
-        self.showPercentInMenuBar = showPercentInMenuBar
     }
 
     public var refreshInterval: TimeInterval {
