@@ -18,48 +18,48 @@ struct WidgetMediumView: View {
     }
 
     var body: some View {
-        HStack(spacing: 16) {
-            // Left: gauge icon + percentage + bar
-            VStack(alignment: .leading, spacing: 8) {
+        HStack(spacing: 0) {
+            // Left: gauge icon + percentage
+            VStack(spacing: 0) {
+                Spacer()
+
                 Label("Codex", systemImage: limitReached ? "exclamationmark.octagon.fill" : "brain.fill")
-                    .font(.caption.bold())
+                    .font(.caption2.bold())
                     .foregroundStyle(limitReached ? .red : .purple)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
                 Spacer()
 
-                if let _ = entry.usage {
-                    HStack(alignment: .center, spacing: 8) {
+                if entry.usage != nil {
+                    VStack(spacing: 3) {
                         Image(nsImage: GaugeImageMaker.image(
                             usedPercent: pct,
                             limitReached: limitReached,
                             isLoading: false,
-                            size: 44
+                            size: 48
                         ))
-                        .frame(width: 44, height: 44)
+                        .frame(width: 48, height: 48)
 
                         Text("\(pct)%")
-                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
                             .contentTransition(.numericText())
                             .foregroundStyle(tintColor)
+
+                        Text("weekly usage")
+                            .font(.system(size: 9))
+                            .foregroundStyle(.tertiary)
                     }
-
-                    Gauge(value: fraction) { EmptyView() }
-                        .gaugeStyle(.linearCapacity)
-                        .tint(tintColor)
-                        .frame(height: 5)
-
-                    Text("weekly usage")
-                        .font(.system(size: 9))
-                        .foregroundStyle(.tertiary)
                 } else {
                     Text("—").font(.title.bold()).foregroundStyle(.tertiary)
                 }
 
                 Spacer()
             }
+            .padding(.leading, 14)
             .frame(maxWidth: .infinity)
 
             Divider()
+                .padding(.vertical, 10)
 
             // Right: detail rows
             VStack(alignment: .leading, spacing: 5) {
@@ -88,9 +88,10 @@ struct WidgetMediumView: View {
                     Spacer()
                 }
             }
+            .padding(.horizontal, 14)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(14)
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 

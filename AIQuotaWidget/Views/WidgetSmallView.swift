@@ -18,62 +18,65 @@ struct WidgetSmallView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(spacing: 0) {
+            // Header
             Label("Codex", systemImage: limitReached ? "exclamationmark.octagon.fill" : "brain.fill")
                 .font(.caption2.bold())
                 .foregroundStyle(limitReached ? .red : .purple)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             Spacer()
 
             if let usage = entry.usage {
-                HStack(alignment: .center, spacing: 6) {
+                // Gauge + percentage centered
+                VStack(spacing: 3) {
                     Image(nsImage: GaugeImageMaker.image(
                         usedPercent: pct,
                         limitReached: limitReached,
                         isLoading: false,
-                        size: 36
+                        size: 40
                     ))
-                    .frame(width: 36, height: 36)
+                    .frame(width: 40, height: 40)
 
                     Text("\(pct)%")
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
                         .contentTransition(.numericText())
                         .foregroundStyle(tintColor)
                 }
+                .frame(maxWidth: .infinity)
 
-                Gauge(value: fraction) { EmptyView() }
-                    .gaugeStyle(.linearCapacity)
-                    .tint(tintColor)
+                Spacer()
 
-                if limitReached {
-                    Text("Limit reached")
-                        .font(.caption2.bold())
-                        .foregroundStyle(.red)
-                } else {
-                    Text("\(usage.weeklyRemaining)% left")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                // Footer
+                VStack(alignment: .leading, spacing: 2) {
+                    if limitReached {
+                        Text("Limit reached")
+                            .font(.caption2.bold())
+                            .foregroundStyle(.red)
+                    } else {
+                        Text("\(usage.weeklyRemaining)% remaining")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(countdownText(seconds: usage.weeklyResetAfterSeconds))
+                        .font(.system(size: 9))
+                        .foregroundStyle(.tertiary)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
             } else {
                 Text("—")
                     .font(.title.bold())
                     .foregroundStyle(.tertiary)
-                Text("Sign in")
+                Spacer()
+                Text("Sign in to AIQuota")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            if let usage = entry.usage {
-                Text(countdownText(seconds: usage.weeklyResetAfterSeconds))
-                    .font(.system(size: 9))
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func countdownText(seconds: Int) -> String {
