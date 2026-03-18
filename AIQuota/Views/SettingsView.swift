@@ -1,5 +1,6 @@
 import SwiftUI
 import ServiceManagement
+import UserNotifications
 import AIQuotaKit
 
 struct SettingsView: View {
@@ -29,14 +30,10 @@ struct SettingsView: View {
                     }
 
                 if viewModel.settings.notificationsEnabled {
+                    NotificationStatusRow()
                     Button("Send test notifications") {
                         Task { await viewModel.testNotifications() }
                     }
-                    .foregroundStyle(.secondary)
-
-                    Text("Fires all four notification types (2 s apart) to verify they appear.")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
                 }
             }
 
@@ -61,6 +58,44 @@ struct SettingsView: View {
         .navigationTitle("Settings")
         .onChange(of: viewModel.settings) {
             viewModel.saveSettings()
+        }
+    }
+}
+
+// MARK: - Notification Status
+
+private struct NotificationStatusRow: View {
+    @State private var status: UNAuthorizationStatus = .notDetermined
+
+    var body: some View {
+        HStack {
+            switch status {
+            case .authorized:
+                Label("Permission granted", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+            case .denied:
+                Label("Permission denied", systemImage: "xmark.circle.fill")
+                    .foregroundStyle(.red)
+                Spacer()
+                Button("Open System Settings") {
+                    NSWorkspace.shared.open(
+                        URL(string: "x-apple.systempreferences:com.apple.preference.notifications")!
+                    )
+                }
+                .buttonStyle(.borderless)
+                .foregroundStyle(.blue)
+            case .notDetermined:
+                Label("Permission not requested yet", systemImage: "questionmark.circle")
+                    .foregroundStyle(.secondary)
+            default:
+                Label("Unknown status", systemImage: "questionmark.circle")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .font(.caption)
+        .task {
+            let settings = await UNUserNotificationCenter.current().notificationSettings()
+            status = settings.authorizationStatus
         }
     }
 }
