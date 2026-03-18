@@ -10,7 +10,7 @@ A native macOS menubar utility to monitor your [OpenAI Codex](https://openai.com
 ## Features
 
 - **Menubar gauge icon** — arc gauge showing quota consumption in real time, color-coded:
-  - White — plenty of quota remaining (>15%)
+  - ⚫ System Default — plenty of quota remaining (>15%)
   - 🟡 Amber — getting low (5–15%)
   - 🔴 Red — critical or limit reached (<5%)
 - **Optional percentage** — toggle a live countdown in the menu bar (e.g. `42%`)
