@@ -210,6 +210,8 @@ struct PopoverView: View {
             }
             Spacer()
             Button("Sign Out", role: .destructive) { viewModel.signOut() }
+            Divider().frame(height: 12)
+            Button("Quit", role: .destructive) { NSApp.terminate(nil) }
         }
         .buttonStyle(.borderless)
         .font(.footnote)
@@ -259,6 +261,11 @@ struct PopoverView: View {
             .buttonStyle(.borderedProminent)
             .tint(Color(red: 0.62, green: 0.22, blue: 0.93))
             .controlSize(.large)
+
+            Button("Quit") { NSApp.terminate(nil) }
+                .buttonStyle(.borderless)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
         }
         .padding(24)
     }
