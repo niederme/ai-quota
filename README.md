@@ -83,7 +83,7 @@ ai-quota/
 - [ ] Gemini quota support (Google AI plans)
 - [ ] Configurable default service shown in menu bar
 - [x] Notifications — below 15%, below 5%, limit reached, quota reset
-- [ ] Check for Updates (with optional auto-check)
+- [x] Check for Updates — manual + optional auto-check via Sparkle
 
 ---
 

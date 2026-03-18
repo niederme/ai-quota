@@ -35,5 +35,12 @@
 	<string>public.app-category.utilities</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026. All rights reserved.</string>
+	<!-- Sparkle auto-updater -->
+	<key>SUPublicEDKey</key>
+	<string>BoI4JbcPfhjC3sNCSiIdo4XNO5krfxP2RCrm56M5cYY=</string>
+	<key>SUFeedURL</key>
+	<string>https://github.com/niederme/ai-quota/releases/latest/download/appcast.xml</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 </dict>
 </plist>

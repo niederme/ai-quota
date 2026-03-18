@@ -5,6 +5,7 @@ import AIQuotaKit
 
 struct SettingsView: View {
     @Environment(QuotaViewModel.self) private var viewModel
+    @Environment(UpdaterViewModel.self) private var updater
 
     private let refreshOptions = [5, 15, 30, 60]
 
@@ -35,6 +36,15 @@ struct SettingsView: View {
                         Task { await viewModel.testNotifications() }
                     }
                 }
+            }
+
+            Section("Updates") {
+                @Bindable var u = updater
+                Toggle("Automatically check for updates", isOn: $u.automaticallyChecksForUpdates)
+                Button("Check for Updates Now") {
+                    updater.checkForUpdates()
+                }
+                .disabled(!updater.canCheckForUpdates)
             }
 
             Section("Launch") {

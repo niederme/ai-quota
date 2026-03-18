@@ -20,6 +20,9 @@ settings:
 packages:
   AIQuotaKit:
     path: Packages/AIQuotaKit
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    version: 2.9.0
 
 targets:
 
@@ -39,6 +42,8 @@ targets:
           - AIQuota.entitlements
     dependencies:
       - package: AIQuotaKit
+      - package: Sparkle
+        product: Sparkle
       - target: AIQuotaWidget
         embed: true
       - sdk: WebKit.framework
