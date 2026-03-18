@@ -2,13 +2,14 @@ import SwiftUI
 import AIQuotaKit
 
 struct MenuBarIconView: View {
-    let usage: CodexUsage?
+    let usedPercent: Int
+    let limitReached: Bool
     let isLoading: Bool
 
     var body: some View {
         Image(nsImage: GaugeImageMaker.image(
-            usedPercent: usage?.weeklyUsedPercent ?? 0,
-            limitReached: usage?.limitReached ?? false,
+            usedPercent: usedPercent,
+            limitReached: limitReached,
             isLoading: isLoading,
             size: 22
         ))

@@ -13,7 +13,9 @@
 		56024A9E038E05B44FFF61FE /* WidgetMediumView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76B773676A8FBADF9E560DB2 /* WidgetMediumView.swift */; };
 		6C522866B159D2A3FE422C0D /* UsageGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 521E05B6030711C7B85B8092 /* UsageGaugeView.swift */; };
 		72AE89A41BD0B809A9D6DAB9 /* AIQuotaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3E5BEBFAE5CBFD5ABBEB22 /* AIQuotaApp.swift */; };
+		7301F858542C589FF8A78E37 /* UpdaterViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE3CDEE9A5B7D5B416193D23 /* UpdaterViewModel.swift */; };
 		779B5BCC2EBC1AC187C561A5 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716B00F14F1370CDAC33B5EB /* SettingsView.swift */; };
+		924F0EB6579EBF80E4C0FF46 /* WidgetIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F1F18DB5A7FD4515D863D71 /* WidgetIntent.swift */; };
 		92585202E96046BAB9CFF37E /* QuotaTimelineProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACD5E0D36B8FCEF6F2E97EFA /* QuotaTimelineProvider.swift */; };
 		94EB3B6AC94DDB40E367306C /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDE2263EBEB7008EF6988081 /* WebKit.framework */; };
 		96ECF77AF4F522CAF9619D23 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FB0180B641391BD6AFC75C41 /* Assets.xcassets */; };
@@ -21,6 +23,7 @@
 		98F43072074B245C01E279A4 /* CountdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D136AA90C5E64F0E69E5B51 /* CountdownView.swift */; };
 		9FD10589109C0FC5A53692FD /* AIQuotaKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6F3F89B4746C627C8A2D541C /* AIQuotaKit */; };
 		ADD6CD78B8173A141696E733 /* AIQuotaWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FC79333A7787720CC4F63B8 /* AIQuotaWidget.swift */; };
+		B5FDF2BA2E1AF047B995BACE /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = FB0002B3439366F7C9621561 /* Sparkle */; };
 		F15449DA517BF7C4B79320DC /* PopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2B4A02F2F3618A00A9FE938 /* PopoverView.swift */; };
 		F2F0EB0760448D88611066A4 /* WidgetSmallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABA7E1FF303A5852FC6BCC6 /* WidgetSmallView.swift */; };
 		FC5F1405D182501F5FFAC02C /* AIQuotaWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4392F2EBD4EFDCA51009B2E9 /* AIQuotaWidgetBundle.swift */; };
@@ -53,6 +56,7 @@
 /* Begin PBXFileReference section */
 		05DE0EF729DDBD14B958D28B /* AIQuota.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AIQuota.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		16BD0A4CB52E425D9A5A6C34 /* AIQuotaKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = AIQuotaKit; path = Packages/AIQuotaKit; sourceTree = SOURCE_ROOT; };
+		1F1F18DB5A7FD4515D863D71 /* WidgetIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetIntent.swift; sourceTree = "<group>"; };
 		3E3E5BEBFAE5CBFD5ABBEB22 /* AIQuotaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIQuotaApp.swift; sourceTree = "<group>"; };
 		3FC79333A7787720CC4F63B8 /* AIQuotaWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIQuotaWidget.swift; sourceTree = "<group>"; };
 		4392F2EBD4EFDCA51009B2E9 /* AIQuotaWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIQuotaWidgetBundle.swift; sourceTree = "<group>"; };
@@ -64,6 +68,7 @@
 		76D9EEAA0A27FF50A5E170F4 /* AIQuotaWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AIQuotaWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		AABA7E1FF303A5852FC6BCC6 /* WidgetSmallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSmallView.swift; sourceTree = "<group>"; };
 		ACD5E0D36B8FCEF6F2E97EFA /* QuotaTimelineProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaTimelineProvider.swift; sourceTree = "<group>"; };
+		AE3CDEE9A5B7D5B416193D23 /* UpdaterViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterViewModel.swift; sourceTree = "<group>"; };
 		B2B4A02F2F3618A00A9FE938 /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
 		D5F53FC0B0CEEDEB3DD6488A /* QuotaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaViewModel.swift; sourceTree = "<group>"; };
 		E012B199A00FF2ABD9B06DA4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -86,6 +91,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9FD10589109C0FC5A53692FD /* AIQuotaKit in Frameworks */,
+				B5FDF2BA2E1AF047B995BACE /* Sparkle in Frameworks */,
 				94EB3B6AC94DDB40E367306C /* WebKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -114,6 +120,7 @@
 			isa = PBXGroup;
 			children = (
 				D5F53FC0B0CEEDEB3DD6488A /* QuotaViewModel.swift */,
+				AE3CDEE9A5B7D5B416193D23 /* UpdaterViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
@@ -123,6 +130,7 @@
 			children = (
 				3FC79333A7787720CC4F63B8 /* AIQuotaWidget.swift */,
 				4392F2EBD4EFDCA51009B2E9 /* AIQuotaWidgetBundle.swift */,
+				1F1F18DB5A7FD4515D863D71 /* WidgetIntent.swift */,
 				D923091536A6036DDB722437 /* Views */,
 				F72C8D04646252EEA19E44E4 /* Resources */,
 				E6EEDCE741693B8BB8F8AE5A /* Provider */,
@@ -227,6 +235,7 @@
 			name = AIQuota;
 			packageProductDependencies = (
 				6F3F89B4746C627C8A2D541C /* AIQuotaKit */,
+				FB0002B3439366F7C9621561 /* Sparkle */,
 			);
 			productName = AIQuota;
 			productReference = 05DE0EF729DDBD14B958D28B /* AIQuota.app */;
@@ -281,6 +290,7 @@
 			mainGroup = 8A80EB9F69E97A481D4D779B;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				482320011C9DDFBCEE718F58 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				B29429342060C8AE503CD0EE /* XCLocalSwiftPackageReference "Packages/AIQuotaKit" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -354,6 +364,7 @@
 				ADD6CD78B8173A141696E733 /* AIQuotaWidget.swift in Sources */,
 				FC5F1405D182501F5FFAC02C /* AIQuotaWidgetBundle.swift in Sources */,
 				92585202E96046BAB9CFF37E /* QuotaTimelineProvider.swift in Sources */,
+				924F0EB6579EBF80E4C0FF46 /* WidgetIntent.swift in Sources */,
 				56024A9E038E05B44FFF61FE /* WidgetMediumView.swift in Sources */,
 				F2F0EB0760448D88611066A4 /* WidgetSmallView.swift in Sources */,
 			);
@@ -369,6 +380,7 @@
 				F15449DA517BF7C4B79320DC /* PopoverView.swift in Sources */,
 				1EDE4F3056D8B3FE3D63FD79 /* QuotaViewModel.swift in Sources */,
 				779B5BCC2EBC1AC187C561A5 /* SettingsView.swift in Sources */,
+				7301F858542C589FF8A78E37 /* UpdaterViewModel.swift in Sources */,
 				6C522866B159D2A3FE422C0D /* UsageGaugeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -431,7 +443,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.3.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -557,7 +569,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.3.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -629,6 +641,17 @@
 		};
 /* End XCLocalSwiftPackageReference section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		482320011C9DDFBCEE718F58 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = exactVersion;
+				version = 2.9.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		4107956DD8A43F21A1968899 /* AIQuotaKit */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -637,6 +660,11 @@
 		6F3F89B4746C627C8A2D541C /* AIQuotaKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AIQuotaKit;
+		};
+		FB0002B3439366F7C9621561 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 482320011C9DDFBCEE718F58 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

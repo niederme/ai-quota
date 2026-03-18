@@ -7,7 +7,7 @@
 #
 # Prerequisites:
 #   - Sparkle tools in PATH or at $SPARKLE_TOOLS (default: /tmp/sparkle-tools/bin)
-#   - App built and exported to /Applications/AIQuota.app
+#   - App exported from Xcode to ~/Desktop/AIQuota.app (or /Applications/AIQuota.app)
 #   - gh CLI authenticated
 set -euo pipefail
 
@@ -18,6 +18,17 @@ REPO="niederme/ai-quota"
 DMG="/tmp/AIQuota.dmg"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APPCAST="${REPO_ROOT}/appcast.xml"
+
+# ── Locate exported .app (Desktop preferred, fallback to /Applications) ───────
+if [ -d "$HOME/Desktop/AIQuota.app" ]; then
+    APP_SRC="$HOME/Desktop/AIQuota.app"
+elif [ -d "/Applications/AIQuota.app" ]; then
+    APP_SRC="/Applications/AIQuota.app"
+else
+    echo "✗ AIQuota.app not found on Desktop or in /Applications. Export from Xcode first."
+    exit 1
+fi
+echo "▶ Using app: ${APP_SRC}"
 
 # ── Draft release notes from git commits since last tag ──────────────────────
 LAST_TAG=$(git -C "$REPO_ROOT" describe --tags --abbrev=0 2>/dev/null || echo "")
@@ -35,7 +46,11 @@ NOTES_FILE=$(mktemp /tmp/release-notes.XXXXXX.md)
 } > "$NOTES_FILE"
 
 echo "▶ Opening release notes for editing (close editor to continue)…"
-"${EDITOR:-open -W -a TextEdit}" "$NOTES_FILE"
+if [ -n "${EDITOR:-}" ]; then
+    "$EDITOR" "$NOTES_FILE"
+else
+    open -W -a TextEdit "$NOTES_FILE"
+fi
 
 RELEASE_NOTES=$(cat "$NOTES_FILE")
 rm "$NOTES_FILE"
@@ -44,7 +59,7 @@ rm "$NOTES_FILE"
 echo "▶ Building DMG for ${TAG}…"
 rm -rf /tmp/AIQuota-dmg-staging
 mkdir /tmp/AIQuota-dmg-staging
-cp -R /Applications/AIQuota.app /tmp/AIQuota-dmg-staging/
+cp -R "$APP_SRC" /tmp/AIQuota-dmg-staging/
 ln -s /Applications /tmp/AIQuota-dmg-staging/Applications
 hdiutil create "$DMG" -volname "AIQuota" -srcfolder /tmp/AIQuota-dmg-staging -ov -format UDZO
 
@@ -60,12 +75,15 @@ echo "▶ Generating appcast.xml…"
 BUILD=$(git -C "$REPO_ROOT" rev-list --count HEAD)
 DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${TAG}/AIQuota.dmg"
 
-# Convert markdown notes to simple HTML for Sparkle's in-app display
+# Convert markdown notes to styled HTML for Sparkle's in-app WebView
 NOTES_HTML=$(echo "$RELEASE_NOTES" | sed \
   's|## \(.*\)|<h2>\1</h2>|g' \
   | sed 's|^- \(.*\)|<li>\1</li>|g' \
-  | sed '/^<li>/{ x; s/.*//; x; }' \
-  | tr '\n' ' ')
+  | sed 's|\*\*\([^*]*\)\*\*|<strong>\1</strong>|g' \
+  | tr '\n' ' ' \
+  | sed 's|<li>|<ul><li>|' \
+  | sed 's|</li> <h2>|</li></ul><h2>|g' \
+  | sed 's|</li> *$|</li></ul>|')
 
 cat > "$APPCAST" <<EOF
 <?xml version="1.0" encoding="utf-8"?>
@@ -76,8 +94,44 @@ cat > "$APPCAST" <<EOF
         <description>AIQuota release feed</description>
         <item>
             <title>Version ${VERSION}</title>
-            <description><![CDATA[${NOTES_HTML}]]></description>
-            <sparkle:releaseNotesLink>https://github.com/${REPO}/releases/tag/${TAG}</sparkle:releaseNotesLink>
+            <description><![CDATA[
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body {
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    color: #e0e0e0;
+    background: #1e1e1e;
+    margin: 16px 20px;
+    line-height: 1.5;
+  }
+  h2 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0 0 10px 0;
+  }
+  ul {
+    margin: 4px 0 0 0;
+    padding-left: 18px;
+  }
+  li {
+    margin-bottom: 5px;
+    color: #cccccc;
+  }
+  li strong {
+    color: #ffffff;
+  }
+</style>
+</head>
+<body>
+${NOTES_HTML}
+</body>
+</html>
+]]></description>
             <sparkle:version>${BUILD}</sparkle:version>
             <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>

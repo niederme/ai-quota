@@ -12,8 +12,12 @@ public actor NotificationManager {
     // MARK: - Persistence keys
 
     private enum Key {
-        static let notifiedThresholds = "notificationThresholds"   // [String]
-        static let lastWeeklyResetAt  = "notificationLastResetAt"  // Double (Unix timestamp)
+        // Codex
+        static let codexThresholds  = "notificationThresholds"
+        static let codexLastResetAt = "notificationLastResetAt"
+        // Claude
+        static let claudeThresholds  = "claudeNotificationThresholds"
+        static let claudeLastResetAt = "claudeNotificationLastResetAt"
     }
 
     private var defaults: UserDefaults {
@@ -30,23 +34,24 @@ public actor NotificationManager {
         } catch {}
     }
 
-    /// Called after every successful quota fetch. Fires at most one notification
-    /// per threshold per weekly window, and one "reset" notification when the
-    /// weekly window rolls over.
+    // MARK: - Codex evaluation
+
+    /// Called after every successful Codex fetch. Fires at most one notification
+    /// per threshold per weekly window, and one "reset" notification when the week rolls over.
     public func evaluate(current: CodexUsage) async {
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized else { return }
 
-        let storedResetAt = defaults.object(forKey: Key.lastWeeklyResetAt) as? Double
+        let storedResetAt  = defaults.object(forKey: Key.codexLastResetAt) as? Double
         let currentResetAt = current.weeklyResetAt.timeIntervalSince1970
 
         // ── Quota reset: week rolled over ──────────────────────────────────
         if let stored = storedResetAt, stored != currentResetAt {
-            clearThresholds()
-            defaults.set(currentResetAt, forKey: Key.lastWeeklyResetAt)
+            clearThresholds(key: Key.codexThresholds)
+            defaults.set(currentResetAt, forKey: Key.codexLastResetAt)
             await send(
-                id: "quotaReset",
+                id: "codexReset",
                 title: "Codex quota reset",
                 body: "Your weekly Codex quota has reset — you're back to 100%."
             )
@@ -55,48 +60,106 @@ public actor NotificationManager {
 
         // First run: just store the reset date, no notification
         if storedResetAt == nil {
-            defaults.set(currentResetAt, forKey: Key.lastWeeklyResetAt)
+            defaults.set(currentResetAt, forKey: Key.codexLastResetAt)
             return
         }
 
         // ── Threshold notifications (fire once per threshold per week) ─────
-        let notified = loadThresholds()
+        let notified  = loadThresholds(key: Key.codexThresholds)
         let remaining = current.weeklyRemaining
 
         if current.limitReached && !notified.contains("limitReached") {
-            markThreshold("limitReached")
+            markThreshold("limitReached", key: Key.codexThresholds)
             await send(
-                id: "limitReached",
+                id: "codexLimitReached",
                 title: "Codex quota reached",
                 body: "Your weekly Codex quota is fully used. Resets in \(timeString(current.weeklyResetAfterSeconds))."
             )
         } else if remaining < 5 && !notified.contains("below5") {
-            markThreshold("below5")
+            markThreshold("below5", key: Key.codexThresholds)
             await send(
-                id: "below5",
+                id: "codexBelow5",
                 title: "Codex quota critical",
                 body: "Less than 5% of your weekly Codex quota remains."
             )
         } else if remaining < 15 && !notified.contains("below15") {
-            markThreshold("below15")
+            markThreshold("below15", key: Key.codexThresholds)
             await send(
-                id: "below15",
+                id: "codexBelow15",
                 title: "Codex quota low",
                 body: "Less than 15% of your weekly Codex quota remains."
             )
         }
     }
 
+    // MARK: - Claude evaluation
+
+    /// Called after every successful Claude fetch. Fires once per threshold
+    /// per rate-limit window, and once when the window resets.
+    public func evaluate(claude: ClaudeUsage) async {
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        guard settings.authorizationStatus == .authorized else { return }
+
+        let storedResetAt  = defaults.object(forKey: Key.claudeLastResetAt) as? Double
+        let currentResetAt = claude.resetAt.timeIntervalSince1970
+
+        // ── Window reset ────────────────────────────────────────────────────
+        if let stored = storedResetAt, stored != currentResetAt {
+            clearThresholds(key: Key.claudeThresholds)
+            defaults.set(currentResetAt, forKey: Key.claudeLastResetAt)
+            await send(
+                id: "claudeReset",
+                title: "Claude window reset",
+                body: "Your Claude 5-hour window has reset — you're back to full capacity."
+            )
+            return
+        }
+
+        if storedResetAt == nil {
+            defaults.set(currentResetAt, forKey: Key.claudeLastResetAt)
+            return
+        }
+
+        // ── Threshold notifications ─────────────────────────────────────────
+        let notified  = loadThresholds(key: Key.claudeThresholds)
+        let remaining = claude.remainingPercent
+
+        if claude.limitReached && !notified.contains("limitReached") {
+            markThreshold("limitReached", key: Key.claudeThresholds)
+            await send(
+                id: "claudeLimitReached",
+                title: "Claude rate limit reached",
+                body: "Your 5-hour Claude window is fully used. Resets in \(timeString(claude.resetAfterSeconds))."
+            )
+        } else if remaining < 5 && !notified.contains("below5") {
+            markThreshold("below5", key: Key.claudeThresholds)
+            await send(
+                id: "claudeBelow5",
+                title: "Claude quota critical",
+                body: "Less than 5% of your Claude 5-hour window capacity remains."
+            )
+        } else if remaining < 15 && !notified.contains("below15") {
+            markThreshold("below15", key: Key.claudeThresholds)
+            await send(
+                id: "claudeBelow15",
+                title: "Claude quota low",
+                body: "Less than 15% of your Claude 5-hour window capacity remains."
+            )
+        }
+    }
+
     // MARK: - Test helper
 
-    /// Fires all four notification types with a 2-second delay between each.
-    /// Ignores threshold state — for development/QA only.
+    /// Fires all notification types with a 2-second gap. For development/QA only.
     public func fireTestNotifications() async {
         let notifications: [(String, String, String)] = [
-            ("test.below15",     "Codex quota low",      "Less than 15% of your weekly Codex quota remains."),
-            ("test.below5",      "Codex quota critical", "Less than 5% of your weekly Codex quota remains."),
-            ("test.limitReached","Codex quota reached",  "Your weekly Codex quota is fully used. Resets in 9h 30m."),
-            ("test.reset",       "Codex quota reset",    "Your weekly Codex quota has reset — you're back to 100%."),
+            ("test.codex.below15",       "Codex quota low",       "Less than 15% of your weekly Codex quota remains."),
+            ("test.codex.below5",        "Codex quota critical",  "Less than 5% of your weekly Codex quota remains."),
+            ("test.codex.limitReached",  "Codex quota reached",   "Your weekly Codex quota is fully used. Resets in 9h 30m."),
+            ("test.codex.reset",         "Codex quota reset",     "Your weekly Codex quota has reset — you're back to 100%."),
+            ("test.claude.below15",      "Claude quota low",      "Less than 15% of your Claude message allowance remains."),
+            ("test.claude.limitReached", "Claude limit reached",  "You've used all messages in your current Claude window."),
         ]
         for (id, title, body) in notifications {
             await send(id: id, title: title, body: body)
@@ -115,18 +178,18 @@ public actor NotificationManager {
         do { try await UNUserNotificationCenter.current().add(request) } catch {}
     }
 
-    private func loadThresholds() -> Set<String> {
-        Set(defaults.stringArray(forKey: Key.notifiedThresholds) ?? [])
+    private func loadThresholds(key: String) -> Set<String> {
+        Set(defaults.stringArray(forKey: key) ?? [])
     }
 
-    private func markThreshold(_ threshold: String) {
-        var set = loadThresholds()
+    private func markThreshold(_ threshold: String, key: String) {
+        var set = loadThresholds(key: key)
         set.insert(threshold)
-        defaults.set(Array(set), forKey: Key.notifiedThresholds)
+        defaults.set(Array(set), forKey: key)
     }
 
-    private func clearThresholds() {
-        defaults.removeObject(forKey: Key.notifiedThresholds)
+    private func clearThresholds(key: String) {
+        defaults.removeObject(forKey: key)
     }
 
     private func timeString(_ seconds: Int) -> String {

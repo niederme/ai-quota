@@ -22,12 +22,12 @@ struct AIQuotaWidget: Widget {
     let kind = "AIQuotaWidget"
 
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: QuotaTimelineProvider()) { entry in
+        AppIntentConfiguration(kind: kind, intent: ConfigurationAppIntent.self, provider: QuotaTimelineProvider()) { entry in
             AIQuotaWidgetView(entry: entry)
                 .containerBackground(.fill.tertiary, for: .widget)
         }
-        .configurationDisplayName("Codex Quota")
-        .description("Track your OpenAI Codex weekly usage.")
+        .configurationDisplayName("AI Quota")
+        .description("Track your AI service usage quota.")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }

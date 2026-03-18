@@ -11,17 +11,25 @@ struct SettingsView: View {
 
     var body: some View {
         @Bindable var vm = viewModel
+        @Bindable var u = updater
 
         Form {
-            Section("Refresh") {
-                Picker("Interval", selection: $vm.settings.refreshIntervalMinutes) {
-                    ForEach(refreshOptions, id: \.self) { minutes in
-                        Text("\(minutes) minutes").tag(minutes)
-                    }
+            // MARK: General
+            Section("General") {
+                Picker("Refresh every", selection: $vm.settings.refreshIntervalMinutes) {
+                    ForEach(refreshOptions, id: \.self) { Text("\($0) min").tag($0) }
                 }
                 .pickerStyle(.segmented)
+
+                Picker("Menu bar service", selection: $vm.settings.menuBarService) {
+                    ForEach(ServiceType.allCases, id: \.self) { Text($0.displayName).tag($0) }
+                }
+                .pickerStyle(.segmented)
+
+                LaunchAtLoginToggle()
             }
 
+            // MARK: Notifications
             Section("Notifications") {
                 Toggle("Enable notifications", isOn: $vm.settings.notificationsEnabled)
                     .onChange(of: vm.settings.notificationsEnabled) { _, enabled in
@@ -32,33 +40,33 @@ struct SettingsView: View {
 
                 if viewModel.settings.notificationsEnabled {
                     NotificationStatusRow()
-                    Button("Send test notifications") {
+                    Button("Send test notification") {
                         Task { await viewModel.testNotifications() }
                     }
                 }
             }
 
+            // MARK: Updates
             Section("Updates") {
-                @Bindable var u = updater
-                Toggle("Automatically check for updates", isOn: $u.automaticallyChecksForUpdates)
-                Button("Check for Updates Now") {
-                    updater.checkForUpdates()
-                }
-                .disabled(!updater.canCheckForUpdates)
+                Toggle("Check for updates automatically", isOn: $u.automaticallyChecksForUpdates)
+                Button("Check Now") { updater.checkForUpdates() }
+                    .disabled(!updater.canCheckForUpdates)
             }
 
-            Section("Launch") {
-                LaunchAtLoginToggle()
-            }
-
-            Section("Account") {
-                if viewModel.isAuthenticated {
-                    Button("Sign Out", role: .destructive) {
-                        viewModel.signOut()
+            // MARK: Accounts
+            Section("Accounts") {
+                LabeledContent("Codex") {
+                    if viewModel.isCodexAuthenticated {
+                        Button("Sign Out", role: .destructive) { viewModel.signOut() }
+                    } else {
+                        Button("Sign In") { Task { await viewModel.signIn() } }
                     }
-                } else {
-                    Button("Sign In with OpenAI") {
-                        Task { await viewModel.signIn() }
+                }
+                LabeledContent("Claude Code") {
+                    if viewModel.isClaudeAuthenticated {
+                        Button("Sign Out", role: .destructive) { viewModel.signOutClaude() }
+                    } else {
+                        Button("Sign In") { Task { await viewModel.signInClaude() } }
                     }
                 }
             }
@@ -66,10 +74,20 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .frame(width: 400)
         .navigationTitle("Settings")
-        .onChange(of: viewModel.settings) {
-            viewModel.saveSettings()
-        }
+        .onChange(of: viewModel.settings) { viewModel.saveSettings() }
+        .background(FloatingWindowElevator())
     }
+}
+
+// MARK: - Window level helper
+
+private struct FloatingWindowElevator: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async { view.window?.level = .floating }
+        return view
+    }
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }
 
 // MARK: - Notification Status
@@ -94,11 +112,8 @@ private struct NotificationStatusRow: View {
                 }
                 .buttonStyle(.borderless)
                 .foregroundStyle(.blue)
-            case .notDetermined:
-                Label("Permission not requested yet", systemImage: "questionmark.circle")
-                    .foregroundStyle(.secondary)
             default:
-                Label("Unknown status", systemImage: "questionmark.circle")
+                Label("Permission not requested yet", systemImage: "questionmark.circle")
                     .foregroundStyle(.secondary)
             }
         }
@@ -119,11 +134,8 @@ private struct LaunchAtLoginToggle: View {
         Toggle("Launch at login", isOn: $isEnabled)
             .onChange(of: isEnabled) { _, newValue in
                 do {
-                    if newValue {
-                        try SMAppService.mainApp.register()
-                    } else {
-                        try SMAppService.mainApp.unregister()
-                    }
+                    if newValue { try SMAppService.mainApp.register() }
+                    else        { try SMAppService.mainApp.unregister() }
                 } catch {
                     isEnabled = !newValue
                 }

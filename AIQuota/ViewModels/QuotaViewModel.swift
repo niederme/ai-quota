@@ -6,33 +6,81 @@ import Combine
 @MainActor
 @Observable
 final class QuotaViewModel {
-    var usage: CodexUsage?
-    var isLoading = false
-    var error: NetworkError?
+
+    // MARK: - Codex (OpenAI)
+
+    var codexUsage: CodexUsage?
+    var isCodexLoading = false
+    var codexError: NetworkError?
+    private(set) var isCodexAuthenticated: Bool = false
+
+    let codexAuthManager: AuthManager
+    private let codexClient: OpenAIClient
+
+    // MARK: - Claude
+
+    var claudeUsage: ClaudeUsage?
+    var isClaudeLoading = false
+    var claudeError: NetworkError?
+    private(set) var isClaudeAuthenticated: Bool = false
+
+    let claudeAuthManager: ClaudeAuthManager
+    private let claudeClient: ClaudeClient
+
+    // MARK: - Shared state
+
     var settings: AppSettings = SharedDefaults.loadSettings()
+    /// Which service's panel is visible in the popover.
+    var activeService: ServiceType = .codex
 
-    // Stored property so @Observable tracks changes correctly.
-    // Kept in sync with authManager.$isAuthenticated via Combine.
-    private(set) var isAuthenticated: Bool = false
+    // MARK: - Backward-compatible aliases (used by MenuBarIconView / AIQuotaApp)
 
-    let authManager: AuthManager
-    private let client: OpenAIClient
+    var usage: CodexUsage? { codexUsage }
+    var isLoading: Bool { isCodexLoading || isClaudeLoading }
+    var error: NetworkError? {
+        get { codexError }
+        set { codexError = newValue }
+    }
+    var isAuthenticated: Bool { isCodexAuthenticated }
+    var authManager: AuthManager { codexAuthManager }
+
+    // MARK: - Private
+
     private var refreshTask: Task<Void, Never>?
     private var authCancellable: AnyCancellable?
+    private var claudeAuthCancellable: AnyCancellable?
+
+    // MARK: - Init
 
     init() {
-        let auth = AuthManager()
-        self.authManager = auth
-        self.client = OpenAIClient(authManager: auth)
-        self.isAuthenticated = auth.isAuthenticated
-        usage = SharedDefaults.loadCachedUsage()
+        let codexAuth  = AuthManager()
+        let claudeAuth = ClaudeAuthManager()
 
-        // Bridge ObservableObject → @Observable so the view re-renders on auth changes
-        authCancellable = auth.$isAuthenticated
+        self.codexAuthManager  = codexAuth
+        self.claudeAuthManager = claudeAuth
+        self.codexClient       = OpenAIClient(authManager: codexAuth)
+        self.claudeClient      = ClaudeClient(authManager: claudeAuth)
+
+        self.isCodexAuthenticated  = codexAuth.isAuthenticated
+        self.isClaudeAuthenticated = claudeAuth.isAuthenticated
+
+        // Load cached data immediately
+        codexUsage  = SharedDefaults.loadCachedUsage()
+        claudeUsage = SharedDefaults.loadCachedClaudeUsage()
+
+        // Default active service to first authenticated one
+        if !codexAuth.isAuthenticated && claudeAuth.isAuthenticated {
+            activeService = .claude
+        }
+
+        // Bridge ObservableObject → @Observable
+        authCancellable = codexAuth.$isAuthenticated
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] value in
-                self?.isAuthenticated = value
-            }
+            .sink { [weak self] value in self?.isCodexAuthenticated = value }
+
+        claudeAuthCancellable = claudeAuth.$isAuthenticated
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] value in self?.isClaudeAuthenticated = value }
 
         // Request notification permission on launch
         if settings.notificationsEnabled {
@@ -40,26 +88,59 @@ final class QuotaViewModel {
         }
     }
 
+    // MARK: - Refresh
+
     func refresh() async {
-        guard !isLoading else { return }
-        isLoading = true
-        error = nil
-        defer { isLoading = false }
+        async let _ = refreshCodex()
+        async let _ = refreshClaude()
+    }
+
+    func refreshCodex() async {
+        guard !isCodexLoading, isCodexAuthenticated else { return }
+        isCodexLoading = true
+        codexError = nil
+        defer { isCodexLoading = false }
 
         do {
-            let result = try await client.fetchUsage()
-            usage = result
+            let result = try await codexClient.fetchUsage()
+            codexUsage = result
             SharedDefaults.saveUsage(result)
             WidgetCenter.shared.reloadTimelines(ofKind: "AIQuotaWidget")
             if settings.notificationsEnabled {
                 await NotificationManager.shared.evaluate(current: result)
             }
         } catch let e as NetworkError {
-            error = e
+            if e.isAuthError { codexUsage = nil; SharedDefaults.clearUsage() }
+            codexError = e
         } catch {
-            self.error = .networkUnavailable
+            codexError = .networkUnavailable
         }
     }
+
+    func refreshClaude() async {
+        guard !isClaudeLoading, isClaudeAuthenticated else { return }
+        isClaudeLoading = true
+        claudeError = nil
+        defer { isClaudeLoading = false }
+
+        do {
+            let result = try await claudeClient.fetchUsage()
+            claudeUsage = result
+            SharedDefaults.saveClaudeUsage(result)
+            WidgetCenter.shared.reloadTimelines(ofKind: "AIQuotaWidget")
+            if settings.notificationsEnabled {
+                await NotificationManager.shared.evaluate(claude: result)
+            }
+        } catch let e as NetworkError {
+            if e.isAuthError { claudeUsage = nil; SharedDefaults.clearClaudeUsage() }
+            claudeError = e
+        } catch {
+            print("[ClaudeRefresh] underlying error: \(error)")
+            claudeError = .networkUnavailable
+        }
+    }
+
+    // MARK: - Auto-refresh
 
     func startAutoRefresh() {
         if settings.notificationsEnabled {
@@ -80,31 +161,51 @@ final class QuotaViewModel {
         refreshTask = nil
     }
 
+    // MARK: - Sign In / Out
+
     func signIn() async {
         do {
-            try await authManager.signIn()
-            await refresh()
+            try await codexAuthManager.signIn()
+            await refreshCodex()
             startAutoRefresh()
         } catch {
-            self.error = .notAuthenticated
+            codexError = .notAuthenticated
+        }
+    }
+
+    func signInClaude() async {
+        do {
+            try await claudeAuthManager.signIn()
+            await refreshClaude()
+            if !isCodexAuthenticated { startAutoRefresh() }
+        } catch {
+            claudeError = .notAuthenticated
         }
     }
 
     func signOut() {
         stopAutoRefresh()
-        authManager.signOut()
-        usage = nil
+        codexAuthManager.signOut()
+        codexUsage = nil
+        // Keep auto-refresh alive if Claude is still signed in
+        if isClaudeAuthenticated { startAutoRefresh() }
     }
+
+    func signOutClaude() {
+        claudeAuthManager.signOut()
+        claudeUsage = nil
+        if activeService == .claude { activeService = .codex }
+    }
+
+    // MARK: - Settings
 
     func saveSettings() {
         SharedDefaults.saveSettings(settings)
-        if isAuthenticated { startAutoRefresh() }
+        if isCodexAuthenticated || isClaudeAuthenticated { startAutoRefresh() }
     }
 
     // MARK: - Notification testing
 
-    /// Fires all four notification types immediately, ignoring threshold state.
-    /// For development/testing only.
     func testNotifications() async {
         await NotificationManager.shared.requestPermission()
         await NotificationManager.shared.fireTestNotifications()
