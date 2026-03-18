@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+    <channel>
+        <title>AIQuota</title>
+        <link>https://github.com/niederme/ai-quota</link>
+        <description>AIQuota release feed</description>
+        <item>
+            <title>Version 1.1</title>
+            <description><![CDATA[
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body {
+    font-family: -apple-system, sans-serif;
+    font-size: 13px;
+    color: #e0e0e0;
+    background: #1e1e1e;
+    margin: 16px 20px;
+    line-height: 1.5;
+  }
+  h2 {
+    font-size: 15px;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0 0 10px 0;
+  }
+  ul {
+    margin: 4px 0 0 0;
+    padding-left: 18px;
+  }
+  li {
+    margin-bottom: 5px;
+    color: #cccccc;
+  }
+  li strong {
+    color: #ffffff;
+  }
+</style>
+</head>
+<body>
+<h2>What's New in 1.1</h2>  <ul>
+  <li><strong>Notifications</strong> — alerts when quota drops below 15%, 5%, and when limit is reached or resets</li>
+  <li><strong>Auto-updater</strong> — Sparkle-powered Check for Updates with optional auto-check</li>
+  <li><strong>Widget improvements</strong> — arc gauge icon in small and medium widgets</li>
+  <li><strong>Menu bar</strong> — removed percentage readout, color alone communicates quota level</li>
+</ul>
+</body>
+</html>
+]]></description>
+            <sparkle:version>33</sparkle:version>
+            <sparkle:shortVersionString>1.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <enclosure
+                url="https://github.com/niederme/ai-quota/releases/download/v1.1/AIQuota.dmg"
+                sparkle:edSignature="U7pukIdWQXucjoNZLBUC82PKOLWLeuPN9pHbFc+Qw5xfhmjgLGIXcKqGVGHQz08Bhs4lNcWA5V22DnTSIqiZCA=="
+                length="1674958"
+                type="application/octet-stream"/>
+        </item>
+    </channel>
+</rss>
