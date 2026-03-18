@@ -9,6 +9,14 @@ options:
     - pattern: AIQuota
       order: [Views, ViewModels, Resources]
 
+# ── Version / Build number ─────────────────────────────────────────────────
+# Bump CURRENT_PROJECT_VERSION for each release build (shown in Xcode Organizer).
+# Bump MARKETING_VERSION when the user-facing version changes (1.0, 1.1, 2.0…).
+settings:
+  base:
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "3"
+
 packages:
   AIQuotaKit:
     path: Packages/AIQuotaKit
