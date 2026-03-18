@@ -13,11 +13,6 @@ struct AIQuotaApp: App {
             MenuBarIconView(usage: viewModel.usage, isLoading: viewModel.isLoading)
         }
         .menuBarExtraStyle(.window)
-        .task {
-            if viewModel.settings.notificationsEnabled {
-                await NotificationManager.shared.requestPermission()
-            }
-        }
 
         Settings {
             SettingsView()

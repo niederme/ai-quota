@@ -33,6 +33,11 @@ final class QuotaViewModel {
             .sink { [weak self] value in
                 self?.isAuthenticated = value
             }
+
+        // Request notification permission on launch
+        if settings.notificationsEnabled {
+            Task { await NotificationManager.shared.requestPermission() }
+        }
     }
 
     func refresh() async {

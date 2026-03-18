@@ -110,7 +110,7 @@ public actor NotificationManager {
         content.body = body
         content.sound = .default
         let request = UNNotificationRequest(identifier: id, content: content, trigger: nil)
-        try? await UNUserNotificationCenter.current().add(request)
+        do { try await UNUserNotificationCenter.current().add(request) } catch {}
     }
 
     private func loadThresholds() -> Set<String> {
