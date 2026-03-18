@@ -26,7 +26,7 @@ struct WidgetMediumView: View {
                 Label("Codex", systemImage: limitReached ? "exclamationmark.octagon.fill" : "brain.fill")
                     .font(.caption2.bold())
                     .foregroundStyle(limitReached ? .red : .purple)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .center)
 
                 Spacer()
 

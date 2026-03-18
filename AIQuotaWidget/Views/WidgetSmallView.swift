@@ -5,7 +5,6 @@ struct WidgetSmallView: View {
     let entry: QuotaEntry
 
     private var pct: Int { entry.usage?.weeklyUsedPercent ?? 0 }
-    private var fraction: Double { entry.usage?.weeklyPercentFraction ?? 0 }
     private var limitReached: Bool { entry.usage?.limitReached ?? false }
 
     private var tintColor: Color {
@@ -23,13 +22,11 @@ struct WidgetSmallView: View {
             Label("Codex", systemImage: limitReached ? "exclamationmark.octagon.fill" : "brain.fill")
                 .font(.caption2.bold())
                 .foregroundStyle(limitReached ? .red : .purple)
-                .frame(maxWidth: .infinity, alignment: .leading)
 
             Spacer()
 
             if let usage = entry.usage {
-                // Gauge + percentage centered
-                VStack(spacing: 3) {
+                VStack(spacing: 4) {
                     Image(nsImage: GaugeImageMaker.image(
                         usedPercent: pct,
                         limitReached: limitReached,
@@ -43,12 +40,10 @@ struct WidgetSmallView: View {
                         .contentTransition(.numericText())
                         .foregroundStyle(tintColor)
                 }
-                .frame(maxWidth: .infinity)
 
                 Spacer()
 
-                // Footer
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(spacing: 2) {
                     if limitReached {
                         Text("Limit reached")
                             .font(.caption2.bold())
@@ -62,7 +57,6 @@ struct WidgetSmallView: View {
                         .font(.system(size: 9))
                         .foregroundStyle(.tertiary)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
 
             } else {
                 Text("—")
@@ -72,9 +66,9 @@ struct WidgetSmallView: View {
                 Text("Sign in to AIQuota")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+        .multilineTextAlignment(.center)
         .padding(12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
