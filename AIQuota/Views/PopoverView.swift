@@ -241,33 +241,40 @@ struct PopoverView: View {
     // MARK: Sign-In
 
     private var signInContent: some View {
-        VStack(spacing: 16) {
-            Image(nsImage: NSApp.applicationIconImage)
-                .resizable()
-                .frame(width: 64, height: 64)
+        VStack(spacing: 0) {
+            VStack(spacing: 16) {
+                Image(nsImage: NSApp.applicationIconImage)
+                    .resizable()
+                    .frame(width: 64, height: 64)
 
-            VStack(spacing: 4) {
-                Text("AIQuota")
-                    .font(.title3.bold())
-                Text("Monitor your Codex weekly usage.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
+                VStack(spacing: 4) {
+                    Text("AIQuota")
+                        .font(.title3.bold())
+                    Text("Monitor your Codex weekly usage.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+
+                Button("Sign In with ChatGPT") {
+                    Task { await viewModel.signIn() }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color(red: 0.62, green: 0.22, blue: 0.93))
+                .controlSize(.large)
             }
+            .padding(24)
 
-            Button("Sign In with ChatGPT") {
-                Task { await viewModel.signIn() }
+            Divider()
+            HStack {
+                Spacer()
+                Button("Quit", role: .destructive) { NSApp.terminate(nil) }
             }
-            .buttonStyle(.borderedProminent)
-            .tint(Color(red: 0.62, green: 0.22, blue: 0.93))
-            .controlSize(.large)
-
-            Button("Quit") { NSApp.terminate(nil) }
-                .buttonStyle(.borderless)
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+            .buttonStyle(.borderless)
+            .font(.footnote)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
         }
-        .padding(24)
     }
 
     // MARK: Error Banner
