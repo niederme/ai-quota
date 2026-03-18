@@ -98,7 +98,7 @@ public actor NotificationManager {
         ]
         for (id, title, body) in notifications {
             await send(id: id, title: title, body: body)
-            try? await Task.sleep(for: .seconds(2))
+            do { try await Task.sleep(for: .seconds(2)) } catch {}
         }
     }
 
