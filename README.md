@@ -81,7 +81,6 @@ ai-quota/
 - [ ] Claude quota support (Anthropic Pro/Max plans)
 - [ ] Gemini quota support (Google AI plans)
 - [ ] Configurable default service shown in menu bar
-- [ ] Login item (launch at login)
 - [ ] Notification when quota drops below threshold
 
 ---
