@@ -19,7 +19,7 @@ struct WidgetMediumView: View {
 
     var body: some View {
         HStack(spacing: 16) {
-            // Left: percentage + gauge
+            // Left: gauge icon + percentage + bar
             VStack(alignment: .leading, spacing: 8) {
                 Label("Codex", systemImage: limitReached ? "exclamationmark.octagon.fill" : "brain.fill")
                     .font(.caption.bold())
@@ -27,11 +27,21 @@ struct WidgetMediumView: View {
 
                 Spacer()
 
-                if entry.usage != nil {
-                    Text("\(pct)%")
-                        .font(.system(size: 40, weight: .bold, design: .rounded))
-                        .contentTransition(.numericText())
-                        .foregroundStyle(tintColor)
+                if let _ = entry.usage {
+                    HStack(alignment: .center, spacing: 8) {
+                        Image(nsImage: GaugeImageMaker.image(
+                            usedPercent: pct,
+                            limitReached: limitReached,
+                            isLoading: false,
+                            size: 44
+                        ))
+                        .frame(width: 44, height: 44)
+
+                        Text("\(pct)%")
+                            .font(.system(size: 28, weight: .bold, design: .rounded))
+                            .contentTransition(.numericText())
+                            .foregroundStyle(tintColor)
+                    }
 
                     Gauge(value: fraction) { EmptyView() }
                         .gaugeStyle(.linearCapacity)
@@ -64,7 +74,7 @@ struct WidgetMediumView: View {
                     statRow("Remaining", "\(usage.weeklyRemaining)%", "sparkles", tintColor)
                     statRow("Plan", usage.planType.capitalized, "person.fill", .secondary)
                     if let balance = usage.creditBalance {
-                        statRow("Credits", String(format: "$%.2f", balance), "creditcard.fill", .secondary)
+                        statRow("Credits", "\(Int(balance))", "creditcard.fill", .secondary)
                     }
                     Spacer()
                     Text(countdownText(seconds: usage.weeklyResetAfterSeconds))

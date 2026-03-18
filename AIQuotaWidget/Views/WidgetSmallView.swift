@@ -26,10 +26,20 @@ struct WidgetSmallView: View {
             Spacer()
 
             if let usage = entry.usage {
-                Text("\(pct)%")
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
-                    .contentTransition(.numericText())
-                    .foregroundStyle(tintColor)
+                HStack(alignment: .center, spacing: 6) {
+                    Image(nsImage: GaugeImageMaker.image(
+                        usedPercent: pct,
+                        limitReached: limitReached,
+                        isLoading: false,
+                        size: 36
+                    ))
+                    .frame(width: 36, height: 36)
+
+                    Text("\(pct)%")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .contentTransition(.numericText())
+                        .foregroundStyle(tintColor)
+                }
 
                 Gauge(value: fraction) { EmptyView() }
                     .gaugeStyle(.linearCapacity)
