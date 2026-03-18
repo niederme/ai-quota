@@ -82,6 +82,7 @@ ai-quota/
 - [ ] Gemini quota support (Google AI plans)
 - [ ] Configurable default service shown in menu bar
 - [ ] Notification when quota drops below threshold
+- [ ] Check for Updates (with optional auto-check)
 
 ---
 
