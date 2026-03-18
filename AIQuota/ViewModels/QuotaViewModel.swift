@@ -1,6 +1,7 @@
 import Foundation
 import AIQuotaKit
 import WidgetKit
+import Combine
 
 @MainActor
 @Observable
@@ -10,17 +11,28 @@ final class QuotaViewModel {
     var error: NetworkError?
     var settings: AppSettings = SharedDefaults.loadSettings()
 
-    var isAuthenticated: Bool { authManager.isAuthenticated }
+    // Stored property so @Observable tracks changes correctly.
+    // Kept in sync with authManager.$isAuthenticated via Combine.
+    private(set) var isAuthenticated: Bool = false
 
     let authManager: AuthManager
     private let client: OpenAIClient
     private var refreshTask: Task<Void, Never>?
+    private var authCancellable: AnyCancellable?
 
     init() {
         let auth = AuthManager()
         self.authManager = auth
         self.client = OpenAIClient(authManager: auth)
+        self.isAuthenticated = auth.isAuthenticated
         usage = SharedDefaults.loadCachedUsage()
+
+        // Bridge ObservableObject → @Observable so the view re-renders on auth changes
+        authCancellable = auth.$isAuthenticated
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] value in
+                self?.isAuthenticated = value
+            }
     }
 
     func refresh() async {
