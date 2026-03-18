@@ -6,6 +6,7 @@ A native macOS menubar utility to monitor your [OpenAI Codex](https://openai.com
 ![Swift 6](https://img.shields.io/badge/Swift-6.0-orange?logo=swift)
 
 ![AIQuota screenshot](docs/screenshot.png)
+<img src="docs/screenshot.png" alt="AIQuota screenshot" style="max-width: 400px; height: auto"/>
 
 ---
 
