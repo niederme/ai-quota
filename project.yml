@@ -10,12 +10,12 @@ options:
       order: [Views, ViewModels, Resources]
 
 # ── Version / Build number ─────────────────────────────────────────────────
-# Bump CURRENT_PROJECT_VERSION for each release build (shown in Xcode Organizer).
-# Bump MARKETING_VERSION when the user-facing version changes (1.0, 1.1, 2.0…).
+# MARKETING_VERSION = user-facing version (1.0, 1.1, 2.0…) — bump manually.
+# CURRENT_PROJECT_VERSION = fallback; overridden at build time by git commit count.
 settings:
   base:
     MARKETING_VERSION: "1.0"
-    CURRENT_PROJECT_VERSION: "3"
+    CURRENT_PROJECT_VERSION: "1"
 
 packages:
   AIQuotaKit:
@@ -63,6 +63,13 @@ targets:
         Release:
           DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
           SWIFT_COMPILATION_MODE: wholemodule
+    postBuildScripts:
+      - name: Set Build Number from Git
+        script: |
+          BUILD=$(git -C "$SRCROOT" rev-list --count HEAD)
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "${BUILT_PRODUCTS_DIR}/${INFOPLIST_PATH}"
+          echo "Build number → $BUILD"
+        basedOnDependencyAnalysis: false
 
   # ── Widget Extension ──────────────────────────────────────────────────────
 
@@ -86,3 +93,10 @@ targets:
         CODE_SIGN_ENTITLEMENTS: AIQuotaWidget/Resources/AIQuotaWidget.entitlements
         ENABLE_HARDENED_RUNTIME: YES
         INFOPLIST_FILE: AIQuotaWidget/Resources/Info.plist
+    postBuildScripts:
+      - name: Set Build Number from Git
+        script: |
+          BUILD=$(git -C "$SRCROOT" rev-list --count HEAD)
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "${BUILT_PRODUCTS_DIR}/${INFOPLIST_PATH}"
+          echo "Build number → $BUILD"
+        basedOnDependencyAnalysis: false
