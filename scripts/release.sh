@@ -16,8 +16,31 @@ TAG="v${VERSION}"
 SPARKLE="${SPARKLE_TOOLS:-/tmp/sparkle-tools/bin}"
 REPO="niederme/ai-quota"
 DMG="/tmp/AIQuota.dmg"
-APPCAST="$(dirname "$0")/../appcast.xml"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+APPCAST="${REPO_ROOT}/appcast.xml"
 
+# ── Draft release notes from git commits since last tag ──────────────────────
+LAST_TAG=$(git -C "$REPO_ROOT" describe --tags --abbrev=0 2>/dev/null || echo "")
+NOTES_FILE=$(mktemp /tmp/release-notes.XXXXXX.md)
+
+{
+  echo "## What's New in ${VERSION}"
+  echo ""
+  if [ -n "$LAST_TAG" ]; then
+    git -C "$REPO_ROOT" log "${LAST_TAG}..HEAD" --pretty=format:"- %s" --no-merges
+  else
+    git -C "$REPO_ROOT" log --pretty=format:"- %s" --no-merges | head -20
+  fi
+  echo ""
+} > "$NOTES_FILE"
+
+echo "▶ Opening release notes for editing (close editor to continue)…"
+"${EDITOR:-open -W -a TextEdit}" "$NOTES_FILE"
+
+RELEASE_NOTES=$(cat "$NOTES_FILE")
+rm "$NOTES_FILE"
+
+# ── Build DMG ─────────────────────────────────────────────────────────────────
 echo "▶ Building DMG for ${TAG}…"
 rm -rf /tmp/AIQuota-dmg-staging
 mkdir /tmp/AIQuota-dmg-staging
@@ -25,15 +48,24 @@ cp -R /Applications/AIQuota.app /tmp/AIQuota-dmg-staging/
 ln -s /Applications /tmp/AIQuota-dmg-staging/Applications
 hdiutil create "$DMG" -volname "AIQuota" -srcfolder /tmp/AIQuota-dmg-staging -ov -format UDZO
 
+# ── Sign DMG ──────────────────────────────────────────────────────────────────
 echo "▶ Signing DMG with Sparkle Ed25519 key…"
 SIGNATURE=$("${SPARKLE}/sign_update" "$DMG" 2>/dev/null | grep -o 'sparkle:edSignature="[^"]*"' | sed 's/sparkle:edSignature="//;s/"//')
 LENGTH=$(wc -c < "$DMG" | tr -d ' ')
 echo "  Signature: ${SIGNATURE}"
 echo "  Length:    ${LENGTH}"
 
+# ── Generate appcast.xml ──────────────────────────────────────────────────────
 echo "▶ Generating appcast.xml…"
-BUILD=$(git -C "$(dirname "$0")/.." rev-list --count HEAD)
+BUILD=$(git -C "$REPO_ROOT" rev-list --count HEAD)
 DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${TAG}/AIQuota.dmg"
+
+# Convert markdown notes to simple HTML for Sparkle's in-app display
+NOTES_HTML=$(echo "$RELEASE_NOTES" | sed \
+  's|## \(.*\)|<h2>\1</h2>|g' \
+  | sed 's|^- \(.*\)|<li>\1</li>|g' \
+  | sed '/^<li>/{ x; s/.*//; x; }' \
+  | tr '\n' ' ')
 
 cat > "$APPCAST" <<EOF
 <?xml version="1.0" encoding="utf-8"?>
@@ -44,6 +76,7 @@ cat > "$APPCAST" <<EOF
         <description>AIQuota release feed</description>
         <item>
             <title>Version ${VERSION}</title>
+            <description><![CDATA[${NOTES_HTML}]]></description>
             <sparkle:releaseNotesLink>https://github.com/${REPO}/releases/tag/${TAG}</sparkle:releaseNotesLink>
             <sparkle:version>${BUILD}</sparkle:version>
             <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
@@ -58,13 +91,15 @@ cat > "$APPCAST" <<EOF
 </rss>
 EOF
 
+# ── Push to GitHub ────────────────────────────────────────────────────────────
 echo "▶ Creating/updating GitHub release ${TAG}…"
 if gh release view "$TAG" -R "$REPO" &>/dev/null; then
+    gh release edit "$TAG" --notes "$RELEASE_NOTES" -R "$REPO"
     gh release upload "$TAG" "$DMG" "$APPCAST" --clobber -R "$REPO"
 else
     gh release create "$TAG" "$DMG" "$APPCAST" \
         --title "AIQuota ${VERSION}" \
-        --notes "See commits for changes." \
+        --notes "$RELEASE_NOTES" \
         -R "$REPO"
 fi
 
