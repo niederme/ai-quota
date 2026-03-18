@@ -88,4 +88,4 @@ ai-quota/
 
 ## License
 
-MIT
+MIT with [Commons Clause](https://commonsclause.com). Free to use, modify, and distribute — commercial or proprietary use is not permitted.
