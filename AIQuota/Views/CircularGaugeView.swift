@@ -57,8 +57,10 @@ struct CircularGaugeView: View {
 
             // Centre: icon + percent
             VStack(spacing: 2) {
-                Image(systemName: icon)
-                    .font(.system(size: 12, weight: .semibold))
+                Image(icon)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 22, height: 22)
                     .foregroundStyle(limitReached ? .red : iconColor)
                 if isLoading {
                     ProgressView().controlSize(.mini)

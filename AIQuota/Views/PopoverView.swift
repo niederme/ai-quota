@@ -53,27 +53,33 @@ struct PopoverView: View {
                 Divider()
             }
 
-            // Dual gauge row
+            // Two halves separated by a single vertical rule
             HStack(alignment: .top, spacing: 0) {
-                codexGaugeSlot.frame(maxWidth: .infinity)
-                Divider()
-                claudeGaugeSlot.frame(maxWidth: .infinity)
-            }
-            .padding(.vertical, 16)
-
-            // Secondary stats (only shown when at least one service has data)
-            if viewModel.codexUsage != nil || viewModel.claudeUsage != nil {
-                Divider()
-                HStack(alignment: .top, spacing: 0) {
-                    codexSecondaryStats
-                        .padding(.horizontal, 14)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Divider()
-                    claudeSecondaryStats
-                        .padding(.horizontal, 14)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                // Left: Codex
+                VStack(spacing: 12) {
+                    codexGaugeSlot.frame(maxWidth: .infinity)
+                    if viewModel.codexUsage != nil {
+                        codexSecondaryStats
+                            .padding(.horizontal, 14)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
-                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+
+                Divider()
+
+                // Right: Claude
+                VStack(spacing: 12) {
+                    claudeGaugeSlot.frame(maxWidth: .infinity)
+                    if viewModel.claudeUsage != nil {
+                        claudeSecondaryStats
+                            .padding(.horizontal, 14)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
             }
 
             Divider()
@@ -91,7 +97,7 @@ struct PopoverView: View {
                     percent: usage.hourlyUsedPercent,
                     limitReached: usage.limitReached,
                     isLoading: false,
-                    icon: "brain.fill",
+                    icon: "logo-openai",
                     iconColor: .purple,
                     label: "Codex",
                     windowLabel: "\(formatWindowDuration(usage.hourlyWindowSeconds)) window",
@@ -102,13 +108,13 @@ struct PopoverView: View {
             } else {
                 CircularGaugeView(
                     percent: 0, limitReached: false, isLoading: true,
-                    icon: "brain.fill", iconColor: .purple,
+                    icon: "logo-openai", iconColor: .purple,
                     label: "Codex", windowLabel: "Loading…", resetSeconds: 0,
                     isRefreshing: true, onRefresh: {}
                 )
             }
         } else {
-            connectGauge(icon: "brain.fill", label: "Codex", color: .purple) {
+            connectGauge(icon: "logo-openai", label: "Codex", color: .purple) {
                 Task { await viewModel.signIn() }
             }
         }
@@ -123,7 +129,7 @@ struct PopoverView: View {
                     percent: usage.usedPercent,
                     limitReached: usage.limitReached,
                     isLoading: false,
-                    icon: "sparkles",
+                    icon: "logo-claude",
                     iconColor: claudeColor,
                     label: "Claude Code",
                     windowLabel: "5h window",
@@ -134,13 +140,13 @@ struct PopoverView: View {
             } else {
                 CircularGaugeView(
                     percent: 0, limitReached: false, isLoading: true,
-                    icon: "sparkles", iconColor: claudeColor,
+                    icon: "logo-claude", iconColor: claudeColor,
                     label: "Claude Code", windowLabel: "Loading…", resetSeconds: 0,
                     isRefreshing: true, onRefresh: {}
                 )
             }
         } else {
-            connectGauge(icon: "sparkles", label: "Claude Code", color: claudeColor) {
+            connectGauge(icon: "logo-claude", label: "Claude Code", color: claudeColor) {
                 Task { await viewModel.signInClaude() }
             }
         }
@@ -154,8 +160,10 @@ struct PopoverView: View {
                     .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: 11, lineCap: .round))
                     .rotationEffect(.degrees(135))
                 VStack(spacing: 2) {
-                    Image(systemName: icon)
-                        .font(.system(size: 12, weight: .semibold))
+                    Image(icon)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 22, height: 22)
                         .foregroundStyle(color.opacity(0.35))
                     Text("—")
                         .font(.system(size: 18, weight: .bold, design: .rounded))
