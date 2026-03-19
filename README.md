@@ -13,9 +13,10 @@ A native macOS menubar utility to monitor your AI coding quota — track [OpenAI
 ## Features
 
 - **Menubar gauge icon** — color-coded arc gauge showing quota consumption at a glance; tracks whichever service you configure (or falls back to whichever is authenticated)
-- **Codex + Claude Code** — both services on a single scrollable sheet, each showing a **5-hour window** as the primary gauge and a **7-day window** as a secondary row, with reset timers and plan badges
-- **Widget service picker** — small and medium desktop widgets; right-click to choose Codex or Claude Code per instance
-- **Auto-refresh** — background polling with manual refresh button
+- **Dual-arc gauge** — both services displayed as concentric arc gauges in the popover, with the 5-hour window as the outer ring and the 7-day window as the inner ring; color shifts from purple → amber → red as you approach your limit
+- **Codex + Claude Code** — each service shows reset timers, plan badges, and per-service refresh buttons; credits and plan info in a summary row below the gauges
+- **Widgets** — small widget shows one service (right-click to choose); medium widget always shows both Codex and Claude Code side by side with a refresh button
+- **Network recovery** — detects when connectivity is restored and refreshes immediately, clearing stale error banners automatically
 - **Sign in with ChatGPT / Claude** — OAuth via browser session, tokens stored securely in Keychain
 - **Notifications** — alerts at 15%, 5%, and when your limit is reached or resets; uses time-has-passed logic so rolling window drift never triggers spurious alerts
 - **Auto-update** — checks for a new version silently on every launch and twice daily via Sparkle; uses gentle reminders so update alerts never steal focus from your active app
@@ -91,8 +92,10 @@ See the pre-release checklist at the top of [`scripts/release.sh`](scripts/relea
 
 ## Roadmap
 
-- [ ] Circular gauge layout — replace the linear bar with a circular arc gauge for a denser, at-a-glance view of both windows
 - [ ] Gemini quota support (Google AI plans)
+- [x] Dual-arc gauge — concentric rings for 5h and 7-day windows; color-coded purple → amber → red; both percentages labelled in the centre
+- [x] Widget redesign — dual-arc gauge in small and medium widgets; medium always shows both services; refresh button on each widget
+- [x] Network recovery — NWPathMonitor detects coming back online and refreshes immediately
 - [x] Claude Code support — 5h and 7-day windows, Max plan credits, reset timers
 - [x] Harmonized window display — both Codex and Claude lead with the 5-hour rate-limit window, with 7-day usage always shown as a secondary row
 - [x] Widget service picker — choose Codex or Claude Code per widget instance
