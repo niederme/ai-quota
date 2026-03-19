@@ -10,7 +10,7 @@ struct WidgetSmallView: View {
 
     private var pct: Int {
         showClaude ? (entry.claudeUsage?.usedPercent ?? 0)
-                   : (entry.codexUsage?.weeklyUsedPercent ?? 0)
+                   : (entry.codexUsage?.hourlyUsedPercent ?? 0)
     }
 
     private var limitReached: Bool {
@@ -28,8 +28,7 @@ struct WidgetSmallView: View {
     }
 
     private var serviceName: String { showClaude ? "Claude Code" : "Codex" }
-    private var serviceIcon: String { limitReached ? "exclamationmark.octagon.fill"
-                                                   : (showClaude ? "sparkles" : "brain.fill") }
+    private var serviceIcon: String { showClaude ? "sparkles" : "brain.fill" }
     private var serviceColor: Color { showClaude ? Color(red: 0.8, green: 0.45, blue: 0.1) : .purple }
 
     private var hasData: Bool {
@@ -74,7 +73,7 @@ struct WidgetSmallView: View {
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         } else if let u = entry.codexUsage {
-                            Text("\(u.weeklyRemaining)% remaining")
+                            Text("\(100 - u.hourlyUsedPercent)% remaining")
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         }
@@ -101,7 +100,7 @@ struct WidgetSmallView: View {
         if showClaude {
             seconds = entry.claudeUsage?.resetAfterSeconds ?? 0
         } else {
-            seconds = entry.codexUsage?.weeklyResetAfterSeconds ?? 0
+            seconds = entry.codexUsage?.hourlyResetAfterSeconds ?? 0
         }
         let days  = seconds / 86400
         let hours = (seconds % 86400) / 3600

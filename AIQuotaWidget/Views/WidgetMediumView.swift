@@ -27,7 +27,7 @@ struct WidgetMediumView: View {
     // MARK: - Codex layout
 
     private func codexView(_ usage: CodexUsage) -> some View {
-        let pct          = usage.weeklyUsedPercent
+        let pct          = usage.hourlyUsedPercent
         let limitReached = usage.limitReached
         let tintColor: Color = limitReached ? .red
             : pct < 60 ? .green : pct < 85 ? .yellow : .red
@@ -36,7 +36,7 @@ struct WidgetMediumView: View {
             // Left: gauge + %
             VStack(spacing: 0) {
                 Spacer()
-                Label("Codex", systemImage: limitReached ? "exclamationmark.octagon.fill" : "brain.fill")
+                Label("Codex", systemImage: "brain.fill")
                     .font(.caption2.bold())
                     .foregroundStyle(limitReached ? .red : .purple)
                     .frame(maxWidth: .infinity, alignment: .center)
@@ -51,7 +51,7 @@ struct WidgetMediumView: View {
                         .font(.system(size: 22, weight: .bold, design: .rounded))
                         .contentTransition(.numericText())
                         .foregroundStyle(tintColor)
-                    Text("7d window")
+                    Text("5h window")
                         .font(.system(size: 9))
                         .foregroundStyle(.tertiary)
                 }
@@ -66,17 +66,18 @@ struct WidgetMediumView: View {
             VStack(alignment: .leading, spacing: 5) {
                 Spacer()
                 if limitReached {
-                    Label("Limit reached", systemImage: "exclamationmark.octagon")
+                    Label("Rate limit reached", systemImage: "exclamationmark.octagon")
                         .font(.caption2.bold()).foregroundStyle(.red)
                     Divider()
                 }
-                statRow("Remaining", "\(usage.weeklyRemaining)%", "sparkles", tintColor)
+                statRow("Remaining", "\(100 - usage.hourlyUsedPercent)%", "sparkles", tintColor)
+                statRow("7-day", "\(usage.weeklyUsedPercent)%", "calendar", .secondary)
                 statRow("Plan", usage.planType.capitalized, "person.fill", .secondary)
                 if let balance = usage.creditBalance {
                     statRow("Credits", "\(Int(balance))", "creditcard.fill", .secondary)
                 }
                 Spacer()
-                Text(countdownText(seconds: usage.weeklyResetAfterSeconds))
+                Text(countdownText(seconds: usage.hourlyResetAfterSeconds))
                     .font(.system(size: 9)).foregroundStyle(.tertiary).lineLimit(1)
             }
             .padding(.horizontal, 14)
@@ -99,7 +100,7 @@ struct WidgetMediumView: View {
             // Left: gauge + %
             VStack(spacing: 0) {
                 Spacer()
-                Label("Claude Code", systemImage: limitReached ? "exclamationmark.octagon.fill" : "sparkles")
+                Label("Claude Code", systemImage: "sparkles")
                     .font(.caption2.bold())
                     .foregroundStyle(limitReached ? .red : claudeColor)
                     .frame(maxWidth: .infinity, alignment: .center)
