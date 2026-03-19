@@ -42,5 +42,7 @@
 	<string>https://github.com/niederme/ai-quota/releases/latest/download/appcast.xml</string>
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
+	<key>SUScheduledCheckInterval</key>
+	<integer>43200</integer>
 </dict>
 </plist>

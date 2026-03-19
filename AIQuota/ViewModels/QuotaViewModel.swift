@@ -96,6 +96,7 @@ final class QuotaViewModel {
     }
 
     func refreshCodex() async {
+        if !isCodexAuthenticated { await codexAuthManager.silentSignInIfPossible() }
         guard !isCodexLoading, isCodexAuthenticated else { return }
         isCodexLoading = true
         codexError = nil
@@ -110,7 +111,16 @@ final class QuotaViewModel {
                 await NotificationManager.shared.evaluate(current: result)
             }
         } catch let e as NetworkError {
-            if e.isAuthError { codexUsage = nil; SharedDefaults.clearUsage() }
+            if e.isAuthError {
+                codexUsage = nil
+                SharedDefaults.clearUsage()
+                // Keychain said authenticated but session is invalid — try silent re-auth once.
+                codexAuthManager.isAuthenticated = false
+                if await codexAuthManager.silentSignInIfPossible() {
+                    await refreshCodex()
+                    return
+                }
+            }
             codexError = e
         } catch {
             codexError = .networkUnavailable
@@ -118,6 +128,7 @@ final class QuotaViewModel {
     }
 
     func refreshClaude() async {
+        if !isClaudeAuthenticated { await claudeAuthManager.silentSignInIfPossible() }
         guard !isClaudeLoading, isClaudeAuthenticated else { return }
         isClaudeLoading = true
         claudeError = nil
@@ -132,7 +143,16 @@ final class QuotaViewModel {
                 await NotificationManager.shared.evaluate(claude: result)
             }
         } catch let e as NetworkError {
-            if e.isAuthError { claudeUsage = nil; SharedDefaults.clearClaudeUsage() }
+            if e.isAuthError {
+                claudeUsage = nil
+                SharedDefaults.clearClaudeUsage()
+                // Keychain said authenticated but cookies are gone — try silent re-auth once.
+                claudeAuthManager.isAuthenticated = false
+                if await claudeAuthManager.silentSignInIfPossible() {
+                    await refreshClaude()
+                    return
+                }
+            }
             claudeError = e
         } catch {
             print("[ClaudeRefresh] underlying error: \(error)")

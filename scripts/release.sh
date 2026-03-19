@@ -72,7 +72,7 @@ echo "  Length:    ${LENGTH}"
 
 # ── Generate appcast.xml ──────────────────────────────────────────────────────
 echo "▶ Generating appcast.xml…"
-BUILD=$(git -C "$REPO_ROOT" rev-list --count HEAD)
+BUILD=$(defaults read "${APP_SRC}/Contents/Info" CFBundleVersion 2>/dev/null || git -C "$REPO_ROOT" rev-list --count HEAD)
 DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${TAG}/AIQuota.dmg"
 
 # Convert markdown notes to styled HTML for Sparkle's in-app WebView
@@ -134,7 +134,7 @@ ${NOTES_HTML}
 ]]></description>
             <sparkle:version>${BUILD}</sparkle:version>
             <sparkle:shortVersionString>${VERSION}</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
                 url="${DOWNLOAD_URL}"
                 sparkle:edSignature="${SIGNATURE}"
