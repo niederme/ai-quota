@@ -6,12 +6,14 @@
 #   e.g. ./scripts/release.sh 1.5
 #
 # Pre-release checklist (do these BEFORE running this script):
-#   1. Update README.md — features, requirements, roadmap
-#   2. Bump MARKETING_VERSION in Xcode (project.pbxproj, both Debug and Release)
-#   3. Archive: Product → Archive in Xcode
-#   4. Export the notarized .app to ~/Desktop/AIQuota.app
+#   1. Ask Claude: "prepare release notes for X.X" — get user-facing summary
+#   2. Update README.md — features, requirements, roadmap
+#   3. Bump MARKETING_VERSION in Xcode (project.pbxproj, both Debug and Release)
+#   4. Archive: Product → Archive in Xcode
+#   5. Export the notarized .app to ~/Desktop/AIQuota.app
 #      (Distribute App → Direct Distribution → Export)
-#   5. Commit & push all changes to main
+#   6. Commit & push all changes to main
+#   Then run this script and paste the release notes into the editor when it opens.
 #
 # Prerequisites:
 #   - Sparkle tools in PATH or at $SPARKLE_TOOLS (default: /tmp/sparkle-tools/bin)
