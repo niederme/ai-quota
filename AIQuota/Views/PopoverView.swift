@@ -197,8 +197,8 @@ struct PopoverView: View {
                     Image(icon)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 11, height: 11)
-                        .foregroundStyle(.tertiary)
+                        .frame(width: 15, height: 15)
+                        .foregroundStyle(CircularGaugeView.accent.opacity(0.35))
                     Text("—")
                         .font(.system(size: 15, weight: .bold, design: .rounded))
                         .foregroundStyle(.quaternary)
@@ -262,10 +262,26 @@ struct PopoverView: View {
                 .frame(width: 20, height: 20)
             Text("AIQuota").font(.headline)
             Spacer()
+            // Colour key for the dual rings
+            HStack(spacing: 8) {
+                ringKey(label: "5h",    opacity: 1.0)
+                ringKey(label: "7-day", opacity: 0.5)
+            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         Divider()
+    }
+
+    private func ringKey(label: String, opacity: Double) -> some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(CircularGaugeView.accent.opacity(opacity))
+                .frame(width: 6, height: 6)
+            Text(label)
+                .font(.system(size: 9))
+                .foregroundStyle(.secondary)
+        }
     }
 
     // MARK: - Footer

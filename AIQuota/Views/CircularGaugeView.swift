@@ -1,9 +1,15 @@
 import SwiftUI
 
 /// Dual-arc circular gauge — outer ring = primary window (5h),
-/// inner ring = secondary window (7-day). Both rings share a single
-/// status-based colour: neutral → amber at 85% → red at limit.
+/// inner ring = secondary window (7-day).
+///
+/// Both rings use the app's purple accent in the normal state,
+/// shifting to amber at 85 % and red at the limit.
 struct CircularGaugeView: View {
+
+    // Shared accent — matches the app's Codex purple throughout.
+    static let accent = Color(red: 0.62, green: 0.22, blue: 0.93)
+
     let primaryPercent: Int
     let primaryLimitReached: Bool
     let secondaryPercent: Int
@@ -17,13 +23,13 @@ struct CircularGaugeView: View {
     let isRefreshing: Bool
     let onRefresh: () -> Void
 
-    /// Single colour applied to both rings — driven by the worst status.
+    /// Single colour for both rings, driven by the worst status.
     private var statusColor: Color {
         if primaryLimitReached || secondaryLimitReached { return .red }
         let worst = max(primaryPercent, secondaryPercent)
         if worst >= 95 { return .red }
         if worst >= 85 { return Color(red: 1.0, green: 0.65, blue: 0.0) } // amber
-        return .primary
+        return Self.accent
     }
 
     private var primaryFill:   Double { isLoading ? 0.5 : Double(max(0, min(100, primaryPercent)))   / 100.0 }
@@ -38,55 +44,70 @@ struct CircularGaugeView: View {
     }
 
     // MARK: - Arcs
+    // Track: .round lineCap — rounded ends at the arc's 225° / 315° tips.
+    // Fill:  .butt lineCap — flat ends, contained within the track footprint.
 
     private var arcs: some View {
         ZStack {
-            // ── Outer track (primary) ─────────────────────────────────
+            // ── Outer track ───────────────────────────────────────────
             Circle()
                 .trim(from: 0, to: 0.75)
                 .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: 9, lineCap: .round))
                 .rotationEffect(.degrees(135))
 
+            // ── Outer fill (primary) ──────────────────────────────────
             Circle()
                 .trim(from: 0, to: 0.75 * primaryFill)
-                .stroke(statusColor, style: StrokeStyle(lineWidth: 9, lineCap: .round))
+                .stroke(statusColor, style: StrokeStyle(lineWidth: 9, lineCap: .butt))
                 .rotationEffect(.degrees(135))
                 .animation(.easeInOut(duration: 0.5), value: primaryFill)
 
-            // ── Inner track (secondary) — touching, no gap ────────────
+            // ── Inner track (touching, no gap) ────────────────────────
             Circle()
                 .trim(from: 0, to: 0.75)
                 .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: 7, lineCap: .round))
                 .rotationEffect(.degrees(135))
                 .padding(8)
 
+            // ── Inner fill (secondary) ────────────────────────────────
             Circle()
                 .trim(from: 0, to: 0.75 * secondaryFill)
-                .stroke(statusColor.opacity(0.55), style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                .stroke(statusColor.opacity(0.5), style: StrokeStyle(lineWidth: 7, lineCap: .butt))
                 .rotationEffect(.degrees(135))
                 .padding(8)
                 .animation(.easeInOut(duration: 0.5), value: secondaryFill)
 
-            // ── Centre: logo + both percentages ──────────────────────
-            VStack(spacing: 1) {
+            // ── Centre: logo + labelled percentages ───────────────────
+            VStack(spacing: 6) {
                 Image(icon)
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 11, height: 11)
+                    .frame(width: 15, height: 15)
                     .foregroundStyle(.secondary)
+
                 if isLoading {
                     ProgressView().controlSize(.mini)
                 } else {
-                    Text("\(primaryPercent)%")
-                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                        .foregroundStyle(statusColor)
-                        .contentTransition(.numericText())
-                        .animation(.default, value: primaryPercent)
-                    Text("\(secondaryPercent)%")
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
-                        .foregroundStyle(statusColor.opacity(0.55))
-                        .contentTransition(.numericText())
-                        .animation(.default, value: secondaryPercent)
+                    VStack(spacing: 1) {
+                        HStack(alignment: .firstTextBaseline, spacing: 3) {
+                            Text("\(primaryPercent)%")
+                                .font(.system(size: 14, weight: .bold, design: .rounded))
+                                .foregroundStyle(statusColor)
+                                .contentTransition(.numericText())
+                            Text(primaryLabel)
+                                .font(.system(size: 8))
+                                .foregroundStyle(.secondary)
+                        }
+                        HStack(alignment: .firstTextBaseline, spacing: 3) {
+                            Text("\(secondaryPercent)%")
+                                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                                .foregroundStyle(statusColor.opacity(0.5))
+                                .contentTransition(.numericText())
+                            Text(secondaryLabel)
+                                .font(.system(size: 8))
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
                 }
             }
         }
@@ -99,7 +120,7 @@ struct CircularGaugeView: View {
         VStack(spacing: 3) {
             HStack(spacing: 4) {
                 Text(label)
-                    .font(.footnote.bold())
+                    .font(.subheadline.bold())
                     .foregroundStyle(primaryLimitReached ? .red : .primary)
                 if isRefreshing {
                     ProgressView().controlSize(.mini).scaleEffect(0.75)
@@ -110,12 +131,6 @@ struct CircularGaugeView: View {
                     .buttonStyle(.borderless)
                     .foregroundStyle(.tertiary)
                 }
-            }
-
-            HStack(spacing: 5) {
-                Text(primaryLabel).font(.system(size: 9)).foregroundStyle(.secondary)
-                Text("·").font(.system(size: 9)).foregroundStyle(.quaternary)
-                Text(secondaryLabel).font(.system(size: 9)).foregroundStyle(.secondary).opacity(0.65)
             }
 
             Text(primaryLimitReached ? "Limit reached · \(resetText)" : resetText)
