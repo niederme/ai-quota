@@ -47,12 +47,20 @@ public enum GaugeImageMaker {
                    startAngle: deg(225), endAngle: deg(315), clockwise: true)
         ctx.strokePath()
 
-        // ── Outer fill: primary (5h) ───────────────────────────────────────
+        // Both rings share the same status colour — driven by whichever metric
+        // is worse. Inner ring stays dimmed (45%) when healthy so the outer
+        // ring reads as primary; both brighten together when either crosses a
+        // threshold, keeping the palette coherent.
         let pct1: Double = isLoading ? 0.5 : Double(primaryPercent) / 100.0
+        let pct2: Double = isLoading ? 0.5 : Double(secondaryPercent) / 100.0
+        let worstLimitReached = limitReached || pct2 >= 1.0
+        let worstPct = max(pct1, pct2)
+        let sharedColor = ringColor(pct: worstPct, limitReached: worstLimitReached)
+
+        // ── Outer fill: primary (5h) ───────────────────────────────────────
         if pct1 > 0 {
             let fillEnd1 = deg(225.0 - pct1 * 270.0)
-            let color1 = ringColor(pct: pct1, limitReached: limitReached)
-            ctx.setStrokeColor(color1)
+            ctx.setStrokeColor(sharedColor)
             ctx.addArc(center: CGPoint(x: cx, y: cy), radius: r1,
                        startAngle: deg(225), endAngle: fillEnd1, clockwise: true)
             ctx.strokePath()
@@ -67,15 +75,11 @@ public enum GaugeImageMaker {
         }
 
         // ── Inner fill: secondary (7-day) ─────────────────────────────────
-        // Dimmed at 45% opacity when healthy — only brightens to amber/red
-        // when the 7-day window itself is approaching the limit.
-        let pct2: Double = isLoading ? 0.5 : Double(secondaryPercent) / 100.0
+        // Dimmed at 45% when healthy, full brightness when either ring warns.
         if pct2 > 0 {
-            let remaining2 = 1.0 - pct2
-            let isWarning2 = remaining2 <= 0.20   // amber/red territory
-            let alpha2: CGFloat = isWarning2 ? 1.0 : 0.45
-            let base2 = ringColor(pct: pct2, limitReached: pct2 >= 1.0)
-            ctx.setStrokeColor(base2.copy(alpha: alpha2) ?? base2)
+            let isWarning = worstPct >= 0.85
+            let alpha2: CGFloat = isWarning ? 1.0 : 0.45
+            ctx.setStrokeColor(sharedColor.copy(alpha: alpha2) ?? sharedColor)
             ctx.addArc(center: CGPoint(x: cx, y: cy), radius: r2,
                        startAngle: deg(225), endAngle: deg(225.0 - pct2 * 270.0), clockwise: true)
             ctx.strokePath()

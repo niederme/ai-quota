@@ -99,7 +99,7 @@ struct CircularGaugeView: View {
                                 .foregroundStyle(statusColor)
                                 .contentTransition(.numericText())
                             Text(primaryLabel)
-                                .font(.system(size: 8))
+                                .font(.system(size: 10))
                                 .foregroundStyle(.secondary)
                         }
                         HStack(alignment: .firstTextBaseline, spacing: 3) {
@@ -108,7 +108,7 @@ struct CircularGaugeView: View {
                                 .foregroundStyle(statusColor.opacity(0.5))
                                 .contentTransition(.numericText())
                             Text(secondaryLabel)
-                                .font(.system(size: 8))
+                                .font(.system(size: 10))
                                 .foregroundStyle(.tertiary)
                         }
                     }
@@ -138,7 +138,7 @@ struct CircularGaugeView: View {
     private var caption: some View {
         VStack(spacing: 2) {
             Text(label)
-                .font(.subheadline.bold())
+                .font(.headline.bold())
                 .foregroundStyle(primaryLimitReached ? .red : .primary)
 
             Text(primaryLimitReached ? "Limit reached · \(resetText)" : resetText)
