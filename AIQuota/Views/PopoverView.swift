@@ -280,7 +280,7 @@ struct PopoverView: View {
                 .frame(width: 6, height: 6)
             Text(label)
                 .font(.system(size: 9))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(CircularGaugeView.accent.opacity(opacity))
         }
     }
 
@@ -289,6 +289,14 @@ struct PopoverView: View {
     private var footer: some View {
         HStack {
             Button("Settings") { openSettingsKeepingPopover() }
+            Spacer()
+            if let date = viewModel.lastRefreshedAt {
+                TimelineView(.periodic(from: date, by: 60)) { _ in
+                    Text(date.relativeFormatted)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.tertiary)
+                }
+            }
             Spacer()
             Button("Quit", role: .destructive) { NSApp.terminate(nil) }
         }
@@ -355,6 +363,14 @@ struct PopoverView: View {
                     .buttonStyle(.borderless)
                     .font(.footnote.bold())
                     .foregroundStyle(.orange)
+            } else {
+                Button {
+                    dismiss()
+                    Task { await viewModel.refresh() }
+                } label: {
+                    Image(systemName: "arrow.clockwise").font(.caption)
+                }
+                .buttonStyle(.borderless)
             }
             Button(action: dismiss) {
                 Image(systemName: "xmark").font(.caption)
@@ -387,5 +403,24 @@ private struct WindowCapture: NSViewRepresentable {
 
     func updateNSView(_ nsView: NSView, context: Context) {
         DispatchQueue.main.async { onCapture(nsView.window) }
+    }
+}
+
+// MARK: - Date helpers
+
+private extension Date {
+    /// "just now", "1m ago", "5m ago" — suitable for the freshness cue.
+    var relativeFormatted: String {
+        let elapsed = Int(-timeIntervalSinceNow)
+        switch elapsed {
+        case ..<10:  return "just now"
+        case ..<60:  return "\(elapsed)s ago"
+        case ..<3600:
+            let m = elapsed / 60
+            return "\(m)m ago"
+        default:
+            let h = elapsed / 3600
+            return "\(h)h ago"
+        }
     }
 }
