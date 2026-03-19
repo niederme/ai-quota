@@ -20,9 +20,10 @@ struct PopoverView: View {
         .frame(width: 340)
         .background(WindowCapture { menuBarWindow = $0 })
         .task {
+            // Auto-refresh starts on launch; only need to kick it here
+            // if the user opens the popover before the first cycle fires.
             if viewModel.usage == nil && viewModel.claudeUsage == nil {
                 await viewModel.refresh()
-                viewModel.startAutoRefresh()
             }
         }
     }
@@ -135,14 +136,21 @@ struct PopoverView: View {
             if viewModel.isLoading {
                 ProgressView().controlSize(.small)
             } else {
-                Button {
-                    Task { await viewModel.refresh() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.footnote)
+                HStack(spacing: 6) {
+                    if let ts = viewModel.lastRefreshedAt {
+                        Text(ts, style: .time)
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                    Button {
+                        Task { await viewModel.refresh() }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.footnote)
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Refresh now")
                 }
-                .buttonStyle(.borderless)
-                .help("Refresh now")
             }
         }
         .padding(.horizontal, 14)

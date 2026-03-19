@@ -1,5 +1,5 @@
 #!/bin/bash
-# release.sh — build DMG, sign for Sparkle, generate appcast, push to GitHub
+# release.sh — build ZIP, sign for Sparkle, generate appcast, push to GitHub
 #
 # Usage:
 #   ./scripts/release.sh <marketing_version>
@@ -15,7 +15,7 @@ VERSION="${1:?Usage: release.sh <version>}"
 TAG="v${VERSION}"
 SPARKLE="${SPARKLE_TOOLS:-/tmp/sparkle-tools/bin}"
 REPO="niederme/ai-quota"
-DMG="/tmp/AIQuota.dmg"
+ZIP="/tmp/AIQuota.zip"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APPCAST="${REPO_ROOT}/appcast.xml"
 
@@ -55,25 +55,23 @@ fi
 RELEASE_NOTES=$(cat "$NOTES_FILE")
 rm "$NOTES_FILE"
 
-# ── Build DMG ─────────────────────────────────────────────────────────────────
-echo "▶ Building DMG for ${TAG}…"
-rm -rf /tmp/AIQuota-dmg-staging
-mkdir /tmp/AIQuota-dmg-staging
-cp -R "$APP_SRC" /tmp/AIQuota-dmg-staging/
-ln -s /Applications /tmp/AIQuota-dmg-staging/Applications
-hdiutil create "$DMG" -volname "AIQuota" -srcfolder /tmp/AIQuota-dmg-staging -ov -format UDZO
+# ── Build ZIP ─────────────────────────────────────────────────────────────────
+# ZIP is required for sandboxed Sparkle apps — DMG triggers "installer launch" errors.
+echo "▶ Building ZIP for ${TAG}…"
+rm -f "$ZIP"
+ditto -c -k --keepParent "$APP_SRC" "$ZIP"
 
-# ── Sign DMG ──────────────────────────────────────────────────────────────────
-echo "▶ Signing DMG with Sparkle Ed25519 key…"
-SIGNATURE=$("${SPARKLE}/sign_update" "$DMG" 2>/dev/null | grep -o 'sparkle:edSignature="[^"]*"' | sed 's/sparkle:edSignature="//;s/"//')
-LENGTH=$(wc -c < "$DMG" | tr -d ' ')
+# ── Sign ZIP ──────────────────────────────────────────────────────────────────
+echo "▶ Signing ZIP with Sparkle Ed25519 key…"
+SIGNATURE=$("${SPARKLE}/sign_update" "$ZIP" 2>/dev/null | grep -o 'sparkle:edSignature="[^"]*"' | sed 's/sparkle:edSignature="//;s/"//')
+LENGTH=$(wc -c < "$ZIP" | tr -d ' ')
 echo "  Signature: ${SIGNATURE}"
 echo "  Length:    ${LENGTH}"
 
 # ── Generate appcast.xml ──────────────────────────────────────────────────────
 echo "▶ Generating appcast.xml…"
 BUILD=$(defaults read "${APP_SRC}/Contents/Info" CFBundleVersion 2>/dev/null || git -C "$REPO_ROOT" rev-list --count HEAD)
-DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${TAG}/AIQuota.dmg"
+DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${TAG}/AIQuota.zip"
 
 # Convert markdown notes to styled HTML for Sparkle's in-app WebView
 NOTES_HTML=$(echo "$RELEASE_NOTES" | sed \
@@ -139,7 +137,7 @@ ${NOTES_HTML}
                 url="${DOWNLOAD_URL}"
                 sparkle:edSignature="${SIGNATURE}"
                 length="${LENGTH}"
-                type="application/octet-stream"/>
+                type="application/zip"/>
         </item>
     </channel>
 </rss>
@@ -149,9 +147,9 @@ EOF
 echo "▶ Creating/updating GitHub release ${TAG}…"
 if gh release view "$TAG" -R "$REPO" &>/dev/null; then
     gh release edit "$TAG" --notes "$RELEASE_NOTES" -R "$REPO"
-    gh release upload "$TAG" "$DMG" "$APPCAST" --clobber -R "$REPO"
+    gh release upload "$TAG" "$ZIP" "$APPCAST" --clobber -R "$REPO"
 else
-    gh release create "$TAG" "$DMG" "$APPCAST" \
+    gh release create "$TAG" "$ZIP" "$APPCAST" \
         --title "AIQuota ${VERSION}" \
         --notes "$RELEASE_NOTES" \
         -R "$REPO"

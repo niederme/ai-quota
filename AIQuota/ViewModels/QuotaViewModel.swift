@@ -44,6 +44,10 @@ final class QuotaViewModel {
     var isAuthenticated: Bool { isCodexAuthenticated }
     var authManager: AuthManager { codexAuthManager }
 
+    // MARK: - Last refreshed
+
+    var lastRefreshedAt: Date?
+
     // MARK: - Private
 
     private var refreshTask: Task<Void, Never>?
@@ -86,6 +90,11 @@ final class QuotaViewModel {
         if settings.notificationsEnabled {
             Task { await NotificationManager.shared.requestPermission() }
         }
+
+        // Kick off refresh immediately on launch so data is never stale
+        if codexAuth.isAuthenticated || claudeAuth.isAuthenticated {
+            startAutoRefresh()
+        }
     }
 
     // MARK: - Refresh
@@ -105,6 +114,7 @@ final class QuotaViewModel {
         do {
             let result = try await codexClient.fetchUsage()
             codexUsage = result
+            lastRefreshedAt = .now
             SharedDefaults.saveUsage(result)
             WidgetCenter.shared.reloadTimelines(ofKind: "AIQuotaWidget")
             if settings.notificationsEnabled {
@@ -122,6 +132,8 @@ final class QuotaViewModel {
                 }
             }
             codexError = e
+        } catch is CancellationError {
+            // Task was cancelled (e.g. a new refresh cycle started) — ignore silently
         } catch {
             codexError = .networkUnavailable
         }
@@ -137,6 +149,7 @@ final class QuotaViewModel {
         do {
             let result = try await claudeClient.fetchUsage()
             claudeUsage = result
+            lastRefreshedAt = .now
             SharedDefaults.saveClaudeUsage(result)
             WidgetCenter.shared.reloadTimelines(ofKind: "AIQuotaWidget")
             if settings.notificationsEnabled {
@@ -154,6 +167,8 @@ final class QuotaViewModel {
                 }
             }
             claudeError = e
+        } catch is CancellationError {
+            // Task was cancelled (e.g. a new refresh cycle started) — ignore silently
         } catch {
             print("[ClaudeRefresh] underlying error: \(error)")
             claudeError = .networkUnavailable

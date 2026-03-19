@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.3</title>
+            <title>Version 1.4.5</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,18 +40,18 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.3</h2>  <ul><li><strong>Claude support</strong> — track your Claude.ai quota alongside Codex</li> <li><strong>Widget service picker</strong> — choose Codex or Claude per widget instance</li> <li><strong>Settings redesign</strong> — condensed layout, sign-in/out per account</li> <li><strong>Sign-in window</strong> — floats above other windows so you can't lose it</li> <li><strong>Auto-update check</strong> — silently checks for updates on launch</li></ul>
+<h2>What's New in 1.4.5</h2> <ul><li>Fixed: Sparkle auto-updates were not being offered due to incorrect build number and minimum OS version in the update feed</li>  <h2>What's New in 1.4.3</h2> <li>Changed: Sparkle update checks now happen twice daily</li>  <h2>What's New in 1.4.2</h2> <li>Fixed: "Claude window reset" notification firing on every refresh instead of only once when the window actually expires</li>  <h2>What's New in 1.4.1</h2> <li>Fixed: "Not signed in" error appearing even after logging in when session cookies had expired in the background</li>  <h2>What's New in 1.4</h2> <li>macOS Sequoia (15.0) support</li> <li>Silent re-authentication — stale sessions recover automatically without prompting you to log in again</li></ul>
 </body>
 </html>
 ]]></description>
-            <sparkle:version>35</sparkle:version>
-            <sparkle:shortVersionString>1.3</sparkle:shortVersionString>
+            <sparkle:version>42</sparkle:version>
+            <sparkle:shortVersionString>1.4.5</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.3/AIQuota.dmg"
-                sparkle:edSignature="1CWbODFsTKFG7FZYDay1NHwC8xKdUC0MCU+ppcIIsd/v6uA3vDKuAL0EML7I42ZSKmcGwtgheAMfHhtbbs9KBw=="
-                length="2950803"
-                type="application/octet-stream"/>
+                url="https://github.com/niederme/ai-quota/releases/download/v1.4.5/AIQuota.zip"
+                sparkle:edSignature="9l80uW+hjuY6lbAXRu+llPV65L6AMI10Oz86NvXQD4tSO3S9z12mX94mBd30NPUDRSJiR0NNVHnE1QEHe9rABw=="
+                length="2585739"
+                type="application/zip"/>
         </item>
     </channel>
 </rss>
