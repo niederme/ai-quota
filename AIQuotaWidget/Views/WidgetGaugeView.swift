@@ -11,7 +11,7 @@ struct WidgetGaugeView: View {
     let primaryPercent: Int
     let primaryLimitReached: Bool
     let secondaryPercent: Int
-    let icon: String        // SF Symbol name
+    let icon: String        // xcassets image name (SVG)
     let label: String
     let primaryLabel: String   // e.g. "5h"
     let secondaryLabel: String // e.g. "7-day"
@@ -32,15 +32,15 @@ struct WidgetGaugeView: View {
     // Scaled dimensions
     private var outerLW: CGFloat { size * 0.08 }
     private var innerLW: CGFloat { size * 0.08 }  // equal width
-    private var innerPad: CGFloat { outerLW }     // lw/2 + lw/2 = lw, touching
-    private var iconPt:   CGFloat { size * 0.13 }
-    private var primPt:   CGFloat { size * 0.145 }
-    private var secPt:    CGFloat { size * 0.10 }
-    private var labelPt:  CGFloat { size * 0.10 }
-    private var resetPt:  CGFloat { size * 0.085 }
+    private var innerPad: CGFloat { outerLW }      // touching rings
+    private var iconPt:   CGFloat { size * 0.16 }
+    private var primPt:   CGFloat { size * 0.175 }
+    private var secPt:    CGFloat { size * 0.125 }
+    private var labelPt:  CGFloat { size * 0.125 }
+    private var resetPt:  CGFloat { size * 0.100 }
 
     var body: some View {
-        VStack(spacing: size * 0.06) {
+        VStack(spacing: size * 0.04) {
             ZStack {
                 // ── Outer track ───────────────────────────────────────
                 Circle()
@@ -67,9 +67,11 @@ struct WidgetGaugeView: View {
                     .padding(innerPad)
 
                 // ── Centre ────────────────────────────────────────────
-                VStack(spacing: size * 0.05) {
-                    Image(systemName: icon)
-                        .font(.system(size: iconPt, weight: .semibold))
+                VStack(spacing: size * 0.04) {
+                    Image(icon)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: iconPt, height: iconPt)
                         .foregroundStyle(.secondary)
 
                     VStack(spacing: 0) {
@@ -77,7 +79,6 @@ struct WidgetGaugeView: View {
                             Text("\(primaryPercent)%")
                                 .font(.system(size: primPt, weight: .bold, design: .rounded))
                                 .foregroundStyle(statusColor)
-                                .contentTransition(.numericText())
                             Text(primaryLabel)
                                 .font(.system(size: primPt * 0.58))
                                 .foregroundStyle(.secondary)
@@ -86,7 +87,6 @@ struct WidgetGaugeView: View {
                             Text("\(secondaryPercent)%")
                                 .font(.system(size: secPt, weight: .semibold, design: .rounded))
                                 .foregroundStyle(statusColor.opacity(0.5))
-                                .contentTransition(.numericText())
                             Text(secondaryLabel)
                                 .font(.system(size: secPt * 0.7))
                                 .foregroundStyle(.tertiary)
@@ -96,7 +96,7 @@ struct WidgetGaugeView: View {
             }
             .frame(width: size, height: size)
 
-            VStack(spacing: 2) {
+            VStack(spacing: 1) {
                 Text(label)
                     .font(.system(size: labelPt, weight: .bold))
                     .foregroundStyle(primaryLimitReached ? .red : .primary)

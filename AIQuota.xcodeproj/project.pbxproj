@@ -29,6 +29,7 @@
 		F15449DA517BF7C4B79320DC /* PopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2B4A02F2F3618A00A9FE938 /* PopoverView.swift */; };
 		F2F0EB0760448D88611066A4 /* WidgetSmallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABA7E1FF303A5852FC6BCC6 /* WidgetSmallView.swift */; };
 		FC5F1405D182501F5FFAC02C /* AIQuotaWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4392F2EBD4EFDCA51009B2E9 /* AIQuotaWidgetBundle.swift */; };
+		E3F4A5B6C7D8E9F0A1B2C3D4 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D4E5F6A7B8C9D0E1F2A3B4C5 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -79,6 +80,7 @@
 		EDE2263EBEB7008EF6988081 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
 		FB0180B641391BD6AFC75C41 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FB657B3EE7EFE0906CC89C7E /* MenuBarIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIconView.swift; sourceTree = "<group>"; };
+		D4E5F6A7B8C9D0E1F2A3B4C5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -207,6 +209,7 @@
 			isa = PBXGroup;
 			children = (
 				561A3E63AB5C500E7FA650DE /* Info.plist */,
+				D4E5F6A7B8C9D0E1F2A3B4C5 /* Assets.xcassets */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -252,6 +255,7 @@
 			buildConfigurationList = 5F2703817290F87955BFE8E9 /* Build configuration list for PBXNativeTarget "AIQuotaWidget" */;
 			buildPhases = (
 				567E9072CF68BA2D318184C9 /* Sources */,
+				F5A6B7C8D9E0F1A2B3C4D5E6 /* Resources */,
 				B61AF08623CE07EE64CBE178 /* Frameworks */,
 				10669533C0A8BDA98AAE6B76 /* Set Build Number from Git */,
 			);
@@ -316,6 +320,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				96ECF77AF4F522CAF9619D23 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F5A6B7C8D9E0F1A2B3C4D5E6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E3F4A5B6C7D8E9F0A1B2C3D4 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

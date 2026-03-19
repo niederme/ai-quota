@@ -1,4 +1,5 @@
 import Foundation
+import Network
 import AIQuotaKit
 import WidgetKit
 import Combine
@@ -54,6 +55,12 @@ final class QuotaViewModel {
     private var authCancellable: AnyCancellable?
     private var claudeAuthCancellable: AnyCancellable?
 
+    /// Tracks whether the last known network path was unsatisfied so we can
+    /// detect a transition back online and refresh immediately.
+    private var wasOffline = false
+    private let pathMonitor = NWPathMonitor()
+    private let pathMonitorQueue = DispatchQueue(label: "ai.quota.pathmonitor")
+
     // MARK: - Init
 
     init() {
@@ -95,6 +102,31 @@ final class QuotaViewModel {
         if codexAuth.isAuthenticated || claudeAuth.isAuthenticated {
             startAutoRefresh()
         }
+
+        startPathMonitor()
+    }
+
+    // MARK: - Network path monitor
+
+    private func startPathMonitor() {
+        pathMonitor.pathUpdateHandler = { [weak self] path in
+            guard let self else { return }
+            let isNowSatisfied = path.status == .satisfied
+            DispatchQueue.main.async {
+                if isNowSatisfied && self.wasOffline {
+                    // We just came back online — refresh immediately and clear
+                    // any stale network-unavailable banners.
+                    self.wasOffline = false
+                    if case .networkUnavailable = self.codexError  { self.codexError  = nil }
+                    if case .networkUnavailable = self.claudeError { self.claudeError = nil }
+                    guard self.isCodexAuthenticated || self.isClaudeAuthenticated else { return }
+                    Task { await self.refresh() }
+                } else if !isNowSatisfied {
+                    self.wasOffline = true
+                }
+            }
+        }
+        pathMonitor.start(queue: pathMonitorQueue)
     }
 
     // MARK: - Refresh

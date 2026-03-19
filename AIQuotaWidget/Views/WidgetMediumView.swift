@@ -17,6 +17,15 @@ struct WidgetMediumView: View {
                 .frame(maxWidth: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay(alignment: .bottomTrailing) {
+            Button(intent: RefreshWidgetIntent()) {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.tertiary)
+                    .padding(6)
+            }
+            .buttonStyle(.plain)
+        }
     }
 
     // MARK: - Gauge slot
@@ -30,7 +39,7 @@ struct WidgetMediumView: View {
                     primaryPercent: u.hourlyUsedPercent,
                     primaryLimitReached: u.limitReached,
                     secondaryPercent: u.weeklyUsedPercent,
-                    icon: "brain.fill",
+                    icon: "logo-openai",
                     label: "Codex",
                     primaryLabel: "5h",
                     secondaryLabel: "7-day",
@@ -47,7 +56,7 @@ struct WidgetMediumView: View {
                     primaryPercent: u.usedPercent,
                     primaryLimitReached: u.limitReached,
                     secondaryPercent: Int(u.sevenDayUtilization.rounded()),
-                    icon: "sparkles",
+                    icon: "logo-claude",
                     label: "Claude Code",
                     primaryLabel: "5h",
                     secondaryLabel: "7-day",
