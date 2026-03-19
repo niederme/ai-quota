@@ -122,11 +122,17 @@ struct CircularGaugeView: View {
                 Text(label)
                     .font(.subheadline.bold())
                     .foregroundStyle(primaryLimitReached ? .red : .primary)
-                if isRefreshing {
-                    ProgressView().controlSize(.mini).scaleEffect(0.75)
-                } else {
+                // Fixed-size slot — both views occupy the same space so
+                // switching between them never shifts the label.
+                ZStack {
                     RefreshButton(action: onRefresh)
+                        .opacity(isRefreshing ? 0 : 1)
+                    ProgressView()
+                        .controlSize(.mini)
+                        .scaleEffect(0.75)
+                        .opacity(isRefreshing ? 1 : 0)
                 }
+                .animation(.easeInOut(duration: 0.15), value: isRefreshing)
             }
 
             Text(primaryLimitReached ? "Limit reached · \(resetText)" : resetText)
