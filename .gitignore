@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# Xcode — machine-specific, not needed when moving between computers
+xcuserdata/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+
+# Xcode — shared scheme data (uncomment if you want to share schemes via git)
+# *.xcodeproj/xcshareddata/
+
+# Build artifacts
+build/
+DerivedData/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Claude Code worktrees
+.claude/
