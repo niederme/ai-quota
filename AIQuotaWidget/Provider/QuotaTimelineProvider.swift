@@ -25,6 +25,29 @@ struct QuotaEntry: TimelineEntry {
     )
 }
 
+/// Static provider for the medium widget — no intent, always shows both services.
+struct StaticQuotaTimelineProvider: TimelineProvider {
+    func placeholder(in context: Context) -> QuotaEntry { .placeholder }
+
+    func getSnapshot(in context: Context, completion: @escaping (QuotaEntry) -> Void) {
+        completion(QuotaEntry(
+            date: .now,
+            codexUsage: SharedDefaults.loadCachedUsage(),
+            claudeUsage: SharedDefaults.loadCachedClaudeUsage(),
+            configuration: ConfigurationAppIntent()
+        ))
+    }
+
+    func getTimeline(in context: Context, completion: @escaping (Timeline<QuotaEntry>) -> Void) {
+        let codex  = SharedDefaults.loadCachedUsage()
+        let claude = SharedDefaults.loadCachedClaudeUsage()
+        let entry  = QuotaEntry(date: .now, codexUsage: codex, claudeUsage: claude, configuration: ConfigurationAppIntent())
+        let mostRecent = [codex?.fetchedAt, claude?.fetchedAt].compactMap { $0 }.max() ?? .now
+        let nextRefresh = max(mostRecent.addingTimeInterval(15 * 60), Date.now.addingTimeInterval(60))
+        completion(Timeline(entries: [entry], policy: .after(nextRefresh)))
+    }
+}
+
 struct QuotaTimelineProvider: AppIntentTimelineProvider {
     typealias Entry  = QuotaEntry
     typealias Intent = ConfigurationAppIntent
