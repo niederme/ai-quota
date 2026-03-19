@@ -47,19 +47,22 @@ public actor NotificationManager {
         let currentResetAt = current.weeklyResetAt.timeIntervalSince1970
 
         // ── Quota reset: week rolled over ──────────────────────────────────
-        if let stored = storedResetAt, stored != currentResetAt {
-            clearThresholds(key: Key.codexThresholds)
-            defaults.set(currentResetAt, forKey: Key.codexLastResetAt)
-            await send(
-                id: "codexReset",
-                title: "Codex quota reset",
-                body: "Your weekly Codex quota has reset — you're back to 100%."
-            )
-            return
-        }
-
-        // First run: just store the reset date, no notification
-        if storedResetAt == nil {
+        if let stored = storedResetAt {
+            let storedDate = Date(timeIntervalSince1970: stored)
+            if storedDate < .now {
+                clearThresholds(key: Key.codexThresholds)
+                defaults.set(currentResetAt, forKey: Key.codexLastResetAt)
+                await send(
+                    id: "codexReset",
+                    title: "Codex quota reset",
+                    body: "Your weekly Codex quota has reset — you're back to 100%."
+                )
+                return
+            } else if stored != currentResetAt {
+                defaults.set(currentResetAt, forKey: Key.codexLastResetAt)
+            }
+        } else {
+            // First run: just store the reset date, no notification
             defaults.set(currentResetAt, forKey: Key.codexLastResetAt)
             return
         }
@@ -105,18 +108,27 @@ public actor NotificationManager {
         let currentResetAt = claude.resetAt.timeIntervalSince1970
 
         // ── Window reset ────────────────────────────────────────────────────
-        if let stored = storedResetAt, stored != currentResetAt {
-            clearThresholds(key: Key.claudeThresholds)
-            defaults.set(currentResetAt, forKey: Key.claudeLastResetAt)
-            await send(
-                id: "claudeReset",
-                title: "Claude window reset",
-                body: "Your Claude 5-hour window has reset — you're back to full capacity."
-            )
-            return
-        }
-
-        if storedResetAt == nil {
+        // Use a time-has-passed check rather than timestamp equality.
+        // resetAt is a rolling server-computed value that drifts by seconds on
+        // every fetch, so != would fire on every refresh even with no real reset.
+        if let stored = storedResetAt {
+            let storedDate = Date(timeIntervalSince1970: stored)
+            if storedDate < .now {
+                // Old window has genuinely expired — notify and start fresh.
+                clearThresholds(key: Key.claudeThresholds)
+                defaults.set(currentResetAt, forKey: Key.claudeLastResetAt)
+                await send(
+                    id: "claudeReset",
+                    title: "Claude window reset",
+                    body: "Your Claude 5-hour window has reset — you're back to full capacity."
+                )
+                return
+            } else if stored != currentResetAt {
+                // Timestamp drifted but the window is still live — update silently.
+                defaults.set(currentResetAt, forKey: Key.claudeLastResetAt)
+            }
+        } else {
+            // First run: store the reset date, no notification.
             defaults.set(currentResetAt, forKey: Key.claudeLastResetAt)
             return
         }
