@@ -53,6 +53,11 @@ NOTES_FILE=$(mktemp /tmp/release-notes.XXXXXX.md)
   echo ""
 } > "$NOTES_FILE"
 
+# Release notes style guide:
+#   - Write for users, not developers — benefits, not implementation details
+#   - 3-5 bullet points max, bold lead phrase, plain-English description
+#   - Bad:  "fix: rolling window drift no longer triggers spurious notifications"
+#   - Good: "**Quieter notifications** — fixed a bug where alerts fired on every refresh"
 echo "▶ Opening release notes for editing (close editor to continue)…"
 if [ -n "${EDITOR:-}" ]; then
     "$EDITOR" "$NOTES_FILE"
