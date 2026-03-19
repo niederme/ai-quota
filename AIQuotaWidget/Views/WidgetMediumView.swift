@@ -37,7 +37,7 @@ struct WidgetMediumView: View {
                     primaryLabel: "5h",
                     secondaryLabel: "7-day",
                     resetSeconds: u.hourlyResetAfterSeconds,
-                    size: 95
+                    size: 80
                 )
             } else {
                 emptySlot(icon: "brain.fill", label: "Codex")
@@ -54,7 +54,7 @@ struct WidgetMediumView: View {
                     primaryLabel: "5h",
                     secondaryLabel: "7-day",
                     resetSeconds: u.resetAfterSeconds,
-                    size: 95
+                    size: 80
                 )
             } else {
                 emptySlot(icon: "sparkles", label: "Claude Code")

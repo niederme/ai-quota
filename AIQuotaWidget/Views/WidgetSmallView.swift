@@ -19,7 +19,7 @@ struct WidgetSmallView: View {
                         primaryLabel: "5h",
                         secondaryLabel: "7-day",
                         resetSeconds: u.resetAfterSeconds,
-                        size: 110
+                        size: 90
                     )
                 } else {
                     emptyView("Claude Code")
@@ -35,7 +35,7 @@ struct WidgetSmallView: View {
                         primaryLabel: "5h",
                         secondaryLabel: "7-day",
                         resetSeconds: u.hourlyResetAfterSeconds,
-                        size: 110
+                        size: 90
                     )
                 } else {
                     emptyView("Codex")
