@@ -19,7 +19,7 @@ struct WidgetSmallView: View {
                         primaryLabel: "5h",
                         secondaryLabel: "7-day",
                         resetSeconds: u.resetAfterSeconds,
-                        size: 86
+                        size: 110
                     )
                 } else {
                     emptyView("Claude Code")
@@ -35,13 +35,14 @@ struct WidgetSmallView: View {
                         primaryLabel: "5h",
                         secondaryLabel: "7-day",
                         resetSeconds: u.hourlyResetAfterSeconds,
-                        size: 86
+                        size: 110
                     )
                 } else {
                     emptyView("Codex")
                 }
             }
         }
+        .padding(8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .overlay(alignment: .bottomTrailing) {
             Button(intent: RefreshWidgetIntent()) {

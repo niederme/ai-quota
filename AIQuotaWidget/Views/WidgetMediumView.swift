@@ -16,6 +16,8 @@ struct WidgetMediumView: View {
             gaugeSlot(for: .claude)
                 .frame(maxWidth: .infinity)
         }
+        .padding(.horizontal, 4)
+        .padding(.vertical, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .overlay(alignment: .bottomTrailing) {
             Button(intent: RefreshWidgetIntent()) {
@@ -44,7 +46,7 @@ struct WidgetMediumView: View {
                     primaryLabel: "5h",
                     secondaryLabel: "7-day",
                     resetSeconds: u.hourlyResetAfterSeconds,
-                    size: 80
+                    size: 95
                 )
             } else {
                 emptySlot(icon: "brain.fill", label: "Codex")
@@ -61,7 +63,7 @@ struct WidgetMediumView: View {
                     primaryLabel: "5h",
                     secondaryLabel: "7-day",
                     resetSeconds: u.resetAfterSeconds,
-                    size: 80
+                    size: 95
                 )
             } else {
                 emptySlot(icon: "sparkles", label: "Claude Code")
