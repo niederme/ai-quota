@@ -184,9 +184,9 @@ struct PopoverView: View {
             if usage.limitReached {
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.octagon.fill").foregroundStyle(.red)
-                    Text("Weekly limit reached").font(.subheadline.bold())
+                    Text("Rate limit reached").font(.subheadline.bold())
                     Spacer()
-                    Text(countdownText(seconds: usage.weeklyResetAfterSeconds, short: true))
+                    Text(countdownText(seconds: usage.hourlyResetAfterSeconds, short: true))
                         .font(.footnote).foregroundStyle(.secondary)
                 }
                 .padding(.horizontal, 12).padding(.vertical, 8)
@@ -196,22 +196,23 @@ struct PopoverView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("7d window").font(.subheadline.bold()).foregroundStyle(.secondary)
+                    Text("\(formatWindowDuration(usage.hourlyWindowSeconds)) window")
+                        .font(.subheadline.bold()).foregroundStyle(.secondary)
                     Spacer()
-                    Text("\(usage.weeklyUsedPercent)%")
+                    Text("\(usage.hourlyUsedPercent)%")
                         .font(.subheadline.monospacedDigit().bold())
-                        .foregroundStyle(weeklyColor(usage))
+                        .foregroundStyle(codexColor(usage))
                 }
-                Gauge(value: usage.weeklyPercentFraction) { EmptyView() }
+                Gauge(value: usage.hourlyPercentFraction) { EmptyView() }
                     .gaugeStyle(.linearCapacity)
-                    .tint(weeklyColor(usage))
-                    .animation(.easeInOut(duration: 0.4), value: usage.weeklyUsedPercent)
+                    .tint(codexColor(usage))
+                    .animation(.easeInOut(duration: 0.4), value: usage.hourlyUsedPercent)
                 HStack {
-                    Text("\(usage.weeklyRemaining)% remaining")
+                    Text("\(100 - usage.hourlyUsedPercent)% remaining")
                         .font(.footnote).foregroundStyle(.secondary)
                     Spacer()
                     if !usage.limitReached {
-                        Label(countdownText(seconds: usage.weeklyResetAfterSeconds, short: false),
+                        Label(countdownText(seconds: usage.hourlyResetAfterSeconds, short: false),
                               systemImage: "clock.arrow.circlepath")
                             .font(.footnote).foregroundStyle(.tertiary)
                     }
@@ -219,21 +220,19 @@ struct PopoverView: View {
             }
             .padding(.horizontal, 12).padding(.top, 10).padding(.bottom, 8)
 
-            if usage.hourlyUsedPercent > 0 {
-                Divider()
-                HStack(spacing: 10) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("\(formatWindowDuration(usage.hourlyWindowSeconds)) window")
-                            .font(.footnote).foregroundStyle(.secondary)
-                        Text("\(usage.hourlyUsedPercent)% utilized")
-                            .font(.subheadline.monospacedDigit())
-                    }
-                    Spacer()
-                    Text(countdownText(seconds: usage.hourlyResetAfterSeconds, short: true))
-                        .font(.footnote).foregroundStyle(.tertiary)
+            Divider()
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("7-day window")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    Text("\(usage.weeklyUsedPercent)% utilized")
+                        .font(.subheadline.monospacedDigit())
                 }
-                .padding(.horizontal, 12).padding(.vertical, 8)
+                Spacer()
+                Text(countdownText(seconds: usage.weeklyResetAfterSeconds, short: true))
+                    .font(.footnote).foregroundStyle(.tertiary)
             }
+            .padding(.horizontal, 12).padding(.vertical, 8)
 
             if let balance = usage.creditBalance,
                let local = usage.approxLocalMessages, local.count == 2,
@@ -473,8 +472,8 @@ struct PopoverView: View {
 
     // MARK: - Helpers
 
-    private func weeklyColor(_ usage: CodexUsage) -> Color {
-        switch usage.weeklyUsedPercent {
+    private func codexColor(_ usage: CodexUsage) -> Color {
+        switch usage.hourlyUsedPercent {
         case ..<60: return .green
         case ..<85: return .yellow
         default:    return .red
