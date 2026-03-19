@@ -40,7 +40,7 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.5</h2>  <ul><li><strong>Harmonized usage display</strong> — both Codex and Claude Code now lead with the 5-hour rate-limit window as the primary gauge, with the 7-day window always shown as a secondary row; no more guessing which limit you're close to</li> <li><strong>Smarter reset notifications</strong> — rolling window drift no longer triggers spurious "quota reset" alerts on every refresh; notifications only fire when the window has genuinely elapsed</li> <li><strong>Gentle update reminders</strong> — Sparkle update alerts no longer steal focus from your active app (required behavior for menu bar apps)</li> <li><strong>Auto-update check frequency</strong> — app now checks for updates twice daily in addition to on every launch</li></ul>
+<h2>What's New in 1.5</h2>  <ul><li><strong>Both services now show the same data</strong> — Codex and Claude Code each display their short-term rate limit and weekly usage side by side, so you always know where you stand</li> <li><strong>Quieter notifications</strong> — fixed a bug where "quota reset" alerts would fire on every refresh even when nothing had reset</li> <li><strong>Better auto-update behavior</strong> — update reminders no longer steal focus from your active app</li></ul>
 </body>
 </html>
 ]]></description>
@@ -49,7 +49,7 @@
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
                 url="https://github.com/niederme/ai-quota/releases/download/v1.5/AIQuota.zip"
-                sparkle:edSignature="z2GGg/PmJOpwWrLs06mAI2iwn04qhs6SnzsRUehADyoRpU2njovybrs68yQyH31lRxHuTKOvtbOZzr1redB/BQ=="
+                sparkle:edSignature="K6/fjR5oy1Rt3Yp1ffcSf2H9Bd0GEg4nwT+kdHz5Wjhwuqr+Oz+UBOjbLpHAl43xPRkMXqp86rDr7v7HTPbfDA=="
                 length="2614460"
                 type="application/zip"/>
         </item>

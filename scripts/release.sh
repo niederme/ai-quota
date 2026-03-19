@@ -15,7 +15,7 @@
 #
 # Prerequisites:
 #   - Sparkle tools in PATH or at $SPARKLE_TOOLS (default: /tmp/sparkle-tools/bin)
-#   - App exported from Xcode to ~/Desktop/AIQuota.app (or /Applications/AIQuota.app)
+#   - App exported from Xcode to ~/Desktop/AIQuota.app
 #   - gh CLI authenticated
 set -euo pipefail
 
