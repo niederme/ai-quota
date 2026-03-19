@@ -66,11 +66,11 @@ struct WidgetMediumView: View {
             VStack(alignment: .leading, spacing: 5) {
                 Spacer()
                 if limitReached {
-                    Label("Rate limit reached", systemImage: "exclamationmark.octagon")
+                    Label("Rate limit reached", systemImage: "exclamationmark.triangle.fill")
                         .font(.caption2.bold()).foregroundStyle(.red)
                     Divider()
                 }
-                statRow("Remaining", "\(100 - usage.hourlyUsedPercent)%", "sparkles", tintColor)
+                statRow("Remaining", "\(100 - usage.hourlyUsedPercent)%", "percent", tintColor)
                 statRow("7-day", "\(usage.weeklyUsedPercent)%", "calendar", .secondary)
                 statRow("Plan", usage.planType.capitalized, "person.fill", .secondary)
                 if let balance = usage.creditBalance {
@@ -129,7 +129,7 @@ struct WidgetMediumView: View {
             VStack(alignment: .leading, spacing: 5) {
                 Spacer()
                 if limitReached {
-                    Label("Limit reached", systemImage: "exclamationmark.octagon")
+                    Label("Limit reached", systemImage: "exclamationmark.triangle.fill")
                         .font(.caption2.bold()).foregroundStyle(.red)
                     Divider()
                 }

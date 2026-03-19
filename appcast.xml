@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.5</title>
+            <title>Version 1.5.1</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.5</h2>  <ul><li><strong>Both services now show the same data</strong> — Codex and Claude Code each display their short-term rate limit and weekly usage side by side, so you always know where you stand</li> <li><strong>Quieter notifications</strong> — fixed a bug where "quota reset" alerts would fire on every refresh even when nothing had reset</li> <li><strong>Better auto-update behavior</strong> — update reminders no longer steal focus from your active app</li></ul>
+<strong>v1.5.1</strong>  • <strong>Per-service refresh</strong> — Each service card (Codex and Claude) now has its own refresh button, so you can update one without re-fetching the other.  • <strong>Cleaner widgets</strong> — Codex widgets now correctly highlight the 5-hour rolling window (matching the main app), and the redundant alert icons have been removed for a tidier look. 
 </body>
 </html>
 ]]></description>
-            <sparkle:version>57</sparkle:version>
-            <sparkle:shortVersionString>1.5</sparkle:shortVersionString>
+            <sparkle:version>71</sparkle:version>
+            <sparkle:shortVersionString>1.5.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.5/AIQuota.zip"
-                sparkle:edSignature="K6/fjR5oy1Rt3Yp1ffcSf2H9Bd0GEg4nwT+kdHz5Wjhwuqr+Oz+UBOjbLpHAl43xPRkMXqp86rDr7v7HTPbfDA=="
-                length="2614460"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.5.1/AIQuota.zip"
+                sparkle:edSignature="WvfUUG8wkkvBSXc9E5JToclg8TK1pERzIZKZh9weFDj9gV5W967lLRJmOEW/5qkOR9HtBFV/bfpP9kqSFGcgDg=="
+                length="2616995"
                 type="application/zip"/>
         </item>
     </channel>
