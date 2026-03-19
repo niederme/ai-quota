@@ -14,7 +14,7 @@ options:
 # CURRENT_PROJECT_VERSION = fallback; overridden at build time by git commit count.
 settings:
   base:
-    MARKETING_VERSION: "1.3.1"
+    MARKETING_VERSION: "1.3.2"
     CURRENT_PROJECT_VERSION: "1"
 
 packages:
@@ -68,7 +68,6 @@ targets:
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: 289GY9L343
         CODE_SIGN_ENTITLEMENTS: AIQuota/Resources/AIQuota.entitlements
-        ENABLE_APP_SANDBOX: YES
         ENABLE_HARDENED_RUNTIME: YES
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
         INFOPLIST_FILE: AIQuota/Resources/Info.plist
