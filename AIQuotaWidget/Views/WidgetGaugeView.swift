@@ -28,6 +28,9 @@ struct WidgetGaugeView: View {
 
     private var primaryFill:   Double { Double(max(0, min(100, primaryPercent)))   / 100.0 }
     private var secondaryFill: Double { Double(max(0, min(100, secondaryPercent))) / 100.0 }
+    private var secondaryOpacity: Double {
+        max(primaryPercent, secondaryPercent) >= 85 ? 0.65 : 0.45
+    }
 
     // Scaled dimensions
     private var outerLW: CGFloat { size * 0.08 }
@@ -45,7 +48,7 @@ struct WidgetGaugeView: View {
                 // ── Outer track ───────────────────────────────────────
                 Circle()
                     .trim(from: 0, to: 0.75)
-                    .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: outerLW, lineCap: .round))
+                    .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: outerLW, lineCap: .butt))
                     .rotationEffect(.degrees(135))
 
                 Circle()
@@ -56,13 +59,13 @@ struct WidgetGaugeView: View {
                 // ── Inner track (touching) ────────────────────────────
                 Circle()
                     .trim(from: 0, to: 0.75)
-                    .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: innerLW, lineCap: .round))
+                    .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: innerLW, lineCap: .butt))
                     .rotationEffect(.degrees(135))
                     .padding(innerPad)
 
                 Circle()
                     .trim(from: 0, to: 0.75 * secondaryFill)
-                    .stroke(statusColor.opacity(0.5), style: StrokeStyle(lineWidth: innerLW, lineCap: .butt))
+                    .stroke(statusColor.opacity(secondaryOpacity), style: StrokeStyle(lineWidth: innerLW, lineCap: .butt))
                     .rotationEffect(.degrees(135))
                     .padding(innerPad)
 
@@ -86,7 +89,7 @@ struct WidgetGaugeView: View {
                         HStack(alignment: .firstTextBaseline, spacing: 2) {
                             Text("\(secondaryPercent)%")
                                 .font(.system(size: secPt, weight: .semibold, design: .rounded))
-                                .foregroundStyle(statusColor.opacity(0.5))
+                                .foregroundStyle(statusColor.opacity(secondaryOpacity))
                             Text(secondaryLabel)
                                 .font(.system(size: secPt * 0.7))
                                 .foregroundStyle(.tertiary)

@@ -34,6 +34,11 @@ struct CircularGaugeView: View {
 
     private var primaryFill:   Double { isLoading ? 0.5 : Double(max(0, min(100, primaryPercent)))   / 100.0 }
     private var secondaryFill: Double { isLoading ? 0.5 : Double(max(0, min(100, secondaryPercent))) / 100.0 }
+    /// Inner ring is always subordinate — same hue, lower opacity.
+    private var secondaryOpacity: Double {
+        let worst = max(primaryPercent, secondaryPercent)
+        return worst >= 85 ? 0.65 : 0.45
+    }
 
     // Both rings equal width (8pt). Inner padding = lw so they touch with no gap.
     private let lw: CGFloat = 8
@@ -76,7 +81,7 @@ struct CircularGaugeView: View {
             // ── Inner fill (secondary) ────────────────────────────────
             Circle()
                 .trim(from: 0, to: 0.75 * secondaryFill)
-                .stroke(statusColor.opacity(0.5), style: StrokeStyle(lineWidth: lw, lineCap: .butt))
+                .stroke(statusColor.opacity(secondaryOpacity), style: StrokeStyle(lineWidth: lw, lineCap: .butt))
                 .rotationEffect(.degrees(135))
                 .padding(innerPad)
                 .animation(.easeInOut(duration: 0.5), value: secondaryFill)

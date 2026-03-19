@@ -93,6 +93,7 @@ See the pre-release checklist at the top of [`scripts/release.sh`](scripts/relea
 ## Roadmap
 
 - [ ] iOS / iPadOS app — native app and home screen widgets for iPhone and iPad
+- [ ] Menu bar icon monochrome mode — option to disable amber/red status colours for a cleaner, always-white icon
 - [ ] Gemini quota support (Google AI plans)
 - [x] Dual-arc gauge — concentric rings for 5h and 7-day windows; color-coded purple → amber → red; both percentages labelled in the centre
 - [x] Widget redesign — dual-arc gauge in small and medium widgets; medium always shows both services; refresh button on each widget
