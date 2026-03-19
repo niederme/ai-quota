@@ -125,11 +125,7 @@ struct CircularGaugeView: View {
                 if isRefreshing {
                     ProgressView().controlSize(.mini).scaleEffect(0.75)
                 } else {
-                    Button(action: onRefresh) {
-                        Image(systemName: "arrow.clockwise").font(.system(size: 9))
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.tertiary)
+                    RefreshButton(action: onRefresh)
                 }
             }
 
@@ -146,5 +142,32 @@ struct CircularGaugeView: View {
         if days > 0  { return "Resets \(days)d \(hours)h" }
         if hours > 0 { return "Resets \(hours)h \(minutes)m" }
         return "Resets \(minutes)m"
+    }
+}
+
+// MARK: - Refresh button
+
+/// A small refresh icon that highlights on hover and changes the cursor
+/// to a pointing hand — making it feel interactive and easy to click.
+private struct RefreshButton: View {
+    let action: () -> Void
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "arrow.clockwise")
+                .font(.system(size: 10, weight: .medium))
+                .foregroundStyle(isHovering ? .primary : .tertiary)
+                .padding(4)
+                .background(
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(isHovering ? AnyShapeStyle(.fill.tertiary) : AnyShapeStyle(.clear))
+                )
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering in
+            isHovering = hovering
+            if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+        }
     }
 }
