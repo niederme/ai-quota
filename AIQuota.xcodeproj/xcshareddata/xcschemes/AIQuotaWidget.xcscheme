@@ -57,12 +57,12 @@
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES">
       <BuildableProductRunnable
-         runnableDebuggingMode = "2">
+         runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "7F9C5CB955BB7645111CD8CE"
-            BuildableName = "AIQuotaWidget.appex"
-            BlueprintName = "AIQuotaWidget"
+            BlueprintIdentifier = "15F2C56050333A977220B1ED"
+            BuildableName = "AIQuota.app"
+            BlueprintName = "AIQuota"
             ReferencedContainer = "container:AIQuota.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
