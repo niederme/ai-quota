@@ -98,12 +98,13 @@ final class QuotaViewModel {
             Task { await NotificationManager.shared.requestPermission() }
         }
 
+        // Start path monitor first so currentPath is valid before the first fetch
+        startPathMonitor()
+
         // Kick off refresh immediately on launch so data is never stale
         if codexAuth.isAuthenticated || claudeAuth.isAuthenticated {
             startAutoRefresh()
         }
-
-        startPathMonitor()
     }
 
     // MARK: - Network path monitor
@@ -113,15 +114,19 @@ final class QuotaViewModel {
             guard let self else { return }
             let isNowSatisfied = path.status == .satisfied
             DispatchQueue.main.async {
-                if isNowSatisfied && self.wasOffline {
-                    // We just came back online — refresh immediately and clear
-                    // any stale network-unavailable banners.
-                    self.wasOffline = false
+                if isNowSatisfied {
+                    // Always clear stale network-unavailable banners when path is
+                    // satisfied — catches the launch-time false-positive where the
+                    // first fetch fails before the monitor has run even once.
                     if case .networkUnavailable = self.codexError  { self.codexError  = nil }
                     if case .networkUnavailable = self.claudeError { self.claudeError = nil }
-                    guard self.isCodexAuthenticated || self.isClaudeAuthenticated else { return }
-                    Task { await self.refresh() }
-                } else if !isNowSatisfied {
+                    if self.wasOffline {
+                        // Came back online — fire an immediate refresh.
+                        self.wasOffline = false
+                        guard self.isCodexAuthenticated || self.isClaudeAuthenticated else { return }
+                        Task { await self.refresh() }
+                    }
+                } else {
                     self.wasOffline = true
                 }
             }
@@ -134,6 +139,9 @@ final class QuotaViewModel {
     func refresh() async {
         async let _ = refreshCodex()
         async let _ = refreshClaude()
+        // Reload widgets once after both fetches complete so they always
+        // get a consistent snapshot (not mid-refresh with one service stale).
+        WidgetCenter.shared.reloadTimelines(ofKind: "AIQuotaWidget")
     }
 
     func refreshCodex() async {
@@ -148,7 +156,6 @@ final class QuotaViewModel {
             codexUsage = result
             lastRefreshedAt = .now
             SharedDefaults.saveUsage(result)
-            WidgetCenter.shared.reloadTimelines(ofKind: "AIQuotaWidget")
             if settings.notificationsEnabled {
                 await NotificationManager.shared.evaluate(current: result)
             }
@@ -183,7 +190,6 @@ final class QuotaViewModel {
             claudeUsage = result
             lastRefreshedAt = .now
             SharedDefaults.saveClaudeUsage(result)
-            WidgetCenter.shared.reloadTimelines(ofKind: "AIQuotaWidget")
             if settings.notificationsEnabled {
                 await NotificationManager.shared.evaluate(claude: result)
             }
