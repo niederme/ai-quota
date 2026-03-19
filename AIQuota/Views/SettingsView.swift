@@ -70,6 +70,23 @@ struct SettingsView: View {
                     }
                 }
             }
+
+            // MARK: About footer
+            let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+            let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
+            Section {
+                VStack(spacing: 3) {
+                    Text("AIQuota \(version) (\(build))")
+                        .fontWeight(.medium)
+                    Text("Made by John Niedermeyer, with a little help from\nClaude, Codex and friends.")
+                        .multilineTextAlignment(.center)
+                }
+                .font(.callout)
+                .foregroundStyle(.tertiary)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+            }
+            .listRowBackground(Color.clear)
         }
         .formStyle(.grouped)
         .frame(width: 400)
