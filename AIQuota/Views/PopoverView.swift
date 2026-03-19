@@ -53,33 +53,27 @@ struct PopoverView: View {
                 Divider()
             }
 
-            // Two halves separated by a single vertical rule
+            // Gauge row
             HStack(alignment: .top, spacing: 0) {
-                // Left: Codex
-                VStack(spacing: 12) {
-                    codexGaugeSlot.frame(maxWidth: .infinity)
-                    if viewModel.codexUsage != nil {
-                        codexSecondaryStats
-                            .padding(.horizontal, 14)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-
+                codexGaugeSlot.frame(maxWidth: .infinity)
                 Divider()
+                claudeGaugeSlot.frame(maxWidth: .infinity)
+            }
+            .padding(.vertical, 16)
 
-                // Right: Claude
-                VStack(spacing: 12) {
-                    claudeGaugeSlot.frame(maxWidth: .infinity)
-                    if viewModel.claudeUsage != nil {
-                        claudeSecondaryStats
-                            .padding(.horizontal, 14)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+            // Stats row (horizontal rule separates it from gauges)
+            if viewModel.codexUsage != nil || viewModel.claudeUsage != nil {
+                Divider()
+                HStack(alignment: .top, spacing: 0) {
+                    codexSecondaryStats
+                        .padding(.horizontal, 14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Divider()
+                    claudeSecondaryStats
+                        .padding(.horizontal, 14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
+                .padding(.vertical, 10)
             }
 
             Divider()
@@ -92,33 +86,33 @@ struct PopoverView: View {
     @ViewBuilder
     private var codexGaugeSlot: some View {
         if viewModel.isCodexAuthenticated {
-            if let usage = viewModel.codexUsage {
+            if let u = viewModel.codexUsage {
                 CircularGaugeView(
-                    primaryPercent: usage.hourlyUsedPercent,
-                    primaryLimitReached: usage.limitReached,
-                    secondaryPercent: usage.weeklyUsedPercent,
+                    primaryPercent: u.hourlyUsedPercent,
+                    primaryLimitReached: u.limitReached,
+                    secondaryPercent: u.weeklyUsedPercent,
                     secondaryLimitReached: false,
                     isLoading: false,
                     icon: "logo-openai",
-                    iconColor: .purple,
                     label: "Codex",
-                    primaryWindowLabel: formatWindowDuration(usage.hourlyWindowSeconds),
-                    secondaryWindowLabel: "7-day",
-                    resetSeconds: usage.hourlyResetAfterSeconds,
+                    primaryLabel: formatWindowDuration(u.hourlyWindowSeconds),
+                    secondaryLabel: "7-day",
+                    resetSeconds: u.hourlyResetAfterSeconds,
                     isRefreshing: viewModel.isCodexLoading,
                     onRefresh: { Task { await viewModel.refreshCodex() } }
                 )
+                .help(codexTooltip(u))
             } else {
                 CircularGaugeView(
                     primaryPercent: 0, primaryLimitReached: false,
                     secondaryPercent: 0, secondaryLimitReached: false,
-                    isLoading: true, icon: "logo-openai", iconColor: .purple,
-                    label: "Codex", primaryWindowLabel: "5h", secondaryWindowLabel: "7-day",
+                    isLoading: true, icon: "logo-openai",
+                    label: "Codex", primaryLabel: "5h", secondaryLabel: "7-day",
                     resetSeconds: 0, isRefreshing: true, onRefresh: {}
                 )
             }
         } else {
-            connectGauge(icon: "logo-openai", label: "Codex", color: .purple) {
+            connectGauge(icon: "logo-openai", label: "Codex") {
                 Task { await viewModel.signIn() }
             }
         }
@@ -126,59 +120,91 @@ struct PopoverView: View {
 
     @ViewBuilder
     private var claudeGaugeSlot: some View {
-        let claudeColor = Color(red: 0.8, green: 0.45, blue: 0.1)
         if viewModel.isClaudeAuthenticated {
-            if let usage = viewModel.claudeUsage {
+            if let u = viewModel.claudeUsage {
                 CircularGaugeView(
-                    primaryPercent: usage.usedPercent,
-                    primaryLimitReached: usage.limitReached,
-                    secondaryPercent: Int(usage.sevenDayUtilization.rounded()),
+                    primaryPercent: u.usedPercent,
+                    primaryLimitReached: u.limitReached,
+                    secondaryPercent: Int(u.sevenDayUtilization.rounded()),
                     secondaryLimitReached: false,
                     isLoading: false,
                     icon: "logo-claude",
-                    iconColor: claudeColor,
                     label: "Claude Code",
-                    primaryWindowLabel: "5h",
-                    secondaryWindowLabel: "7-day",
-                    resetSeconds: usage.resetAfterSeconds,
+                    primaryLabel: "5h",
+                    secondaryLabel: "7-day",
+                    resetSeconds: u.resetAfterSeconds,
                     isRefreshing: viewModel.isClaudeLoading,
                     onRefresh: { Task { await viewModel.refreshClaude() } }
                 )
+                .help(claudeTooltip(u))
             } else {
                 CircularGaugeView(
                     primaryPercent: 0, primaryLimitReached: false,
                     secondaryPercent: 0, secondaryLimitReached: false,
-                    isLoading: true, icon: "logo-claude", iconColor: claudeColor,
-                    label: "Claude Code", primaryWindowLabel: "5h", secondaryWindowLabel: "7-day",
+                    isLoading: true, icon: "logo-claude",
+                    label: "Claude Code", primaryLabel: "5h", secondaryLabel: "7-day",
                     resetSeconds: 0, isRefreshing: true, onRefresh: {}
                 )
             }
         } else {
-            connectGauge(icon: "logo-claude", label: "Claude Code", color: claudeColor) {
+            connectGauge(icon: "logo-claude", label: "Claude Code") {
                 Task { await viewModel.signInClaude() }
             }
         }
     }
 
-    private func connectGauge(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
+    private func codexTooltip(_ u: CodexUsage) -> String {
+        var lines = [
+            "\(formatWindowDuration(u.hourlyWindowSeconds)) window: \(u.hourlyUsedPercent)% used",
+            "7-day window: \(u.weeklyUsedPercent)% used",
+        ]
+        if let balance = u.creditBalance { lines.append("Credits: \(Int(balance))") }
+        if let local = u.approxLocalMessages, local.count == 2 {
+            lines.append("Local messages: ~\(local[0]) / \(local[1])")
+        }
+        if let cloud = u.approxCloudMessages, cloud.count == 2 {
+            lines.append("Cloud messages: ~\(cloud[0]) / \(cloud[1])")
+        }
+        lines.append("Plan: \(u.planType.capitalized)")
+        return lines.joined(separator: "\n")
+    }
+
+    private func claudeTooltip(_ u: ClaudeUsage) -> String {
+        var lines = [
+            "5h window: \(u.usedPercent)% used",
+            "7-day window: \(Int(u.sevenDayUtilization.rounded()))% used",
+        ]
+        if let extra = u.extraUsage, extra.isEnabled {
+            lines.append("Extra credits: \(Int(extra.usedCredits)) / \(extra.monthlyLimit)")
+        }
+        lines.append("Plan: \(u.planDisplayName)")
+        return lines.joined(separator: "\n")
+    }
+
+    private func connectGauge(icon: String, label: String, action: @escaping () -> Void) -> some View {
         VStack(spacing: 8) {
             ZStack {
                 Circle()
                     .trim(from: 0, to: 0.75)
-                    .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: 11, lineCap: .round))
+                    .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: 9, lineCap: .round))
                     .rotationEffect(.degrees(135))
+                Circle()
+                    .trim(from: 0, to: 0.75)
+                    .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                    .rotationEffect(.degrees(135))
+                    .padding(8)
                 VStack(spacing: 2) {
                     Image(icon)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 13, height: 13)
-                        .foregroundStyle(color.opacity(0.35))
+                        .frame(width: 11, height: 11)
+                        .foregroundStyle(.tertiary)
                     Text("—")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
                         .foregroundStyle(.quaternary)
                 }
             }
-            .frame(width: 100, height: 100)
+            .frame(width: 114, height: 114)
 
             VStack(spacing: 5) {
                 Text(label).font(.caption.bold()).foregroundStyle(.secondary)
