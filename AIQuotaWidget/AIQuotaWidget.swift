@@ -24,7 +24,7 @@ struct AIQuotaWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: ConfigurationAppIntent.self, provider: QuotaTimelineProvider()) { entry in
             AIQuotaWidgetView(entry: entry)
-                .containerBackground(.ultraThinMaterial, for: .widget)
+                .containerBackground(Color(white: 0.1), for: .widget)
         }
         .configurationDisplayName("AI Quota")
         .description("Track your AI service usage quota.")

@@ -96,13 +96,24 @@ struct WidgetGaugeView: View {
             }
             .frame(width: size, height: size)
 
-            VStack(spacing: 1) {
+            VStack(spacing: 2) {
                 Text(label)
                     .font(.system(size: labelPt, weight: .bold))
                     .foregroundStyle(primaryLimitReached ? .red : .primary)
                 Text(resetText)
                     .font(.system(size: resetPt))
                     .foregroundStyle(.tertiary)
+                Button(intent: RefreshWidgetIntent()) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: resetPt, weight: .medium))
+                        .foregroundStyle(.tertiary)
+                        .padding(3)
+                        .background(
+                            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                .fill(.fill.tertiary)
+                        )
+                }
+                .buttonStyle(.plain)
             }
         }
         .multilineTextAlignment(.center)

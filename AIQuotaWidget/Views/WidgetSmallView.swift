@@ -44,15 +44,6 @@ struct WidgetSmallView: View {
         }
         .padding(8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .overlay(alignment: .bottomTrailing) {
-            Button(intent: RefreshWidgetIntent()) {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.tertiary)
-                    .padding(6)
-            }
-            .buttonStyle(.plain)
-        }
     }
 
     private func emptyView(_ name: String) -> some View {

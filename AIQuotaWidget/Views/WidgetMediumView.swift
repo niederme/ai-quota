@@ -19,15 +19,6 @@ struct WidgetMediumView: View {
         .padding(.horizontal, 4)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .overlay(alignment: .bottomTrailing) {
-            Button(intent: RefreshWidgetIntent()) {
-                Image(systemName: "arrow.clockwise")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.tertiary)
-                    .padding(6)
-            }
-            .buttonStyle(.plain)
-        }
     }
 
     // MARK: - Gauge slot
