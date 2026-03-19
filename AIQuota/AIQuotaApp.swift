@@ -6,16 +6,19 @@ import AIQuotaKit
 struct AIQuotaApp: App {
     @State private var viewModel = QuotaViewModel()
 
-    // Sparkle updater — must be held at app scope for its lifetime
-    private let updaterController = SPUStandardUpdaterController(
-        startingUpdater: true,
-        updaterDelegate: nil,
-        userDriverDelegate: nil
-    )
+    // Sparkle updater — must be held at app scope for its lifetime.
+    // gentleDriverDelegate opts into polite (non-focus-stealing) update alerts,
+    // which is required for dockless menu bar apps.
+    private let gentleDriverDelegate = GentleSparkleDriverDelegate()
+    private let updaterController: SPUStandardUpdaterController
 
     init() {
+        updaterController = SPUStandardUpdaterController(
+            startingUpdater: true,
+            updaterDelegate: nil,
+            userDriverDelegate: gentleDriverDelegate
+        )
         // Silently check for a newer version on every launch.
-        // checkForUpdatesInBackground() only prompts the user if a new version is found.
         let updater = updaterController.updater
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             updater.checkForUpdatesInBackground()
@@ -49,7 +52,7 @@ struct AIQuotaApp: App {
     /// Falls back to whichever service is actually authenticated.
     private var menuBarUsedPercent: Int {
         switch resolvedMenuBarService {
-        case .codex:  return viewModel.codexUsage?.weeklyUsedPercent ?? 0
+        case .codex:  return viewModel.codexUsage?.hourlyUsedPercent ?? 0
         case .claude: return viewModel.claudeUsage?.usedPercent ?? 0
         }
     }
@@ -75,4 +78,13 @@ struct AIQuotaApp: App {
                  : .codex
         }
     }
+}
+
+// MARK: - Sparkle gentle reminders delegate
+
+/// Opts AIQuota into Sparkle's "gentle reminders" mode so scheduled update
+/// alerts never steal focus from the user's active app. Required for dockless
+/// menu bar apps per Sparkle documentation.
+final class GentleSparkleDriverDelegate: NSObject, SPUStandardUserDriverDelegate {
+    var supportsGentleScheduledUpdateReminders: Bool { true }
 }
