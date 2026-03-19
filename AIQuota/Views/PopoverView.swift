@@ -20,106 +20,196 @@ struct PopoverView: View {
         .frame(width: 340)
         .background(WindowCapture { menuBarWindow = $0 })
         .task {
-            // Auto-refresh starts on launch; only need to kick it here
-            // if the user opens the popover before the first cycle fires.
             if viewModel.usage == nil && viewModel.claudeUsage == nil {
                 await viewModel.refresh()
             }
         }
     }
 
-    /// Opens Settings and immediately brings the MenuBarExtra window back to the
-    /// front so both panels are visible at the same time.
     private func openSettingsKeepingPopover() {
         NSApp.activate(ignoringOtherApps: true)
         openSettings()
-        // The MenuBarExtra window closes when it loses key status (on the next
-        // run-loop tick after openSettings fires). Re-show it right after.
-        DispatchQueue.main.async {
-            menuBarWindow?.orderFront(nil)
-        }
+        DispatchQueue.main.async { menuBarWindow?.orderFront(nil) }
     }
 
-    // MARK: - Authenticated shell (single sheet)
+    // MARK: - Authenticated layout
 
     @ViewBuilder
     private var authenticatedContent: some View {
         VStack(spacing: 0) {
             header
 
-            // Cards scroll if the window is short, but typically fit without scrolling.
-            VStack(spacing: 8) {
-                serviceCard {
-                    codexCard
-                }
-                serviceCard {
-                    claudeCard
-                }
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 10)
-
-            Divider()
-            footer
-        }
-    }
-
-    // MARK: - Service card shell
-
-    @ViewBuilder
-    private func serviceCard<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        content()
-            .background(.fill.quaternary)
-            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(.separator, lineWidth: 0.5)
-            }
-    }
-
-    // MARK: - Per-service card content
-
-    @ViewBuilder private var codexCard: some View {
-        VStack(spacing: 0) {
+            // Error banners
             if let error = viewModel.codexError {
                 errorBanner(error,
                     dismiss: { viewModel.codexError = nil },
                     signIn: error.isAuthError ? { Task { await viewModel.signIn() } } : nil)
                 Divider()
             }
-            if viewModel.isCodexAuthenticated {
-                if let usage = viewModel.codexUsage {
-                    codexContent(usage)
-                } else if viewModel.isCodexLoading {
-                    loadingPlaceholder
-                } else {
-                    emptyState
-                }
-            } else {
-                connectRow(for: .codex)
-            }
-        }
-    }
-
-    @ViewBuilder private var claudeCard: some View {
-        VStack(spacing: 0) {
             if let error = viewModel.claudeError {
                 errorBanner(error,
                     dismiss: { viewModel.claudeError = nil },
                     signIn: error.isAuthError ? { Task { await viewModel.signInClaude() } } : nil)
                 Divider()
             }
-            if viewModel.isClaudeAuthenticated {
-                if let usage = viewModel.claudeUsage {
-                    claudeContent(usage)
-                } else if viewModel.isClaudeLoading {
-                    loadingPlaceholder
-                } else {
-                    emptyState
-                }
-            } else {
-                connectRow(for: .claude)
+
+            // Dual gauge row
+            HStack(alignment: .top, spacing: 0) {
+                codexGaugeSlot.frame(maxWidth: .infinity)
+                Divider()
+                claudeGaugeSlot.frame(maxWidth: .infinity)
             }
+            .padding(.vertical, 16)
+
+            // Secondary stats (only shown when at least one service has data)
+            if viewModel.codexUsage != nil || viewModel.claudeUsage != nil {
+                Divider()
+                HStack(alignment: .top, spacing: 0) {
+                    codexSecondaryStats
+                        .padding(.horizontal, 14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Divider()
+                    claudeSecondaryStats
+                        .padding(.horizontal, 14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.vertical, 10)
+            }
+
+            Divider()
+            footer
+        }
+    }
+
+    // MARK: - Gauge slots
+
+    @ViewBuilder
+    private var codexGaugeSlot: some View {
+        if viewModel.isCodexAuthenticated {
+            if let usage = viewModel.codexUsage {
+                CircularGaugeView(
+                    percent: usage.hourlyUsedPercent,
+                    limitReached: usage.limitReached,
+                    isLoading: false,
+                    icon: "brain.fill",
+                    iconColor: .purple,
+                    label: "Codex",
+                    windowLabel: "\(formatWindowDuration(usage.hourlyWindowSeconds)) window",
+                    resetSeconds: usage.hourlyResetAfterSeconds,
+                    isRefreshing: viewModel.isCodexLoading,
+                    onRefresh: { Task { await viewModel.refreshCodex() } }
+                )
+            } else {
+                CircularGaugeView(
+                    percent: 0, limitReached: false, isLoading: true,
+                    icon: "brain.fill", iconColor: .purple,
+                    label: "Codex", windowLabel: "Loading…", resetSeconds: 0,
+                    isRefreshing: true, onRefresh: {}
+                )
+            }
+        } else {
+            connectGauge(icon: "brain.fill", label: "Codex", color: .purple) {
+                Task { await viewModel.signIn() }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var claudeGaugeSlot: some View {
+        let claudeColor = Color(red: 0.8, green: 0.45, blue: 0.1)
+        if viewModel.isClaudeAuthenticated {
+            if let usage = viewModel.claudeUsage {
+                CircularGaugeView(
+                    percent: usage.usedPercent,
+                    limitReached: usage.limitReached,
+                    isLoading: false,
+                    icon: "sparkles",
+                    iconColor: claudeColor,
+                    label: "Claude Code",
+                    windowLabel: "5h window",
+                    resetSeconds: usage.resetAfterSeconds,
+                    isRefreshing: viewModel.isClaudeLoading,
+                    onRefresh: { Task { await viewModel.refreshClaude() } }
+                )
+            } else {
+                CircularGaugeView(
+                    percent: 0, limitReached: false, isLoading: true,
+                    icon: "sparkles", iconColor: claudeColor,
+                    label: "Claude Code", windowLabel: "Loading…", resetSeconds: 0,
+                    isRefreshing: true, onRefresh: {}
+                )
+            }
+        } else {
+            connectGauge(icon: "sparkles", label: "Claude Code", color: claudeColor) {
+                Task { await viewModel.signInClaude() }
+            }
+        }
+    }
+
+    private func connectGauge(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
+        VStack(spacing: 8) {
+            ZStack {
+                Circle()
+                    .trim(from: 0, to: 0.75)
+                    .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: 11, lineCap: .round))
+                    .rotationEffect(.degrees(135))
+                VStack(spacing: 2) {
+                    Image(systemName: icon)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(color.opacity(0.35))
+                    Text("—")
+                        .font(.system(size: 18, weight: .bold, design: .rounded))
+                        .foregroundStyle(.quaternary)
+                }
+            }
+            .frame(width: 100, height: 100)
+
+            VStack(spacing: 5) {
+                Text(label).font(.caption.bold()).foregroundStyle(.secondary)
+                Button("Connect", action: action)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+            }
+        }
+        .multilineTextAlignment(.center)
+    }
+
+    // MARK: - Secondary stats
+
+    @ViewBuilder
+    private var codexSecondaryStats: some View {
+        if let usage = viewModel.codexUsage {
+            VStack(alignment: .leading, spacing: 5) {
+                compactRow("7-day", "\(usage.weeklyUsedPercent)%", "calendar")
+                if let balance = usage.creditBalance {
+                    compactRow("Credits", "\(Int(balance))", "creditcard.fill")
+                }
+                compactRow("Plan", usage.planType.capitalized, "person.fill")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var claudeSecondaryStats: some View {
+        if let usage = viewModel.claudeUsage {
+            VStack(alignment: .leading, spacing: 5) {
+                compactRow("7-day", "\(Int(usage.sevenDayUtilization.rounded()))%", "calendar")
+                if let extra = usage.extraUsage, extra.isEnabled {
+                    compactRow("Extra", "\(Int(extra.usedCredits))/\(extra.monthlyLimit)", "plus.circle.fill")
+                }
+                compactRow("Plan", usage.planDisplayName, "person.fill")
+            }
+        }
+    }
+
+    private func compactRow(_ label: String, _ value: String, _ icon: String) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+                .font(.system(size: 9))
+                .foregroundStyle(.secondary)
+                .frame(width: 13)
+            Text(label + ":").font(.caption2).foregroundStyle(.secondary)
+            Text(value).font(.caption2.monospacedDigit().bold())
         }
     }
 
@@ -130,244 +220,12 @@ struct PopoverView: View {
             Image(nsImage: NSApp.applicationIconImage)
                 .resizable()
                 .frame(width: 20, height: 20)
-            Text("AIQuota")
-                .font(.headline)
+            Text("AIQuota").font(.headline)
             Spacer()
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         Divider()
-    }
-
-    // MARK: - Codex content
-
-    // MARK: - Service header
-
-    private func serviceHeader(label: String, isLoading: Bool, refresh: @escaping () -> Void) -> some View {
-        HStack(spacing: 6) {
-            Text(label)
-                .font(.caption.bold())
-                .foregroundStyle(.secondary)
-            Spacer()
-            if isLoading {
-                ProgressView().controlSize(.mini)
-            } else {
-                Button(action: refresh) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.caption)
-                }
-                .buttonStyle(.borderless)
-                .help("Refresh")
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.top, 8)
-        .padding(.bottom, 2)
-    }
-
-    // MARK: - Codex content
-
-    @ViewBuilder
-    private func codexContent(_ usage: CodexUsage) -> some View {
-        VStack(spacing: 0) {
-            serviceHeader(label: "CODEX",
-                          isLoading: viewModel.isCodexLoading,
-                          refresh: { Task { await viewModel.refreshCodex() } })
-
-            if usage.limitReached {
-                HStack(spacing: 6) {
-                    Image(systemName: "exclamationmark.octagon.fill").foregroundStyle(.red)
-                    Text("Rate limit reached").font(.subheadline.bold())
-                    Spacer()
-                    Text(countdownText(seconds: usage.hourlyResetAfterSeconds, short: true))
-                        .font(.footnote).foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(.red.opacity(0.08))
-                Divider()
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("\(formatWindowDuration(usage.hourlyWindowSeconds)) window")
-                        .font(.subheadline.bold()).foregroundStyle(.secondary)
-                    Spacer()
-                    Text("\(usage.hourlyUsedPercent)%")
-                        .font(.subheadline.monospacedDigit().bold())
-                        .foregroundStyle(codexColor(usage))
-                }
-                Gauge(value: usage.hourlyPercentFraction) { EmptyView() }
-                    .gaugeStyle(.linearCapacity)
-                    .tint(codexColor(usage))
-                    .animation(.easeInOut(duration: 0.4), value: usage.hourlyUsedPercent)
-                HStack {
-                    Text("\(100 - usage.hourlyUsedPercent)% remaining")
-                        .font(.footnote).foregroundStyle(.secondary)
-                    Spacer()
-                    if !usage.limitReached {
-                        Label(countdownText(seconds: usage.hourlyResetAfterSeconds, short: false),
-                              systemImage: "clock.arrow.circlepath")
-                            .font(.footnote).foregroundStyle(.tertiary)
-                    }
-                }
-            }
-            .padding(.horizontal, 12).padding(.top, 10).padding(.bottom, 8)
-
-            Divider()
-            HStack(spacing: 10) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("7-day window")
-                        .font(.footnote).foregroundStyle(.secondary)
-                    Text("\(usage.weeklyUsedPercent)% utilized")
-                        .font(.subheadline.monospacedDigit())
-                }
-                Spacer()
-                Text(countdownText(seconds: usage.weeklyResetAfterSeconds, short: true))
-                    .font(.footnote).foregroundStyle(.tertiary)
-            }
-            .padding(.horizontal, 12).padding(.vertical, 8)
-
-            if let balance = usage.creditBalance,
-               let local = usage.approxLocalMessages, local.count == 2,
-               let cloud = usage.approxCloudMessages, cloud.count == 2 {
-                Divider()
-                VStack(spacing: 7) {
-                    creditsRow(label: "Credits",        value: "\(Int(balance))",             icon: "creditcard.fill")
-                    creditsRow(label: "Local messages", value: "~\(local[0]) / \(local[1])", icon: "desktopcomputer")
-                    creditsRow(label: "Cloud messages", value: "~\(cloud[0]) / \(cloud[1])", icon: "cloud.fill")
-                }
-                .padding(.horizontal, 12).padding(.vertical, 8)
-            }
-
-            Divider()
-            planRow(plan: usage.planType.capitalized, fetchedAt: usage.fetchedAt)
-        }
-    }
-
-    // MARK: - Claude content
-
-    @ViewBuilder
-    private func claudeContent(_ usage: ClaudeUsage) -> some View {
-        VStack(spacing: 0) {
-            serviceHeader(label: "CLAUDE CODE",
-                          isLoading: viewModel.isClaudeLoading,
-                          refresh: { Task { await viewModel.refreshClaude() } })
-
-            if usage.limitReached {
-                HStack(spacing: 6) {
-                    Image(systemName: "exclamationmark.octagon.fill").foregroundStyle(.red)
-                    Text("Rate limit reached").font(.subheadline.bold())
-                    Spacer()
-                    Text(countdownText(seconds: usage.resetAfterSeconds, short: true))
-                        .font(.footnote).foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 12).padding(.vertical, 8)
-                .background(.red.opacity(0.08))
-                Divider()
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("5h window").font(.subheadline.bold()).foregroundStyle(.secondary)
-                    Spacer()
-                    Text("\(usage.usedPercent)%")
-                        .font(.subheadline.monospacedDigit().bold())
-                        .foregroundStyle(claudeColor(usage))
-                }
-                Gauge(value: usage.percentFraction) { EmptyView() }
-                    .gaugeStyle(.linearCapacity)
-                    .tint(claudeColor(usage))
-                    .animation(.easeInOut(duration: 0.4), value: usage.usedPercent)
-                HStack {
-                    Text("\(usage.remainingPercent)% remaining")
-                        .font(.footnote).foregroundStyle(.secondary)
-                    Spacer()
-                    if !usage.limitReached {
-                        Label(countdownText(seconds: usage.resetAfterSeconds, short: false),
-                              systemImage: "clock.arrow.circlepath")
-                            .font(.footnote).foregroundStyle(.tertiary)
-                    }
-                }
-            }
-            .padding(.horizontal, 12).padding(.top, 10).padding(.bottom, 8)
-
-            Divider()
-            HStack(spacing: 10) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("7-day window")
-                        .font(.footnote).foregroundStyle(.secondary)
-                    Text("\(Int(usage.sevenDayUtilization.rounded()))% utilized")
-                        .font(.subheadline.monospacedDigit())
-                }
-                Spacer()
-                Text(countdownText(seconds: usage.sevenDayResetAfterSeconds, short: true))
-                    .font(.footnote).foregroundStyle(.tertiary)
-            }
-            .padding(.horizontal, 12).padding(.vertical, 8)
-
-            if let extra = usage.extraUsage, extra.isEnabled {
-                Divider()
-                creditsRow(
-                    label: "Credits",
-                    value: "\(Int(extra.usedCredits.rounded())) / \(extra.monthlyLimit)",
-                    icon: "creditcard.fill"
-                )
-                .padding(.horizontal, 12).padding(.vertical, 8)
-            }
-
-            Divider()
-            planRow(plan: usage.planDisplayName, fetchedAt: usage.fetchedAt)
-        }
-    }
-
-    // MARK: - Connect row (unauthenticated service, compact)
-
-    private func connectRow(for service: ServiceType) -> some View {
-        let color: Color = service == .codex
-            ? Color(red: 0.62, green: 0.22, blue: 0.93)
-            : Color(red: 0.8, green: 0.45, blue: 0.1)
-        return HStack(spacing: 8) {
-            Image(systemName: service == .codex ? "brain.fill" : "sparkles")
-                .font(.footnote)
-                .foregroundStyle(color.opacity(0.5))
-                .frame(width: 16)
-            Text(service.displayName)
-                .font(.subheadline)
-                .foregroundStyle(.tertiary)
-            Spacer()
-            Button("Connect") {
-                Task {
-                    if service == .codex { await viewModel.signIn() }
-                    else { await viewModel.signInClaude() }
-                }
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-    }
-
-    // MARK: - Shared rows
-
-    private func creditsRow(label: String, value: String, icon: String) -> some View {
-        HStack(spacing: 6) {
-            Image(systemName: icon).font(.footnote).foregroundStyle(.secondary).frame(width: 16)
-            Text(label).font(.subheadline).foregroundStyle(.secondary)
-            Spacer()
-            Text(value).font(.subheadline.monospacedDigit()).foregroundStyle(.primary)
-        }
-    }
-
-    private func planRow(plan: String, fetchedAt: Date) -> some View {
-        HStack {
-            Label(plan, systemImage: "person.fill")
-                .font(.footnote).foregroundStyle(.secondary)
-            Spacer()
-            Text("\(Text(fetchedAt, style: .relative)) ago")
-                .font(.footnote).foregroundStyle(.quaternary)
-        }
-        .padding(.horizontal, 12).padding(.vertical, 6)
     }
 
     // MARK: - Footer
@@ -382,20 +240,6 @@ struct PopoverView: View {
         .font(.body)
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-    }
-
-    // MARK: - States
-
-    private var loadingPlaceholder: some View {
-        VStack(spacing: 10) {
-            ProgressView()
-            Text("Loading…").font(.footnote).foregroundStyle(.secondary)
-        }
-        .frame(height: 80)
-    }
-
-    private var emptyState: some View {
-        Text("No data yet").font(.footnote).foregroundStyle(.secondary).frame(height: 60)
     }
 
     // MARK: - Sign-In landing (both unauthenticated)
@@ -466,31 +310,6 @@ struct PopoverView: View {
     }
 
     // MARK: - Helpers
-
-    private func codexColor(_ usage: CodexUsage) -> Color {
-        switch usage.hourlyUsedPercent {
-        case ..<60: return .green
-        case ..<85: return .yellow
-        default:    return .red
-        }
-    }
-
-    private func claudeColor(_ usage: ClaudeUsage) -> Color {
-        switch usage.usedPercent {
-        case ..<60: return .green
-        case ..<85: return .yellow
-        default:    return .red
-        }
-    }
-
-    private func countdownText(seconds: Int, short: Bool) -> String {
-        let days    = seconds / 86400
-        let hours   = (seconds % 86400) / 3600
-        let minutes = (seconds % 3600) / 60
-        if days > 0  { return short ? "\(days)d \(hours)h"    : "Resets in \(days)d \(hours)h" }
-        if hours > 0 { return short ? "\(hours)h \(minutes)m" : "Resets in \(hours)h \(minutes)m" }
-        return short ? "\(minutes)m" : "Resets in \(minutes)m"
-    }
 
     private func formatWindowDuration(_ seconds: Int) -> String {
         let hours = seconds / 3600
