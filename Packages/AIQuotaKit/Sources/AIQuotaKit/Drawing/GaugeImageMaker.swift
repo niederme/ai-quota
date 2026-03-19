@@ -33,10 +33,10 @@ public enum GaugeImageMaker {
         let r1 = s * 0.41              // outer ring (5h / primary)
         let r2 = r1 - lw              // inner ring (7-day / secondary), touching
 
-        ctx.setLineCap(.round)
         ctx.setLineWidth(lw)
 
-        // ── Tracks ─────────────────────────────────────────────────────────
+        // ── Tracks: flat ends so the arc terminations look clean ───────────
+        ctx.setLineCap(.butt)
         ctx.setStrokeColor(CGColor(red: 1, green: 1, blue: 1, alpha: 0.2))
         ctx.addArc(center: CGPoint(x: cx, y: cy), radius: r1,
                    startAngle: deg(225), endAngle: deg(315), clockwise: true)
@@ -46,6 +46,9 @@ public enum GaugeImageMaker {
         ctx.addArc(center: CGPoint(x: cx, y: cy), radius: r2,
                    startAngle: deg(225), endAngle: deg(315), clockwise: true)
         ctx.strokePath()
+
+        // Fills: round tip on the leading edge only
+        ctx.setLineCap(.round)
 
         // Both rings share the same status colour — driven by whichever metric
         // is worse. Inner ring stays dimmed (45%) when healthy so the outer
