@@ -2,46 +2,51 @@ import WidgetKit
 import SwiftUI
 import AIQuotaKit
 
-struct AIQuotaWidgetView: View {
-    let entry: QuotaEntry
-    @Environment(\.widgetFamily) private var family
+// MARK: - Small widget (configurable service)
 
-    var body: some View {
-        switch family {
-        case .systemSmall:
-            WidgetSmallView(entry: entry)
-        case .systemMedium:
-            WidgetMediumView(entry: entry)
-        default:
-            WidgetSmallView(entry: entry)
-        }
-    }
-}
-
-struct AIQuotaWidget: Widget {
+struct AIQuotaSmallWidget: Widget {
     let kind = "AIQuotaWidget"
 
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: kind, intent: ConfigurationAppIntent.self, provider: QuotaTimelineProvider()) { entry in
-            AIQuotaWidgetView(entry: entry)
+            WidgetSmallView(entry: entry)
                 .containerBackground(Color(white: 0.1), for: .widget)
         }
         .configurationDisplayName("AI Quota")
         .description("Track your AI service usage quota.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .supportedFamilies([.systemSmall])
         .contentMarginsDisabled()
     }
 }
 
+// MARK: - Medium widget (always both services, no configuration)
+
+struct AIQuotaMediumWidget: Widget {
+    let kind = "AIQuotaWidgetMedium"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: QuotaTimelineProvider()) { entry in
+            WidgetMediumView(entry: entry)
+                .containerBackground(Color(white: 0.1), for: .widget)
+        }
+        .configurationDisplayName("AI Quota")
+        .description("Track both Codex and Claude Code side by side.")
+        .supportedFamilies([.systemMedium])
+        .contentMarginsDisabled()
+    }
+}
+
+// MARK: - Previews
+
 #Preview(as: .systemSmall) {
-    AIQuotaWidget()
+    AIQuotaSmallWidget()
 } timeline: {
     QuotaEntry.placeholder
     QuotaEntry.empty
 }
 
 #Preview(as: .systemMedium) {
-    AIQuotaWidget()
+    AIQuotaMediumWidget()
 } timeline: {
     QuotaEntry.placeholder
 }
