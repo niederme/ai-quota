@@ -94,23 +94,27 @@ struct PopoverView: View {
         if viewModel.isCodexAuthenticated {
             if let usage = viewModel.codexUsage {
                 CircularGaugeView(
-                    percent: usage.hourlyUsedPercent,
-                    limitReached: usage.limitReached,
+                    primaryPercent: usage.hourlyUsedPercent,
+                    primaryLimitReached: usage.limitReached,
+                    secondaryPercent: usage.weeklyUsedPercent,
+                    secondaryLimitReached: false,
                     isLoading: false,
                     icon: "logo-openai",
                     iconColor: .purple,
                     label: "Codex",
-                    windowLabel: "\(formatWindowDuration(usage.hourlyWindowSeconds)) window",
+                    primaryWindowLabel: formatWindowDuration(usage.hourlyWindowSeconds),
+                    secondaryWindowLabel: "7-day",
                     resetSeconds: usage.hourlyResetAfterSeconds,
                     isRefreshing: viewModel.isCodexLoading,
                     onRefresh: { Task { await viewModel.refreshCodex() } }
                 )
             } else {
                 CircularGaugeView(
-                    percent: 0, limitReached: false, isLoading: true,
-                    icon: "logo-openai", iconColor: .purple,
-                    label: "Codex", windowLabel: "Loading…", resetSeconds: 0,
-                    isRefreshing: true, onRefresh: {}
+                    primaryPercent: 0, primaryLimitReached: false,
+                    secondaryPercent: 0, secondaryLimitReached: false,
+                    isLoading: true, icon: "logo-openai", iconColor: .purple,
+                    label: "Codex", primaryWindowLabel: "5h", secondaryWindowLabel: "7-day",
+                    resetSeconds: 0, isRefreshing: true, onRefresh: {}
                 )
             }
         } else {
@@ -126,23 +130,27 @@ struct PopoverView: View {
         if viewModel.isClaudeAuthenticated {
             if let usage = viewModel.claudeUsage {
                 CircularGaugeView(
-                    percent: usage.usedPercent,
-                    limitReached: usage.limitReached,
+                    primaryPercent: usage.usedPercent,
+                    primaryLimitReached: usage.limitReached,
+                    secondaryPercent: Int(usage.sevenDayUtilization.rounded()),
+                    secondaryLimitReached: false,
                     isLoading: false,
                     icon: "logo-claude",
                     iconColor: claudeColor,
                     label: "Claude Code",
-                    windowLabel: "5h window",
+                    primaryWindowLabel: "5h",
+                    secondaryWindowLabel: "7-day",
                     resetSeconds: usage.resetAfterSeconds,
                     isRefreshing: viewModel.isClaudeLoading,
                     onRefresh: { Task { await viewModel.refreshClaude() } }
                 )
             } else {
                 CircularGaugeView(
-                    percent: 0, limitReached: false, isLoading: true,
-                    icon: "logo-claude", iconColor: claudeColor,
-                    label: "Claude Code", windowLabel: "Loading…", resetSeconds: 0,
-                    isRefreshing: true, onRefresh: {}
+                    primaryPercent: 0, primaryLimitReached: false,
+                    secondaryPercent: 0, secondaryLimitReached: false,
+                    isLoading: true, icon: "logo-claude", iconColor: claudeColor,
+                    label: "Claude Code", primaryWindowLabel: "5h", secondaryWindowLabel: "7-day",
+                    resetSeconds: 0, isRefreshing: true, onRefresh: {}
                 )
             }
         } else {
@@ -163,7 +171,7 @@ struct PopoverView: View {
                     Image(icon)
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 22, height: 22)
+                        .frame(width: 13, height: 13)
                         .foregroundStyle(color.opacity(0.35))
                     Text("—")
                         .font(.system(size: 18, weight: .bold, design: .rounded))
@@ -188,7 +196,6 @@ struct PopoverView: View {
     private var codexSecondaryStats: some View {
         if let usage = viewModel.codexUsage {
             VStack(alignment: .leading, spacing: 5) {
-                compactRow("7-day", "\(usage.weeklyUsedPercent)%", "calendar")
                 if let balance = usage.creditBalance {
                     compactRow("Credits", "\(Int(balance))", "creditcard.fill")
                 }
@@ -201,7 +208,6 @@ struct PopoverView: View {
     private var claudeSecondaryStats: some View {
         if let usage = viewModel.claudeUsage {
             VStack(alignment: .leading, spacing: 5) {
-                compactRow("7-day", "\(Int(usage.sevenDayUtilization.rounded()))%", "calendar")
                 if let extra = usage.extraUsage, extra.isEnabled {
                     compactRow("Extra", "\(Int(extra.usedCredits))/\(extra.monthlyLimit)", "plus.circle.fill")
                 }
