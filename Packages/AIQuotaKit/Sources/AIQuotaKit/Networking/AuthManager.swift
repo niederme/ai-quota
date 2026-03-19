@@ -85,17 +85,59 @@ public final class AuthManager: NSObject, ObservableObject {
         }
     }
 
+    // MARK: - Silent Re-Auth
+
+    /// Checks the WKWebView cookie store for an existing ChatGPT session without showing any UI.
+    /// If a valid session cookie is found, syncs it and fetches a fresh JWT.
+    @discardableResult
+    public func silentSignInIfPossible() async -> Bool {
+        guard !isAuthenticated else { return true }
+        return await withCheckedContinuation { continuation in
+            WKWebsiteDataStore.default().httpCookieStore.getAllCookies { [weak self] cookies in
+                guard let self else { continuation.resume(returning: false); return }
+                guard let sessionCookie = cookies.first(where: {
+                    $0.name == "__Secure-next-auth.session-token" && $0.domain.contains("chatgpt.com")
+                }) else {
+                    continuation.resume(returning: false)
+                    return
+                }
+                for cookie in cookies where
+                    cookie.domain.contains("chatgpt.com") || cookie.domain.contains("openai.com") {
+                    HTTPCookieStorage.shared.setCookie(cookie)
+                }
+                KeychainStore.save(sessionCookie.value, forKey: "sessionToken")
+                Task { @MainActor [weak self] in
+                    guard let self else { continuation.resume(returning: false); return }
+                    do {
+                        _ = try await self.refreshAccessToken()
+                        print("[Auth] silent re-auth succeeded ✓")
+                        continuation.resume(returning: true)
+                    } catch {
+                        print("[Auth] silent re-auth failed: \(error)")
+                        continuation.resume(returning: false)
+                    }
+                }
+            }
+        }
+    }
+
     // MARK: - Sign Out
 
     public func signOut() {
         cachedAccessToken = nil
         tokenExpiresAt = nil
         isAuthenticated = false
-        KeychainStore.deleteAll()
-        WKWebsiteDataStore.default().removeData(
-            ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(),
-            modifiedSince: .distantPast
-        ) {}
+        KeychainStore.delete(forKey: "sessionToken")
+        WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
+            for cookie in cookies where
+                cookie.domain.contains("chatgpt.com") || cookie.domain.contains("openai.com") {
+                WKWebsiteDataStore.default().httpCookieStore.delete(cookie) {}
+            }
+        }
+        for cookie in HTTPCookieStorage.shared.cookies ?? []
+            where cookie.domain.contains("chatgpt.com") || cookie.domain.contains("openai.com") {
+            HTTPCookieStorage.shared.deleteCookie(cookie)
+        }
     }
 
     // MARK: - Cookie Sync
@@ -136,7 +178,7 @@ public final class AuthManager: NSObject, ObservableObject {
             print("[Auth] /api/auth/session → HTTP \(statusCode), body: \(String(data: data, encoding: .utf8)?.prefix(200) ?? "nil")")
             guard statusCode == 200, !data.isEmpty else {
                 isAuthenticated = false
-                KeychainStore.deleteAll()
+                KeychainStore.delete(forKey: "sessionToken")
                 throw NetworkError.refreshFailed
             }
             let decoder = JSONDecoder()
@@ -149,9 +191,21 @@ public final class AuthManager: NSObject, ObservableObject {
             return session.accessToken
         } catch let e as NetworkError {
             print("[Auth] NetworkError in refresh: \(e)")
+            if e.isAuthError {
+                isAuthenticated = false
+                KeychainStore.delete(forKey: "sessionToken")
+            }
             throw e
+        } catch let urlError as URLError {
+            // Network-level failure — the token is likely still valid, just unreachable.
+            // Don't clear auth state so the next refresh attempt can succeed.
+            print("[Auth] URLError in refresh: \(urlError.localizedDescription)")
+            throw NetworkError.networkUnavailable
         } catch {
+            // Decode or other unexpected error — session is probably invalid.
             print("[Auth] unexpected error in refresh: \(error)")
+            isAuthenticated = false
+            KeychainStore.delete(forKey: "sessionToken")
             throw NetworkError.refreshFailed
         }
     }

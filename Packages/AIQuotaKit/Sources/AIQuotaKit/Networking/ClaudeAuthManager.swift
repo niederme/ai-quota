@@ -17,6 +17,8 @@ import AppKit
 public final class ClaudeAuthManager: NSObject, ObservableObject {
     @Published public var isAuthenticated = false
 
+    static let loginCookies = ["lastActiveOrg", "sessionKey", "routingHint"]
+
     private var loginWindowController: ClaudeLoginWindowController?
 
     public override init() {
@@ -43,6 +45,33 @@ public final class ClaudeAuthManager: NSObject, ObservableObject {
             }
             self.loginWindowController = controller
             controller.show()
+        }
+    }
+
+    // MARK: - Silent Re-Auth
+
+    /// Checks the WKWebView cookie store for existing Claude session cookies without showing any UI.
+    /// If valid cookies are found, syncs them and marks as authenticated.
+    @discardableResult
+    public func silentSignInIfPossible() async -> Bool {
+        guard !isAuthenticated else { return true }
+        return await withCheckedContinuation { continuation in
+            WKWebsiteDataStore.default().httpCookieStore.getAllCookies { [weak self] cookies in
+                guard let self else { continuation.resume(returning: false); return }
+                let claudeCookies = cookies.filter { $0.domain.contains("claude.ai") }
+                guard claudeCookies.contains(where: { Self.loginCookies.contains($0.name) }) else {
+                    continuation.resume(returning: false)
+                    return
+                }
+                for cookie in claudeCookies { HTTPCookieStorage.shared.setCookie(cookie) }
+                Task { @MainActor [weak self] in
+                    guard let self else { continuation.resume(returning: false); return }
+                    KeychainStore.save("true", forKey: "claudeAuthenticated")
+                    self.isAuthenticated = true
+                    print("[ClaudeAuth] silent re-auth succeeded ✓")
+                    continuation.resume(returning: true)
+                }
+            }
         }
     }
 
@@ -92,8 +121,7 @@ final class ClaudeLoginWindowController: NSObject {
     private var hasCompleted = false
     private var pollTimer: Timer?
 
-    /// Cookie names that reliably indicate a completed claude.ai login.
-    private static let loginCookies = ["lastActiveOrg", "sessionKey", "routingHint"]
+    private static var loginCookies: [String] { ClaudeAuthManager.loginCookies }
 
     init(onComplete: @escaping (Result<Void, Error>) -> Void) {
         self.onComplete = onComplete
@@ -247,7 +275,7 @@ extension ClaudeLoginWindowController: NSWindowDelegate {
 private final class ClaudeCookieObserver: NSObject, WKHTTPCookieStoreObserver, @unchecked Sendable {
     private let onSessionFound: @Sendable () -> Void
     private var hasFound = false
-    private static let loginCookies = ["lastActiveOrg", "sessionKey", "routingHint"]
+    private static var loginCookies: [String] { ClaudeAuthManager.loginCookies }
 
     init(onSessionFound: @Sendable @escaping () -> Void) {
         self.onSessionFound = onSessionFound
