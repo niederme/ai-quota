@@ -35,8 +35,12 @@ struct CircularGaugeView: View {
     private var primaryFill:   Double { isLoading ? 0.5 : Double(max(0, min(100, primaryPercent)))   / 100.0 }
     private var secondaryFill: Double { isLoading ? 0.5 : Double(max(0, min(100, secondaryPercent))) / 100.0 }
 
+    // Both rings equal width (8pt). Inner padding = lw so they touch with no gap.
+    private let lw: CGFloat = 8
+    private var innerPad: CGFloat { lw }  // lw/2 + lw/2 = lw
+
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 4) {
             arcs
             caption
         }
@@ -44,7 +48,7 @@ struct CircularGaugeView: View {
     }
 
     // MARK: - Arcs
-    // Track: .round lineCap — rounded ends at the arc's 225° / 315° tips.
+    // Track: .round lineCap — rounded ends at the arc's open tips.
     // Fill:  .butt lineCap — flat ends, contained within the track footprint.
 
     private var arcs: some View {
@@ -52,29 +56,29 @@ struct CircularGaugeView: View {
             // ── Outer track ───────────────────────────────────────────
             Circle()
                 .trim(from: 0, to: 0.75)
-                .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: 9, lineCap: .round))
+                .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: lw, lineCap: .round))
                 .rotationEffect(.degrees(135))
 
             // ── Outer fill (primary) ──────────────────────────────────
             Circle()
                 .trim(from: 0, to: 0.75 * primaryFill)
-                .stroke(statusColor, style: StrokeStyle(lineWidth: 9, lineCap: .butt))
+                .stroke(statusColor, style: StrokeStyle(lineWidth: lw, lineCap: .butt))
                 .rotationEffect(.degrees(135))
                 .animation(.easeInOut(duration: 0.5), value: primaryFill)
 
-            // ── Inner track (touching, no gap) ────────────────────────
+            // ── Inner track (equal width, touching) ───────────────────
             Circle()
                 .trim(from: 0, to: 0.75)
-                .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: lw, lineCap: .round))
                 .rotationEffect(.degrees(135))
-                .padding(8)
+                .padding(innerPad)
 
             // ── Inner fill (secondary) ────────────────────────────────
             Circle()
                 .trim(from: 0, to: 0.75 * secondaryFill)
-                .stroke(statusColor.opacity(0.5), style: StrokeStyle(lineWidth: 7, lineCap: .butt))
+                .stroke(statusColor.opacity(0.5), style: StrokeStyle(lineWidth: lw, lineCap: .butt))
                 .rotationEffect(.degrees(135))
-                .padding(8)
+                .padding(innerPad)
                 .animation(.easeInOut(duration: 0.5), value: secondaryFill)
 
             // ── Centre: logo + labelled percentages ───────────────────
@@ -110,6 +114,21 @@ struct CircularGaugeView: View {
                     }
                 }
             }
+
+            // ── Refresh button — sits in the arc's bottom gap ─────────
+            VStack {
+                Spacer()
+                ZStack {
+                    RefreshButton(action: onRefresh)
+                        .opacity(isRefreshing ? 0 : 1)
+                    ProgressView()
+                        .controlSize(.mini)
+                        .scaleEffect(0.8)
+                        .opacity(isRefreshing ? 1 : 0)
+                }
+                .animation(.easeInOut(duration: 0.15), value: isRefreshing)
+                .padding(.bottom, 2)
+            }
         }
         .frame(width: 114, height: 114)
     }
@@ -117,23 +136,10 @@ struct CircularGaugeView: View {
     // MARK: - Caption
 
     private var caption: some View {
-        VStack(spacing: 3) {
-            HStack(spacing: 4) {
-                Text(label)
-                    .font(.subheadline.bold())
-                    .foregroundStyle(primaryLimitReached ? .red : .primary)
-                // Fixed-size slot — both views occupy the same space so
-                // switching between them never shifts the label.
-                ZStack {
-                    RefreshButton(action: onRefresh)
-                        .opacity(isRefreshing ? 0 : 1)
-                    ProgressView()
-                        .controlSize(.mini)
-                        .scaleEffect(0.75)
-                        .opacity(isRefreshing ? 1 : 0)
-                }
-                .animation(.easeInOut(duration: 0.15), value: isRefreshing)
-            }
+        VStack(spacing: 2) {
+            Text(label)
+                .font(.subheadline.bold())
+                .foregroundStyle(primaryLimitReached ? .red : .primary)
 
             Text(primaryLimitReached ? "Limit reached · \(resetText)" : resetText)
                 .font(.system(size: 9))

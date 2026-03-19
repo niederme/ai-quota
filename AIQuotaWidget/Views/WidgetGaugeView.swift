@@ -30,9 +30,9 @@ struct WidgetGaugeView: View {
     private var secondaryFill: Double { Double(max(0, min(100, secondaryPercent))) / 100.0 }
 
     // Scaled dimensions
-    private var outerLW: CGFloat { size * 0.09 }
-    private var innerLW: CGFloat { size * 0.07 }
-    private var innerPad: CGFloat { outerLW / 2 + innerLW / 2 }  // touching, no gap
+    private var outerLW: CGFloat { size * 0.08 }
+    private var innerLW: CGFloat { size * 0.08 }  // equal width
+    private var innerPad: CGFloat { outerLW }     // lw/2 + lw/2 = lw, touching
     private var iconPt:   CGFloat { size * 0.13 }
     private var primPt:   CGFloat { size * 0.145 }
     private var secPt:    CGFloat { size * 0.10 }
