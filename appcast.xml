@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.4.5</title>
+            <title>Version 1.5</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.4.5</h2> <ul><li>Fixed: Sparkle auto-updates were not being offered due to incorrect build number and minimum OS version in the update feed</li>  <h2>What's New in 1.4.3</h2> <li>Changed: Sparkle update checks now happen twice daily</li>  <h2>What's New in 1.4.2</h2> <li>Fixed: "Claude window reset" notification firing on every refresh instead of only once when the window actually expires</li>  <h2>What's New in 1.4.1</h2> <li>Fixed: "Not signed in" error appearing even after logging in when session cookies had expired in the background</li>  <h2>What's New in 1.4</h2> <li>macOS Sequoia (15.0) support</li> <li>Silent re-authentication — stale sessions recover automatically without prompting you to log in again</li></ul>
+<h2>What's New in 1.5</h2>  <ul><li><strong>Harmonized usage display</strong> — both Codex and Claude Code now lead with the 5-hour rate-limit window as the primary gauge, with the 7-day window always shown as a secondary row; no more guessing which limit you're close to</li> <li><strong>Smarter reset notifications</strong> — rolling window drift no longer triggers spurious "quota reset" alerts on every refresh; notifications only fire when the window has genuinely elapsed</li> <li><strong>Gentle update reminders</strong> — Sparkle update alerts no longer steal focus from your active app (required behavior for menu bar apps)</li> <li><strong>Auto-update check frequency</strong> — app now checks for updates twice daily in addition to on every launch</li></ul>
 </body>
 </html>
 ]]></description>
-            <sparkle:version>54</sparkle:version>
-            <sparkle:shortVersionString>1.4.5</sparkle:shortVersionString>
+            <sparkle:version>57</sparkle:version>
+            <sparkle:shortVersionString>1.5</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.4.5/AIQuota.zip"
-                sparkle:edSignature="ty5f37llI9IeO40ZqkwUTCrZPMGwNiOUJiMZY6L0IA38OrwQIQnMdutn5P1vnDfEJsHde9XanM0DHej1t7waBg=="
-                length="2613732"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.5/AIQuota.zip"
+                sparkle:edSignature="z2GGg/PmJOpwWrLs06mAI2iwn04qhs6SnzsRUehADyoRpU2njovybrs68yQyH31lRxHuTKOvtbOZzr1redB/BQ=="
+                length="2614460"
                 type="application/zip"/>
         </item>
     </channel>
