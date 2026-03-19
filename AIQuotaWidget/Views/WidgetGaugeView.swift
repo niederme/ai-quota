@@ -126,8 +126,8 @@ struct WidgetGaugeView: View {
         let days    = resetSeconds / 86400
         let hours   = (resetSeconds % 86400) / 3600
         let minutes = (resetSeconds % 3600) / 60
-        if days > 0  { return "Resets \(days)d \(hours)h" }
-        if hours > 0 { return "Resets \(hours)h \(minutes)m" }
-        return "Resets \(minutes)m"
+        if days > 0  { return "5h resets \(days)d \(hours)h" }
+        if hours > 0 { return "5h resets \(hours)h \(minutes)m" }
+        return "5h resets \(minutes)m"
     }
 }

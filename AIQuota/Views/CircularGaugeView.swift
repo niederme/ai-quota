@@ -146,7 +146,7 @@ struct CircularGaugeView: View {
                 .font(.headline.bold())
                 .foregroundStyle(primaryLimitReached ? .red : .primary)
 
-            Text(primaryLimitReached ? "Limit reached · \(resetText)" : resetText)
+            Text(primaryLimitReached ? "5h limit reached · \(resetText)" : resetText)
                 .font(.system(size: 9))
                 .foregroundStyle(primaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.tertiary))
         }
@@ -156,9 +156,9 @@ struct CircularGaugeView: View {
         let days    = resetSeconds / 86400
         let hours   = (resetSeconds % 86400) / 3600
         let minutes = (resetSeconds % 3600) / 60
-        if days > 0  { return "Resets \(days)d \(hours)h" }
-        if hours > 0 { return "Resets \(hours)h \(minutes)m" }
-        return "Resets \(minutes)m"
+        if days > 0  { return "5h resets \(days)d \(hours)h" }
+        if hours > 0 { return "5h resets \(hours)h \(minutes)m" }
+        return "5h resets \(minutes)m"
     }
 }
 
