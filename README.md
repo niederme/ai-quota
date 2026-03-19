@@ -91,6 +91,7 @@ See the pre-release checklist at the top of [`scripts/release.sh`](scripts/relea
 
 ## Roadmap
 
+- [ ] Circular gauge layout — replace the linear bar with a circular arc gauge for a denser, at-a-glance view of both windows
 - [ ] Gemini quota support (Google AI plans)
 - [x] Claude Code support — 5h and 7-day windows, Max plan credits, reset timers
 - [x] Harmonized window display — both Codex and Claude lead with the 5-hour rate-limit window, with 7-day usage always shown as a secondary row
