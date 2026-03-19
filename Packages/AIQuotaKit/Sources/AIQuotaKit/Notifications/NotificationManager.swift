@@ -15,9 +15,12 @@ public actor NotificationManager {
         // Codex
         static let codexThresholds  = "notificationThresholds"
         static let codexLastResetAt = "notificationLastResetAt"
-        // Claude
+        // Claude 5h window
         static let claudeThresholds  = "claudeNotificationThresholds"
         static let claudeLastResetAt = "claudeNotificationLastResetAt"
+        // Claude 7-day window
+        static let claudeSevenDayThresholds  = "claudeSevenDayThresholds"
+        static let claudeSevenDayLastResetAt = "claudeSevenDayLastResetAt"
     }
 
     private var defaults: UserDefaults {
@@ -133,7 +136,7 @@ public actor NotificationManager {
             return
         }
 
-        // ── Threshold notifications ─────────────────────────────────────────
+        // ── 5h threshold notifications ─────────────────────────────────────
         let notified  = loadThresholds(key: Key.claudeThresholds)
         let remaining = claude.remainingPercent
 
@@ -159,6 +162,55 @@ public actor NotificationManager {
                 body: "Less than 15% of your Claude 5-hour window capacity remains."
             )
         }
+
+        // ── 7-day threshold notifications ──────────────────────────────────
+        // These fire on a separate cadence — the 7-day window is what causes
+        // extended blackouts, so we warn early (80%) and critically (95%).
+        let sevenDayUsed     = Int(claude.sevenDayUtilization.rounded())
+        let sevenDayNotified = loadThresholds(key: Key.claudeSevenDayThresholds)
+        let sevenDayResetAt  = claude.sevenDayResetsAt.timeIntervalSince1970
+        let storedSevenDay   = defaults.object(forKey: Key.claudeSevenDayLastResetAt) as? Double
+
+        if let stored = storedSevenDay {
+            let storedDate = Date(timeIntervalSince1970: stored)
+            if storedDate < .now {
+                clearThresholds(key: Key.claudeSevenDayThresholds)
+                defaults.set(sevenDayResetAt, forKey: Key.claudeSevenDayLastResetAt)
+                await send(
+                    id: "claudeSevenDayReset",
+                    title: "Claude 7-day window reset",
+                    body: "Your 7-day Claude allowance has reset — you're back to full capacity."
+                )
+            } else {
+                if stored != sevenDayResetAt {
+                    defaults.set(sevenDayResetAt, forKey: Key.claudeSevenDayLastResetAt)
+                }
+                if sevenDayUsed >= 100 && !sevenDayNotified.contains("limitReached") {
+                    markThreshold("limitReached", key: Key.claudeSevenDayThresholds)
+                    await send(
+                        id: "claudeSevenDayLimit",
+                        title: "Claude 7-day limit reached",
+                        body: "Your 7-day Claude allowance is fully used. Resets in \(timeString(claude.sevenDayResetAfterSeconds))."
+                    )
+                } else if sevenDayUsed >= 95 && !sevenDayNotified.contains("above95") {
+                    markThreshold("above95", key: Key.claudeSevenDayThresholds)
+                    await send(
+                        id: "claudeSevenDay95",
+                        title: "Claude 7-day limit critical",
+                        body: "You've used 95% of your 7-day Claude allowance. Resets in \(timeString(claude.sevenDayResetAfterSeconds))."
+                    )
+                } else if sevenDayUsed >= 80 && !sevenDayNotified.contains("above80") {
+                    markThreshold("above80", key: Key.claudeSevenDayThresholds)
+                    await send(
+                        id: "claudeSevenDay80",
+                        title: "Claude 7-day usage high",
+                        body: "You've used 80% of your 7-day Claude allowance — consider slowing down."
+                    )
+                }
+            }
+        } else {
+            defaults.set(sevenDayResetAt, forKey: Key.claudeSevenDayLastResetAt)
+        }
     }
 
     // MARK: - Test helper
@@ -166,12 +218,15 @@ public actor NotificationManager {
     /// Fires all notification types with a 2-second gap. For development/QA only.
     public func fireTestNotifications() async {
         let notifications: [(String, String, String)] = [
-            ("test.codex.below15",       "Codex quota low",       "Less than 15% of your weekly Codex quota remains."),
-            ("test.codex.below5",        "Codex quota critical",  "Less than 5% of your weekly Codex quota remains."),
-            ("test.codex.limitReached",  "Codex quota reached",   "Your weekly Codex quota is fully used. Resets in 9h 30m."),
-            ("test.codex.reset",         "Codex quota reset",     "Your weekly Codex quota has reset — you're back to 100%."),
-            ("test.claude.below15",      "Claude quota low",      "Less than 15% of your Claude message allowance remains."),
-            ("test.claude.limitReached", "Claude limit reached",  "You've used all messages in your current Claude window."),
+            ("test.codex.below15",          "Codex quota low",              "Less than 15% of your weekly Codex quota remains."),
+            ("test.codex.below5",           "Codex quota critical",         "Less than 5% of your weekly Codex quota remains."),
+            ("test.codex.limitReached",     "Codex quota reached",          "Your weekly Codex quota is fully used. Resets in 9h 30m."),
+            ("test.codex.reset",            "Codex quota reset",            "Your weekly Codex quota has reset — you're back to 100%."),
+            ("test.claude.below15",         "Claude quota low",             "Less than 15% of your Claude 5-hour window capacity remains."),
+            ("test.claude.limitReached",    "Claude rate limit reached",    "Your 5-hour Claude window is fully used. Resets in 2h 15m."),
+            ("test.claude.7day80",          "Claude 7-day usage high",      "You've used 80% of your 7-day Claude allowance — consider slowing down."),
+            ("test.claude.7day95",          "Claude 7-day limit critical",  "You've used 95% of your 7-day Claude allowance. Resets in 4d 12h."),
+            ("test.claude.7dayLimit",       "Claude 7-day limit reached",   "Your 7-day Claude allowance is fully used. Resets in 4d 12h."),
         ]
         for (id, title, body) in notifications {
             await send(id: id, title: title, body: body)

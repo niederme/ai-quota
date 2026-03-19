@@ -33,6 +33,7 @@ struct AIQuotaApp: App {
         } label: {
             MenuBarIconView(
                 usedPercent: menuBarUsedPercent,
+                secondaryPercent: menuBarSecondaryPercent,
                 limitReached: menuBarLimitReached,
                 isLoading: viewModel.isLoading
             )
@@ -54,6 +55,14 @@ struct AIQuotaApp: App {
         switch resolvedMenuBarService {
         case .codex:  return viewModel.codexUsage?.hourlyUsedPercent ?? 0
         case .claude: return viewModel.claudeUsage?.usedPercent ?? 0
+        }
+    }
+
+    /// 7-day consumption for the resolved service — drives the inner ring.
+    private var menuBarSecondaryPercent: Int {
+        switch resolvedMenuBarService {
+        case .codex:  return viewModel.codexUsage?.weeklyUsedPercent ?? 0
+        case .claude: return Int(viewModel.claudeUsage?.sevenDayUtilization.rounded() ?? 0)
         }
     }
 

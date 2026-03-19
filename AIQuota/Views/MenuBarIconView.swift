@@ -3,12 +3,13 @@ import AIQuotaKit
 
 struct MenuBarIconView: View {
     let usedPercent: Int
+    let secondaryPercent: Int
     let limitReached: Bool
     let isLoading: Bool
-
     var body: some View {
         Image(nsImage: GaugeImageMaker.image(
-            usedPercent: usedPercent,
+            primaryPercent: usedPercent,
+            secondaryPercent: secondaryPercent,
             limitReached: limitReached,
             isLoading: isLoading,
             size: 22
