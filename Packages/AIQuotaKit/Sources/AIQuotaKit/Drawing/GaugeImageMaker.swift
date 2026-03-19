@@ -47,8 +47,8 @@ public enum GaugeImageMaker {
                    startAngle: deg(225), endAngle: deg(315), clockwise: true)
         ctx.strokePath()
 
-        // Fills: round tip on the leading edge only
-        ctx.setLineCap(.round)
+        // Fills: flat caps — needle dot marks the tip, no rounded bleed at 225°
+        // (keeping .round here would add a bubble at the arc start too)
 
         // Both rings share the same status colour — driven by whichever metric
         // is worse. Inner ring stays dimmed (45%) when healthy so the outer
@@ -78,10 +78,12 @@ public enum GaugeImageMaker {
         }
 
         // ── Inner fill: secondary (7-day) ─────────────────────────────────
-        // Dimmed at 45% when healthy, full brightness when either ring warns.
+        // Always subordinate to the outer ring — same hue, lower opacity.
+        // Healthy: 45%. Warning: steps up to 65% to draw attention, but
+        // never matches the outer ring so hierarchy stays clear.
         if pct2 > 0 {
             let isWarning = worstPct >= 0.85
-            let alpha2: CGFloat = isWarning ? 1.0 : 0.45
+            let alpha2: CGFloat = isWarning ? 0.65 : 0.45
             ctx.setStrokeColor(sharedColor.copy(alpha: alpha2) ?? sharedColor)
             ctx.addArc(center: CGPoint(x: cx, y: cy), radius: r2,
                        startAngle: deg(225), endAngle: deg(225.0 - pct2 * 270.0), clockwise: true)
