@@ -53,15 +53,15 @@ struct CircularGaugeView: View {
     }
 
     // MARK: - Arcs
-    // Track: .round lineCap — rounded ends at the arc's open tips.
-    // Fill:  .butt lineCap — flat ends, contained within the track footprint.
+    // All strokes use .butt lineCap — flat ends at the arc's open tips.
+    // Rounded caps on tracks create visible bubbles at the 225°/315° endpoints.
 
     private var arcs: some View {
         ZStack {
             // ── Outer track ───────────────────────────────────────────
             Circle()
                 .trim(from: 0, to: 0.75)
-                .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: lw, lineCap: .round))
+                .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: lw, lineCap: .butt))
                 .rotationEffect(.degrees(135))
 
             // ── Outer fill (primary) ──────────────────────────────────
@@ -74,7 +74,7 @@ struct CircularGaugeView: View {
             // ── Inner track (equal width, touching) ───────────────────
             Circle()
                 .trim(from: 0, to: 0.75)
-                .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: lw, lineCap: .round))
+                .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: lw, lineCap: .butt))
                 .rotationEffect(.degrees(135))
                 .padding(innerPad)
 
