@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.6</title>
+            <title>Version 1.7</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.6</h2>  <ul><li><strong>Redesigned gauges</strong> — the popover now shows dual-arc circular gauges for both your 5-hour and 7-day windows at a glance, with a colour key in the header</li> <li><strong>Widget overhaul</strong> — widgets now use the same dual-arc design with brand logos, larger text, and a tap-to-refresh button</li> <li><strong>Medium widget shows both services</strong> — Codex and Claude Code side by side, no switching required</li> <li><strong>Instant reconnect</strong> — the app now detects when your network comes back online and refreshes immediately, clearing the error banner automatically</li> <li><strong>Hover to refresh</strong> — click the refresh icon inside either gauge to update that service on demand; the pointer changes to a hand so it's easy to find</li></ul>
+<h2>What's New in 1.7</h2>  <ul><li><strong>Dual-ring menu bar</strong> — the icon now shows two concentric arcs: outer for your 5h window, inner for the 7-day. The inner ring stays dim when you're safe, brightens to amber/red as you approach the weekly cliff — the limit that actually cuts you off for days.</li>  <li><strong>Freshness cue</strong> — a subtle "just now / 2m ago" timestamp in the popover footer so you always know how stale the data is.</li>  <li><strong>Widget polish</strong> — gauges are larger, padding tighter, and the refresh button now sits cleanly inline below the reset time instead of floating off the edge.</li></ul>
 </body>
 </html>
 ]]></description>
-            <sparkle:version>84</sparkle:version>
-            <sparkle:shortVersionString>1.6</sparkle:shortVersionString>
+            <sparkle:version>95</sparkle:version>
+            <sparkle:shortVersionString>1.7</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.6/AIQuota.zip"
-                sparkle:edSignature="W/TMpItWxSGqo1TW3OKmT86MitOmjm8gMMkuGWgRE7LO6COYrMhoNt1qRm62cNjI2AGhz7zrvOQkruEVEAw7Bw=="
-                length="2646213"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.7/AIQuota.zip"
+                sparkle:edSignature="rXnB0ioAUu87l96HWfP8lFq5YMhJvn1Wi5I6qZARMghTtZhL56pzNZ8zjHPcXCzHI0lFcWAMXb0vVzzoUrD7DA=="
+                length="2670515"
                 type="application/zip"/>
         </item>
     </channel>
