@@ -5,7 +5,8 @@ A native macOS menubar utility to monitor your AI coding quota — track [OpenAI
 ![macOS 15+](https://img.shields.io/badge/macOS-15%2B-black?logo=apple)
 ![Swift 6](https://img.shields.io/badge/Swift-6.0-orange?logo=swift)
 
-<img alt="AIQuota App & Widgets" src="https://github.com/user-attachments/assets/136c6047-4d27-44df-a356-2152c13777a6" />
+<img alt="AIQuota App & Widgets" src="https://github.com/user-attachments/assets/189ba15c-c316-4809-8a47-16018e4745b2" />
+
 
 
 
