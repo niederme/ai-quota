@@ -44,13 +44,13 @@
 </body>
 </html>
 ]]></description>
-            <sparkle:version>42</sparkle:version>
+            <sparkle:version>54</sparkle:version>
             <sparkle:shortVersionString>1.4.5</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+            <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
                 url="https://github.com/niederme/ai-quota/releases/download/v1.4.5/AIQuota.zip"
-                sparkle:edSignature="9l80uW+hjuY6lbAXRu+llPV65L6AMI10Oz86NvXQD4tSO3S9z12mX94mBd30NPUDRSJiR0NNVHnE1QEHe9rABw=="
-                length="2585739"
+                sparkle:edSignature="ty5f37llI9IeO40ZqkwUTCrZPMGwNiOUJiMZY6L0IA38OrwQIQnMdutn5P1vnDfEJsHde9XanM0DHej1t7waBg=="
+                length="2613732"
                 type="application/zip"/>
         </item>
     </channel>

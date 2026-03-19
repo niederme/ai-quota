@@ -2,7 +2,7 @@
 
 A native macOS menubar utility to monitor your AI coding quota — track [OpenAI Codex](https://openai.com/codex) and [Claude Code](https://claude.ai) usage at a glance, without opening a browser.
 
-![macOS 26+](https://img.shields.io/badge/macOS-26%2B-black?logo=apple)
+![macOS 15+](https://img.shields.io/badge/macOS-15%2B-black?logo=apple)
 ![Swift 6](https://img.shields.io/badge/Swift-6.0-orange?logo=swift)
 
 <img alt="AIQuota App & Widgets" src="https://github.com/user-attachments/assets/605df82f-6a78-4468-9207-0f4b972b19c9" />
@@ -12,19 +12,19 @@ A native macOS menubar utility to monitor your AI coding quota — track [OpenAI
 
 ## Features
 
-- **Menubar gauge icon** — color-coded arc gauge showing quota consumption at a glance
-- **Codex + Claude Code** — both services on a single scrollable sheet with usage bars, reset timers, and plan badges
+- **Menubar gauge icon** — color-coded arc gauge showing quota consumption at a glance; tracks whichever service you configure (or falls back to whichever is authenticated)
+- **Codex + Claude Code** — both services on a single scrollable sheet, each showing a **5-hour window** as the primary gauge and a **7-day window** as a secondary row, with reset timers and plan badges
 - **Widget service picker** — small and medium desktop widgets; right-click to choose Codex or Claude Code per instance
 - **Auto-refresh** — background polling with manual refresh button
 - **Sign in with ChatGPT / Claude** — OAuth via browser session, tokens stored securely in Keychain
-- **Notifications** — alerts at 15%, 5%, and when your limit is reached or resets
-- **Auto-update** — silently checks for a new version on every launch via Sparkle
+- **Notifications** — alerts at 15%, 5%, and when your limit is reached or resets; uses time-has-passed logic so rolling window drift never triggers spurious alerts
+- **Auto-update** — checks for a new version silently on every launch and twice daily via Sparkle; uses gentle reminders so update alerts never steal focus from your active app
 
 ---
 
 ## Requirements
 
-- macOS 26 (Tahoe) or later
+- macOS 15 (Sequoia) or later
 - An OpenAI account with Codex access (Plus, Pro, or Team plan)
 - A Claude.ai account (Pro or Max plan) for Claude Code quota
 
@@ -43,7 +43,7 @@ A native macOS menubar utility to monitor your AI coding quota — track [OpenAI
 
 ## Building from Source
 
-Requires Xcode 26 beta and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
+Requires Xcode 16 or later and [XcodeGen](https://github.com/yonaskolb/XcodeGen).
 
 ```bash
 git clone https://github.com/niederme/ai-quota.git
@@ -52,7 +52,7 @@ xcodegen generate
 open AIQuota.xcodeproj
 ```
 
-Build and run the `AIQuota` scheme.
+Build and run the `AIQuota` scheme targeting **My Mac**.
 
 ---
 
@@ -65,6 +65,7 @@ ai-quota/
 │       └── Sources/AIQuotaKit/
 │           ├── Models/      # CodexUsage, ClaudeUsage, AppSettings
 │           ├── Networking/  # OpenAIClient, ClaudeClient, AuthManagers, NetworkError
+│           ├── Notifications/ # NotificationManager
 │           └── Storage/     # KeychainStore, SharedDefaults
 ├── AIQuota/                 # Main app target (MenuBarExtra)
 │   ├── Views/               # PopoverView, MenuBarIconView, SettingsView
@@ -77,13 +78,25 @@ ai-quota/
 
 ---
 
+## Releasing
+
+See the pre-release checklist at the top of [`scripts/release.sh`](scripts/release.sh). The short version:
+
+1. Update `README.md` (features, requirements, roadmap) — **always do this first**
+2. Bump `MARKETING_VERSION` in Xcode and archive (`Product → Archive`)
+3. Export the notarized `.app` to `~/Desktop/AIQuota.app`
+4. Run `./scripts/release.sh <version>`
+
+---
+
 ## Roadmap
 
 - [ ] Gemini quota support (Google AI plans)
 - [x] Claude Code support — 5h and 7-day windows, Max plan credits, reset timers
+- [x] Harmonized window display — both Codex and Claude lead with the 5-hour rate-limit window, with 7-day usage always shown as a secondary row
 - [x] Widget service picker — choose Codex or Claude Code per widget instance
-- [x] Notifications — below 15%, below 5%, limit reached, quota reset
-- [x] Check for Updates — manual + silent auto-check on launch via Sparkle
+- [x] Notifications — below 15%, below 5%, limit reached, quota reset; rolling-window drift no longer triggers spurious alerts
+- [x] Check for Updates — manual + silent auto-check on launch and twice daily via Sparkle, with gentle reminders
 
 ---
 
