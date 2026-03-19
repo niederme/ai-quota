@@ -27,13 +27,11 @@ ZIP="/tmp/AIQuota.zip"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APPCAST="${REPO_ROOT}/appcast.xml"
 
-# ── Locate exported .app (Desktop preferred, fallback to /Applications) ───────
-if [ -d "$HOME/Desktop/AIQuota.app" ]; then
-    APP_SRC="$HOME/Desktop/AIQuota.app"
-elif [ -d "/Applications/AIQuota.app" ]; then
-    APP_SRC="/Applications/AIQuota.app"
-else
-    echo "✗ AIQuota.app not found on Desktop or in /Applications. Export from Xcode first."
+# ── Locate exported .app on Desktop ──────────────────────────────────────────
+APP_SRC="$HOME/Desktop/AIQuota.app"
+if [ ! -d "$APP_SRC" ]; then
+    echo "✗ ~/Desktop/AIQuota.app not found. Export from Xcode first:"
+    echo "  Product → Archive → Distribute App → Direct Distribution → Export"
     exit 1
 fi
 echo "▶ Using app: ${APP_SRC}"
