@@ -133,25 +133,6 @@ struct PopoverView: View {
             Text("AIQuota")
                 .font(.headline)
             Spacer()
-            if viewModel.isLoading {
-                ProgressView().controlSize(.small)
-            } else {
-                HStack(spacing: 6) {
-                    if let ts = viewModel.lastRefreshedAt {
-                        Text(ts, style: .time)
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-                    Button {
-                        Task { await viewModel.refresh() }
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.footnote)
-                    }
-                    .buttonStyle(.borderless)
-                    .help("Refresh now")
-                }
-            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
@@ -162,12 +143,22 @@ struct PopoverView: View {
 
     // MARK: - Service header
 
-    private func serviceHeader(label: String) -> some View {
+    private func serviceHeader(label: String, isLoading: Bool, refresh: @escaping () -> Void) -> some View {
         HStack(spacing: 6) {
             Text(label)
                 .font(.caption.bold())
                 .foregroundStyle(.secondary)
             Spacer()
+            if isLoading {
+                ProgressView().controlSize(.mini)
+            } else {
+                Button(action: refresh) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.caption)
+                }
+                .buttonStyle(.borderless)
+                .help("Refresh")
+            }
         }
         .padding(.horizontal, 12)
         .padding(.top, 8)
@@ -179,7 +170,9 @@ struct PopoverView: View {
     @ViewBuilder
     private func codexContent(_ usage: CodexUsage) -> some View {
         VStack(spacing: 0) {
-            serviceHeader(label: "CODEX")
+            serviceHeader(label: "CODEX",
+                          isLoading: viewModel.isCodexLoading,
+                          refresh: { Task { await viewModel.refreshCodex() } })
 
             if usage.limitReached {
                 HStack(spacing: 6) {
@@ -256,7 +249,9 @@ struct PopoverView: View {
     @ViewBuilder
     private func claudeContent(_ usage: ClaudeUsage) -> some View {
         VStack(spacing: 0) {
-            serviceHeader(label: "CLAUDE CODE")
+            serviceHeader(label: "CLAUDE CODE",
+                          isLoading: viewModel.isClaudeLoading,
+                          refresh: { Task { await viewModel.refreshClaude() } })
 
             if usage.limitReached {
                 HStack(spacing: 6) {
