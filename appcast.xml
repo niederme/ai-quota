@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.7.3</title>
+            <title>Version 1.7.4</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.7.3</h2>  <ul><li><strong>⌘R to refresh</strong> — press Command+R while the popover is open to instantly refresh both services</li> <li><strong>Rate limit handling</strong> — HTTP 429 responses are now surfaced as a clear "rate limited" message instead of a generic error</li> <li><strong>Fewer false network banners</strong> — the "No network connection" alert now only appears for genuine connectivity loss, not transient server or SSL errors</li> <li><strong>More breathing room</strong> — added spacing above the gauge rings</li></ul>
+<h2>What's New in 1.7.4</h2>  <ul><li>feat: add support links to Settings footer, remove notification test UI</li></ul>
 </body>
 </html>
 ]]></description>
-            <sparkle:version>118</sparkle:version>
-            <sparkle:shortVersionString>1.7.3</sparkle:shortVersionString>
+            <sparkle:version>122</sparkle:version>
+            <sparkle:shortVersionString>1.7.4</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.7.3/AIQuota.zip"
-                sparkle:edSignature="8AASkAIgGOyJuTk6i7j43kor47jj1CUR9MvUN79kMTNhMLAZkDLIVg6fHqIQoDEx09X65HcPJcliFqjM/l+bBA=="
-                length="2679593"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.7.4/AIQuota.zip"
+                sparkle:edSignature="w9iU2HGFs/a2tv4NfQ6VRBtAjqE52YSns2MOpau4SL44726GPuzPis4xbcAcEpYAqtz9Yo4nYFrLMV08Lw+eDQ=="
+                length="2676143"
                 type="application/zip"/>
         </item>
     </channel>
