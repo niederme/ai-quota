@@ -23,7 +23,22 @@ set -euo pipefail
 
 VERSION="${1:?Usage: release.sh <version>}"
 TAG="v${VERSION}"
-SPARKLE="${SPARKLE_TOOLS:-/tmp/sparkle-tools/bin}"
+
+# Auto-detect sign_update: prefer $SPARKLE_TOOLS, then DerivedData, then PATH
+if [ -n "${SPARKLE_TOOLS:-}" ]; then
+    SPARKLE="$SPARKLE_TOOLS"
+else
+    DERIVED=$(find ~/Library/Developer/Xcode/DerivedData -name "sign_update" -path "*/Sparkle/bin/sign_update" 2>/dev/null | grep -v old_dsa | head -1)
+    if [ -n "$DERIVED" ]; then
+        SPARKLE="$(dirname "$DERIVED")"
+    elif command -v sign_update &>/dev/null; then
+        SPARKLE="$(dirname "$(command -v sign_update)")"
+    else
+        echo "✗ sign_update not found. Set SPARKLE_TOOLS or build the project in Xcode first."
+        exit 1
+    fi
+fi
+echo "▶ Using Sparkle tools: ${SPARKLE}"
 REPO="niederme/ai-quota"
 ZIP="/tmp/AIQuota.zip"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
