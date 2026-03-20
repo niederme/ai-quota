@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.7.2</title>
+            <title>Version 1.7.3</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.7.2</h2>  <ul><li><strong>Centered timestamp</strong> — "Just now" in the popover footer is now pixel-perfect centered regardless of the widths of the Settings and Quit buttons.</li>  <li><strong>Settings on sign-in screen</strong> — the Settings button is now present in the footer before you sign in, matching the authenticated layout.</li></ul>
+<h2>What's New in 1.7.3</h2>  <ul><li><strong>⌘R to refresh</strong> — press Command+R while the popover is open to instantly refresh both services</li> <li><strong>Rate limit handling</strong> — HTTP 429 responses are now surfaced as a clear "rate limited" message instead of a generic error</li> <li><strong>Fewer false network banners</strong> — the "No network connection" alert now only appears for genuine connectivity loss, not transient server or SSL errors</li> <li><strong>More breathing room</strong> — added spacing above the gauge rings</li></ul>
 </body>
 </html>
 ]]></description>
-            <sparkle:version>108</sparkle:version>
-            <sparkle:shortVersionString>1.7.2</sparkle:shortVersionString>
+            <sparkle:version>118</sparkle:version>
+            <sparkle:shortVersionString>1.7.3</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.7.2/AIQuota.zip"
-                sparkle:edSignature="VV8pXGjtjPyWKtL3kqh/i9ZfR17mYYcRQPM1t1Hpa9xbKEW+wQT7ylxyNtY7HTJOGbRGpemt7twS6sT0quBEAw=="
-                length="2667691"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.7.3/AIQuota.zip"
+                sparkle:edSignature="8AASkAIgGOyJuTk6i7j43kor47jj1CUR9MvUN79kMTNhMLAZkDLIVg6fHqIQoDEx09X65HcPJcliFqjM/l+bBA=="
+                length="2679593"
                 type="application/zip"/>
         </item>
     </channel>
