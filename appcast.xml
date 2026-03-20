@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.7.1</title>
+            <title>Version 1.7.2</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.7.1</h2>  <ul><li><strong>Cleaner arc rendering</strong> — all gauge ring endpoints now use flat caps across the menu bar icon, popover, and widgets; no more rounded bubbles at the arc tips.</li>  <li><strong>Inner ring hierarchy</strong> — the 7-day ring renders at reduced opacity so it stays visually subordinate to the 5h ring, even when both turn amber or red together.</li>  <li><strong>No more false network banner</strong> — the "No network connection" alert no longer appears on launch when the network is available.</li>  <li><strong>Widget sync</strong> — widgets now reload once after both services have fetched, so Codex and Claude Code are always shown together with consistent data.</li>  <li><strong>Clearer reset label</strong> — "Resets Xh Ym" is now "5h resets Xh Ym" so it's immediately obvious which window the countdown tracks.</li></ul>
+<h2>What's New in 1.7.2</h2>  <ul><li><strong>Centered timestamp</strong> — "Just now" in the popover footer is now pixel-perfect centered regardless of the widths of the Settings and Quit buttons.</li>  <li><strong>Settings on sign-in screen</strong> — the Settings button is now present in the footer before you sign in, matching the authenticated layout.</li></ul>
 </body>
 </html>
 ]]></description>
-            <sparkle:version>107</sparkle:version>
-            <sparkle:shortVersionString>1.7.1</sparkle:shortVersionString>
+            <sparkle:version>108</sparkle:version>
+            <sparkle:shortVersionString>1.7.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.7.1/AIQuota.zip"
-                sparkle:edSignature="f88f947al6k8wW+/Bwzp+pfTybsNOJLF/vGotQVPsJfISa8f8l4VqklAGLSMslOit6c9KQK8SIWAQ+zU1Zb9Cw=="
-                length="2667532"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.7.2/AIQuota.zip"
+                sparkle:edSignature="VV8pXGjtjPyWKtL3kqh/i9ZfR17mYYcRQPM1t1Hpa9xbKEW+wQT7ylxyNtY7HTJOGbRGpemt7twS6sT0quBEAw=="
+                length="2667691"
                 type="application/zip"/>
         </item>
     </channel>
