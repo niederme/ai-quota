@@ -19,6 +19,11 @@ struct PopoverView: View {
         }
         .frame(width: 340)
         .background(WindowCapture { menuBarWindow = $0 })
+        .background {
+            Button("") { Task { await viewModel.refresh() } }
+                .keyboardShortcut("r", modifiers: .command)
+                .hidden()
+        }
         .task {
             if viewModel.usage == nil && viewModel.claudeUsage == nil {
                 await viewModel.refresh()
@@ -279,7 +284,7 @@ struct PopoverView: View {
                 .fill(CircularGaugeView.accent.opacity(opacity))
                 .frame(width: 6, height: 6)
             Text(label)
-                .font(.system(size: 9))
+                .font(.system(size: 11))
                 .foregroundStyle(CircularGaugeView.accent.opacity(opacity))
         }
     }
@@ -296,45 +301,41 @@ struct PopoverView: View {
             if let date = viewModel.lastRefreshedAt {
                 TimelineView(.periodic(from: date, by: 60)) { _ in
                     Text(date.relativeFormatted)
-                        .font(.system(size: 10))
                         .foregroundStyle(.tertiary)
                 }
             }
         }
         .buttonStyle(.borderless)
-        .font(.body)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .font(.footnote)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
     }
 
     // MARK: - Sign-In landing (both unauthenticated)
 
     private var signInContent: some View {
         VStack(spacing: 0) {
-            VStack(spacing: 16) {
+            VStack(spacing: 24) {
                 Image(nsImage: NSApp.applicationIconImage)
                     .resizable()
-                    .frame(width: 64, height: 64)
-                VStack(spacing: 4) {
+                    .frame(width: 60, height: 60)
+                VStack(spacing: 5) {
                     Text("AIQuota").font(.title3.bold())
                     Text("Monitor your AI quota at a glance.")
                         .font(.subheadline).foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
-                HStack(spacing: 10) {
-                    Button("Sign In with ChatGPT") {
-                        Task { await viewModel.signIn() }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Color(red: 0.62, green: 0.22, blue: 0.93))
-                    .controlSize(.large)
-
-                    Button("Sign In with Claude Code") {
-                        Task { await viewModel.signInClaude() }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Color(red: 0.8, green: 0.45, blue: 0.1))
-                    .controlSize(.large)
+                VStack(spacing: 8) {
+                    signInButton(
+                        logo: "logo-openai",
+                        label: "Sign in with ChatGPT",
+                        action: { Task { await viewModel.signIn() } }
+                    )
+                    signInButton(
+                        logo: "logo-claude",
+                        label: "Sign in with Claude",
+                        action: { Task { await viewModel.signInClaude() } }
+                    )
                 }
             }
             .padding(24)
@@ -349,6 +350,28 @@ struct PopoverView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
         }
+    }
+
+    private func signInButton(logo: String, label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 0) {
+                Image(logo)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 16, height: 16)
+                Text(label)
+                    .fontWeight(.medium)
+                    .frame(maxWidth: .infinity)
+                // Invisible spacer to balance the logo and keep text visually centred
+                Color.clear.frame(width: 16, height: 16)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+        .contentShape(RoundedRectangle(cornerRadius: 8))
     }
 
     // MARK: - Error Banner
@@ -415,7 +438,7 @@ private extension Date {
     var relativeFormatted: String {
         let elapsed = Int(-timeIntervalSinceNow)
         switch elapsed {
-        case ..<10:  return "just now"
+        case ..<10:  return "Just now"
         case ..<60:  return "\(elapsed)s ago"
         case ..<3600:
             let m = elapsed / 60

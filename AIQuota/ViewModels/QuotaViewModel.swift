@@ -1,5 +1,6 @@
 import Foundation
 import Network
+import os
 import AIQuotaKit
 import WidgetKit
 import Combine
@@ -7,6 +8,8 @@ import Combine
 @MainActor
 @Observable
 final class QuotaViewModel {
+
+    private let logger = Logger(subsystem: "ai.quota", category: "refresh")
 
     // MARK: - Codex (OpenAI)
 
@@ -134,6 +137,26 @@ final class QuotaViewModel {
         pathMonitor.start(queue: pathMonitorQueue)
     }
 
+    /// Returns true only for URLErrors that indicate genuine connectivity loss,
+    /// as opposed to transient server/SSL/timeout errors that don't mean the
+    /// device is actually offline.
+    private func isConnectivityError(_ error: Error) -> Bool {
+        guard let urlError = error as? URLError else { return false }
+        switch urlError.code {
+        case .notConnectedToInternet,
+             .networkConnectionLost,
+             .dnsLookupFailed,
+             .cannotFindHost,
+             .cannotConnectToHost,
+             .internationalRoamingOff,
+             .callIsActive,
+             .dataNotAllowed:
+            return true
+        default:
+            return false
+        }
+    }
+
     // MARK: - Refresh
 
     func refresh() async {
@@ -174,7 +197,14 @@ final class QuotaViewModel {
         } catch is CancellationError {
             // Task was cancelled (e.g. a new refresh cycle started) — ignore silently
         } catch {
-            codexError = .networkUnavailable
+            let pathStatus = pathMonitor.currentPath.status
+            logger.warning("[CodexRefresh] unexpected error: \(error) | path: \(String(describing: pathStatus)) | urlErrCode: \(String(describing: (error as? URLError)?.code.rawValue))")
+            // Only surface as network-unavailable if the error is truly connectivity-
+            // related, or if NWPathMonitor independently confirms we're offline.
+            // Avoids false-positive banners from transient SSL/timeout/server errors.
+            if isConnectivityError(error) || pathStatus != .satisfied {
+                codexError = .networkUnavailable
+            }
         }
     }
 
@@ -208,8 +238,13 @@ final class QuotaViewModel {
         } catch is CancellationError {
             // Task was cancelled (e.g. a new refresh cycle started) — ignore silently
         } catch {
-            print("[ClaudeRefresh] underlying error: \(error)")
-            claudeError = .networkUnavailable
+            let pathStatus = pathMonitor.currentPath.status
+            logger.warning("[ClaudeRefresh] unexpected error: \(error) | path: \(String(describing: pathStatus)) | urlErrCode: \(String(describing: (error as? URLError)?.code.rawValue))")
+            // Only surface as network-unavailable if the error is truly connectivity-
+            // related, or if NWPathMonitor independently confirms we're offline.
+            if isConnectivityError(error) || pathStatus != .satisfied {
+                claudeError = .networkUnavailable
+            }
         }
     }
 

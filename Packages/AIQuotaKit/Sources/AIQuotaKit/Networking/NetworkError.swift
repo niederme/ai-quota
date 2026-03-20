@@ -5,6 +5,7 @@ public enum NetworkError: Error, Sendable, LocalizedError {
     case tokenExpired
     case refreshFailed
     case httpError(statusCode: Int)
+    case rateLimited
     case decodingError(underlying: any Error)
     case networkUnavailable
     case unknownEndpoint
@@ -22,6 +23,7 @@ public enum NetworkError: Error, Sendable, LocalizedError {
         case .tokenExpired: "Session expired. Please sign in again."
         case .refreshFailed: "Could not refresh session. Please sign in again."
         case .httpError(let code): "Server returned error \(code)."
+        case .rateLimited: "Rate limited — try again in a moment."
         case .decodingError: "Unexpected response format from server."
         case .networkUnavailable: "No network connection."
         case .unknownEndpoint: "API endpoint not configured."

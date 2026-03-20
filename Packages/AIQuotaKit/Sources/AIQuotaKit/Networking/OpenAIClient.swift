@@ -38,6 +38,8 @@ public actor OpenAIClient {
             break
         case 401:
             throw NetworkError.tokenExpired
+        case 429:
+            throw NetworkError.rateLimited
         default:
             throw NetworkError.httpError(statusCode: http.statusCode)
         }

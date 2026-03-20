@@ -161,6 +161,7 @@ public actor ClaudeClient {
         switch http.statusCode {
         case 200...299: break
         case 401, 403:  throw NetworkError.notAuthenticated
+        case 429:       throw NetworkError.rateLimited
         default:        throw NetworkError.httpError(statusCode: http.statusCode)
         }
     }
