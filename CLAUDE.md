@@ -39,6 +39,11 @@ The full release script is at `scripts/release.sh`. It handles zipping, signing,
    git add appcast.xml && git commit -m "chore: update appcast for vX.Y.NEW" && git push
    ```
 
+> **Important:** `appcast.xml` must also be uploaded as a release asset on the GitHub release — Sparkle fetches it from `releases/latest/download/appcast.xml`. The `release.sh` script does this automatically. If doing a manual release, run:
+> ```bash
+> gh release upload vX.Y.NEW appcast.xml --clobber -R niederme/ai-quota
+> ```
+
 ### Notes
 
 - `sign_update` is auto-detected from Xcode DerivedData — no manual setup needed after first build
