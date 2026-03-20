@@ -40,9 +40,6 @@ struct SettingsView: View {
 
                 if viewModel.settings.notificationsEnabled {
                     NotificationStatusRow()
-                    Button("Send test notification") {
-                        Task { await viewModel.testNotifications() }
-                    }
                 }
             }
 
@@ -80,6 +77,15 @@ struct SettingsView: View {
                         .fontWeight(.medium)
                     Text("Made by John Niedermeyer, with a little help from\nClaude, Codex and friends.")
                         .multilineTextAlignment(.center)
+                    Text("Need Help?")
+                        .padding(.top, 4)
+                    HStack(spacing: 12) {
+                        Link("GitHub Issues", destination: URL(string: "https://github.com/niederme/ai-quota/issues")!)
+                            .foregroundColor(Color(red: 0.62, green: 0.22, blue: 0.93))
+                        Text("·").foregroundStyle(.quaternary)
+                        Link("@niederme on X", destination: URL(string: "https://x.com/niederme")!)
+                            .foregroundColor(Color(red: 0.62, green: 0.22, blue: 0.93))
+                    }
                 }
                 .font(.callout)
                 .foregroundStyle(.tertiary)
