@@ -61,6 +61,9 @@ final class QuotaViewModel {
     /// Tracks whether the last known network path was unsatisfied so we can
     /// detect a transition back online and refresh immediately.
     private var wasOffline = false
+    /// Set to true once NWPathMonitor fires its first update. Prevents false-positive
+    /// "No network connection" banners at launch before the monitor has settled.
+    private var pathMonitorReady = false
     private let pathMonitor = NWPathMonitor()
     private let pathMonitorQueue = DispatchQueue(label: "ai.quota.pathmonitor")
 
@@ -117,6 +120,7 @@ final class QuotaViewModel {
             guard let self else { return }
             let isNowSatisfied = path.status == .satisfied
             DispatchQueue.main.async {
+                self.pathMonitorReady = true
                 if isNowSatisfied {
                     // Always clear stale network-unavailable banners when path is
                     // satisfied — catches the launch-time false-positive where the
@@ -201,8 +205,9 @@ final class QuotaViewModel {
             logger.warning("[CodexRefresh] unexpected error: \(error) | path: \(String(describing: pathStatus)) | urlErrCode: \(String(describing: (error as? URLError)?.code.rawValue))")
             // Only surface as network-unavailable if the error is truly connectivity-
             // related, or if NWPathMonitor independently confirms we're offline.
-            // Avoids false-positive banners from transient SSL/timeout/server errors.
-            if isConnectivityError(error) || pathStatus != .satisfied {
+            // Require pathMonitorReady to avoid false-positives at launch before
+            // the monitor has fired its first update.
+            if isConnectivityError(error) || (pathMonitorReady && pathStatus != .satisfied) {
                 codexError = .networkUnavailable
             }
         }
@@ -242,7 +247,9 @@ final class QuotaViewModel {
             logger.warning("[ClaudeRefresh] unexpected error: \(error) | path: \(String(describing: pathStatus)) | urlErrCode: \(String(describing: (error as? URLError)?.code.rawValue))")
             // Only surface as network-unavailable if the error is truly connectivity-
             // related, or if NWPathMonitor independently confirms we're offline.
-            if isConnectivityError(error) || pathStatus != .satisfied {
+            // Require pathMonitorReady to avoid false-positives at launch before
+            // the monitor has fired its first update.
+            if isConnectivityError(error) || (pathMonitorReady && pathStatus != .satisfied) {
                 claudeError = .networkUnavailable
             }
         }
