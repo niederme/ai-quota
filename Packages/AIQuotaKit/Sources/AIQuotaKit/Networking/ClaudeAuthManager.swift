@@ -128,27 +128,13 @@ final class ClaudeLoginWindowController: NSObject {
     }
 
     func show() {
+        // Skip the cookie pre-check here — silentSignInIfPossible() already ran
+        // before signIn() was called, so if we've reached this point the user
+        // genuinely needs to log in. Going straight to showWindow() avoids the
+        // async getAllCookies delay that caused the login window to appear late.
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .default()
-
-        config.websiteDataStore.httpCookieStore.getAllCookies { [weak self] cookies in
-            guard let self else { return }
-
-            let claudeCookies = cookies.filter { $0.domain.contains("claude.ai") }
-            print("[ClaudeAuth] existing cookies: \(claudeCookies.map(\.name))")
-
-            let isLoggedIn = claudeCookies.contains(where: {
-                Self.loginCookies.contains($0.name)
-            })
-
-            if isLoggedIn {
-                for cookie in claudeCookies { HTTPCookieStorage.shared.setCookie(cookie) }
-                Task { @MainActor [weak self] in self?.complete(with: .success(())) }
-                return
-            }
-
-            Task { @MainActor [weak self] in self?.showWindow(config: config) }
-        }
+        showWindow(config: config)
     }
 
     private func showWindow(config: WKWebViewConfiguration) {
