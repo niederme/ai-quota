@@ -64,7 +64,7 @@ struct PopoverView: View {
                 Divider()
                 claudeGaugeSlot.frame(maxWidth: .infinity)
             }
-            .padding(.vertical, 10)
+            .padding(.top, 16).padding(.bottom, 10)
 
             // Stats row (horizontal rule separates it from gauges)
             if viewModel.codexUsage != nil || viewModel.claudeUsage != nil {
