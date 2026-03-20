@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.7</title>
+            <title>Version 1.7.1</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.7</h2>  <ul><li><strong>Dual-ring menu bar</strong> — the icon now shows two concentric arcs: outer for your 5h window, inner for the 7-day. The inner ring stays dim when you're safe, brightens to amber/red as you approach the weekly cliff — the limit that actually cuts you off for days.</li>  <li><strong>Freshness cue</strong> — a subtle "just now / 2m ago" timestamp in the popover footer so you always know how stale the data is.</li>  <li><strong>Widget polish</strong> — gauges are larger, padding tighter, and the refresh button now sits cleanly inline below the reset time instead of floating off the edge.</li></ul>
+<h2>What's New in 1.7.1</h2>  <ul><li><strong>Cleaner arc rendering</strong> — all gauge ring endpoints now use flat caps across the menu bar icon, popover, and widgets; no more rounded bubbles at the arc tips.</li>  <li><strong>Inner ring hierarchy</strong> — the 7-day ring renders at reduced opacity so it stays visually subordinate to the 5h ring, even when both turn amber or red together.</li>  <li><strong>No more false network banner</strong> — the "No network connection" alert no longer appears on launch when the network is available.</li>  <li><strong>Widget sync</strong> — widgets now reload once after both services have fetched, so Codex and Claude Code are always shown together with consistent data.</li>  <li><strong>Clearer reset label</strong> — "Resets Xh Ym" is now "5h resets Xh Ym" so it's immediately obvious which window the countdown tracks.</li></ul>
 </body>
 </html>
 ]]></description>
-            <sparkle:version>97</sparkle:version>
-            <sparkle:shortVersionString>1.7</sparkle:shortVersionString>
+            <sparkle:version>107</sparkle:version>
+            <sparkle:shortVersionString>1.7.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.7/AIQuota.zip"
-                sparkle:edSignature="jYBG8kLzecUW9MIfP3CWgvTimdUoIbrlL8lMzmoIRs9xlG/4vPe640iFOAWWJRo5mbwQqol2z5m78KD3qIq0Dw=="
-                length="2667020"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.7.1/AIQuota.zip"
+                sparkle:edSignature="f88f947al6k8wW+/Bwzp+pfTybsNOJLF/vGotQVPsJfISa8f8l4VqklAGLSMslOit6c9KQK8SIWAQ+zU1Zb9Cw=="
+                length="2667532"
                 type="application/zip"/>
         </item>
     </channel>
