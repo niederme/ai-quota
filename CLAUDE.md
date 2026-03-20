@@ -50,3 +50,12 @@ The full release script is at `scripts/release.sh`. It handles zipping, signing,
 - The appcast `<sparkle:version>` is the `CFBundleVersion` from the exported `.app` (not the marketing version)
 - ZIP format is required (not DMG) — Sparkle sandboxed apps get "installer launch" errors with DMGs
 - GitHub release and appcast always use the tag `vX.Y.Z` format
+- **Before running `release.sh`**, draft user-facing release notes and get approval — the script opens an editor immediately and raw commit messages are not acceptable release notes
+
+---
+
+## Code Conventions
+
+- Branded purple: `Color(red: 0.62, green: 0.22, blue: 0.93)` — use `.foregroundColor(...)`, not `.foregroundStyle(.accent)` or `.foregroundStyle(.accentColor)` (both fail to compile)
+- Never use `git stash` — always create a branch/worktree for WIP so nothing gets lost between releases
+- PR descriptions: no `🤖 Generated with Claude Code` footer
