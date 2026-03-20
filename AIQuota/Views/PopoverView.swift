@@ -287,9 +287,12 @@ struct PopoverView: View {
     // MARK: - Footer
 
     private var footer: some View {
-        HStack {
-            Button("Settings") { openSettingsKeepingPopover() }
-            Spacer()
+        ZStack {
+            HStack {
+                Button("Settings") { openSettingsKeepingPopover() }
+                Spacer()
+                Button("Quit", role: .destructive) { NSApp.terminate(nil) }
+            }
             if let date = viewModel.lastRefreshedAt {
                 TimelineView(.periodic(from: date, by: 60)) { _ in
                     Text(date.relativeFormatted)
@@ -297,8 +300,6 @@ struct PopoverView: View {
                         .foregroundStyle(.tertiary)
                 }
             }
-            Spacer()
-            Button("Quit", role: .destructive) { NSApp.terminate(nil) }
         }
         .buttonStyle(.borderless)
         .font(.body)
@@ -339,6 +340,7 @@ struct PopoverView: View {
             .padding(24)
             Divider()
             HStack {
+                Button("Settings") { openSettingsKeepingPopover() }
                 Spacer()
                 Button("Quit", role: .destructive) { NSApp.terminate(nil) }
             }
