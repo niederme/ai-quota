@@ -213,27 +213,6 @@ public actor NotificationManager {
         }
     }
 
-    // MARK: - Test helper
-
-    /// Fires all notification types with a 2-second gap. For development/QA only.
-    public func fireTestNotifications() async {
-        let notifications: [(String, String, String)] = [
-            ("test.codex.below15",          "Codex quota low",              "Less than 15% of your weekly Codex quota remains."),
-            ("test.codex.below5",           "Codex quota critical",         "Less than 5% of your weekly Codex quota remains."),
-            ("test.codex.limitReached",     "Codex quota reached",          "Your weekly Codex quota is fully used. Resets in 9h 30m."),
-            ("test.codex.reset",            "Codex quota reset",            "Your weekly Codex quota has reset — you're back to 100%."),
-            ("test.claude.below15",         "Claude quota low",             "Less than 15% of your Claude 5-hour window capacity remains."),
-            ("test.claude.limitReached",    "Claude rate limit reached",    "Your 5-hour Claude window is fully used. Resets in 2h 15m."),
-            ("test.claude.7day80",          "Claude 7-day usage high",      "You've used 80% of your 7-day Claude allowance — consider slowing down."),
-            ("test.claude.7day95",          "Claude 7-day limit critical",  "You've used 95% of your 7-day Claude allowance. Resets in 4d 12h."),
-            ("test.claude.7dayLimit",       "Claude 7-day limit reached",   "Your 7-day Claude allowance is fully used. Resets in 4d 12h."),
-        ]
-        for (id, title, body) in notifications {
-            await send(id: id, title: title, body: body)
-            do { try await Task.sleep(for: .seconds(2)) } catch {}
-        }
-    }
-
     // MARK: - Private helpers
 
     private func send(id: String, title: String, body: String) async {

@@ -312,10 +312,4 @@ final class QuotaViewModel {
         if isCodexAuthenticated || isClaudeAuthenticated { startAutoRefresh() }
     }
 
-    // MARK: - Notification testing
-
-    func testNotifications() async {
-        await NotificationManager.shared.requestPermission()
-        await NotificationManager.shared.fireTestNotifications()
-    }
 }
