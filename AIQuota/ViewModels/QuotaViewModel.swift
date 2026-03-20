@@ -120,15 +120,20 @@ final class QuotaViewModel {
             guard let self else { return }
             let isNowSatisfied = path.status == .satisfied
             DispatchQueue.main.async {
+                let isFirstFire = !self.pathMonitorReady
                 self.pathMonitorReady = true
+                if isFirstFire || !isNowSatisfied {
+                    self.logger.info("[PathMonitor] status=\(isNowSatisfied ? "satisfied" : "unsatisfied") firstFire=\(isFirstFire)")
+                }
                 if isNowSatisfied {
                     // Always clear stale network-unavailable banners when path is
                     // satisfied — catches the launch-time false-positive where the
                     // first fetch fails before the monitor has run even once.
                     if case .networkUnavailable = self.codexError  { self.codexError  = nil }
                     if case .networkUnavailable = self.claudeError { self.claudeError = nil }
-                    if self.wasOffline {
-                        // Came back online — fire an immediate refresh.
+                    if self.wasOffline || isFirstFire {
+                        // Came back online (or first monitor event) — fire an immediate
+                        // refresh to recover from any startup errors that were suppressed.
                         self.wasOffline = false
                         guard self.isCodexAuthenticated || self.isClaudeAuthenticated else { return }
                         Task { await self.refresh() }
@@ -196,11 +201,18 @@ final class QuotaViewModel {
                     await refreshCodex()
                     return
                 }
+            } else if case .networkUnavailable = e, !pathMonitorReady {
+                // Path monitor hasn't settled yet — suppress the banner to avoid
+                // the false-positive "No network connection" flash at launch.
+                logger.info("[CodexRefresh] suppressing networkUnavailable: pathMonitor not ready yet")
+                return
             }
             codexError = e
         } catch is CancellationError {
             // Task was cancelled (e.g. a new refresh cycle started) — ignore silently
         } catch {
+            // URLError.cancelled means the surrounding Task was cancelled — ignore silently
+            if let urlError = error as? URLError, urlError.code == .cancelled { return }
             let pathStatus = pathMonitor.currentPath.status
             logger.warning("[CodexRefresh] unexpected error: \(error) | path: \(String(describing: pathStatus)) | urlErrCode: \(String(describing: (error as? URLError)?.code.rawValue))")
             // Only surface as network-unavailable if the error is truly connectivity-
@@ -238,11 +250,18 @@ final class QuotaViewModel {
                     await refreshClaude()
                     return
                 }
+            } else if case .networkUnavailable = e, !pathMonitorReady {
+                // Path monitor hasn't settled yet — suppress the banner to avoid
+                // the false-positive "No network connection" flash at launch.
+                logger.info("[ClaudeRefresh] suppressing networkUnavailable: pathMonitor not ready yet")
+                return
             }
             claudeError = e
         } catch is CancellationError {
             // Task was cancelled (e.g. a new refresh cycle started) — ignore silently
         } catch {
+            // URLError.cancelled means the surrounding Task was cancelled — ignore silently
+            if let urlError = error as? URLError, urlError.code == .cancelled { return }
             let pathStatus = pathMonitor.currentPath.status
             logger.warning("[ClaudeRefresh] unexpected error: \(error) | path: \(String(describing: pathStatus)) | urlErrCode: \(String(describing: (error as? URLError)?.code.rawValue))")
             // Only surface as network-unavailable if the error is truly connectivity-
@@ -289,6 +308,14 @@ final class QuotaViewModel {
     }
 
     func signInClaude() async {
+        // Try silent re-auth first — if WKWebView session cookies are still
+        // valid (e.g. after an app update) this avoids opening a login window.
+        if await claudeAuthManager.silentSignInIfPossible() {
+            logger.info("[SignIn] Claude silent re-auth succeeded, skipping login window")
+            await refreshClaude()
+            if !isCodexAuthenticated { startAutoRefresh() }
+            return
+        }
         do {
             try await claudeAuthManager.signIn()
             await refreshClaude()
@@ -302,6 +329,8 @@ final class QuotaViewModel {
         stopAutoRefresh()
         codexAuthManager.signOut()
         codexUsage = nil
+        SharedDefaults.clearUsage()
+        WidgetCenter.shared.reloadTimelines(ofKind: "AIQuotaWidget")
         // Keep auto-refresh alive if Claude is still signed in
         if isClaudeAuthenticated { startAutoRefresh() }
     }
@@ -309,6 +338,8 @@ final class QuotaViewModel {
     func signOutClaude() {
         claudeAuthManager.signOut()
         claudeUsage = nil
+        SharedDefaults.clearClaudeUsage()
+        WidgetCenter.shared.reloadTimelines(ofKind: "AIQuotaWidget")
         if activeService == .claude { activeService = .codex }
     }
 

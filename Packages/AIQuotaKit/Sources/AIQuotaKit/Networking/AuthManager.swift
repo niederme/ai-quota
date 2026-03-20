@@ -1,6 +1,7 @@
 import Foundation
 import WebKit
 import AppKit
+import os
 
 // MARK: - Session API response
 // GET https://chatgpt.com/api/auth/session → { "accessToken": "eyJ...", "expires": "..." }
@@ -22,6 +23,8 @@ private struct SessionResponse: Decodable {
 @MainActor
 public final class AuthManager: NSObject, ObservableObject {
     @Published public var isAuthenticated = false
+
+    private let logger = Logger(subsystem: "ai.quota", category: "codex-auth")
 
     private let sessionEndpoint = URL(string: "https://chatgpt.com/api/auth/session")!
     private let loginURL = URL(string: "https://chatgpt.com")!
@@ -110,10 +113,10 @@ public final class AuthManager: NSObject, ObservableObject {
                     guard let self else { continuation.resume(returning: false); return }
                     do {
                         _ = try await self.refreshAccessToken()
-                        print("[Auth] silent re-auth succeeded ✓")
+                        self.logger.info("[Auth] silent re-auth succeeded")
                         continuation.resume(returning: true)
                     } catch {
-                        print("[Auth] silent re-auth failed: \(error)")
+                        self.logger.info("[Auth] silent re-auth failed: \(error)")
                         continuation.resume(returning: false)
                     }
                 }
@@ -175,7 +178,7 @@ public final class AuthManager: NSObject, ObservableObject {
         do {
             let (data, response) = try await URLSession.shared.data(for: req)
             let statusCode = (response as? HTTPURLResponse)?.statusCode ?? -1
-            print("[Auth] /api/auth/session → HTTP \(statusCode), body: \(String(data: data, encoding: .utf8)?.prefix(200) ?? "nil")")
+            logger.info("[Auth] /api/auth/session → HTTP \(statusCode)")
             guard statusCode == 200, !data.isEmpty else {
                 isAuthenticated = false
                 KeychainStore.delete(forKey: "sessionToken")
@@ -187,23 +190,29 @@ public final class AuthManager: NSObject, ObservableObject {
             cachedAccessToken = session.accessToken
             tokenExpiresAt = parseExpiry(from: session.expires) ?? Date.now.addingTimeInterval(86400)
             isAuthenticated = true
-            print("[Auth] access token cached, expires: \(tokenExpiresAt?.description ?? "nil")")
+            logger.info("[Auth] access token cached, expires: \(self.tokenExpiresAt?.description ?? "nil")")
             return session.accessToken
         } catch let e as NetworkError {
-            print("[Auth] NetworkError in refresh: \(e)")
+            logger.info("[Auth] NetworkError in refresh: \(e.localizedDescription ?? "")")
             if e.isAuthError {
                 isAuthenticated = false
                 KeychainStore.delete(forKey: "sessionToken")
             }
             throw e
         } catch let urlError as URLError {
+            if urlError.code == .cancelled {
+                // The surrounding Task was cancelled — propagate as CancellationError
+                // so the caller silently ignores it instead of showing a network banner.
+                logger.info("[Auth] URLError cancelled — task was cancelled, ignoring")
+                throw CancellationError()
+            }
             // Network-level failure — the token is likely still valid, just unreachable.
             // Don't clear auth state so the next refresh attempt can succeed.
-            print("[Auth] URLError in refresh: \(urlError.localizedDescription)")
+            logger.info("[Auth] URLError in refresh: \(urlError.localizedDescription)")
             throw NetworkError.networkUnavailable
         } catch {
             // Decode or other unexpected error — session is probably invalid.
-            print("[Auth] unexpected error in refresh: \(error)")
+            logger.info("[Auth] unexpected error in refresh: \(error)")
             isAuthenticated = false
             KeychainStore.delete(forKey: "sessionToken")
             throw NetworkError.refreshFailed
@@ -239,6 +248,7 @@ final class LoginWindowController: NSObject {
     private let onComplete: (Result<String, Error>) -> Void
     private let targetURL: URL
     private var hasCompleted = false
+    private let logger = Logger(subsystem: "ai.quota", category: "codex-login")
 
     init(baseURL: URL, onComplete: @escaping (Result<String, Error>) -> Void) {
         self.targetURL = baseURL
@@ -331,7 +341,7 @@ extension LoginWindowController: WKNavigationDelegate {
     ///   3. If logged-in page but no session cookie → navigate to /api/auth/session.
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         guard let currentURL = webView.url else { return }
-        print("[Auth] didFinish: \(currentURL.absoluteString)")
+        logger.info("[Auth] didFinish: \(currentURL.path)")
 
         // ── Case 1: We're on /api/auth/session — read the JWT from the page body ──
         if currentURL.host?.contains("chatgpt.com") == true,
@@ -339,10 +349,9 @@ extension LoginWindowController: WKNavigationDelegate {
             webView.evaluateJavaScript("document.body.innerText") { [weak self] result, _ in
                 guard let self, !self.hasCompleted else { return }
                 guard let text = result as? String, let data = text.data(using: .utf8) else {
-                    print("[Auth] /api/auth/session body unreadable — not logged in")
+                    self.logger.info("[Auth] /api/auth/session body unreadable — not logged in")
                     return
                 }
-                print("[Auth] /api/auth/session body: \(text.prefix(200))")
 
                 struct SessionBody: Decodable { let accessToken: String? }
                 let decoder = JSONDecoder()
@@ -350,7 +359,7 @@ extension LoginWindowController: WKNavigationDelegate {
 
                 guard let body = try? decoder.decode(SessionBody.self, from: data),
                       body.accessToken != nil else {
-                    print("[Auth] no accessToken in /api/auth/session — redirecting to login page")
+                    self.logger.info("[Auth] no accessToken in /api/auth/session — redirecting to login page")
                     guard !self.hasCompleted else { return }
                     let loginURL = URL(string: "https://chatgpt.com/auth/login")!
                     webView.load(URLRequest(url: loginURL))
@@ -364,7 +373,7 @@ extension LoginWindowController: WKNavigationDelegate {
                         cookie.domain.contains("chatgpt.com") || cookie.domain.contains("openai.com") {
                         HTTPCookieStorage.shared.setCookie(cookie)
                     }
-                    print("[Auth] synced \(cookies.count) cookies → completing with sentinel ✓")
+                    self.logger.info("[Auth] synced \(cookies.count) cookies → completing")
                     // Pass a sentinel — AuthManager.refreshAccessToken() will re-call
                     // /api/auth/session via URLSession using the now-synced cookies.
                     Task { @MainActor [weak self] in
@@ -378,12 +387,10 @@ extension LoginWindowController: WKNavigationDelegate {
         // ── Case 2: Any other page — check for the classic session-token cookie ──
         webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { [weak self] cookies in
             guard let self else { return }
-            print("[Auth] checking \(cookies.count) cookies on \(currentURL.path)")
-
             if let sessionCookie = cookies.first(where: {
                 $0.name == "__Secure-next-auth.session-token" && $0.domain.contains("chatgpt.com")
             }) {
-                print("[Auth] found __Secure-next-auth.session-token ✓")
+                self.logger.info("[Auth] found session-token cookie ✓")
                 for cookie in cookies where
                     cookie.domain.contains("chatgpt.com") || cookie.domain.contains("openai.com") {
                     HTTPCookieStorage.shared.setCookie(cookie)
@@ -397,14 +404,14 @@ extension LoginWindowController: WKNavigationDelegate {
                       !currentURL.path.hasPrefix("/login") {
                 // Appears logged in (not on an auth page) but session token missing —
                 // navigate directly to /api/auth/session to read the JWT.
-                print("[Auth] appears logged in but no session cookie — navigating to /api/auth/session")
+                self.logger.info("[Auth] appears logged in but no session cookie — navigating to /api/auth/session")
                 let sessionURL = URL(string: "https://chatgpt.com/api/auth/session")!
                 Task { @MainActor [weak self] in
                     guard let self, !self.hasCompleted else { return }
                     webView.load(URLRequest(url: sessionURL))
                 }
             } else {
-                print("[Auth] waiting for user to log in…")
+                self.logger.info("[Auth] waiting for user to log in on \(currentURL.path)")
             }
         }
     }

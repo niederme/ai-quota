@@ -1,6 +1,7 @@
 import Foundation
 import WebKit
 import AppKit
+import os
 
 // MARK: - ClaudeAuthManager
 
@@ -18,6 +19,8 @@ public final class ClaudeAuthManager: NSObject, ObservableObject {
     @Published public var isAuthenticated = false
 
     static let loginCookies = ["lastActiveOrg", "sessionKey", "routingHint"]
+
+    private let logger = Logger(subsystem: "ai.quota", category: "claude-auth")
 
     private var loginWindowController: ClaudeLoginWindowController?
 
@@ -68,7 +71,7 @@ public final class ClaudeAuthManager: NSObject, ObservableObject {
                     guard let self else { continuation.resume(returning: false); return }
                     KeychainStore.save("true", forKey: "claudeAuthenticated")
                     self.isAuthenticated = true
-                    print("[ClaudeAuth] silent re-auth succeeded ✓")
+                    self.logger.info("[ClaudeAuth] silent re-auth succeeded")
                     continuation.resume(returning: true)
                 }
             }
@@ -122,6 +125,8 @@ final class ClaudeLoginWindowController: NSObject {
     private var pollTimer: Timer?
 
     private static var loginCookies: [String] { ClaudeAuthManager.loginCookies }
+
+    private let logger = Logger(subsystem: "ai.quota", category: "claude-login")
 
     init(onComplete: @escaping (Result<Void, Error>) -> Void) {
         self.onComplete = onComplete
@@ -196,7 +201,7 @@ final class ClaudeLoginWindowController: NSObject {
 
             if let jsCookies = result as? String,
                Self.loginCookies.contains(where: { jsCookies.contains("\($0)=") }) {
-                print("[ClaudeAuth] found login cookie in JS ✓")
+                self.logger.info("[ClaudeAuth] found login cookie in JS ✓")
                 wv.configuration.websiteDataStore.httpCookieStore.getAllCookies { cookies in
                     for cookie in cookies where cookie.domain.contains("claude.ai") {
                         HTTPCookieStorage.shared.setCookie(cookie)
@@ -210,7 +215,7 @@ final class ClaudeLoginWindowController: NSObject {
             wv.configuration.websiteDataStore.httpCookieStore.getAllCookies { [weak self] cookies in
                 guard let self, !self.hasCompleted else { return }
                 let claudeCookies = cookies.filter { $0.domain.contains("claude.ai") }
-                print("[ClaudeAuth] polling cookies: \(claudeCookies.map(\.name))")
+                self.logger.info("[ClaudeAuth] polling cookies: \(claudeCookies.map(\.name))")
 
                 if claudeCookies.contains(where: { Self.loginCookies.contains($0.name) }) {
                     for cookie in claudeCookies { HTTPCookieStorage.shared.setCookie(cookie) }
@@ -240,7 +245,7 @@ final class ClaudeLoginWindowController: NSObject {
 extension ClaudeLoginWindowController: WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         guard let url = webView.url else { return }
-        print("[ClaudeAuth] didFinish: \(url.absoluteString)")
+        logger.info("[ClaudeAuth] didFinish: \(url.path)")
 
         // Start polling after any page load — SPA navigation won't trigger
         // further didFinish events, so we poll until login cookies appear.
