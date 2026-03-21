@@ -37,6 +37,33 @@ final class QuotaViewModel {
     /// Which service's panel is visible in the popover.
     var activeService: ServiceType = .codex
 
+    // MARK: - Onboarding
+
+    /// True if the user has never completed the onboarding wizard.
+    var shouldShowOnboarding: Bool {
+        !UserDefaults.standard.bool(forKey: "onboarding.v1.hasCompleted")
+            && !onboardingTriggeredThisSession
+    }
+
+    /// Set to true after the window has been opened once per session,
+    /// so clicking the menu bar icon repeatedly doesn't re-open it.
+    private(set) var onboardingTriggeredThisSession = false
+
+    func markOnboardingTriggered() {
+        onboardingTriggeredThisSession = true
+    }
+
+    func completeOnboarding() {
+        UserDefaults.standard.set(true, forKey: "onboarding.v1.hasCompleted")
+        onboardingTriggeredThisSession = true
+    }
+
+    func resetOnboardingForReplay() {
+        // Called from Settings "Open Onboarding" button.
+        // Does NOT clear the completion key — just allows re-showing this session.
+        onboardingTriggeredThisSession = false
+    }
+
     // MARK: - Backward-compatible aliases (used by MenuBarIconView / AIQuotaApp)
 
     var usage: CodexUsage? { codexUsage }
