@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.7.7</title>
+            <title>Version 1.7.8</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.7.7</h2>  <ul><li>Fixed Claude spinner hanging indefinitely after sign-in</li> <li>Fresh install now starts clean — no ghost logins from previous installs</li> <li>Removed false "Not signed in" banner on startup; invalid sessions now quietly show "Connect" instead</li> <li>Widgets reload after both services finish fetching, not mid-refresh</li></ul>
+v1.7.8 — Authentication & Stability  Fixed a ghost login issue where reinstalling the app (via AppZapper or manual uninstall) would silently restore the previous session on next launch. WebKit session data and Keychain entries both survive macOS app uninstall; this release clears both on first launch after a fresh install.  Also fixed a layout glitch where the Claude gauge would briefly flash a "Connect" button during periodic refresh. 
 </body>
 </html>
 ]]></description>
-            <sparkle:version>138</sparkle:version>
-            <sparkle:shortVersionString>1.7.7</sparkle:shortVersionString>
+            <sparkle:version>140</sparkle:version>
+            <sparkle:shortVersionString>1.7.8</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.7.7/AIQuota.zip"
-                sparkle:edSignature="NWJvGer/4x3zPVS74BrA+svXZafMCLtdpJHYdCeLCFl/75dp05zFHB2pzqfeBg88V6h59IgHk24+DoLbUKViDQ=="
-                length="2680223"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.7.8/AIQuota.zip"
+                sparkle:edSignature="RN/xt+l7nDj3aNTYAoK7L1RpKRthESlvfban/vd/3aL/ITDYKNh+KyqM+5+MBtMk4Y0UKNmZ9ebcqY8IFDPTDg=="
+                length="2680227"
                 type="application/zip"/>
         </item>
     </channel>
