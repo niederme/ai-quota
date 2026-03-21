@@ -6,8 +6,6 @@ import AIQuotaKit
 struct NotificationsStepView: View {
     @Environment(QuotaViewModel.self) private var viewModel
     @State private var permissionGranted = false
-    @State private var codexExpanded  = false
-    @State private var claudeExpanded = false
 
     private var sectionsEnabled: Bool {
         viewModel.settings.notifications.enabled && permissionGranted
@@ -43,123 +41,85 @@ struct NotificationsStepView: View {
                             } else {
                                 withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
                                     permissionGranted = false
-                                    codexExpanded  = false
-                                    claudeExpanded = false
                                 }
                             }
                         }
                 }
 
-                // Service sections — always visible; collapsed + dimmed until enabled + permitted
-                Group {
-                    if viewModel.isCodexAuthenticated {
-                        Section {
-                            if codexExpanded {
-                                Toggle("Less than 15% remaining", isOn: $vm.settings.notifications.codexAt15)
-                                Toggle("Less than 5% remaining",  isOn: $vm.settings.notifications.codexAt5)
-                                Toggle("Limit reached",           isOn: $vm.settings.notifications.codexLimitReached)
-                                Toggle("Weekly reset",            isOn: $vm.settings.notifications.codexReset)
-                            }
-                        } header: {
-                            ServiceSectionHeader(logoName: "logo-openai", name: "Codex", isExpanded: codexExpanded) {
-                                if sectionsEnabled {
-                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                                        codexExpanded.toggle()
-                                    }
-                                }
-                            }
-                        }
+                // Codex — always visible, dimmed until enabled + permitted
+                if viewModel.isCodexAuthenticated {
+                    Section {
+                        Toggle("Less than 15% remaining", isOn: $vm.settings.notifications.codexAt15)
+                        Toggle("Less than 5% remaining",  isOn: $vm.settings.notifications.codexAt5)
+                        Toggle("Limit reached",           isOn: $vm.settings.notifications.codexLimitReached)
+                        Toggle("Weekly reset",            isOn: $vm.settings.notifications.codexReset)
+                    } header: {
+                        ServiceSectionHeader(logoName: "logo-openai", name: "Codex")
                     }
+                    .disabled(!sectionsEnabled)
+                    .opacity(sectionsEnabled ? 1 : 0.45)
+                }
 
-                    if viewModel.isClaudeAuthenticated {
-                        Section {
-                            if claudeExpanded {
-                                Toggle("Less than 15% remaining", isOn: $vm.settings.notifications.claude5hAt15)
-                                Toggle("Less than 5% remaining",  isOn: $vm.settings.notifications.claude5hAt5)
-                                Toggle("Limit reached",           isOn: $vm.settings.notifications.claude5hLimitReached)
-                                Toggle("Window reset",            isOn: $vm.settings.notifications.claude5hReset)
-                            }
-                        } header: {
-                            ServiceSectionHeader(logoName: "logo-claude", name: "Claude Code — 5-hour", isExpanded: claudeExpanded) {
-                                if sectionsEnabled {
-                                    withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                                        claudeExpanded.toggle()
-                                    }
-                                }
-                            }
-                        }
-
-                        if claudeExpanded {
-                            Section {
-                                Toggle("80% used (high)",         isOn: $vm.settings.notifications.claude7dAt80)
-                                Toggle("95% used (critical)",     isOn: $vm.settings.notifications.claude7dAt95)
-                                Toggle("Limit reached",           isOn: $vm.settings.notifications.claude7dLimitReached)
-                                Toggle("Period reset",            isOn: $vm.settings.notifications.claude7dReset)
-                            } header: {
-                                Text("Claude Code — 7-day")
-                            }
-                        }
+                // Claude — always visible, dimmed until enabled + permitted
+                if viewModel.isClaudeAuthenticated {
+                    Section {
+                        Toggle("Less than 15% remaining", isOn: $vm.settings.notifications.claude5hAt15)
+                        Toggle("Less than 5% remaining",  isOn: $vm.settings.notifications.claude5hAt5)
+                        Toggle("Limit reached",           isOn: $vm.settings.notifications.claude5hLimitReached)
+                        Toggle("Window reset",            isOn: $vm.settings.notifications.claude5hReset)
+                    } header: {
+                        ServiceSectionHeader(logoName: "logo-claude", name: "Claude Code — 5-hour")
                     }
+                    .disabled(!sectionsEnabled)
+                    .opacity(sectionsEnabled ? 1 : 0.45)
 
-                    if !viewModel.isCodexAuthenticated && !viewModel.isClaudeAuthenticated {
-                        Section {
-                            Text("Sign in to a service on the previous step to configure thresholds.")
-                                .foregroundStyle(.secondary)
-                        }
+                    Section {
+                        Toggle("80% used (high)",         isOn: $vm.settings.notifications.claude7dAt80)
+                        Toggle("95% used (critical)",     isOn: $vm.settings.notifications.claude7dAt95)
+                        Toggle("Limit reached",           isOn: $vm.settings.notifications.claude7dLimitReached)
+                        Toggle("Period reset",            isOn: $vm.settings.notifications.claude7dReset)
+                    } header: {
+                        Text("Claude Code — 7-day")
+                    }
+                    .disabled(!sectionsEnabled)
+                    .opacity(sectionsEnabled ? 1 : 0.45)
+                }
+
+                if !viewModel.isCodexAuthenticated && !viewModel.isClaudeAuthenticated {
+                    Section {
+                        Text("Sign in to a service on the previous step to configure thresholds.")
+                            .foregroundStyle(.secondary)
                     }
                 }
-                .disabled(!sectionsEnabled)
-                .opacity(sectionsEnabled ? 1 : 0.4)
             }
             .formStyle(.grouped)
             .animation(.spring(response: 0.4, dampingFraction: 0.85), value: sectionsEnabled)
-            .animation(.spring(response: 0.35, dampingFraction: 0.85), value: codexExpanded)
-            .animation(.spring(response: 0.35, dampingFraction: 0.85), value: claudeExpanded)
         }
         .task { await checkPermission() }
-        .onChange(of: sectionsEnabled) { _, enabled in
-            if enabled {
-                // Unfurl both sections when permission is granted
-                withAnimation(.spring(response: 0.5, dampingFraction: 0.85).delay(0.1)) {
-                    codexExpanded  = viewModel.isCodexAuthenticated
-                    claudeExpanded = viewModel.isClaudeAuthenticated
-                }
-            }
-        }
         .onChange(of: viewModel.settings) { viewModel.saveSettings() }
     }
 
     private func checkPermission() async {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
-        let granted = settings.authorizationStatus == .authorized
         withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-            permissionGranted = granted
+            permissionGranted = settings.authorizationStatus == .authorized
         }
     }
 }
 
-// MARK: - Service section header with chevron
+// MARK: - Service section header
 
 private struct ServiceSectionHeader: View {
     let logoName: String
     let name: String
-    let isExpanded: Bool
-    let onTap: () -> Void
 
     var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 6) {
-                Image(logoName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 14, height: 14)
-                Text(name)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.caption2.weight(.semibold))
-                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
-            }
+        HStack(spacing: 6) {
+            Image(logoName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 14, height: 14)
+            Text(name)
         }
-        .buttonStyle(.plain)
     }
 }
