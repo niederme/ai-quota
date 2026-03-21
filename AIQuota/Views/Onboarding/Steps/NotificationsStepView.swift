@@ -46,61 +46,52 @@ struct NotificationsStepView: View {
                         }
                 }
 
-                // ── Codex ───────────────────────────────────────────────
-                if viewModel.isCodexAuthenticated {
-                    Section {
-                        // Per-service master
-                        serviceRow(logo: "logo-openai", name: "Codex",
-                                   isOn: bind(sectionsEnabled, $vm.settings.notifications.codexEnabled))
+                // ── Service sections: only when master is on + permission granted ──
+                if sectionsEnabled {
+                    // ── Codex ─────────────────────────────────────────
+                    if viewModel.isCodexAuthenticated {
+                        Section {
+                            serviceRow(logo: "logo-openai", name: "Codex",
+                                       isOn: $vm.settings.notifications.codexEnabled)
 
-                        let codexOn = sectionsEnabled && vm.settings.notifications.codexEnabled
-                        Group {
-                            Toggle("Less than 15% remaining", isOn: bind(codexOn, $vm.settings.notifications.codexAt15))
-                            Toggle("Less than 5% remaining",  isOn: bind(codexOn, $vm.settings.notifications.codexAt5))
-                            Toggle("Limit reached",           isOn: bind(codexOn, $vm.settings.notifications.codexLimitReached))
-                            Toggle("Weekly reset",            isOn: bind(codexOn, $vm.settings.notifications.codexReset))
+                            // Sub-toggles collapse when service is OFF
+                            if vm.settings.notifications.codexEnabled {
+                                Toggle("Less than 15% remaining", isOn: $vm.settings.notifications.codexAt15)
+                                Toggle("Less than 5% remaining",  isOn: $vm.settings.notifications.codexAt5)
+                                Toggle("Limit reached",           isOn: $vm.settings.notifications.codexLimitReached)
+                                Toggle("Weekly reset",            isOn: $vm.settings.notifications.codexReset)
+                            }
                         }
-                        .disabled(!codexOn)
-                        .opacity(codexOn ? 1 : 0.45)
                     }
-                    .disabled(!sectionsEnabled)
-                    .opacity(sectionsEnabled ? 1 : 0.45)
-                }
 
-                // ── Claude Code ─────────────────────────────────────────
-                if viewModel.isClaudeAuthenticated {
-                    Section {
-                        // Per-service master
-                        serviceRow(logo: "logo-claude", name: "Claude Code",
-                                   isOn: bind(sectionsEnabled, $vm.settings.notifications.claudeEnabled))
+                    // ── Claude Code ────────────────────────────────────
+                    if viewModel.isClaudeAuthenticated {
+                        Section {
+                            serviceRow(logo: "logo-claude", name: "Claude Code",
+                                       isOn: $vm.settings.notifications.claudeEnabled)
 
-                        let claudeOn = sectionsEnabled && vm.settings.notifications.claudeEnabled
-                        Group {
-                            // 5-hour window
-                            subHeader("5-hour window")
-                            Toggle("Less than 15% remaining", isOn: bind(claudeOn, $vm.settings.notifications.claude5hAt15))
-                            Toggle("Less than 5% remaining",  isOn: bind(claudeOn, $vm.settings.notifications.claude5hAt5))
-                            Toggle("Limit reached",           isOn: bind(claudeOn, $vm.settings.notifications.claude5hLimitReached))
-                            Toggle("Window reset",            isOn: bind(claudeOn, $vm.settings.notifications.claude5hReset))
+                            // Sub-toggles collapse when service is OFF
+                            if vm.settings.notifications.claudeEnabled {
+                                subHeader("5-hour window")
+                                Toggle("Less than 15% remaining", isOn: $vm.settings.notifications.claude5hAt15)
+                                Toggle("Less than 5% remaining",  isOn: $vm.settings.notifications.claude5hAt5)
+                                Toggle("Limit reached",           isOn: $vm.settings.notifications.claude5hLimitReached)
+                                Toggle("Window reset",            isOn: $vm.settings.notifications.claude5hReset)
 
-                            // 7-day window
-                            subHeader("7-day window")
-                            Toggle("80% used (high)",         isOn: bind(claudeOn, $vm.settings.notifications.claude7dAt80))
-                            Toggle("95% used (critical)",     isOn: bind(claudeOn, $vm.settings.notifications.claude7dAt95))
-                            Toggle("Limit reached",           isOn: bind(claudeOn, $vm.settings.notifications.claude7dLimitReached))
-                            Toggle("Period reset",            isOn: bind(claudeOn, $vm.settings.notifications.claude7dReset))
+                                subHeader("7-day window")
+                                Toggle("80% used (high)",         isOn: $vm.settings.notifications.claude7dAt80)
+                                Toggle("95% used (critical)",     isOn: $vm.settings.notifications.claude7dAt95)
+                                Toggle("Limit reached",           isOn: $vm.settings.notifications.claude7dLimitReached)
+                                Toggle("Period reset",            isOn: $vm.settings.notifications.claude7dReset)
+                            }
                         }
-                        .disabled(!claudeOn)
-                        .opacity(claudeOn ? 1 : 0.45)
                     }
-                    .disabled(!sectionsEnabled)
-                    .opacity(sectionsEnabled ? 1 : 0.45)
-                }
 
-                if !viewModel.isCodexAuthenticated && !viewModel.isClaudeAuthenticated {
-                    Section {
-                        Text("Sign in to a service on the previous step to configure thresholds.")
-                            .foregroundStyle(.secondary)
+                    if !viewModel.isCodexAuthenticated && !viewModel.isClaudeAuthenticated {
+                        Section {
+                            Text("Sign in to a service on the previous step to configure thresholds.")
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
             }
@@ -114,11 +105,6 @@ struct NotificationsStepView: View {
     }
 
     // MARK: - Helpers
-
-    /// When `gate` is false returns .constant(false) so the switch renders as OFF.
-    private func bind(_ gate: Bool, _ binding: Binding<Bool>) -> Binding<Bool> {
-        gate ? binding : .constant(false)
-    }
 
     /// Bold service row: logo + name on the left, switch on the right.
     @ViewBuilder
@@ -137,7 +123,7 @@ struct NotificationsStepView: View {
         }
     }
 
-    /// Inline sub-section label styled as a disabled row (non-interactive).
+    /// Inline sub-section label.
     @ViewBuilder
     private func subHeader(_ title: String) -> some View {
         Text(title)
