@@ -41,7 +41,8 @@ public actor NotificationManager {
 
     /// Called after every successful Codex fetch. Fires at most one notification
     /// per threshold per weekly window, and one "reset" notification when the week rolls over.
-    public func evaluate(current: CodexUsage) async {
+    public func evaluate(current: CodexUsage, prefs: NotificationPreferences) async {
+        guard prefs.enabled else { return }
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized else { return }
@@ -49,46 +50,45 @@ public actor NotificationManager {
         let storedResetAt  = defaults.object(forKey: Key.codexLastResetAt) as? Double
         let currentResetAt = current.weeklyResetAt.timeIntervalSince1970
 
-        // ── Quota reset: week rolled over ──────────────────────────────────
         if let stored = storedResetAt {
             let storedDate = Date(timeIntervalSince1970: stored)
             if storedDate < .now {
                 clearThresholds(key: Key.codexThresholds)
                 defaults.set(currentResetAt, forKey: Key.codexLastResetAt)
-                await send(
-                    id: "codexReset",
-                    title: "Codex quota reset",
-                    body: "Your weekly Codex quota has reset — you're back to 100%."
-                )
+                if prefs.codexReset {
+                    await send(
+                        id: "codexReset",
+                        title: "Codex quota reset",
+                        body: "Your weekly Codex quota has reset — you're back to 100%."
+                    )
+                }
                 return
             } else if stored != currentResetAt {
                 defaults.set(currentResetAt, forKey: Key.codexLastResetAt)
             }
         } else {
-            // First run: just store the reset date, no notification
             defaults.set(currentResetAt, forKey: Key.codexLastResetAt)
             return
         }
 
-        // ── Threshold notifications (fire once per threshold per week) ─────
         let notified  = loadThresholds(key: Key.codexThresholds)
         let remaining = current.weeklyRemaining
 
-        if current.limitReached && !notified.contains("limitReached") {
+        if current.limitReached && !notified.contains("limitReached") && prefs.codexLimitReached {
             markThreshold("limitReached", key: Key.codexThresholds)
             await send(
                 id: "codexLimitReached",
                 title: "Codex quota reached",
                 body: "Your weekly Codex quota is fully used. Resets in \(timeString(current.weeklyResetAfterSeconds))."
             )
-        } else if remaining < 5 && !notified.contains("below5") {
+        } else if remaining < 5 && !notified.contains("below5") && prefs.codexAt5 {
             markThreshold("below5", key: Key.codexThresholds)
             await send(
                 id: "codexBelow5",
                 title: "Codex quota critical",
                 body: "Less than 5% of your weekly Codex quota remains."
             )
-        } else if remaining < 15 && !notified.contains("below15") {
+        } else if remaining < 15 && !notified.contains("below15") && prefs.codexAt15 {
             markThreshold("below15", key: Key.codexThresholds)
             await send(
                 id: "codexBelow15",
@@ -102,7 +102,8 @@ public actor NotificationManager {
 
     /// Called after every successful Claude fetch. Fires once per threshold
     /// per rate-limit window, and once when the window resets.
-    public func evaluate(claude: ClaudeUsage) async {
+    public func evaluate(claude: ClaudeUsage, prefs: NotificationPreferences) async {
+        guard prefs.enabled else { return }
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized else { return }
@@ -110,51 +111,45 @@ public actor NotificationManager {
         let storedResetAt  = defaults.object(forKey: Key.claudeLastResetAt) as? Double
         let currentResetAt = claude.resetAt.timeIntervalSince1970
 
-        // ── Window reset ────────────────────────────────────────────────────
-        // Use a time-has-passed check rather than timestamp equality.
-        // resetAt is a rolling server-computed value that drifts by seconds on
-        // every fetch, so != would fire on every refresh even with no real reset.
         if let stored = storedResetAt {
             let storedDate = Date(timeIntervalSince1970: stored)
             if storedDate < .now {
-                // Old window has genuinely expired — notify and start fresh.
                 clearThresholds(key: Key.claudeThresholds)
                 defaults.set(currentResetAt, forKey: Key.claudeLastResetAt)
-                await send(
-                    id: "claudeReset",
-                    title: "Claude window reset",
-                    body: "Your Claude 5-hour window has reset — you're back to full capacity."
-                )
+                if prefs.claude5hReset {
+                    await send(
+                        id: "claudeReset",
+                        title: "Claude window reset",
+                        body: "Your Claude 5-hour window has reset — you're back to full capacity."
+                    )
+                }
                 return
             } else if stored != currentResetAt {
-                // Timestamp drifted but the window is still live — update silently.
                 defaults.set(currentResetAt, forKey: Key.claudeLastResetAt)
             }
         } else {
-            // First run: store the reset date, no notification.
             defaults.set(currentResetAt, forKey: Key.claudeLastResetAt)
             return
         }
 
-        // ── 5h threshold notifications ─────────────────────────────────────
         let notified  = loadThresholds(key: Key.claudeThresholds)
         let remaining = claude.remainingPercent
 
-        if claude.limitReached && !notified.contains("limitReached") {
+        if claude.limitReached && !notified.contains("limitReached") && prefs.claude5hLimitReached {
             markThreshold("limitReached", key: Key.claudeThresholds)
             await send(
                 id: "claudeLimitReached",
                 title: "Claude rate limit reached",
                 body: "Your 5-hour Claude window is fully used. Resets in \(timeString(claude.resetAfterSeconds))."
             )
-        } else if remaining < 5 && !notified.contains("below5") {
+        } else if remaining < 5 && !notified.contains("below5") && prefs.claude5hAt5 {
             markThreshold("below5", key: Key.claudeThresholds)
             await send(
                 id: "claudeBelow5",
                 title: "Claude quota critical",
                 body: "Less than 5% of your Claude 5-hour window capacity remains."
             )
-        } else if remaining < 15 && !notified.contains("below15") {
+        } else if remaining < 15 && !notified.contains("below15") && prefs.claude5hAt15 {
             markThreshold("below15", key: Key.claudeThresholds)
             await send(
                 id: "claudeBelow15",
@@ -164,8 +159,6 @@ public actor NotificationManager {
         }
 
         // ── 7-day threshold notifications ──────────────────────────────────
-        // These fire on a separate cadence — the 7-day window is what causes
-        // extended blackouts, so we warn early (80%) and critically (95%).
         let sevenDayUsed     = Int(claude.sevenDayUtilization.rounded())
         let sevenDayNotified = loadThresholds(key: Key.claudeSevenDayThresholds)
         let sevenDayResetAt  = claude.sevenDayResetsAt.timeIntervalSince1970
@@ -176,30 +169,32 @@ public actor NotificationManager {
             if storedDate < .now {
                 clearThresholds(key: Key.claudeSevenDayThresholds)
                 defaults.set(sevenDayResetAt, forKey: Key.claudeSevenDayLastResetAt)
-                await send(
-                    id: "claudeSevenDayReset",
-                    title: "Claude 7-day window reset",
-                    body: "Your 7-day Claude allowance has reset — you're back to full capacity."
-                )
+                if prefs.claude7dReset {
+                    await send(
+                        id: "claudeSevenDayReset",
+                        title: "Claude 7-day window reset",
+                        body: "Your 7-day Claude allowance has reset — you're back to full capacity."
+                    )
+                }
             } else {
                 if stored != sevenDayResetAt {
                     defaults.set(sevenDayResetAt, forKey: Key.claudeSevenDayLastResetAt)
                 }
-                if sevenDayUsed >= 100 && !sevenDayNotified.contains("limitReached") {
+                if sevenDayUsed >= 100 && !sevenDayNotified.contains("limitReached") && prefs.claude7dLimitReached {
                     markThreshold("limitReached", key: Key.claudeSevenDayThresholds)
                     await send(
                         id: "claudeSevenDayLimit",
                         title: "Claude 7-day limit reached",
                         body: "Your 7-day Claude allowance is fully used. Resets in \(timeString(claude.sevenDayResetAfterSeconds))."
                     )
-                } else if sevenDayUsed >= 95 && !sevenDayNotified.contains("above95") {
+                } else if sevenDayUsed >= 95 && !sevenDayNotified.contains("above95") && prefs.claude7dAt95 {
                     markThreshold("above95", key: Key.claudeSevenDayThresholds)
                     await send(
                         id: "claudeSevenDay95",
                         title: "Claude 7-day limit critical",
                         body: "You've used 95% of your 7-day Claude allowance. Resets in \(timeString(claude.sevenDayResetAfterSeconds))."
                     )
-                } else if sevenDayUsed >= 80 && !sevenDayNotified.contains("above80") {
+                } else if sevenDayUsed >= 80 && !sevenDayNotified.contains("above80") && prefs.claude7dAt80 {
                     markThreshold("above80", key: Key.claudeSevenDayThresholds)
                     await send(
                         id: "claudeSevenDay80",

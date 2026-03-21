@@ -209,9 +209,7 @@ final class QuotaViewModel {
             codexUsage = result
             lastRefreshedAt = .now
             SharedDefaults.saveUsage(result)
-            if settings.notifications.enabled {
-                await NotificationManager.shared.evaluate(current: result)
-            }
+            await NotificationManager.shared.evaluate(current: result, prefs: settings.notifications)
         } catch let e as NetworkError {
             if e.isAuthError {
                 codexUsage = nil
@@ -269,9 +267,7 @@ final class QuotaViewModel {
             claudeUsage = result
             lastRefreshedAt = .now
             SharedDefaults.saveClaudeUsage(result)
-            if settings.notifications.enabled {
-                await NotificationManager.shared.evaluate(claude: result)
-            }
+            await NotificationManager.shared.evaluate(claude: result, prefs: settings.notifications)
         } catch let e as NetworkError {
             if e.isAuthError {
                 claudeUsage = nil
