@@ -55,9 +55,11 @@ public final class ClaudeAuthManager: NSObject, ObservableObject {
 
     /// Checks the WKWebView cookie store for existing Claude session cookies without showing any UI.
     /// If valid cookies are found, syncs them and marks as authenticated.
+    /// Pass `forceRecheck: true` to re-verify cookies even when already marked authenticated
+    /// (used during refresh to recover from stale URLSession cookies without a UI flash).
     @discardableResult
-    public func silentSignInIfPossible() async -> Bool {
-        guard !isAuthenticated else { return true }
+    public func silentSignInIfPossible(forceRecheck: Bool = false) async -> Bool {
+        guard !isAuthenticated || forceRecheck else { return true }
         return await withCheckedContinuation { continuation in
             WKWebsiteDataStore.default().httpCookieStore.getAllCookies { [weak self] cookies in
                 guard let self else { continuation.resume(returning: false); return }
