@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.7.9</title>
+            <title>Version 1.8.0</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-v1.7.9 — Reliability improvements  Fixed an issue where tapping the refresh button while a background refresh was already in progress would silently do nothing. Manual refresh now immediately cancels the in-flight request and restarts.  Also suppressed a spurious "Unexpected response format" error that appeared on the first launch after a system restart, caused by a brief window where the network is up but APIs aren't yet responding normally. The app now recovers silently on the next refresh cycle. 
+<!DOCTYPE html> <html> <head> <meta charset="utf-8"> <style>   body {     font-family: -apple-system, sans-serif;     font-size: 13px;     color: #e0e0e0;     background: #1e1e1e;     margin: 16px 20px;     line-height: 1.5;   }   h2 {     font-size: 15px;     font-weight: 600;     color: #ffffff;     margin: 0 0 10px 0;   }   ul {     margin: 4px 0 12px 0;     padding-left: 18px;   }   li {     margin-bottom: 5px;     color: #cccccc;   }   li strong {     color: #ffffff;   } </style> </head> <body>  <h2>Onboarding</h2> <ul>   <ul><li>A new guided setup wizard walks you through connecting your services, configuring notifications, and adding the menu bar widget.</li> </ul>  <h2>Smarter notifications</h2> <ul>   <li>Each service now has a master notification switch. Turning it off silences all alerts for that service and visually dims its thresholds.</li> </ul>  <h2>Bug fixes</h2> <ul>   <li>Menu bar icon now correctly turns red at 95% usage, matching the in-app gauge.</li>   <li>Various layout and typography improvements throughout.</li> </ul>  </body> </html> 
 </body>
 </html>
 ]]></description>
-            <sparkle:version>146</sparkle:version>
-            <sparkle:shortVersionString>1.7.9</sparkle:shortVersionString>
+            <sparkle:version>199</sparkle:version>
+            <sparkle:shortVersionString>1.8.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.7.9/AIQuota.zip"
-                sparkle:edSignature="gO6mOylytKefZWMVGhkB5RP+4WXA4GNDVJXsgt+2/PhLxWR3w8xVoWHMB/M8Jzg9Hlzvanhzh8WvtIAP+axaDA=="
-                length="2684632"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.8.0/AIQuota.zip"
+                sparkle:edSignature="cPVdnPVMKPefkx8ZnajLr5CFUdpd0pSfPJMcll1/MzyOMbcE+lwSghSG1XeWMifHkCSWWQycyfBXUSctYmzzAA=="
+                length="3126090"
                 type="application/zip"/>
         </item>
     </channel>
