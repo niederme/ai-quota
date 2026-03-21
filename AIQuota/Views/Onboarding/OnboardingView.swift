@@ -10,7 +10,7 @@ extension Color {
 
 // MARK: - Steps
 
-enum OnboardingStep: Int, CaseIterable {
+enum OnboardingStep: Int, CaseIterable, Hashable {
     case welcome       = 0
     case services      = 1
     case notifications = 2
@@ -69,15 +69,15 @@ struct OnboardingView: View {
 
     private var navigationBar: some View {
         HStack {
-            // Back button (hidden on first and last steps)
-            if step != .welcome && step != .done {
-                Button(action: goBack) {
-                    Label("Back", systemImage: "chevron.left")
-                        .labelStyle(.titleAndIcon)
-                }
-                .buttonStyle(.plain)
-                .foregroundColor(.secondary)
+            // Back button — invisible on first and last steps to preserve layout
+            Button(action: goBack) {
+                Label("Back", systemImage: "chevron.left")
+                    .labelStyle(.titleAndIcon)
             }
+            .buttonStyle(.plain)
+            .foregroundColor(.secondary)
+            .opacity(step != .welcome && step != .done ? 1 : 0)
+            .disabled(step == .welcome || step == .done)
 
             Spacer()
 
@@ -86,20 +86,19 @@ struct OnboardingView: View {
 
             Spacer()
 
-            // Continue / finish button
-            if step != .done {
-                Button(action: goForward) {
-                    Text(step == .services ? "Continue" : "Next")
-                        .fontWeight(.semibold)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 8)
-                        .background(Color.brand)
-                        .foregroundColor(.white)
-                        .clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                .disabled(!canAdvance)
+            // Continue / Next button — invisible on Done step
+            Button(action: goForward) {
+                Text(step == .services ? "Continue" : "Next")
+                    .fontWeight(.semibold)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 8)
+                    .background(Color.brand)
+                    .foregroundColor(.white)
+                    .clipShape(Capsule())
             }
+            .buttonStyle(.plain)
+            .disabled(!canAdvance || step == .done)
+            .opacity(step == .done ? 0 : 1)
         }
     }
 
