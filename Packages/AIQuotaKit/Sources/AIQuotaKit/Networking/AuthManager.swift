@@ -44,17 +44,24 @@ public final class AuthManager: NSObject, ObservableObject {
 
     // MARK: - Fresh-install cleanup
 
-    /// Keychain entries survive app uninstall on macOS, which causes "Not signed in"
-    /// banners on reinstall when the session cookies are gone but the token remains.
-    /// We use a sentinel key to detect a fresh install and wipe stale auth state.
+    /// Keychain entries and WKWebView cookies survive app uninstall on macOS, which causes
+    /// "ghost login" on reinstall — the sign-in button silently reuses stale session data.
+    /// We use a sentinel key to detect a fresh install and wipe everything on first launch.
     private static func clearStateIfFreshInstall() {
         let sentinel = "app.installedAt.v1"
         guard KeychainStore.load(forKey: sentinel) == nil else { return }
-        // First launch after fresh install — clear everything
+        // First launch after fresh install — clear Keychain, SharedDefaults, and WKWebView store
         KeychainStore.delete(forKey: "sessionToken")
         KeychainStore.delete(forKey: "claudeAuthenticated")
         SharedDefaults.clearUsage()
         SharedDefaults.clearClaudeUsage()
+        // WKWebView cookies survive uninstall too. Clear the entire default store so clicking
+        // "Sign in" always shows the real login window rather than auto-completing silently.
+        Task { @MainActor in
+            let store = WKWebsiteDataStore.default()
+            let types = WKWebsiteDataStore.allWebsiteDataTypes()
+            await store.removeData(ofTypes: types, modifiedSince: Date(timeIntervalSince1970: 0))
+        }
         KeychainStore.save("1", forKey: sentinel)
     }
 
@@ -109,9 +116,11 @@ public final class AuthManager: NSObject, ObservableObject {
 
     /// Checks the WKWebView cookie store for an existing ChatGPT session without showing any UI.
     /// If a valid session cookie is found, syncs it and fetches a fresh JWT.
+    /// Pass `forceRecheck: true` to re-verify cookies even when already marked authenticated
+    /// (used during refresh to recover from stale URLSession cookies without a UI flash).
     @discardableResult
-    public func silentSignInIfPossible() async -> Bool {
-        guard !isAuthenticated else { return true }
+    public func silentSignInIfPossible(forceRecheck: Bool = false) async -> Bool {
+        guard !isAuthenticated || forceRecheck else { return true }
         return await withCheckedContinuation { continuation in
             WKWebsiteDataStore.default().httpCookieStore.getAllCookies { [weak self] cookies in
                 guard let self else { continuation.resume(returning: false); return }

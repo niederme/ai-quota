@@ -211,14 +211,15 @@ final class QuotaViewModel {
             if e.isAuthError {
                 codexUsage = nil
                 SharedDefaults.clearUsage()
-                // Keychain said authenticated but session is invalid — try silent re-auth once.
-                codexAuthManager.isAuthenticated = false
-                if await codexAuthManager.silentSignInIfPossible() {
+                // Session may have expired — try a forced cookie recheck before clearing
+                // auth state. Avoids a brief "Connect" flash when cookies are still valid
+                // but haven't been synced to URLSession yet.
+                if await codexAuthManager.silentSignInIfPossible(forceRecheck: true) {
                     await refreshCodex()
                     return
                 }
-                // Silent re-auth also failed — session is genuinely gone.
-                // isAuthenticated is already false so the gauge shows "Connect".
+                // Recheck also failed — session is genuinely gone.
+                codexAuthManager.isAuthenticated = false
                 // Don't surface an error banner; the user can reconnect from the gauge.
                 return
             } else if case .networkUnavailable = e, !pathMonitorReady {
@@ -264,14 +265,15 @@ final class QuotaViewModel {
             if e.isAuthError {
                 claudeUsage = nil
                 SharedDefaults.clearClaudeUsage()
-                // Keychain said authenticated but cookies are gone — try silent re-auth once.
-                claudeAuthManager.isAuthenticated = false
-                if await claudeAuthManager.silentSignInIfPossible() {
+                // Session may have expired — try a forced cookie recheck before clearing
+                // auth state. Avoids a brief "Connect" flash when cookies are still valid
+                // but haven't been synced to URLSession yet.
+                if await claudeAuthManager.silentSignInIfPossible(forceRecheck: true) {
                     await refreshClaude()
                     return
                 }
-                // Silent re-auth also failed — session is genuinely gone.
-                // isAuthenticated is already false so the gauge shows "Connect".
+                // Recheck also failed — session is genuinely gone.
+                claudeAuthManager.isAuthenticated = false
                 // Don't surface an error banner; the user can reconnect from the gauge.
                 return
             } else if case .networkUnavailable = e, !pathMonitorReady {
