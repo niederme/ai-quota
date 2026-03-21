@@ -395,6 +395,7 @@ extension LoginWindowController: WKNavigationDelegate {
                     guard !self.hasCompleted else { return }
                     let loginURL = URL(string: "https://chatgpt.com/auth/login")!
                     webView.load(URLRequest(url: loginURL))
+                    self.window?.makeKeyAndOrderFront(nil)
                     return
                 }
 
@@ -436,10 +437,12 @@ extension LoginWindowController: WKNavigationDelegate {
                       !currentURL.path.hasPrefix("/login") {
                 // Appears logged in (not on an auth page) but session token missing —
                 // navigate directly to /api/auth/session to read the JWT.
+                // Hide the window so the raw JSON response is never shown to the user.
                 self.logger.info("[Auth] appears logged in but no session cookie — navigating to /api/auth/session")
                 let sessionURL = URL(string: "https://chatgpt.com/api/auth/session")!
                 Task { @MainActor [weak self] in
                     guard let self, !self.hasCompleted else { return }
+                    self.window?.orderOut(nil)
                     webView.load(URLRequest(url: sessionURL))
                 }
             } else {
