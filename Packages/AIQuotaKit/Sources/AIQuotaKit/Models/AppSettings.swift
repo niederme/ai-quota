@@ -22,24 +22,66 @@ public enum ServiceType: String, Codable, CaseIterable, Sendable {
     }
 }
 
+// MARK: - NotificationPreferences
+
+public struct NotificationPreferences: Codable, Sendable, Equatable {
+    // Master switch
+    public var enabled: Bool = true
+
+    // Codex — weekly window
+    public var codexAt15: Bool = true           // < 15% remaining
+    public var codexAt5: Bool = true            // < 5% remaining
+    public var codexLimitReached: Bool = true   // 0% (limit reached)
+    public var codexReset: Bool = true          // weekly reset
+
+    // Claude — 5-hour window
+    public var claude5hAt15: Bool = true
+    public var claude5hAt5: Bool = true
+    public var claude5hLimitReached: Bool = true
+    public var claude5hReset: Bool = true
+
+    // Claude — 7-day window
+    public var claude7dAt80: Bool = true        // 80% used
+    public var claude7dAt95: Bool = true        // 95% used
+    public var claude7dLimitReached: Bool = true
+    public var claude7dReset: Bool = true
+
+    public init() {}
+}
+
 // MARK: - AppSettings
 
 public struct AppSettings: Codable, Sendable, Equatable {
     public var refreshIntervalMinutes: Int
-    public var notificationsEnabled: Bool
+    public var notifications: NotificationPreferences
     /// Which service's gauge shows in the menu bar when multiple are signed in.
     public var menuBarService: ServiceType
 
     public static let `default` = AppSettings(
         refreshIntervalMinutes: 15,
-        notificationsEnabled: true,
+        notifications: NotificationPreferences(),
         menuBarService: .codex
     )
 
-    public init(refreshIntervalMinutes: Int, notificationsEnabled: Bool, menuBarService: ServiceType = .codex) {
+    public init(
+        refreshIntervalMinutes: Int,
+        notifications: NotificationPreferences = NotificationPreferences(),
+        menuBarService: ServiceType = .codex
+    ) {
         self.refreshIntervalMinutes = refreshIntervalMinutes
-        self.notificationsEnabled = notificationsEnabled
+        self.notifications = notifications
         self.menuBarService = menuBarService
+    }
+
+    /// Migration-safe decoder: unknown keys are ignored, missing keys use defaults.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        refreshIntervalMinutes = try c.decodeIfPresent(Int.self, forKey: .refreshIntervalMinutes) ?? 15
+        menuBarService = try c.decodeIfPresent(ServiceType.self, forKey: .menuBarService) ?? .codex
+        notifications = try c.decodeIfPresent(NotificationPreferences.self, forKey: .notifications)
+            ?? NotificationPreferences()
+        // Legacy key `notificationsEnabled` is intentionally not migrated —
+        // the default (all on) is the right starting point for all users.
     }
 
     public var refreshInterval: TimeInterval {

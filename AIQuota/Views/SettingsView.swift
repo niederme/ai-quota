@@ -31,14 +31,14 @@ struct SettingsView: View {
 
             // MARK: Notifications
             Section("Notifications") {
-                Toggle("Enable notifications", isOn: $vm.settings.notificationsEnabled)
-                    .onChange(of: vm.settings.notificationsEnabled) { _, enabled in
+                Toggle("Enable notifications", isOn: $vm.settings.notifications.enabled)
+                    .onChange(of: vm.settings.notifications.enabled) { _, enabled in
                         if enabled {
                             Task { await NotificationManager.shared.requestPermission() }
                         }
                     }
 
-                if viewModel.settings.notificationsEnabled {
+                if viewModel.settings.notifications.enabled {
                     NotificationStatusRow()
                 }
             }

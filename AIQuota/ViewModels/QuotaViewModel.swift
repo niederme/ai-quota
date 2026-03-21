@@ -104,7 +104,7 @@ final class QuotaViewModel {
             .sink { [weak self] value in self?.isClaudeAuthenticated = value }
 
         // Request notification permission on launch
-        if settings.notificationsEnabled {
+        if settings.notifications.enabled {
             Task { await NotificationManager.shared.requestPermission() }
         }
 
@@ -209,7 +209,7 @@ final class QuotaViewModel {
             codexUsage = result
             lastRefreshedAt = .now
             SharedDefaults.saveUsage(result)
-            if settings.notificationsEnabled {
+            if settings.notifications.enabled {
                 await NotificationManager.shared.evaluate(current: result)
             }
         } catch let e as NetworkError {
@@ -269,7 +269,7 @@ final class QuotaViewModel {
             claudeUsage = result
             lastRefreshedAt = .now
             SharedDefaults.saveClaudeUsage(result)
-            if settings.notificationsEnabled {
+            if settings.notifications.enabled {
                 await NotificationManager.shared.evaluate(claude: result)
             }
         } catch let e as NetworkError {
@@ -319,7 +319,7 @@ final class QuotaViewModel {
     // MARK: - Auto-refresh
 
     func startAutoRefresh() {
-        if settings.notificationsEnabled {
+        if settings.notifications.enabled {
             Task { await NotificationManager.shared.requestPermission() }
         }
         refreshTask?.cancel()
