@@ -19,19 +19,20 @@ struct WelcomeStepView: View {
 
             Spacer().frame(height: 24)
 
-            // App name
+            // App name — SF Rounded Display
             Text("AIQuota")
-                .font(.system(size: 34, weight: .bold, design: .rounded))
+                .font(.system(size: 52, weight: .bold, design: .rounded))
                 .opacity(appeared ? 1 : 0)
                 .offset(y: appeared ? 0 : 8)
 
-            Spacer().frame(height: 10)
+            Spacer().frame(height: 12)
 
             // Tagline
-            Text("Know your limits. Keep your flow.")
-                .font(.title3)
+            Text("Know your limits.\nKeep your flow.")
+                .font(.system(size: 20, weight: .medium, design: .rounded))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
+                .lineSpacing(3)
                 .opacity(appeared ? 1 : 0)
                 .offset(y: appeared ? 0 : 6)
 
