@@ -23,12 +23,23 @@ struct WidgetsStepView: View {
 
             // Instructions
             VStack(alignment: .leading, spacing: 14) {
-                Text("Add the AIQuota widget")
-                    .font(.title2).fontWeight(.bold)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                // "Bonus!" badge + title
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Bonus!")
+                        .font(.caption.weight(.bold))
+                        .foregroundColor(Color.brand)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 3)
+                        .background(Color.brand.opacity(0.12))
+                        .clipShape(Capsule())
+
+                    Text("Add the AIQuota widget")
+                        .font(.title2).fontWeight(.bold)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 Text("See your quota at a glance on your desktop.")
-                    .font(.callout)
+                    .font(.body)
                     .foregroundStyle(.secondary)
 
                 Divider()
@@ -44,7 +55,7 @@ struct WidgetsStepView: View {
                             .clipShape(Circle())
 
                         Text((try? AttributedString(markdown: item.text)) ?? AttributedString(item.text))
-                            .font(.callout)
+                            .font(.body)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
