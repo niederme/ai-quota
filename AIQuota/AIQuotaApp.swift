@@ -1,5 +1,6 @@
 import SwiftUI
 import Sparkle
+import AppKit
 import AIQuotaKit
 
 @main
@@ -44,6 +45,7 @@ struct AIQuotaApp: App {
         Window("Get Started", id: "onboarding") {
             OnboardingView()
                 .environment(viewModel)
+                .background(WindowVibrancyInstaller())
         }
         .windowResizability(.contentSize)
         .defaultPosition(.center)
@@ -104,6 +106,26 @@ struct AIQuotaApp: App {
 /// menu bar apps per Sparkle documentation.
 final class GentleSparkleDriverDelegate: NSObject, SPUStandardUserDriverDelegate {
     var supportsGentleScheduledUpdateReminders: Bool { true }
+}
+
+// MARK: - Window vibrancy installer
+
+/// Zero-size view that reaches up to the hosting NSWindow and enables
+/// vibrancy + transparency so SwiftUI's .ultraThinMaterial fills the whole window.
+private struct WindowVibrancyInstaller: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        // Defer so the window is attached by the time we walk the hierarchy
+        DispatchQueue.main.async {
+            guard let window = view.window else { return }
+            window.isOpaque = false
+            window.backgroundColor = .clear
+            // Float above other apps so it's never lost behind them
+            window.level = .floating
+        }
+        return view
+    }
+    func updateNSView(_ nsView: NSView, context: Context) {}
 }
 
 // MARK: - Onboarding launcher modifier

@@ -49,7 +49,7 @@ struct OnboardingView: View {
                 .background(.ultraThinMaterial)
         }
         .frame(width: Self.width, height: Self.height)
-        .background(.windowBackground)
+        .background(.ultraThinMaterial)
     }
 
     // MARK: - Step content router
