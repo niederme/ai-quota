@@ -41,12 +41,12 @@ struct OnboardingView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .animation(.spring(response: 0.35, dampingFraction: 0.85), value: step)
 
-            Divider()
-
-            // Navigation bar
+            // Navigation bar — material surface separates it from content naturally
             navigationBar
                 .padding(.horizontal, 28)
                 .padding(.vertical, 16)
+                .frame(maxWidth: .infinity)
+                .background(.ultraThinMaterial)
         }
         .frame(width: Self.width, height: Self.height)
         .background(.windowBackground)
