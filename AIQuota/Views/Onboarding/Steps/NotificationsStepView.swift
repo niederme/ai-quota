@@ -5,150 +5,115 @@ import AIQuotaKit
 
 struct NotificationsStepView: View {
     @Environment(QuotaViewModel.self) private var viewModel
-    @State private var codexExpanded = true
-    @State private var claudeExpanded = true
+    @State private var permissionGranted = false
+
+    private var sectionsEnabled: Bool {
+        viewModel.settings.notifications.enabled && permissionGranted
+    }
 
     var body: some View {
         @Bindable var vm = viewModel
 
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                // Header
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Notifications")
-                        .font(.title2).fontWeight(.bold)
-                    Text("Choose which alerts you'd like to receive.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, 28)
+        VStack(alignment: .leading, spacing: 0) {
+            // Header
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Notifications")
+                    .font(.title2).fontWeight(.bold)
+                Text("Choose which alerts you'd like to receive.")
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
+            .padding(.bottom, 4)
 
+            // System Settings–style grouped form
+            Form {
                 // Master toggle
-                Toggle(isOn: $vm.settings.notifications.enabled) {
-                    Text("Enable notifications")
-                        .fontWeight(.medium)
-                }
-                .toggleStyle(.switch)
-                .onChange(of: vm.settings.notifications.enabled) { _, enabled in
-                    if enabled {
-                        Task { await NotificationManager.shared.requestPermission() }
-                    }
+                Section {
+                    Toggle("Enable notifications", isOn: $vm.settings.notifications.enabled)
+                        .onChange(of: vm.settings.notifications.enabled) { _, enabled in
+                            if enabled {
+                                Task {
+                                    await NotificationManager.shared.requestPermission()
+                                    await checkPermission()
+                                }
+                            } else {
+                                permissionGranted = false
+                            }
+                        }
                 }
 
-                if viewModel.settings.notifications.enabled {
-                    Divider()
-
-                    // Codex section
+                // Service sections — always visible, dimmed until enabled + permitted
+                Group {
                     if viewModel.isCodexAuthenticated {
-                        ServiceToggleSection(
-                            logoName: "logo-openai",
-                            name: "Codex",
-                            isExpanded: $codexExpanded
-                        ) {
+                        Section {
                             Toggle("Less than 15% remaining", isOn: $vm.settings.notifications.codexAt15)
                             Toggle("Less than 5% remaining",  isOn: $vm.settings.notifications.codexAt5)
                             Toggle("Limit reached",           isOn: $vm.settings.notifications.codexLimitReached)
                             Toggle("Weekly reset",            isOn: $vm.settings.notifications.codexReset)
+                        } header: {
+                            ServiceSectionHeader(logoName: "logo-openai", name: "Codex")
                         }
                     }
 
-                    // Claude section
                     if viewModel.isClaudeAuthenticated {
-                        ServiceToggleSection(
-                            logoName: "logo-claude",
-                            name: "Claude Code",
-                            isExpanded: $claudeExpanded
-                        ) {
-                            Text("5-hour window")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .padding(.top, 2)
+                        Section {
                             Toggle("Less than 15% remaining", isOn: $vm.settings.notifications.claude5hAt15)
                             Toggle("Less than 5% remaining",  isOn: $vm.settings.notifications.claude5hAt5)
                             Toggle("Limit reached",           isOn: $vm.settings.notifications.claude5hLimitReached)
                             Toggle("Window reset",            isOn: $vm.settings.notifications.claude5hReset)
+                        } header: {
+                            ServiceSectionHeader(logoName: "logo-claude", name: "Claude Code — 5-hour")
+                        }
 
-                            Text("7-day window")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .padding(.top, 6)
+                        Section {
                             Toggle("80% used (high)",         isOn: $vm.settings.notifications.claude7dAt80)
                             Toggle("95% used (critical)",     isOn: $vm.settings.notifications.claude7dAt95)
                             Toggle("Limit reached",           isOn: $vm.settings.notifications.claude7dLimitReached)
                             Toggle("Period reset",            isOn: $vm.settings.notifications.claude7dReset)
+                        } header: {
+                            Text("Claude Code — 7-day")
                         }
                     }
 
                     if !viewModel.isCodexAuthenticated && !viewModel.isClaudeAuthenticated {
-                        Text("Sign in to a service to configure thresholds.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        Section {
+                            Text("Sign in to a service on the previous step to configure thresholds.")
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
-
-                Spacer(minLength: 8)
+                .disabled(!sectionsEnabled)
+                .opacity(sectionsEnabled ? 1 : 0.4)
+                .animation(.spring(response: 0.4, dampingFraction: 0.85), value: sectionsEnabled)
             }
-            .padding(.horizontal, 36)
+            .formStyle(.grouped)
         }
+        .task { await checkPermission() }
         .onChange(of: viewModel.settings) { viewModel.saveSettings() }
+    }
+
+    private func checkPermission() async {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        permissionGranted = settings.authorizationStatus == .authorized
     }
 }
 
-// MARK: - Collapsible service section
+// MARK: - Service section header
 
-private struct ServiceToggleSection<Content: View>: View {
+private struct ServiceSectionHeader: View {
     let logoName: String
     let name: String
-    @Binding var isExpanded: Bool
-    @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Header row — tap to expand/collapse
-            Button {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    isExpanded.toggle()
-                }
-            } label: {
-                HStack(spacing: 10) {
-                    Image(logoName)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 20, height: 20)
-
-                    Text(name)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundColor(.primary)
-
-                    Spacer()
-
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                        .animation(.spring(response: 0.3, dampingFraction: 0.8), value: isExpanded)
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .padding(.vertical, 10)
-
-            if isExpanded {
-                VStack(alignment: .leading, spacing: 8) {
-                    content
-                }
-                .toggleStyle(.switch)
-                .controlSize(.small)
-                .padding(.leading, 30)
-                .padding(.bottom, 10)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
+        HStack(spacing: 6) {
+            Image(logoName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 14, height: 14)
+            Text(name)
         }
-        .padding(.horizontal, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.secondary.opacity(0.06))
-        )
     }
 }
