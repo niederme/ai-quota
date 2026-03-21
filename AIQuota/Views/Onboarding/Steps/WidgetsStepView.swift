@@ -43,7 +43,7 @@ struct WidgetsStepView: View {
                             .background(Color.brand)
                             .clipShape(Circle())
 
-                        Text(try! AttributedString(markdown: item.text))
+                        Text((try? AttributedString(markdown: item.text)) ?? AttributedString(item.text))
                             .font(.callout)
                             .fixedSize(horizontal: false, vertical: true)
                     }
