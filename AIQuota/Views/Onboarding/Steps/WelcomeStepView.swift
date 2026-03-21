@@ -41,7 +41,7 @@ struct WelcomeStepView: View {
             // Tagline placeholder — update when final copy is decided
             Text("Keep an eye on your AI limits,\nright from the menu bar.")
                 .font(.title3)
-                .foregroundStyle(.secondary)
+                .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .opacity(appeared ? 1 : 0)
                 .offset(y: appeared ? 0 : 6)
