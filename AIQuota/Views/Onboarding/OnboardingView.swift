@@ -74,15 +74,15 @@ struct OnboardingView: View {
 
     private var navigationBar: some View {
         HStack {
-            // Back button — invisible on first and last steps to preserve layout
+            // Back button — invisible only on the first step
             Button(action: goBack) {
                 Label("Back", systemImage: "chevron.left")
                     .labelStyle(.titleAndIcon)
             }
             .buttonStyle(.plain)
             .foregroundColor(.secondary)
-            .opacity(step != .welcome && step != .done ? 1 : 0)
-            .disabled(step == .welcome || step == .done)
+            .opacity(step != .welcome ? 1 : 0)
+            .disabled(step == .welcome)
 
             Spacer()
 
