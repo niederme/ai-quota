@@ -193,7 +193,7 @@ public final class AuthManager: NSObject, ObservableObject {
             logger.info("[Auth] access token cached, expires: \(self.tokenExpiresAt?.description ?? "nil")")
             return session.accessToken
         } catch let e as NetworkError {
-            logger.info("[Auth] NetworkError in refresh: \(e.localizedDescription ?? "")")
+            logger.info("[Auth] NetworkError in refresh: \(e.localizedDescription)")
             if e.isAuthError {
                 isAuthenticated = false
                 KeychainStore.delete(forKey: "sessionToken")
