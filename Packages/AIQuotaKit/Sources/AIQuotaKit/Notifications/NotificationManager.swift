@@ -113,6 +113,9 @@ public actor NotificationManager {
 
         if let stored = storedResetAt {
             let storedDate = Date(timeIntervalSince1970: stored)
+            // Use a time-has-passed check rather than timestamp equality.
+            // resetAt is a rolling server-computed value that drifts by seconds on
+            // every fetch, so != would fire on every refresh even with no real reset.
             if storedDate < .now {
                 clearThresholds(key: Key.claudeThresholds)
                 defaults.set(currentResetAt, forKey: Key.claudeLastResetAt)
