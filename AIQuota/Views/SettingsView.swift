@@ -156,7 +156,7 @@ struct SettingsView: View {
         .onChange(of: viewModel.settings) { viewModel.saveSettings() }
         .background(FloatingWindowElevator())
         .confirmationDialog(
-            "Reset to New User?",
+            "Clear all Settings and Start Over?",
             isPresented: $showResetConfirmation,
             titleVisibility: .visible
         ) {

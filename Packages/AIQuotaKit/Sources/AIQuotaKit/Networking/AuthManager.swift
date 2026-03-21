@@ -342,6 +342,7 @@ final class LoginWindowController: NSObject {
         win.contentView = webView
         win.center()
         win.isReleasedWhenClosed = false
+        win.level = .floating
         win.delegate = self
         self.window = win
 

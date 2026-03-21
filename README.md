@@ -17,8 +17,9 @@ A native macOS menubar utility to monitor your AI coding quota — track [OpenAI
 - **Codex + Claude Code** — each service shows reset timers, plan badges, and per-service refresh buttons; credits and plan info in a summary row below the gauges
 - **Widgets** — small widget shows one service (right-click to choose); medium widget always shows both Codex and Claude Code side by side with a refresh button
 - **Network recovery** — detects when connectivity is restored and refreshes immediately, clearing stale error banners automatically
+- **Guided onboarding** — a step-by-step setup wizard on first launch walks you through connecting services, configuring notifications, and adding the menu bar widget
 - **Sign in with ChatGPT / Claude** — OAuth via browser session, tokens stored securely in Keychain
-- **Notifications** — alerts at 15%, 5%, and when your limit is reached or resets; uses time-has-passed logic so rolling window drift never triggers spurious alerts
+- **Notifications** — per-service master switches let you silence all alerts for a service at once; individual thresholds at 15%, 5%, limit reached, and quota reset; time-has-passed logic prevents spurious alerts from rolling-window drift
 - **Auto-update** — checks for a new version silently on every launch and twice daily via Sparkle; uses gentle reminders so update alerts never steal focus from your active app
 
 ---
@@ -36,7 +37,7 @@ A native macOS menubar utility to monitor your AI coding quota — track [OpenAI
 1. Download `AIQuota.zip` from the [latest release](https://github.com/niederme/ai-quota/releases/latest)
 2. Unzip and move **AIQuota** to your Applications folder
 3. Launch AIQuota — it appears in your menu bar, not the Dock
-4. Click the icon and sign in with your ChatGPT and/or Claude account
+4. Follow the guided setup to connect your ChatGPT and/or Claude account
 
 > Notarized by Apple — no Gatekeeper warning on first launch.
 
@@ -95,6 +96,8 @@ See the pre-release checklist at the top of [`scripts/release.sh`](scripts/relea
 - [ ] iOS / iPadOS app — native app and home screen widgets for iPhone and iPad
 - [ ] Menu bar icon monochrome mode — option to disable amber/red status colours for a cleaner, always-white icon
 - [ ] Gemini quota support (Google AI plans)
+- [x] Guided onboarding — step-by-step setup wizard on first launch; replayable from Settings
+- [x] Per-service notification switches — master toggle per service; sub-thresholds collapse when disabled
 - [x] Dual-arc gauge — concentric rings for 5h and 7-day windows; color-coded purple → amber → red; both percentages labelled in the centre
 - [x] Widget redesign — dual-arc gauge in small and medium widgets; medium always shows both services; refresh button on each widget
 - [x] Network recovery — NWPathMonitor detects coming back online and refreshes immediately
