@@ -30,6 +30,7 @@ struct AIQuotaApp: App {
             PopoverView()
                 .environment(viewModel)
                 .environment(UpdaterViewModel(updater: updaterController.updater))
+                .onboardingLauncher(viewModel: viewModel)
         } label: {
             MenuBarIconView(
                 usedPercent: menuBarUsedPercent,
@@ -39,6 +40,13 @@ struct AIQuotaApp: App {
             )
         }
         .menuBarExtraStyle(.window)
+
+        Window("Get Started", id: "onboarding") {
+            OnboardingView()
+                .environment(viewModel)
+        }
+        .windowResizability(.contentSize)
+        .defaultPosition(.center)
 
         Settings {
             SettingsView()
@@ -96,4 +104,26 @@ struct AIQuotaApp: App {
 /// menu bar apps per Sparkle documentation.
 final class GentleSparkleDriverDelegate: NSObject, SPUStandardUserDriverDelegate {
     var supportsGentleScheduledUpdateReminders: Bool { true }
+}
+
+// MARK: - Onboarding launcher modifier
+
+private struct OnboardingLauncherModifier: ViewModifier {
+    @Environment(\.openWindow) private var openWindow
+    let viewModel: QuotaViewModel
+
+    func body(content: Content) -> some View {
+        content.task {
+            if viewModel.shouldShowOnboarding {
+                viewModel.markOnboardingTriggered()
+                openWindow(id: "onboarding")
+            }
+        }
+    }
+}
+
+private extension View {
+    func onboardingLauncher(viewModel: QuotaViewModel) -> some View {
+        modifier(OnboardingLauncherModifier(viewModel: viewModel))
+    }
 }
