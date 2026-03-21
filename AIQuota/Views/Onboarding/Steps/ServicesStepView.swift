@@ -8,74 +8,81 @@ struct ServicesStepView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Header
-            VStack(spacing: 8) {
+            VStack(spacing: 6) {
                 Text("Connect your services")
                     .font(.title2).fontWeight(.bold)
-                Text("Sign in to the services you use.\nYou need at least one to continue.")
+                Text("Sign in to the services you use.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
             }
-            .padding(.top, 36)
+            .padding(.top, 40)
+            .padding(.bottom, 32)
 
-            Spacer()
-
-            // Service cards
-            HStack(spacing: 16) {
-                ServiceCard(
+            // Service rows
+            VStack(spacing: 12) {
+                ServiceRow(
+                    logoName: "logo-openai",
                     name: "Codex",
                     subtitle: "ChatGPT / OpenAI",
-                    icon: "brain.fill",
                     isAuthenticated: viewModel.isCodexAuthenticated,
-                    signInAction: { Task { await viewModel.signIn() } },
-                    signOutAction: { viewModel.signOut() }
+                    onSignIn: { Task { await viewModel.signIn() } }
                 )
 
-                ServiceCard(
+                ServiceRow(
+                    logoName: "logo-claude",
                     name: "Claude Code",
                     subtitle: "Anthropic / claude.ai",
-                    icon: "sparkles",
                     isAuthenticated: viewModel.isClaudeAuthenticated,
-                    signInAction: { Task { await viewModel.signInClaude() } },
-                    signOutAction: { viewModel.signOutClaude() }
+                    onSignIn: { Task { await viewModel.signInClaude() } }
                 )
             }
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 32)
 
             Spacer()
 
-            // Skip hint
-            Text("You can add services later in Settings.")
+            Text("You can connect more services later in Settings.")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
-                .padding(.bottom, 8)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+                .padding(.bottom, 12)
         }
     }
 }
 
-// MARK: - Service Card
+// MARK: - Service Row
 
-private struct ServiceCard: View {
+private struct ServiceRow: View {
+    let logoName: String
     let name: String
     let subtitle: String
-    let icon: String
     let isAuthenticated: Bool
-    let signInAction: () -> Void
-    let signOutAction: () -> Void
+    let onSignIn: () -> Void
 
     var body: some View {
-        VStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(isAuthenticated ? Color.brand.opacity(0.12) : Color.secondary.opacity(0.1))
-                    .frame(width: 60, height: 60)
+        HStack(spacing: 16) {
+            // Logo
+            Image(logoName)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 36, height: 36)
+                .padding(10)
+                .background(
+                    Circle()
+                        .fill(isAuthenticated
+                              ? Color.brand.opacity(0.1)
+                              : Color.secondary.opacity(0.08))
+                )
+                .overlay(
+                    Circle()
+                        .strokeBorder(
+                            isAuthenticated ? Color.brand.opacity(0.3) : Color.clear,
+                            lineWidth: 1.5
+                        )
+                )
 
-                Image(systemName: icon)
-                    .font(.system(size: 26))
-                    .foregroundColor(isAuthenticated ? Color.brand : .secondary)
-            }
-
-            VStack(spacing: 3) {
+            // Name + subtitle
+            VStack(alignment: .leading, spacing: 2) {
                 Text(name)
                     .font(.headline)
                 Text(subtitle)
@@ -83,36 +90,34 @@ private struct ServiceCard: View {
                     .foregroundStyle(.secondary)
             }
 
-            Spacer(minLength: 0)
+            Spacer()
 
+            // Status
             if isAuthenticated {
                 Label("Connected", systemImage: "checkmark.circle.fill")
                     .font(.footnote.weight(.medium))
                     .foregroundColor(.green)
                     .transition(.scale.combined(with: .opacity))
-
-                Button("Sign Out", role: .destructive, action: signOutAction)
-                    .buttonStyle(.plain)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             } else {
-                Button("Sign In", action: signInAction)
+                Button("Sign In", action: onSignIn)
                     .buttonStyle(.borderedProminent)
                     .tint(Color.brand)
                     .controlSize(.small)
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isAuthenticated)
-        .padding(20)
-        .frame(maxWidth: .infinity, minHeight: 200)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(.background)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .strokeBorder(
-                            isAuthenticated ? Color.brand.opacity(0.4) : Color.secondary.opacity(0.15),
-                            lineWidth: 1.5
+                            isAuthenticated
+                                ? Color.brand.opacity(0.35)
+                                : Color.secondary.opacity(0.12),
+                            lineWidth: 1
                         )
                 )
         )
