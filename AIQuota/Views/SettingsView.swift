@@ -107,6 +107,15 @@ struct SettingsView: View {
                 }
             }
 
+            // MARK: Onboarding
+            Section("Onboarding") {
+                Button("Open Onboarding Wizard…") {
+                    viewModel.resetOnboardingForReplay()
+                    openWindow(id: "onboarding")
+                    NSApp.activate(ignoringOtherApps: true)
+                }
+            }
+
             // MARK: About footer
             let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
             let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
@@ -125,14 +134,6 @@ struct SettingsView: View {
                         Link("@niederme on X", destination: URL(string: "https://x.com/niederme")!)
                             .foregroundColor(Color(red: 0.62, green: 0.22, blue: 0.93))
                     }
-                    Button("Open Onboarding Wizard…") {
-                        viewModel.resetOnboardingForReplay()
-                        openWindow(id: "onboarding")
-                        NSApp.activate(ignoringOtherApps: true)
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundColor(Color(red: 0.62, green: 0.22, blue: 0.93))
-                    .padding(.top, 4)
                 }
                 .font(.callout)
                 .foregroundStyle(.tertiary)

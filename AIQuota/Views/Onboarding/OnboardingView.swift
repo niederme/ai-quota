@@ -50,6 +50,11 @@ struct OnboardingView: View {
         }
         .frame(width: Self.width, height: Self.height)
         .background(.ultraThinMaterial)
+        .onAppear {
+            // Window is reused by SwiftUI — always restart from the beginning
+            step = .welcome
+            direction = 1
+        }
     }
 
     // MARK: - Step content router
