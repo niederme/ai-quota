@@ -57,6 +57,10 @@ final class QuotaViewModel {
     private var refreshTask: Task<Void, Never>?
     private var authCancellable: AnyCancellable?
     private var claudeAuthCancellable: AnyCancellable?
+    /// Incremented on each manual refresh so the previous task's `defer` doesn't
+    /// clear `isLoading` after the new request has already started.
+    private var codexRefreshGeneration = 0
+    private var claudeRefreshGeneration = 0
 
     /// Tracks whether the last known network path was unsatisfied so we can
     /// detect a transition back online and refresh immediately.
@@ -195,9 +199,10 @@ final class QuotaViewModel {
     func refreshCodex() async {
         if !isCodexAuthenticated { await codexAuthManager.silentSignInIfPossible() }
         guard !isCodexLoading, isCodexAuthenticated else { return }
+        let gen = codexRefreshGeneration
         isCodexLoading = true
         codexError = nil
-        defer { isCodexLoading = false }
+        defer { if codexRefreshGeneration == gen { isCodexLoading = false } }
 
         do {
             let result = try await codexClient.fetchUsage()
@@ -227,6 +232,11 @@ final class QuotaViewModel {
                 // the false-positive "No network connection" flash at launch.
                 logger.info("[CodexRefresh] suppressing networkUnavailable: pathMonitor not ready yet")
                 return
+            } else if case .decodingError = e {
+                // Transient decode failure (e.g. server returned an error page during
+                // post-reboot network init). Let the next auto-refresh recover silently.
+                logger.info("[CodexRefresh] suppressing decodingError — will retry on next cycle")
+                return
             }
             codexError = e
         } catch is CancellationError {
@@ -249,9 +259,10 @@ final class QuotaViewModel {
     func refreshClaude() async {
         if !isClaudeAuthenticated { await claudeAuthManager.silentSignInIfPossible() }
         guard !isClaudeLoading, isClaudeAuthenticated else { return }
+        let gen = claudeRefreshGeneration
         isClaudeLoading = true
         claudeError = nil
-        defer { isClaudeLoading = false }
+        defer { if claudeRefreshGeneration == gen { isClaudeLoading = false } }
 
         do {
             let result = try await claudeClient.fetchUsage()
@@ -280,6 +291,11 @@ final class QuotaViewModel {
                 // Path monitor hasn't settled yet — suppress the banner to avoid
                 // the false-positive "No network connection" flash at launch.
                 logger.info("[ClaudeRefresh] suppressing networkUnavailable: pathMonitor not ready yet")
+                return
+            } else if case .decodingError = e {
+                // Transient decode failure (e.g. server returned an error page during
+                // post-reboot network init). Let the next auto-refresh recover silently.
+                logger.info("[ClaudeRefresh] suppressing decodingError — will retry on next cycle")
                 return
             }
             claudeError = e
@@ -319,6 +335,16 @@ final class QuotaViewModel {
     func stopAutoRefresh() {
         refreshTask?.cancel()
         refreshTask = nil
+    }
+
+    /// User-initiated refresh. Cancels any in-flight auto-refresh and restarts
+    /// immediately, bypassing the `isLoading` guard that blocks concurrent calls.
+    func manualRefresh() {
+        codexRefreshGeneration += 1
+        claudeRefreshGeneration += 1
+        isCodexLoading = false
+        isClaudeLoading = false
+        startAutoRefresh()
     }
 
     // MARK: - Sign In / Out

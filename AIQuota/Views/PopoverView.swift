@@ -20,7 +20,7 @@ struct PopoverView: View {
         .frame(width: 340)
         .background(WindowCapture { menuBarWindow = $0 })
         .background {
-            Button("") { Task { await viewModel.refresh() } }
+            Button("") { viewModel.manualRefresh() }
                 .keyboardShortcut("r", modifiers: .command)
                 .hidden()
         }
@@ -104,7 +104,7 @@ struct PopoverView: View {
                     secondaryLabel: "7-day",
                     resetSeconds: u.hourlyResetAfterSeconds,
                     isRefreshing: viewModel.isCodexLoading,
-                    onRefresh: { Task { await viewModel.refreshCodex() } }
+                    onRefresh: { viewModel.manualRefresh() }
                 )
                 .help(codexTooltip(u))
             } else {
@@ -139,7 +139,7 @@ struct PopoverView: View {
                     secondaryLabel: "7-day",
                     resetSeconds: u.resetAfterSeconds,
                     isRefreshing: viewModel.isClaudeLoading,
-                    onRefresh: { Task { await viewModel.refreshClaude() } }
+                    onRefresh: { viewModel.manualRefresh() }
                 )
                 .help(claudeTooltip(u))
             } else {
@@ -391,7 +391,7 @@ struct PopoverView: View {
             } else {
                 Button {
                     dismiss()
-                    Task { await viewModel.refresh() }
+                    viewModel.manualRefresh()
                 } label: {
                     Image(systemName: "arrow.clockwise").font(.caption)
                 }
