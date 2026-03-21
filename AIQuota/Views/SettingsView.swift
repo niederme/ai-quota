@@ -111,14 +111,14 @@ struct SettingsView: View {
 
             // MARK: Onboarding
             Section("Onboarding") {
-                Button("Guided Setup…") {
-                    viewModel.resetOnboardingForReplay()
-                    openWindow(id: "onboarding")
-                    NSApp.activate(ignoringOtherApps: true)
-                }
-
-                LabeledContent("Reset to new user") {
-                    Button("Reset…", role: .destructive) {
+                HStack {
+                    Button("Guided Setup…") {
+                        viewModel.resetOnboardingForReplay()
+                        openWindow(id: "onboarding")
+                        NSApp.activate(ignoringOtherApps: true)
+                    }
+                    Spacer()
+                    Button("Reset All Settings…", role: .destructive) {
                         showResetConfirmation = true
                     }
                 }
