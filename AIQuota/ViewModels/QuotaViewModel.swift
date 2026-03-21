@@ -235,8 +235,10 @@ final class QuotaViewModel {
     }
 
     func refreshCodex() async {
-        if !isCodexAuthenticated { await codexAuthManager.silentSignInIfPossible() }
-        guard !isCodexLoading, isCodexAuthenticated else { return }
+        if !isCodexAuthenticated {
+            guard await codexAuthManager.silentSignInIfPossible() else { return }
+        }
+        guard !isCodexLoading else { return }
         let gen = codexRefreshGeneration
         isCodexLoading = true
         codexError = nil
@@ -293,8 +295,10 @@ final class QuotaViewModel {
     }
 
     func refreshClaude() async {
-        if !isClaudeAuthenticated { await claudeAuthManager.silentSignInIfPossible() }
-        guard !isClaudeLoading, isClaudeAuthenticated else { return }
+        if !isClaudeAuthenticated {
+            guard await claudeAuthManager.silentSignInIfPossible() else { return }
+        }
+        guard !isClaudeLoading else { return }
         let gen = claudeRefreshGeneration
         isClaudeLoading = true
         claudeError = nil
