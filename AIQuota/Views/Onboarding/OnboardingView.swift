@@ -46,10 +46,10 @@ struct OnboardingView: View {
                 .padding(.horizontal, 28)
                 .padding(.vertical, 16)
                 .frame(maxWidth: .infinity)
-                .background(.ultraThinMaterial)
+                .background(.regularMaterial)
         }
         .frame(width: Self.width, height: Self.height)
-        .background(.ultraThinMaterial)
+        .background(.regularMaterial)
         .onAppear {
             // Window is reused by SwiftUI — always restart from the beginning
             step = .welcome
