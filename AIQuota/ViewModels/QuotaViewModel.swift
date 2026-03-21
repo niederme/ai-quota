@@ -318,6 +318,9 @@ final class QuotaViewModel {
                 // auth state. Avoids a brief "Connect" flash when cookies are still valid
                 // but haven't been synced to URLSession yet.
                 if await claudeAuthManager.silentSignInIfPossible(forceRecheck: true) {
+                    // Reset loading flag before retrying so the recursive call isn't
+                    // blocked by the guard — isClaudeLoading is still true here.
+                    isClaudeLoading = false
                     await refreshClaude()
                     return
                 }
