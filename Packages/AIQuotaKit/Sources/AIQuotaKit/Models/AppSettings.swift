@@ -47,6 +47,24 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
     public var claude7dReset: Bool = true
 
     public init() {}
+
+    /// Migration-safe decoder: missing keys fall back to defaults rather than throwing.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        enabled              = try c.decodeIfPresent(Bool.self, forKey: .enabled)              ?? true
+        codexAt15            = try c.decodeIfPresent(Bool.self, forKey: .codexAt15)            ?? true
+        codexAt5             = try c.decodeIfPresent(Bool.self, forKey: .codexAt5)             ?? true
+        codexLimitReached    = try c.decodeIfPresent(Bool.self, forKey: .codexLimitReached)    ?? true
+        codexReset           = try c.decodeIfPresent(Bool.self, forKey: .codexReset)           ?? true
+        claude5hAt15         = try c.decodeIfPresent(Bool.self, forKey: .claude5hAt15)         ?? true
+        claude5hAt5          = try c.decodeIfPresent(Bool.self, forKey: .claude5hAt5)          ?? true
+        claude5hLimitReached = try c.decodeIfPresent(Bool.self, forKey: .claude5hLimitReached) ?? true
+        claude5hReset        = try c.decodeIfPresent(Bool.self, forKey: .claude5hReset)        ?? true
+        claude7dAt80         = try c.decodeIfPresent(Bool.self, forKey: .claude7dAt80)         ?? true
+        claude7dAt95         = try c.decodeIfPresent(Bool.self, forKey: .claude7dAt95)         ?? true
+        claude7dLimitReached = try c.decodeIfPresent(Bool.self, forKey: .claude7dLimitReached) ?? true
+        claude7dReset        = try c.decodeIfPresent(Bool.self, forKey: .claude7dReset)        ?? true
+    }
 }
 
 // MARK: - AppSettings
