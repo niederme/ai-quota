@@ -62,26 +62,15 @@ public actor ClaudeClient {
 
     private func fetchUsageData(path: String) async throws -> ClaudeUsage {
         let req = makeRequest(path: path)
-        print("[ClaudeClient] → \(req.url?.absoluteString ?? "nil") (already cancelled: \(Task.isCancelled))")
 
-        // Use the callback-based dataTask API so the HTTP request is NOT automatically
-        // cancelled when the Swift Task is cancelled (the async URLSession.data(for:)
-        // throws URLError.cancelled immediately if Task.isCancelled is true).
-        // The dataTask callback variant runs to completion regardless of task state.
+        // Use the async URLSession API so cooperative cancellation works correctly.
+        // When the enclosing Task is cancelled (e.g. startAutoRefresh() restarts the
+        // loop), the URLSession request is cancelled and URLError.cancelled is thrown.
+        // refreshClaude() already handles URLError.cancelled silently, so isClaudeLoading
+        // is always reset via defer and the spinner never gets stuck.
         let (data, response): (Data, URLResponse)
         do {
-            (data, response) = try await withCheckedThrowingContinuation { cont in
-                let task = session.dataTask(with: req) { data, resp, error in
-                    if let error {
-                        cont.resume(throwing: error)
-                    } else if let data, let resp {
-                        cont.resume(returning: (data, resp))
-                    } else {
-                        cont.resume(throwing: URLError(.unknown))
-                    }
-                }
-                task.resume()
-            }
+            (data, response) = try await session.data(for: req)
         } catch {
             print("[ClaudeClient] ❌ session error: \(error)")
             throw error

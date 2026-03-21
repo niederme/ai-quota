@@ -177,10 +177,12 @@ final class QuotaViewModel {
     // MARK: - Refresh
 
     func refresh() async {
-        async let _ = refreshCodex()
-        async let _ = refreshClaude()
-        // Reload widgets once after both fetches complete so they always
-        // get a consistent snapshot (not mid-refresh with one service stale).
+        // Run both fetches concurrently, then reload widgets once both are done
+        // so they always get a consistent snapshot.
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await self.refreshCodex() }
+            group.addTask { await self.refreshClaude() }
+        }
         WidgetCenter.shared.reloadAllTimelines()
     }
 
@@ -309,7 +311,9 @@ final class QuotaViewModel {
         do {
             try await codexAuthManager.signIn()
             await refreshCodex()
-            startAutoRefresh()
+            // Only start auto-refresh if not already running — restarting it cancels
+            // any in-progress Claude fetch and can leave isClaudeLoading permanently true.
+            if refreshTask == nil { startAutoRefresh() }
         } catch {
             codexError = .notAuthenticated
         }
@@ -321,13 +325,13 @@ final class QuotaViewModel {
         if await claudeAuthManager.silentSignInIfPossible() {
             logger.info("[SignIn] Claude silent re-auth succeeded, skipping login window")
             await refreshClaude()
-            if !isCodexAuthenticated { startAutoRefresh() }
+            if refreshTask == nil { startAutoRefresh() }
             return
         }
         do {
             try await claudeAuthManager.signIn()
             await refreshClaude()
-            if !isCodexAuthenticated { startAutoRefresh() }
+            if refreshTask == nil { startAutoRefresh() }
         } catch {
             claudeError = .notAuthenticated
         }
