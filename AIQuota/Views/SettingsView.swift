@@ -6,6 +6,7 @@ import AIQuotaKit
 struct SettingsView: View {
     @Environment(QuotaViewModel.self) private var viewModel
     @Environment(UpdaterViewModel.self) private var updater
+    @Environment(\.openWindow) private var openWindow
 
     private let refreshOptions = [5, 15, 30, 60]
 
@@ -40,6 +41,44 @@ struct SettingsView: View {
 
                 if viewModel.settings.notifications.enabled {
                     NotificationStatusRow()
+
+                    Divider().padding(.vertical, 2)
+
+                    // Codex thresholds (only when authenticated)
+                    if viewModel.isCodexAuthenticated {
+                        Text("Codex — Weekly")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        Toggle("< 15% remaining",   isOn: $vm.settings.notifications.codexAt15)
+                        Toggle("< 5% remaining",    isOn: $vm.settings.notifications.codexAt5)
+                        Toggle("Limit reached",     isOn: $vm.settings.notifications.codexLimitReached)
+                        Toggle("Weekly reset",      isOn: $vm.settings.notifications.codexReset)
+                    }
+
+                    // Claude thresholds (only when authenticated)
+                    if viewModel.isClaudeAuthenticated {
+                        Text("Claude Code — 5-hour window")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        Toggle("< 15% remaining",   isOn: $vm.settings.notifications.claude5hAt15)
+                        Toggle("< 5% remaining",    isOn: $vm.settings.notifications.claude5hAt5)
+                        Toggle("Limit reached",     isOn: $vm.settings.notifications.claude5hLimitReached)
+                        Toggle("Window reset",      isOn: $vm.settings.notifications.claude5hReset)
+
+                        Text("Claude Code — 7-day window")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        Toggle("80% used",          isOn: $vm.settings.notifications.claude7dAt80)
+                        Toggle("95% used",          isOn: $vm.settings.notifications.claude7dAt95)
+                        Toggle("Limit reached",     isOn: $vm.settings.notifications.claude7dLimitReached)
+                        Toggle("Period reset",      isOn: $vm.settings.notifications.claude7dReset)
+                    }
+
+                    if !viewModel.isCodexAuthenticated && !viewModel.isClaudeAuthenticated {
+                        Text("Sign in to a service to configure thresholds.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 
@@ -86,6 +125,13 @@ struct SettingsView: View {
                         Link("@niederme on X", destination: URL(string: "https://x.com/niederme")!)
                             .foregroundColor(Color(red: 0.62, green: 0.22, blue: 0.93))
                     }
+                    Button("Open Onboarding Wizard…") {
+                        viewModel.resetOnboardingForReplay()
+                        openWindow(id: "onboarding")
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundColor(Color(red: 0.62, green: 0.22, blue: 0.93))
+                    .padding(.top, 4)
                 }
                 .font(.callout)
                 .foregroundStyle(.tertiary)
