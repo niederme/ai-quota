@@ -129,10 +129,10 @@ struct SettingsView: View {
                         .padding(.top, 4)
                     HStack(spacing: 12) {
                         Link("GitHub Issues", destination: URL(string: "https://github.com/niederme/ai-quota/issues")!)
-                            .foregroundColor(Color(red: 0.62, green: 0.22, blue: 0.93))
+                            .foregroundColor(Color.brand)
                         Text("·").foregroundStyle(.quaternary)
                         Link("@niederme on X", destination: URL(string: "https://x.com/niederme")!)
-                            .foregroundColor(Color(red: 0.62, green: 0.22, blue: 0.93))
+                            .foregroundColor(Color.brand)
                     }
                 }
                 .font(.callout)

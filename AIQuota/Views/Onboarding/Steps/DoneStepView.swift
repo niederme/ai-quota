@@ -56,20 +56,27 @@ struct DoneStepView: View {
 
             Spacer()
 
-            // Footer — mirrors the Settings "Need Help?" block
-            VStack(spacing: 6) {
+            // Footer — identical to Settings about block
+            VStack(spacing: 3) {
+                let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+                let build   = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
+                Text("AIQuota \(version) (\(build))")
+                    .fontWeight(.medium)
+                Text("Made by John Niedermeyer, with a little help from\nClaude, Codex and friends.")
+                    .multilineTextAlignment(.center)
                 Text("Need Help?")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-
-                HStack(spacing: 20) {
+                    .padding(.top, 4)
+                HStack(spacing: 12) {
                     Link("GitHub Issues", destination: URL(string: "https://github.com/niederme/ai-quota/issues")!)
                         .foregroundColor(Color.brand)
+                    Text("·").foregroundStyle(.quaternary)
                     Link("@niederme on X", destination: URL(string: "https://x.com/niederme")!)
                         .foregroundColor(Color.brand)
                 }
-                .font(.subheadline)
             }
+            .font(.callout)
+            .foregroundStyle(.tertiary)
+            .multilineTextAlignment(.center)
             .padding(.bottom, 24)
             .opacity(appeared ? 1 : 0)
         }
