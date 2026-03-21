@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.7.8</title>
+            <title>Version 1.7.9</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-v1.7.8 — Authentication & Stability  Fixed a ghost login issue where reinstalling the app (via AppZapper or manual uninstall) would silently restore the previous session on next launch. WebKit session data and Keychain entries both survive macOS app uninstall; this release clears both on first launch after a fresh install.  Also fixed a layout glitch where the Claude gauge would briefly flash a "Connect" button during periodic refresh. 
+v1.7.9 — Reliability improvements  Fixed an issue where tapping the refresh button while a background refresh was already in progress would silently do nothing. Manual refresh now immediately cancels the in-flight request and restarts.  Also suppressed a spurious "Unexpected response format" error that appeared on the first launch after a system restart, caused by a brief window where the network is up but APIs aren't yet responding normally. The app now recovers silently on the next refresh cycle. 
 </body>
 </html>
 ]]></description>
-            <sparkle:version>140</sparkle:version>
-            <sparkle:shortVersionString>1.7.8</sparkle:shortVersionString>
+            <sparkle:version>146</sparkle:version>
+            <sparkle:shortVersionString>1.7.9</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.7.8/AIQuota.zip"
-                sparkle:edSignature="RN/xt+l7nDj3aNTYAoK7L1RpKRthESlvfban/vd/3aL/ITDYKNh+KyqM+5+MBtMk4Y0UKNmZ9ebcqY8IFDPTDg=="
-                length="2680227"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.7.9/AIQuota.zip"
+                sparkle:edSignature="gO6mOylytKefZWMVGhkB5RP+4WXA4GNDVJXsgt+2/PhLxWR3w8xVoWHMB/M8Jzg9Hlzvanhzh8WvtIAP+axaDA=="
+                length="2684632"
                 type="application/zip"/>
         </item>
     </channel>
