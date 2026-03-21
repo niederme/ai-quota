@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.7.5</title>
+            <title>Version 1.7.6</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.7.5</h2>  <strong>Bug Fixes</strong> <ul><li>Fixed false-positive "No network connection" and "Not signed in" banners that briefly appeared on every launch before the app had fully initialized</li> <li>Fixed sign-in via the Connect button unnecessarily opening a login window when your session was still valid — it now silently restores your session</li> <li>Fixed widgets retaining stale data after signing out</li>  <strong>Settings</strong> <li>Removed the "Send test notification" button</li> <li>Added "Need Help?" links to GitHub Issues and @niederme on X</li></ul>
+<h2>What's New in 1.7.6</h2>  <ul><li>Fixed "Not signed in." banner appearing on every launch and after updates</li> <li>Fixed "No network connection" banner flashing at startup</li> <li>Widgets now clear immediately when you sign out</li> <li>Now supports macOS 15 Sequoia</li></ul>
 </body>
 </html>
 ]]></description>
-            <sparkle:version>129</sparkle:version>
-            <sparkle:shortVersionString>1.7.5</sparkle:shortVersionString>
+            <sparkle:version>134</sparkle:version>
+            <sparkle:shortVersionString>1.7.6</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.7.5/AIQuota.zip"
-                sparkle:edSignature="hnF3szy9XSwtz+543x/35o3OZI4WV9E5AG1dBKK6oXD6uLmuANIIkn6kQhE7o2IFHTgTva5yKSehfVRn1dlOCA=="
-                length="2682147"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.7.6/AIQuota.zip"
+                sparkle:edSignature="dRqKjJbG3vwytqTvu5gKKf45tqUp9bA7SYdl2vGXSREcyg3R+7z7q+sF80n1onP26ivEH7+TfKTEgSqnfaodDA=="
+                length="2683256"
                 type="application/zip"/>
         </item>
     </channel>
