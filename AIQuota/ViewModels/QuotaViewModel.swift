@@ -107,9 +107,18 @@ final class QuotaViewModel {
         // Start path monitor first so currentPath is valid before the first fetch
         startPathMonitor()
 
-        // Kick off refresh immediately on launch so data is never stale
+        // Kick off refresh on launch. For Claude, sync WKWebView cookies first so
+        // the session is available to URLSession before the first fetch — prevents
+        // the false-positive "Not signed in" banner that appears when the WKWebView
+        // process hasn't finished loading its cookie store yet.
         if codexAuth.isAuthenticated || claudeAuth.isAuthenticated {
-            startAutoRefresh()
+            Task { [weak self] in
+                guard let self else { return }
+                if claudeAuth.isAuthenticated {
+                    await claudeAuthManager.syncCookies()
+                }
+                startAutoRefresh()
+            }
         }
     }
 
@@ -131,9 +140,8 @@ final class QuotaViewModel {
                     // first fetch fails before the monitor has run even once.
                     if case .networkUnavailable = self.codexError  { self.codexError  = nil }
                     if case .networkUnavailable = self.claudeError { self.claudeError = nil }
-                    if self.wasOffline || isFirstFire {
-                        // Came back online (or first monitor event) — fire an immediate
-                        // refresh to recover from any startup errors that were suppressed.
+                    if self.wasOffline {
+                        // Came back online — fire an immediate refresh.
                         self.wasOffline = false
                         guard self.isCodexAuthenticated || self.isClaudeAuthenticated else { return }
                         Task { await self.refresh() }
@@ -173,7 +181,7 @@ final class QuotaViewModel {
         async let _ = refreshClaude()
         // Reload widgets once after both fetches complete so they always
         // get a consistent snapshot (not mid-refresh with one service stale).
-        WidgetCenter.shared.reloadTimelines(ofKind: "AIQuotaWidget")
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     func refreshCodex() async {
@@ -330,7 +338,7 @@ final class QuotaViewModel {
         codexAuthManager.signOut()
         codexUsage = nil
         SharedDefaults.clearUsage()
-        WidgetCenter.shared.reloadTimelines(ofKind: "AIQuotaWidget")
+        WidgetCenter.shared.reloadAllTimelines()
         // Keep auto-refresh alive if Claude is still signed in
         if isClaudeAuthenticated { startAutoRefresh() }
     }
@@ -339,7 +347,7 @@ final class QuotaViewModel {
         claudeAuthManager.signOut()
         claudeUsage = nil
         SharedDefaults.clearClaudeUsage()
-        WidgetCenter.shared.reloadTimelines(ofKind: "AIQuotaWidget")
+        WidgetCenter.shared.reloadAllTimelines()
         if activeService == .claude { activeService = .codex }
     }
 
