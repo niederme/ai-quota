@@ -30,7 +30,6 @@ struct AIQuotaApp: App {
             PopoverView()
                 .environment(viewModel)
                 .environment(UpdaterViewModel(updater: updaterController.updater))
-                .onboardingLauncher(viewModel: viewModel)
         } label: {
             MenuBarIconView(
                 usedPercent: menuBarUsedPercent,
@@ -38,6 +37,7 @@ struct AIQuotaApp: App {
                 limitReached: menuBarLimitReached,
                 isLoading: viewModel.isLoading
             )
+            .onboardingLauncher(viewModel: viewModel)
         }
         .menuBarExtraStyle(.window)
 
