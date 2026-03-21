@@ -113,7 +113,7 @@ public enum GaugeImageMaker {
     /// Color for an arc fill segment based on how much has been consumed.
     private static func ringColor(pct: Double, limitReached: Bool) -> CGColor {
         let remaining = 1.0 - pct
-        if limitReached || remaining < 0.05 {
+        if limitReached || remaining <= 0.05 {
             return CGColor(red: 1.0, green: 0.25, blue: 0.25, alpha: 1)  // red
         } else if remaining <= 0.15 {
             return CGColor(red: 1.0, green: 0.65, blue: 0.0,  alpha: 1)  // amber
