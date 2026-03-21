@@ -48,8 +48,13 @@ public final class AuthManager: NSObject, ObservableObject {
     /// "ghost login" on reinstall — the sign-in button silently reuses stale session data.
     /// We use a sentinel key to detect a fresh install and wipe everything on first launch.
     private static func clearStateIfFreshInstall() {
-        let sentinel = "app.installedAt.v1"
-        guard KeychainStore.load(forKey: sentinel) == nil else { return }
+        // The sentinel lives in UserDefaults.standard — AppZapper (and manual uninstalls)
+        // remove the app's .plist from ~/Library/Preferences, so this reliably resets
+        // on each fresh install. Keychain storage would NOT work here because Keychain
+        // entries survive uninstall and the guard would always short-circuit.
+        let sentinel = "app.installedAt.v2"
+        let defaults = UserDefaults.standard
+        guard defaults.object(forKey: sentinel) == nil else { return }
         // First launch after fresh install — clear Keychain, SharedDefaults, and WKWebView store
         KeychainStore.delete(forKey: "sessionToken")
         KeychainStore.delete(forKey: "claudeAuthenticated")
@@ -62,7 +67,7 @@ public final class AuthManager: NSObject, ObservableObject {
             let types = WKWebsiteDataStore.allWebsiteDataTypes()
             await store.removeData(ofTypes: types, modifiedSince: Date(timeIntervalSince1970: 0))
         }
-        KeychainStore.save("1", forKey: sentinel)
+        defaults.set(true, forKey: sentinel)
     }
 
     // MARK: - Access Token
