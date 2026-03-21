@@ -42,7 +42,7 @@ public actor NotificationManager {
     /// Called after every successful Codex fetch. Fires at most one notification
     /// per threshold per weekly window, and one "reset" notification when the week rolls over.
     public func evaluate(current: CodexUsage, prefs: NotificationPreferences) async {
-        guard prefs.enabled else { return }
+        guard prefs.enabled, prefs.codexEnabled else { return }
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized else { return }
@@ -103,7 +103,7 @@ public actor NotificationManager {
     /// Called after every successful Claude fetch. Fires once per threshold
     /// per rate-limit window, and once when the window resets.
     public func evaluate(claude: ClaudeUsage, prefs: NotificationPreferences) async {
-        guard prefs.enabled else { return }
+        guard prefs.enabled, prefs.claudeEnabled else { return }
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized else { return }

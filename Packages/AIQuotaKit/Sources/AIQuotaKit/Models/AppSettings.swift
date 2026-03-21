@@ -28,6 +28,10 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
     // Master switch
     public var enabled: Bool = true
 
+    // Per-service master switches
+    public var codexEnabled: Bool = true
+    public var claudeEnabled: Bool = true
+
     // Codex — weekly window
     public var codexAt15: Bool = true           // < 15% remaining
     public var codexAt5: Bool = true            // < 5% remaining
@@ -52,6 +56,8 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         enabled              = try c.decodeIfPresent(Bool.self, forKey: .enabled)              ?? true
+        codexEnabled         = try c.decodeIfPresent(Bool.self, forKey: .codexEnabled)         ?? true
+        claudeEnabled        = try c.decodeIfPresent(Bool.self, forKey: .claudeEnabled)        ?? true
         codexAt15            = try c.decodeIfPresent(Bool.self, forKey: .codexAt15)            ?? true
         codexAt5             = try c.decodeIfPresent(Bool.self, forKey: .codexAt5)             ?? true
         codexLimitReached    = try c.decodeIfPresent(Bool.self, forKey: .codexLimitReached)    ?? true
