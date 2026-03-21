@@ -3,7 +3,7 @@ name: AIQuota
 options:
   bundleIdPrefix: com.niederme
   deploymentTarget:
-    macOS: "26.0"
+    macOS: "15.0"
   createIntermediateGroups: true
   groupOrdering:
     - pattern: AIQuota
@@ -14,7 +14,7 @@ options:
 # CURRENT_PROJECT_VERSION = fallback; overridden at build time by git commit count.
 settings:
   base:
-    MARKETING_VERSION: "1.7.5"
+    MARKETING_VERSION: "1.7.6"
     CURRENT_PROJECT_VERSION: "1"
 
 packages:
@@ -44,7 +44,7 @@ targets:
   AIQuota:
     type: application
     platform: macOS
-    deploymentTarget: "26.0"
+    deploymentTarget: "15.0"
     sources:
       - path: AIQuota
         excludes:
@@ -64,7 +64,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.niederme.AIQuota
         SWIFT_VERSION: "6.0"
-        MACOSX_DEPLOYMENT_TARGET: "26.0"
+        MACOSX_DEPLOYMENT_TARGET: "15.0"
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: 289GY9L343
         CODE_SIGN_ENTITLEMENTS: AIQuota/Resources/AIQuota.entitlements
@@ -93,7 +93,7 @@ targets:
   AIQuotaWidget:
     type: app-extension
     platform: macOS
-    deploymentTarget: "26.0"
+    deploymentTarget: "15.0"
     sources:
       - path: AIQuotaWidget
         excludes:
@@ -104,7 +104,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.niederme.AIQuota.widget
         SWIFT_VERSION: "6.0"
-        MACOSX_DEPLOYMENT_TARGET: "26.0"
+        MACOSX_DEPLOYMENT_TARGET: "15.0"
         CODE_SIGN_STYLE: Automatic
         DEVELOPMENT_TEAM: 289GY9L343
         CODE_SIGN_ENTITLEMENTS: AIQuotaWidget/Resources/AIQuotaWidget.entitlements
