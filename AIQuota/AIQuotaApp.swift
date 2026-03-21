@@ -122,6 +122,7 @@ private struct WindowVibrancyInstaller: NSViewRepresentable {
             window.backgroundColor = .clear
             // Extend content view under the title bar so the material shows through
             window.titlebarAppearsTransparent = true
+            window.titleVisibility = .hidden
             window.styleMask.insert(.fullSizeContentView)
             // Float above other apps so it's never lost behind them
             window.level = .floating
