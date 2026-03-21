@@ -10,9 +10,9 @@ struct ServicesStepView: View {
             // Header
             VStack(spacing: 6) {
                 Text("Connect your services")
-                    .font(.title2).fontWeight(.bold)
+                    .font(.title).fontWeight(.bold)
                 Text("Sign in to the services you use.")
-                    .font(.callout)
+                    .font(.body)
                     .foregroundStyle(.secondary)
             }
             .padding(.top, 40)
@@ -41,7 +41,7 @@ struct ServicesStepView: View {
             Spacer()
 
             Text("You can connect more services later in Settings.")
-                .font(.caption)
+                .font(.footnote)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
@@ -84,9 +84,9 @@ private struct ServiceRow: View {
             // Name + subtitle
             VStack(alignment: .leading, spacing: 2) {
                 Text(name)
-                    .font(.headline)
+                    .font(.title3).fontWeight(.semibold)
                 Text(subtitle)
-                    .font(.caption)
+                    .font(.footnote)
                     .foregroundStyle(.secondary)
             }
 
@@ -95,7 +95,7 @@ private struct ServiceRow: View {
             // Status
             if isAuthenticated {
                 Label("Connected", systemImage: "checkmark.circle.fill")
-                    .font(.footnote.weight(.medium))
+                    .font(.callout.weight(.medium))
                     .foregroundColor(.green)
                     .transition(.scale.combined(with: .opacity))
             } else {
