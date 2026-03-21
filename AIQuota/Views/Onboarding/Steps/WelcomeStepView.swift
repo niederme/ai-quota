@@ -19,9 +19,9 @@ struct WelcomeStepView: View {
 
             Spacer().frame(height: 24)
 
-            // App name — SF Rounded Display
+            // App name — SF Pro Display
             Text("AIQuota")
-                .font(.system(size: 52, weight: .bold, design: .rounded))
+                .font(.system(size: 52, weight: .bold))
                 .opacity(appeared ? 1 : 0)
                 .offset(y: appeared ? 0 : 8)
 
@@ -29,10 +29,10 @@ struct WelcomeStepView: View {
 
             // Tagline
             Text("Know your limits.\nKeep your flow.")
-                .font(.system(size: 20, weight: .medium, design: .rounded))
+                .font(.system(size: 17, weight: .regular))
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-                .lineSpacing(3)
+                .lineSpacing(4)
                 .opacity(appeared ? 1 : 0)
                 .offset(y: appeared ? 0 : 6)
 
