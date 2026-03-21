@@ -31,14 +31,6 @@ struct DoneStepView: View {
                 .opacity(appeared ? 1 : 0)
                 .offset(y: appeared ? 0 : 8)
 
-            Spacer().frame(height: 10)
-
-            Text("AIQuota is watching your limits\nfrom the menu bar.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .opacity(appeared ? 1 : 0)
-
             Spacer().frame(height: 32)
 
             // CTA button
