@@ -46,52 +46,53 @@ struct NotificationsStepView: View {
                         }
                 }
 
-                // ── Service sections: only when master is on + permission granted ──
-                if sectionsEnabled {
-                    // ── Codex ─────────────────────────────────────────
-                    if viewModel.isCodexAuthenticated {
-                        Section {
-                            serviceRow(logo: "logo-openai", name: "Codex",
-                                       isOn: $vm.settings.notifications.codexEnabled)
+                // ── Codex ──────────────────────────────────────────────
+                if viewModel.isCodexAuthenticated {
+                    Section {
+                        // Header row always visible; switch locked OFF when master is disabled
+                        serviceRow(logo: "logo-openai", name: "Codex",
+                                   isOn: sectionsEnabled ? $vm.settings.notifications.codexEnabled : .constant(false))
 
-                            // Sub-toggles collapse when service is OFF
-                            if vm.settings.notifications.codexEnabled {
-                                Toggle("Less than 15% remaining", isOn: $vm.settings.notifications.codexAt15)
-                                Toggle("Less than 5% remaining",  isOn: $vm.settings.notifications.codexAt5)
-                                Toggle("Limit reached",           isOn: $vm.settings.notifications.codexLimitReached)
-                                Toggle("Weekly reset",            isOn: $vm.settings.notifications.codexReset)
-                            }
+                        // Sub-toggles only when master + service are both ON
+                        if sectionsEnabled && vm.settings.notifications.codexEnabled {
+                            Toggle("Less than 15% remaining", isOn: $vm.settings.notifications.codexAt15)
+                            Toggle("Less than 5% remaining",  isOn: $vm.settings.notifications.codexAt5)
+                            Toggle("Limit reached",           isOn: $vm.settings.notifications.codexLimitReached)
+                            Toggle("Weekly reset",            isOn: $vm.settings.notifications.codexReset)
                         }
                     }
+                    .disabled(!sectionsEnabled)
+                    .opacity(sectionsEnabled ? 1 : 0.45)
+                }
 
-                    // ── Claude Code ────────────────────────────────────
-                    if viewModel.isClaudeAuthenticated {
-                        Section {
-                            serviceRow(logo: "logo-claude", name: "Claude Code",
-                                       isOn: $vm.settings.notifications.claudeEnabled)
+                // ── Claude Code ────────────────────────────────────────
+                if viewModel.isClaudeAuthenticated {
+                    Section {
+                        serviceRow(logo: "logo-claude", name: "Claude Code",
+                                   isOn: sectionsEnabled ? $vm.settings.notifications.claudeEnabled : .constant(false))
 
-                            // Sub-toggles collapse when service is OFF
-                            if vm.settings.notifications.claudeEnabled {
-                                subHeader("5-hour window")
-                                Toggle("Less than 15% remaining", isOn: $vm.settings.notifications.claude5hAt15)
-                                Toggle("Less than 5% remaining",  isOn: $vm.settings.notifications.claude5hAt5)
-                                Toggle("Limit reached",           isOn: $vm.settings.notifications.claude5hLimitReached)
-                                Toggle("Window reset",            isOn: $vm.settings.notifications.claude5hReset)
+                        if sectionsEnabled && vm.settings.notifications.claudeEnabled {
+                            subHeader("5-hour window")
+                            Toggle("Less than 15% remaining", isOn: $vm.settings.notifications.claude5hAt15)
+                            Toggle("Less than 5% remaining",  isOn: $vm.settings.notifications.claude5hAt5)
+                            Toggle("Limit reached",           isOn: $vm.settings.notifications.claude5hLimitReached)
+                            Toggle("Window reset",            isOn: $vm.settings.notifications.claude5hReset)
 
-                                subHeader("7-day window")
-                                Toggle("80% used (high)",         isOn: $vm.settings.notifications.claude7dAt80)
-                                Toggle("95% used (critical)",     isOn: $vm.settings.notifications.claude7dAt95)
-                                Toggle("Limit reached",           isOn: $vm.settings.notifications.claude7dLimitReached)
-                                Toggle("Period reset",            isOn: $vm.settings.notifications.claude7dReset)
-                            }
+                            subHeader("7-day window")
+                            Toggle("80% used (high)",         isOn: $vm.settings.notifications.claude7dAt80)
+                            Toggle("95% used (critical)",     isOn: $vm.settings.notifications.claude7dAt95)
+                            Toggle("Limit reached",           isOn: $vm.settings.notifications.claude7dLimitReached)
+                            Toggle("Period reset",            isOn: $vm.settings.notifications.claude7dReset)
                         }
                     }
+                    .disabled(!sectionsEnabled)
+                    .opacity(sectionsEnabled ? 1 : 0.45)
+                }
 
-                    if !viewModel.isCodexAuthenticated && !viewModel.isClaudeAuthenticated {
-                        Section {
-                            Text("Sign in to a service on the previous step to configure thresholds.")
-                                .foregroundStyle(.secondary)
-                        }
+                if !viewModel.isCodexAuthenticated && !viewModel.isClaudeAuthenticated {
+                    Section {
+                        Text("Sign in to a service on the previous step to configure thresholds.")
+                            .foregroundStyle(.secondary)
                     }
                 }
             }
