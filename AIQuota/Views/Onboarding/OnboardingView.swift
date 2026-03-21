@@ -78,6 +78,10 @@ struct OnboardingView: View {
             Button(action: goBack) {
                 Label("Back", systemImage: "chevron.left")
                     .labelStyle(.titleAndIcon)
+                    .fontWeight(.semibold)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 8)
+                    .contentShape(Capsule())
             }
             .buttonStyle(.plain)
             .foregroundColor(.secondary)
