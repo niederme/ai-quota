@@ -4,7 +4,7 @@ import SwiftUI
 struct WidgetsStepView: View {
     var body: some View {
         VStack(spacing: 0) {
-            // Image: use asset "WidgetPromo" if available, else show placeholder
+            // Promo image
             Group {
                 if let img = NSImage(named: "WidgetPromo") {
                     Image(nsImage: img)
@@ -15,52 +15,58 @@ struct WidgetsStepView: View {
                     WidgetImagePlaceholder()
                 }
             }
-            .frame(height: 200)
-            .padding(.horizontal, 36)
-            .padding(.top, 28)
+            .frame(height: 180)
+            .padding(.horizontal, 32)
+            .padding(.top, 24)
 
-            Spacer().frame(height: 24)
+            // Content block
+            VStack(alignment: .leading, spacing: 0) {
+                // "Bonus!" badge
+                Text("Bonus!")
+                    .font(.caption.weight(.bold))
+                    .foregroundColor(Color.brand)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 3)
+                    .background(Color.brand.opacity(0.12))
+                    .clipShape(Capsule())
+                    .padding(.bottom, 8)
 
-            // Instructions
-            VStack(alignment: .leading, spacing: 14) {
-                // "Bonus!" badge + title
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Bonus!")
-                        .font(.caption.weight(.bold))
-                        .foregroundColor(Color.brand)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 3)
-                        .background(Color.brand.opacity(0.12))
-                        .clipShape(Capsule())
+                // Title
+                Text("Add the AIQuota widget")
+                    .font(.title2).fontWeight(.bold)
+                    .padding(.bottom, 4)
 
-                    Text("Add the AIQuota widget")
-                        .font(.title2).fontWeight(.bold)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
+                // Subtitle
                 Text("See your quota at a glance on your desktop.")
-                    .font(.body)
+                    .font(.callout)
                     .foregroundStyle(.secondary)
+                    .padding(.bottom, 20)
 
+                // Divider
                 Divider()
-                    .padding(.vertical, 4)
+                    .padding(.bottom, 16)
 
-                ForEach(instructions, id: \.step) { item in
-                    HStack(alignment: .top, spacing: 12) {
-                        Text("\(item.step)")
-                            .font(.footnote.weight(.bold))
-                            .foregroundColor(.white)
-                            .frame(width: 22, height: 22)
-                            .background(Color.brand)
-                            .clipShape(Circle())
+                // Steps
+                VStack(alignment: .leading, spacing: 14) {
+                    ForEach(instructions, id: \.step) { item in
+                        HStack(alignment: .firstTextBaseline, spacing: 14) {
+                            Text("\(item.step)")
+                                .font(.caption.weight(.bold))
+                                .foregroundColor(.white)
+                                .frame(width: 20, height: 20)
+                                .background(Color.brand)
+                                .clipShape(Circle())
 
-                        Text((try? AttributedString(markdown: item.text)) ?? AttributedString(item.text))
-                            .font(.body)
-                            .fixedSize(horizontal: false, vertical: true)
+                            Text((try? AttributedString(markdown: item.text)) ?? AttributedString(item.text))
+                                .font(.callout)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                     }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 36)
+            .padding(.top, 20)
 
             Spacer()
         }
@@ -83,15 +89,15 @@ struct WidgetsStepView: View {
 private struct WidgetImagePlaceholder: View {
     var body: some View {
         RoundedRectangle(cornerRadius: 12, style: .continuous)
-            .fill(Color.secondary.opacity(0.1))
+            .fill(Color.secondary.opacity(0.08))
             .overlay(
-                VStack(spacing: 8) {
+                VStack(spacing: 10) {
                     Image(systemName: "rectangle.3.group")
-                        .font(.system(size: 36))
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 28))
+                        .foregroundStyle(.tertiary)
                     Text("Widget screenshot")
                         .font(.caption)
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.quaternary)
                 }
             )
     }
