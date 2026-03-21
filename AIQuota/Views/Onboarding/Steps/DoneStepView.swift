@@ -56,19 +56,21 @@ struct DoneStepView: View {
 
             Spacer()
 
-            // Footer links
-            HStack(spacing: 16) {
-                Link("@niederme on X", destination: URL(string: "https://x.com/niederme")!)
-                    .foregroundColor(Color.brand)
-                Text("·").foregroundStyle(.quaternary)
-                Link("GitHub", destination: URL(string: "https://github.com/niederme/ai-quota")!)
-                    .foregroundColor(Color.brand)
-                Text("·").foregroundStyle(.quaternary)
-                Link("Issues", destination: URL(string: "https://github.com/niederme/ai-quota/issues")!)
-                    .foregroundColor(Color.brand)
+            // Footer — mirrors the Settings "Need Help?" block
+            VStack(spacing: 6) {
+                Text("Need Help?")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 20) {
+                    Link("GitHub Issues", destination: URL(string: "https://github.com/niederme/ai-quota/issues")!)
+                        .foregroundColor(Color.brand)
+                    Link("@niederme on X", destination: URL(string: "https://x.com/niederme")!)
+                        .foregroundColor(Color.brand)
+                }
+                .font(.subheadline)
             }
-            .font(.footnote)
-            .padding(.bottom, 20)
+            .padding(.bottom, 24)
             .opacity(appeared ? 1 : 0)
         }
         .onAppear {
