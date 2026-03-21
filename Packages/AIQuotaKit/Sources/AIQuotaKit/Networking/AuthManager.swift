@@ -38,7 +38,24 @@ public final class AuthManager: NSObject, ObservableObject {
 
     public override init() {
         super.init()
+        Self.clearStateIfFreshInstall()
         loadSessionFromKeychain()
+    }
+
+    // MARK: - Fresh-install cleanup
+
+    /// Keychain entries survive app uninstall on macOS, which causes "Not signed in"
+    /// banners on reinstall when the session cookies are gone but the token remains.
+    /// We use a sentinel key to detect a fresh install and wipe stale auth state.
+    private static func clearStateIfFreshInstall() {
+        let sentinel = "app.installedAt.v1"
+        guard KeychainStore.load(forKey: sentinel) == nil else { return }
+        // First launch after fresh install — clear everything
+        KeychainStore.delete(forKey: "sessionToken")
+        KeychainStore.delete(forKey: "claudeAuthenticated")
+        SharedDefaults.clearUsage()
+        SharedDefaults.clearClaudeUsage()
+        KeychainStore.save("1", forKey: sentinel)
     }
 
     // MARK: - Access Token

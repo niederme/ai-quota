@@ -107,6 +107,12 @@ final class QuotaViewModel {
         // Start path monitor first so currentPath is valid before the first fetch
         startPathMonitor()
 
+        // Warm up WKWebView's XPC service immediately — the first getAllCookies call
+        // takes up to 20 seconds on a cold process. Firing it here means the service
+        // is already running by the time silentSignInIfPossible() or syncCookies()
+        // is needed, whether or not Claude is currently authenticated.
+        Task { await claudeAuthManager.syncCookies() }
+
         // Kick off refresh on launch. For Claude, sync WKWebView cookies first so
         // the session is available to URLSession before the first fetch — prevents
         // the false-positive "Not signed in" banner that appears when the WKWebView
@@ -211,6 +217,10 @@ final class QuotaViewModel {
                     await refreshCodex()
                     return
                 }
+                // Silent re-auth also failed — session is genuinely gone.
+                // isAuthenticated is already false so the gauge shows "Connect".
+                // Don't surface an error banner; the user can reconnect from the gauge.
+                return
             } else if case .networkUnavailable = e, !pathMonitorReady {
                 // Path monitor hasn't settled yet — suppress the banner to avoid
                 // the false-positive "No network connection" flash at launch.
@@ -260,6 +270,10 @@ final class QuotaViewModel {
                     await refreshClaude()
                     return
                 }
+                // Silent re-auth also failed — session is genuinely gone.
+                // isAuthenticated is already false so the gauge shows "Connect".
+                // Don't surface an error banner; the user can reconnect from the gauge.
+                return
             } else if case .networkUnavailable = e, !pathMonitorReady {
                 // Path monitor hasn't settled yet — suppress the banner to avoid
                 // the false-positive "No network connection" flash at launch.
