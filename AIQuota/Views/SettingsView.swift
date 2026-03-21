@@ -109,7 +109,7 @@ struct SettingsView: View {
 
             // MARK: Onboarding
             Section("Onboarding") {
-                Button("Open Onboarding Wizard…") {
+                Button("Guided Setup…") {
                     viewModel.resetOnboardingForReplay()
                     openWindow(id: "onboarding")
                     NSApp.activate(ignoringOtherApps: true)
