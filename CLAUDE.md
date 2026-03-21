@@ -19,9 +19,10 @@ The full release script is at `scripts/release.sh`. It handles zipping, signing,
 
 ### Steps
 
-1. **Version bump** — update `MARKETING_VERSION` in `AIQuota.xcodeproj/project.pbxproj` (both Debug and Release entries):
+1. **Version bump** — update `MARKETING_VERSION` in `project.yml` (not `project.pbxproj` — that file is generated):
    ```bash
-   sed -i '' 's/MARKETING_VERSION = X.Y.Z/MARKETING_VERSION = X.Y.NEW/g' AIQuota.xcodeproj/project.pbxproj
+   # Edit project.yml manually, then regenerate:
+   xcodegen generate
    ```
    Commit this: `chore: bump MARKETING_VERSION to X.Y.NEW`
 
@@ -51,6 +52,7 @@ The full release script is at `scripts/release.sh`. It handles zipping, signing,
 - ZIP format is required (not DMG) — Sparkle sandboxed apps get "installer launch" errors with DMGs
 - GitHub release and appcast always use the tag `vX.Y.Z` format
 - **Before running `release.sh`**, draft user-facing release notes and get approval — the script opens an editor immediately and raw commit messages are not acceptable release notes
+- **Release notes must be shared in a code block** for approval before running the script
 
 ---
 
@@ -59,3 +61,12 @@ The full release script is at `scripts/release.sh`. It handles zipping, signing,
 - Branded purple: `Color(red: 0.62, green: 0.22, blue: 0.93)` — use `.foregroundColor(...)`, not `.foregroundStyle(.accent)` or `.foregroundStyle(.accentColor)` (both fail to compile)
 - Never use `git stash` — always create a branch/worktree for WIP so nothing gets lost between releases
 - PR descriptions: no `🤖 Generated with Claude Code` footer
+
+---
+
+## Auth & Platform Quirks
+
+- **Keychain survives uninstall** — never use Keychain for fresh-install sentinels; use `UserDefaults.standard` (AppZapper and manual reinstalls wipe it)
+- **WKWebView default store survives uninstall** — clear `WKWebsiteDataStore.default()` explicitly on fresh install alongside any Keychain wipe
+- **`async let _ = expr`** — implicit await happens at scope end, *after* surrounding synchronous code; use `withTaskGroup` when all tasks must complete before proceeding
+- **`URLSession.data(for:)` not `dataTask`** — callback-based `dataTask` bypasses Swift cooperative Task cancellation; always use the async API or spinners will hang when the enclosing Task is cancelled
