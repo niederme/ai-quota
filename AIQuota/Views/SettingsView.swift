@@ -128,6 +128,7 @@ struct SettingsView: View {
                     Button("Open Onboarding Wizard…") {
                         viewModel.resetOnboardingForReplay()
                         openWindow(id: "onboarding")
+                        NSApp.activate(ignoringOtherApps: true)
                     }
                     .buttonStyle(.borderless)
                     .foregroundColor(Color(red: 0.62, green: 0.22, blue: 0.93))
