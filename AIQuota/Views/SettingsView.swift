@@ -8,6 +8,8 @@ struct SettingsView: View {
     @Environment(UpdaterViewModel.self) private var updater
     @Environment(\.openWindow) private var openWindow
 
+    @State private var showResetConfirmation = false
+
     private let refreshOptions = [5, 15, 30, 60]
 
     var body: some View {
@@ -114,6 +116,12 @@ struct SettingsView: View {
                     openWindow(id: "onboarding")
                     NSApp.activate(ignoringOtherApps: true)
                 }
+
+                LabeledContent("Reset to new user") {
+                    Button("Reset…", role: .destructive) {
+                        showResetConfirmation = true
+                    }
+                }
             }
 
             // MARK: About footer
@@ -147,6 +155,20 @@ struct SettingsView: View {
         .navigationTitle("Settings")
         .onChange(of: viewModel.settings) { viewModel.saveSettings() }
         .background(FloatingWindowElevator())
+        .confirmationDialog(
+            "Reset to New User?",
+            isPresented: $showResetConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Reset", role: .destructive) {
+                viewModel.resetToNewUser()
+                openWindow(id: "onboarding")
+                NSApp.activate(ignoringOtherApps: true)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Signs out of all services, clears cached data, and resets settings to defaults. System notification permissions are not affected.")
+        }
     }
 }
 

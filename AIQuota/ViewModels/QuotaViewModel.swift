@@ -59,8 +59,19 @@ final class QuotaViewModel {
     }
 
     func resetOnboardingForReplay() {
-        // Called from Settings "Open Onboarding" button.
-        // Does NOT clear the completion key — just allows re-showing this session.
+        // Called from Settings "Guided Setup…" button — lets the user re-run
+        // the wizard without wiping any auth or settings state.
+        onboardingTriggeredThisSession = false
+    }
+
+    /// Full reset: signs out all services, clears cached data, resets settings
+    /// and onboarding state — the app behaves exactly like a fresh install.
+    func resetToNewUser() {
+        signOut()
+        signOutClaude()
+        settings = .default
+        saveSettings()
+        UserDefaults.standard.removeObject(forKey: "onboarding.v1.hasCompleted")
         onboardingTriggeredThisSession = false
     }
 
