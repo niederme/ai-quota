@@ -314,19 +314,23 @@ final class QuotaViewModel {
             if e.isAuthError {
                 claudeUsage = nil
                 SharedDefaults.clearClaudeUsage()
-                // Session may have expired — try a forced cookie recheck before clearing
-                // auth state. Avoids a brief "Connect" flash when cookies are still valid
-                // but haven't been synced to URLSession yet.
-                if await claudeAuthManager.silentSignInIfPossible(forceRecheck: true) {
-                    // Reset loading flag before retrying so the recursive call isn't
-                    // blocked by the guard — isClaudeLoading is still true here.
-                    isClaudeLoading = false
-                    await refreshClaude()
+                // Session may have expired — sync fresh cookies and retry the fetch
+                // once. Using a direct retry (not recursion) avoids an infinite loop
+                // if the session is genuinely invalid.
+                guard await claudeAuthManager.silentSignInIfPossible(forceRecheck: true) else {
+                    claudeAuthManager.isAuthenticated = false
                     return
                 }
-                // Recheck also failed — session is genuinely gone.
-                claudeAuthManager.isAuthenticated = false
-                // Don't surface an error banner; the user can reconnect from the gauge.
+                do {
+                    let result = try await claudeClient.fetchUsage()
+                    claudeUsage = result
+                    lastRefreshedAt = .now
+                    SharedDefaults.saveClaudeUsage(result)
+                    await NotificationManager.shared.evaluate(claude: result, prefs: settings.notifications)
+                } catch {
+                    // Retry also failed — session is genuinely gone.
+                    claudeAuthManager.isAuthenticated = false
+                }
                 return
             } else if case .networkUnavailable = e, !pathMonitorReady {
                 // Path monitor hasn't settled yet — suppress the banner to avoid
