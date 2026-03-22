@@ -10,6 +10,7 @@ struct SettingsView: View {
 
     @State private var showResetConfirmation = false
     @State private var notifPermissionGranted = false
+    @State private var formID = UUID()
 
     private var notifSectionsEnabled: Bool {
         viewModel.settings.notifications.enabled && notifPermissionGranted
@@ -176,10 +177,17 @@ struct SettingsView: View {
             }
             .listRowBackground(Color.clear)
         }
+        .id(formID)
         .formStyle(.grouped)
         .frame(width: 400)
         .navigationTitle("Settings")
         .task { await checkNotifPermission() }
+        // macOS keeps the Settings window alive between opens (just hides it),
+        // so onAppear doesn't re-fire. Observing didBecomeKey resets the Form's
+        // identity each time the window is brought to front, scrolling back to top.
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+            formID = UUID()
+        }
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: notifSectionsEnabled)
         .animation(.spring(response: 0.3, dampingFraction: 0.85), value: viewModel.settings.notifications.codexEnabled)
         .animation(.spring(response: 0.3, dampingFraction: 0.85), value: viewModel.settings.notifications.claudeEnabled)
