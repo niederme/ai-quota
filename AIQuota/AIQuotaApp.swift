@@ -36,7 +36,8 @@ struct AIQuotaApp: App {
                 usedPercent: menuBarUsedPercent,
                 secondaryPercent: menuBarSecondaryPercent,
                 limitReached: menuBarLimitReached,
-                isLoading: viewModel.isLoading
+                isLoading: viewModel.isLoading,
+                worstPercent: menuBarWorstPercent
             )
             .onboardingLauncher(viewModel: viewModel)
         }
@@ -76,11 +77,19 @@ struct AIQuotaApp: App {
         }
     }
 
+    /// Worst single metric across all authenticated services — used to colour
+    /// the menu bar rings regardless of which service's arcs are displayed.
+    private var menuBarWorstPercent: Int {
+        let codex  = [viewModel.codexUsage?.hourlyUsedPercent  ?? 0,
+                      viewModel.codexUsage?.weeklyUsedPercent  ?? 0]
+        let claude = [Int(viewModel.claudeUsage?.fiveHourUtilization.rounded() ?? 0),
+                      Int(viewModel.claudeUsage?.sevenDayUtilization.rounded() ?? 0)]
+        return (codex + claude).max() ?? 0
+    }
+
     private var menuBarLimitReached: Bool {
-        switch resolvedMenuBarService {
-        case .codex:  return viewModel.codexUsage?.limitReached ?? false
-        case .claude: return viewModel.claudeUsage?.limitReached ?? false
-        }
+        (viewModel.codexUsage?.limitReached ?? false) ||
+        (viewModel.claudeUsage?.limitReached ?? false)
     }
 
     /// Respects `settings.menuBarService` but falls back gracefully.

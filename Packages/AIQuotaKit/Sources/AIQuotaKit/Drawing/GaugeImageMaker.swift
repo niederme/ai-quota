@@ -7,17 +7,21 @@ public enum GaugeImageMaker {
 
     /// Renders a dual-arc gauge into an `NSImage` of the given point size.
     /// - Parameters:
-    ///   - primaryPercent: 0–100, short window (5h) consumption.
-    ///   - secondaryPercent: 0–100, long window (7-day) consumption.
-    ///   - limitReached: whether the primary (5h) cap is fully hit.
+    ///   - primaryPercent: 0–100, short window (5h) consumption for the displayed service.
+    ///   - secondaryPercent: 0–100, long window (7-day) consumption for the displayed service.
+    ///   - limitReached: whether any service has hit its cap.
     ///   - isLoading: show a neutral half-fill while data is in flight.
     ///   - size: point size of the square image (rendered at backing scale).
+    ///   - worstPercent: 0–100, worst metric across *all* services — drives ring colour
+    ///     independently of which service's arcs are displayed. Defaults to the max of
+    ///     primaryPercent / secondaryPercent when omitted.
     public static func image(
         primaryPercent: Int,
         secondaryPercent: Int,
         limitReached: Bool,
         isLoading: Bool,
-        size: CGFloat
+        size: CGFloat,
+        worstPercent: Int? = nil
     ) -> NSImage {
         let img = NSImage(size: NSSize(width: size, height: size))
         img.lockFocusFlipped(false)         // y-up, origin bottom-left
@@ -57,8 +61,8 @@ public enum GaugeImageMaker {
         let pct1: Double = isLoading ? 0.5 : Double(primaryPercent) / 100.0
         let pct2: Double = isLoading ? 0.5 : Double(secondaryPercent) / 100.0
         let worstLimitReached = limitReached || pct2 >= 1.0
-        let worstPct = max(pct1, pct2)
-        let sharedColor = ringColor(pct: worstPct, limitReached: worstLimitReached)
+        let colorPct: Double = isLoading ? 0.5 : Double(worstPercent ?? max(primaryPercent, secondaryPercent)) / 100.0
+        let sharedColor = ringColor(pct: colorPct, limitReached: worstLimitReached)
 
         // ── Outer fill: primary (5h) ───────────────────────────────────────
         if pct1 > 0 {
@@ -82,7 +86,7 @@ public enum GaugeImageMaker {
         // Healthy: 45%. Warning: steps up to 65% to draw attention, but
         // never matches the outer ring so hierarchy stays clear.
         if pct2 > 0 {
-            let isWarning = worstPct >= 0.85
+            let isWarning = colorPct >= 0.85
             let alpha2: CGFloat = isWarning ? 0.65 : 0.45
             ctx.setStrokeColor(sharedColor.copy(alpha: alpha2) ?? sharedColor)
             ctx.addArc(center: CGPoint(x: cx, y: cy), radius: r2,
