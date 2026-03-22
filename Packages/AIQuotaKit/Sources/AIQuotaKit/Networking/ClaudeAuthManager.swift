@@ -20,6 +20,11 @@ public final class ClaudeAuthManager: NSObject, ObservableObject {
 
     static let loginCookies = ["lastActiveOrg", "sessionKey", "routingHint"]
 
+    /// UserDefaults key set synchronously on sign-out. Blocks silentSignInIfPossible
+    /// from treating stale WKWebView cookies as a valid session after an explicit
+    /// sign-out. Cleared only after the user completes an explicit login flow.
+    private static let explicitlySignedOutKey = "claude.explicitlySignedOut"
+
     private let logger = Logger(subsystem: "ai.quota", category: "claude-auth")
 
     private var loginWindowController: ClaudeLoginWindowController?
@@ -39,6 +44,7 @@ public final class ClaudeAuthManager: NSObject, ObservableObject {
                     switch result {
                     case .success:
                         KeychainStore.save("true", forKey: "claudeAuthenticated")
+                        UserDefaults.standard.removeObject(forKey: Self.explicitlySignedOutKey)
                         self?.isAuthenticated = true
                         continuation.resume()
                     case .failure(let error):
@@ -60,6 +66,11 @@ public final class ClaudeAuthManager: NSObject, ObservableObject {
     @discardableResult
     public func silentSignInIfPossible(forceRecheck: Bool = false) async -> Bool {
         guard !isAuthenticated || forceRecheck else { return true }
+        // After an explicit sign-out, block silent re-auth from treating stale
+        // WKWebView cookies as valid. forceRecheck (session recovery) still passes.
+        guard forceRecheck || !UserDefaults.standard.bool(forKey: Self.explicitlySignedOutKey) else {
+            return false
+        }
         return await withCheckedContinuation { continuation in
             WKWebsiteDataStore.default().httpCookieStore.getAllCookies { [weak self] cookies in
                 guard let self else { continuation.resume(returning: false); return }
@@ -72,6 +83,7 @@ public final class ClaudeAuthManager: NSObject, ObservableObject {
                 Task { @MainActor [weak self] in
                     guard let self else { continuation.resume(returning: false); return }
                     KeychainStore.save("true", forKey: "claudeAuthenticated")
+                    UserDefaults.standard.removeObject(forKey: Self.explicitlySignedOutKey)
                     self.isAuthenticated = true
                     self.logger.info("[ClaudeAuth] silent re-auth succeeded")
                     continuation.resume(returning: true)
@@ -88,6 +100,9 @@ public final class ClaudeAuthManager: NSObject, ObservableObject {
     public func signOut() async {
         isAuthenticated = false
         KeychainStore.delete(forKey: "claudeAuthenticated")
+        // Set synchronously — blocks silentSignInIfPossible immediately, even
+        // before the async WKWebView deletion completes.
+        UserDefaults.standard.set(true, forKey: Self.explicitlySignedOutKey)
         // Delete from HTTPCookieStorage synchronously — no race possible.
         for cookie in HTTPCookieStorage.shared.cookies ?? [] where cookie.domain.contains("claude.ai") {
             HTTPCookieStorage.shared.deleteCookie(cookie)
