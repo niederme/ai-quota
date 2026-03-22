@@ -14,7 +14,7 @@ options:
 # CURRENT_PROJECT_VERSION = fallback; overridden at build time by git commit count.
 settings:
   base:
-    MARKETING_VERSION: "1.8.0"
+    MARKETING_VERSION: "1.8.1"
     CURRENT_PROJECT_VERSION: "1"
 
 packages:
