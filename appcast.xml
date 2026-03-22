@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.8.0</title>
+            <title>Version 1.8.1</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-<!DOCTYPE html> <html> <head> <meta charset="utf-8"> <style>   body {     font-family: -apple-system, sans-serif;     font-size: 13px;     color: #e0e0e0;     background: #1e1e1e;     margin: 16px 20px;     line-height: 1.5;   }   h2 {     font-size: 15px;     font-weight: 600;     color: #ffffff;     margin: 0 0 10px 0;   }   ul {     margin: 4px 0 12px 0;     padding-left: 18px;   }   li {     margin-bottom: 5px;     color: #cccccc;   }   li strong {     color: #ffffff;   } </style> </head> <body>  <h2>Onboarding</h2> <ul>   <ul><li>A new guided setup wizard walks you through connecting your services, configuring notifications, and adding the menu bar widget.</li> </ul>  <h2>Smarter notifications</h2> <ul>   <li>Each service now has a master notification switch. Turning it off silences all alerts for that service and visually dims its thresholds.</li> </ul>  <h2>Bug fixes</h2> <ul>   <li>Menu bar icon now correctly turns red at 95% usage, matching the in-app gauge.</li>   <li>Various layout and typography improvements throughout.</li> </ul>  </body> </html> 
+<h2>What's New in 1.8.1</h2> <ul>   <ul><li>New guided setup to get you connected and configured from the start</li>   <li>Notification alerts can now be toggled per service and per threshold</li>   <li>Fixed several cases where Claude, ChatGPT, and Codex session refreshes would silently fail</li> </ul> 
 </body>
 </html>
 ]]></description>
-            <sparkle:version>199</sparkle:version>
-            <sparkle:shortVersionString>1.8.0</sparkle:shortVersionString>
+            <sparkle:version>206</sparkle:version>
+            <sparkle:shortVersionString>1.8.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.8.0/AIQuota.zip"
-                sparkle:edSignature="cPVdnPVMKPefkx8ZnajLr5CFUdpd0pSfPJMcll1/MzyOMbcE+lwSghSG1XeWMifHkCSWWQycyfBXUSctYmzzAA=="
-                length="3126090"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.8.1/AIQuota.zip"
+                sparkle:edSignature="nJTVYw2i6IRPJmqJ8c/2wHux4vEn4GXZzPfjZuQmcCz+mbOHi+WL5vpjIL0v5SxJWzc6eRXQFpszX7IPhDTFBA=="
+                length="3135702"
                 type="application/zip"/>
         </item>
     </channel>
