@@ -78,13 +78,17 @@ public final class ClaudeAuthManager: NSObject, ObservableObject {
         // forceRecheck means "re-verify cookies even if already marked authenticated"
         // (session recovery after an app update). It does NOT mean "override an explicit sign-out."
         guard !UserDefaults.standard.bool(forKey: Self.explicitlySignedOutKey) else {
+            logger.info("[ClaudeAuth] silentSignIn blocked — explicitlySignedOut flag is set (forceRecheck=\(forceRecheck))")
             return false
         }
         return await withCheckedContinuation { continuation in
             WKWebsiteDataStore.default().httpCookieStore.getAllCookies { [weak self] cookies in
                 guard let self else { continuation.resume(returning: false); return }
                 let claudeCookies = cookies.filter { $0.domain.contains("claude.ai") }
+                let cookieNames = claudeCookies.map(\.name)
+                self.logger.info("[ClaudeAuth] silentSignIn checking \(claudeCookies.count) cookies: \(cookieNames)")
                 guard claudeCookies.contains(where: { Self.loginCookies.contains($0.name) }) else {
+                    self.logger.info("[ClaudeAuth] silentSignIn — no session cookies found, returning false")
                     continuation.resume(returning: false)
                     return
                 }
@@ -114,6 +118,7 @@ public final class ClaudeAuthManager: NSObject, ObservableObject {
         KeychainStore.delete(forKey: "claudeAuthenticated")
         // Set synchronously — blocks silentSignInIfPossible immediately.
         UserDefaults.standard.set(true, forKey: Self.explicitlySignedOutKey)
+        logger.info("[ClaudeAuth] signOut — explicitlySignedOut flag SET")
         // Clear URLSession cookies synchronously.
         for cookie in HTTPCookieStorage.shared.cookies ?? [] where cookie.domain.contains("claude.ai") {
             HTTPCookieStorage.shared.deleteCookie(cookie)
