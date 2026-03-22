@@ -49,12 +49,17 @@ struct NotificationsStepView: View {
                 // ── Codex ──────────────────────────────────────────────
                 if viewModel.isCodexAuthenticated {
                     Section {
-                        // Header row always visible; switch locked OFF when master is disabled
                         serviceRow(logo: "logo-openai", name: "Codex",
                                    isOn: sectionsEnabled ? $vm.settings.notifications.codexEnabled : .constant(false))
 
-                        // Sub-toggles only when master + service are both ON
                         if sectionsEnabled && vm.settings.notifications.codexEnabled {
+                            subHeader("5-hour window")
+                            Toggle("Less than 15% remaining", isOn: $vm.settings.notifications.codex5hAt15)
+                            Toggle("Less than 5% remaining",  isOn: $vm.settings.notifications.codex5hAt5)
+                            Toggle("Limit reached",           isOn: $vm.settings.notifications.codex5hLimitReached)
+                            Toggle("Window reset",            isOn: $vm.settings.notifications.codex5hReset)
+
+                            subHeader("Weekly usage")
                             Toggle("Less than 15% remaining", isOn: $vm.settings.notifications.codexAt15)
                             Toggle("Less than 5% remaining",  isOn: $vm.settings.notifications.codexAt5)
                             Toggle("Limit reached",           isOn: $vm.settings.notifications.codexLimitReached)

@@ -32,6 +32,12 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
     public var codexEnabled: Bool = true
     public var claudeEnabled: Bool = true
 
+    // Codex — 5-hour window
+    public var codex5hAt15: Bool = true
+    public var codex5hAt5: Bool = true
+    public var codex5hLimitReached: Bool = true
+    public var codex5hReset: Bool = true
+
     // Codex — weekly window
     public var codexAt15: Bool = true           // < 15% remaining
     public var codexAt5: Bool = true            // < 5% remaining
@@ -58,6 +64,10 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
         enabled              = try c.decodeIfPresent(Bool.self, forKey: .enabled)              ?? true
         codexEnabled         = try c.decodeIfPresent(Bool.self, forKey: .codexEnabled)         ?? true
         claudeEnabled        = try c.decodeIfPresent(Bool.self, forKey: .claudeEnabled)        ?? true
+        codex5hAt15          = try c.decodeIfPresent(Bool.self, forKey: .codex5hAt15)          ?? true
+        codex5hAt5           = try c.decodeIfPresent(Bool.self, forKey: .codex5hAt5)           ?? true
+        codex5hLimitReached  = try c.decodeIfPresent(Bool.self, forKey: .codex5hLimitReached)  ?? true
+        codex5hReset         = try c.decodeIfPresent(Bool.self, forKey: .codex5hReset)         ?? true
         codexAt15            = try c.decodeIfPresent(Bool.self, forKey: .codexAt15)            ?? true
         codexAt5             = try c.decodeIfPresent(Bool.self, forKey: .codexAt5)             ?? true
         codexLimitReached    = try c.decodeIfPresent(Bool.self, forKey: .codexLimitReached)    ?? true

@@ -9,6 +9,11 @@ struct SettingsView: View {
     @Environment(\.openWindow) private var openWindow
 
     @State private var showResetConfirmation = false
+    @State private var notifPermissionGranted = false
+
+    private var notifSectionsEnabled: Bool {
+        viewModel.settings.notifications.enabled && notifPermissionGranted
+    }
 
     private let refreshOptions = [5, 15, 30, 60]
 
@@ -32,55 +37,76 @@ struct SettingsView: View {
                 LaunchAtLoginToggle()
             }
 
-            // MARK: Notifications
+            // MARK: Notifications — master toggle
             Section("Notifications") {
                 Toggle("Enable notifications", isOn: $vm.settings.notifications.enabled)
                     .onChange(of: vm.settings.notifications.enabled) { _, enabled in
                         if enabled {
-                            Task { await NotificationManager.shared.requestPermission() }
+                            Task {
+                                await NotificationManager.shared.requestPermission()
+                                await checkNotifPermission()
+                            }
+                        } else {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                notifPermissionGranted = false
+                            }
                         }
                     }
-
                 if viewModel.settings.notifications.enabled {
                     NotificationStatusRow()
+                }
+            }
 
-                    Divider().padding(.vertical, 2)
+            // MARK: Notifications — Codex
+            if viewModel.isCodexAuthenticated {
+                Section {
+                    notifServiceRow(logo: "logo-openai", name: "Codex",
+                                    isOn: notifSectionsEnabled ? $vm.settings.notifications.codexEnabled : .constant(false))
+                    if notifSectionsEnabled && vm.settings.notifications.codexEnabled {
+                        notifSubHeader("5-hour window")
+                        Toggle("Less than 15% remaining", isOn: $vm.settings.notifications.codex5hAt15)
+                        Toggle("Less than 5% remaining",  isOn: $vm.settings.notifications.codex5hAt5)
+                        Toggle("Limit reached",           isOn: $vm.settings.notifications.codex5hLimitReached)
+                        Toggle("Window reset",            isOn: $vm.settings.notifications.codex5hReset)
 
-                    // Codex thresholds (only when authenticated)
-                    if viewModel.isCodexAuthenticated {
-                        Text("Codex — Weekly")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                        Toggle("< 15% remaining",   isOn: $vm.settings.notifications.codexAt15)
-                        Toggle("< 5% remaining",    isOn: $vm.settings.notifications.codexAt5)
-                        Toggle("Limit reached",     isOn: $vm.settings.notifications.codexLimitReached)
-                        Toggle("Weekly reset",      isOn: $vm.settings.notifications.codexReset)
+                        notifSubHeader("Weekly usage")
+                        Toggle("Less than 15% remaining", isOn: $vm.settings.notifications.codexAt15)
+                        Toggle("Less than 5% remaining",  isOn: $vm.settings.notifications.codexAt5)
+                        Toggle("Limit reached",           isOn: $vm.settings.notifications.codexLimitReached)
+                        Toggle("Weekly reset",            isOn: $vm.settings.notifications.codexReset)
                     }
+                }
+                .disabled(!notifSectionsEnabled)
+                .opacity(notifSectionsEnabled ? 1 : 0.45)
+            }
 
-                    // Claude thresholds (only when authenticated)
-                    if viewModel.isClaudeAuthenticated {
-                        Text("Claude Code — 5-hour window")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                        Toggle("< 15% remaining",   isOn: $vm.settings.notifications.claude5hAt15)
-                        Toggle("< 5% remaining",    isOn: $vm.settings.notifications.claude5hAt5)
-                        Toggle("Limit reached",     isOn: $vm.settings.notifications.claude5hLimitReached)
-                        Toggle("Window reset",      isOn: $vm.settings.notifications.claude5hReset)
+            // MARK: Notifications — Claude Code
+            if viewModel.isClaudeAuthenticated {
+                Section {
+                    notifServiceRow(logo: "logo-claude", name: "Claude Code",
+                                    isOn: notifSectionsEnabled ? $vm.settings.notifications.claudeEnabled : .constant(false))
+                    if notifSectionsEnabled && vm.settings.notifications.claudeEnabled {
+                        notifSubHeader("5-hour window")
+                        Toggle("Less than 15% remaining", isOn: $vm.settings.notifications.claude5hAt15)
+                        Toggle("Less than 5% remaining",  isOn: $vm.settings.notifications.claude5hAt5)
+                        Toggle("Limit reached",           isOn: $vm.settings.notifications.claude5hLimitReached)
+                        Toggle("Window reset",            isOn: $vm.settings.notifications.claude5hReset)
 
-                        Text("Claude Code — 7-day window")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                        Toggle("80% used",          isOn: $vm.settings.notifications.claude7dAt80)
-                        Toggle("95% used",          isOn: $vm.settings.notifications.claude7dAt95)
-                        Toggle("Limit reached",     isOn: $vm.settings.notifications.claude7dLimitReached)
-                        Toggle("Period reset",      isOn: $vm.settings.notifications.claude7dReset)
+                        notifSubHeader("7-day window")
+                        Toggle("80% used (high)",         isOn: $vm.settings.notifications.claude7dAt80)
+                        Toggle("95% used (critical)",     isOn: $vm.settings.notifications.claude7dAt95)
+                        Toggle("Limit reached",           isOn: $vm.settings.notifications.claude7dLimitReached)
+                        Toggle("Period reset",            isOn: $vm.settings.notifications.claude7dReset)
                     }
+                }
+                .disabled(!notifSectionsEnabled)
+                .opacity(notifSectionsEnabled ? 1 : 0.45)
+            }
 
-                    if !viewModel.isCodexAuthenticated && !viewModel.isClaudeAuthenticated {
-                        Text("Sign in to a service to configure thresholds.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+            if !viewModel.isCodexAuthenticated && !viewModel.isClaudeAuthenticated {
+                Section {
+                    Text("Sign in to a service to configure thresholds.")
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -153,6 +179,10 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .frame(width: 400)
         .navigationTitle("Settings")
+        .task { await checkNotifPermission() }
+        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: notifSectionsEnabled)
+        .animation(.spring(response: 0.3, dampingFraction: 0.85), value: viewModel.settings.notifications.codexEnabled)
+        .animation(.spring(response: 0.3, dampingFraction: 0.85), value: viewModel.settings.notifications.claudeEnabled)
         .onChange(of: viewModel.settings) { viewModel.saveSettings() }
         .background(FloatingWindowElevator())
         .confirmationDialog(
@@ -168,6 +198,39 @@ struct SettingsView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Signs out of all services, clears cached data, and resets settings to defaults. System notification permissions are not affected.")
+        }
+    }
+
+    // MARK: - Notification helpers
+
+    @ViewBuilder
+    private func notifServiceRow(logo: String, name: String, isOn: Binding<Bool>) -> some View {
+        HStack(spacing: 10) {
+            Image(logo)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 18, height: 18)
+            Text(name)
+                .fontWeight(.semibold)
+            Spacer()
+            Toggle("", isOn: isOn)
+                .toggleStyle(.switch)
+                .labelsHidden()
+        }
+    }
+
+    @ViewBuilder
+    private func notifSubHeader(_ title: String) -> some View {
+        Text(title)
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .listRowBackground(Color.clear)
+    }
+
+    private func checkNotifPermission() async {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+            notifPermissionGranted = settings.authorizationStatus == .authorized
         }
     }
 }
