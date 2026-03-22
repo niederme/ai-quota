@@ -74,9 +74,10 @@ public final class ClaudeAuthManager: NSObject, ObservableObject {
     @discardableResult
     public func silentSignInIfPossible(forceRecheck: Bool = false) async -> Bool {
         guard !isAuthenticated || forceRecheck else { return true }
-        // After an explicit sign-out, block silent re-auth from treating stale
-        // WKWebView cookies as valid. forceRecheck (session recovery) still passes.
-        guard forceRecheck || !UserDefaults.standard.bool(forKey: Self.explicitlySignedOutKey) else {
+        // explicitlySignedOut always blocks silent re-auth — even when forceRecheck is true.
+        // forceRecheck means "re-verify cookies even if already marked authenticated"
+        // (session recovery after an app update). It does NOT mean "override an explicit sign-out."
+        guard !UserDefaults.standard.bool(forKey: Self.explicitlySignedOutKey) else {
             return false
         }
         return await withCheckedContinuation { continuation in
