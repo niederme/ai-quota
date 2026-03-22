@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.8.1</title>
+            <title>Version 1.8.2</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.8.1</h2> <ul>   <ul><li>New guided setup to get you connected and configured from the start</li>   <li>Notification alerts can now be toggled per service and per threshold</li>   <li>Fixed several cases where Claude, ChatGPT, and Codex session refreshes would silently fail</li> </ul> 
+<h2>What's New in 1.8.2</h2> <ul>   <ul><li>Menu bar icon now turns amber or red when any service is approaching its limit — even if the displayed service looks fine</li>   <li>Notifications settings now match the onboarding layout, with per-service toggles and grouped controls</li>   <li>Codex 5-hour window alerts added — you'll now get notified when the short window is running low, not just the weekly one</li> </ul> 
 </body>
 </html>
 ]]></description>
-            <sparkle:version>208</sparkle:version>
-            <sparkle:shortVersionString>1.8.1</sparkle:shortVersionString>
+            <sparkle:version>212</sparkle:version>
+            <sparkle:shortVersionString>1.8.2</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.8.1/AIQuota.zip"
-                sparkle:edSignature="PB5uOt7+GtDIOdzHkEiypp50etXdgmoPuuFO0abrTyBmeexPFpMXGZXfqEDxVHJbTaN9Qtuuz90dL9rlVtM/Aw=="
-                length="3135668"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.8.2/AIQuota.zip"
+                sparkle:edSignature="SDOoviM9//Cfk3jiXp4/xQ3xPVwzfIsgYFapOFZ6EkNn/2tnEoeS2IyNJDmFeitd1oWqHEon6ZOfZniELS0UAQ=="
+                length="3167265"
                 type="application/zip"/>
         </item>
     </channel>
