@@ -82,28 +82,27 @@ public final class ClaudeAuthManager: NSObject, ObservableObject {
 
     // MARK: - Sign Out
 
-    public func signOut() {
+    /// Clears all auth state and waits for WKWebView cookie deletion to complete
+    /// before returning. Callers must await this to prevent silentSignInIfPossible
+    /// from racing and finding stale cookies immediately after sign-out.
+    public func signOut() async {
         isAuthenticated = false
         KeychainStore.delete(forKey: "claudeAuthenticated")
         // Delete from HTTPCookieStorage synchronously — no race possible.
         for cookie in HTTPCookieStorage.shared.cookies ?? [] where cookie.domain.contains("claude.ai") {
             HTTPCookieStorage.shared.deleteCookie(cookie)
         }
-        // Delete from WKWebView store. The callback API is async, but we fire-and-await
-        // inside a Task so callers don't block, and silentSignInIfPossible (also async)
-        // will naturally wait behind this Task on the cooperative thread pool.
-        Task {
-            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-                WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
-                    let claudeCookies = cookies.filter { $0.domain.contains("claude.ai") }
-                    guard !claudeCookies.isEmpty else { cont.resume(); return }
-                    let group = DispatchGroup()
-                    for cookie in claudeCookies {
-                        group.enter()
-                        WKWebsiteDataStore.default().httpCookieStore.delete(cookie) { group.leave() }
-                    }
-                    group.notify(queue: .main) { cont.resume() }
+        // Await WKWebView cookie deletion so callers don't race with it.
+        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
+                let claudeCookies = cookies.filter { $0.domain.contains("claude.ai") }
+                guard !claudeCookies.isEmpty else { cont.resume(); return }
+                let group = DispatchGroup()
+                for cookie in claudeCookies {
+                    group.enter()
+                    WKWebsiteDataStore.default().httpCookieStore.delete(cookie) { group.leave() }
                 }
+                group.notify(queue: .main) { cont.resume() }
             }
         }
     }

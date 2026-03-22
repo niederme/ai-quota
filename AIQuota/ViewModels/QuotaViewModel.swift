@@ -435,7 +435,10 @@ final class QuotaViewModel {
     }
 
     func signOutClaude() {
-        claudeAuthManager.signOut()
+        // Set isAuthenticated = false synchronously so the UI updates immediately,
+        // then fire the full async cleanup (Keychain + HTTPCookieStorage + WKWebView).
+        claudeAuthManager.isAuthenticated = false
+        Task { await claudeAuthManager.signOut() }
         claudeUsage = nil
         SharedDefaults.clearClaudeUsage()
         WidgetCenter.shared.reloadAllTimelines()
