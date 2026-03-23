@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.8.2</title>
+            <title>Version 1.9.0</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.8.2</h2> <ul>   <ul><li>Menu bar icon now turns amber or red when any service is approaching its limit — even if the displayed service looks fine</li>   <li>Notifications settings now match the onboarding layout, with per-service toggles and grouped controls</li>   <li>Codex 5-hour window alerts added — you'll now get notified when the short window is running low, not just the weekly one</li> </ul> 
+<h3>What's new in 1.9</h3> <ul>   <ul><li>Rebuilt authentication from the ground up — sign-in is now faster and more reliable for both Codex and Claude Code</li>   <li>Fixed: ChatGPT login window now opens on the sign-in page instead of the home page</li>   <li>Fixed: onboarding now reliably appears on fresh install</li>   <li>Fixed: Claude Code spinner no longer hangs after signing in</li>   <li>Fixed: session is properly cleared on fresh install (AppZapper / reinstall)</li> </ul> 
 </body>
 </html>
 ]]></description>
-            <sparkle:version>212</sparkle:version>
-            <sparkle:shortVersionString>1.8.2</sparkle:shortVersionString>
+            <sparkle:version>241</sparkle:version>
+            <sparkle:shortVersionString>1.9.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.8.2/AIQuota.zip"
-                sparkle:edSignature="SDOoviM9//Cfk3jiXp4/xQ3xPVwzfIsgYFapOFZ6EkNn/2tnEoeS2IyNJDmFeitd1oWqHEon6ZOfZniELS0UAQ=="
-                length="3167265"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.9.0/AIQuota.zip"
+                sparkle:edSignature="vx3pyNjJMJpAb3dnF1cKiDFD3hBv9Sp3FR1qtew53oorupDYRIL22IQsdC1r0vMXWyrMHM4pwryt6oE9ZM79DA=="
+                length="3242885"
                 type="application/zip"/>
         </item>
     </channel>
