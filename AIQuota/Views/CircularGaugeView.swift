@@ -92,7 +92,7 @@ struct CircularGaugeView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 15, height: 15)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(statusColor)
 
                 if isLoading {
                     ProgressView().controlSize(.mini)
