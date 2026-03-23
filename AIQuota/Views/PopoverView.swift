@@ -11,7 +11,9 @@ struct PopoverView: View {
 
     var body: some View {
         Group {
-            if viewModel.isCodexAuthenticated || viewModel.isClaudeAuthenticated {
+            if viewModel.isRestoringSession {
+                restoringSessionContent
+            } else if viewModel.isCodexAuthenticated || viewModel.isClaudeAuthenticated {
                 authenticatedContent
             } else {
                 signInContent
@@ -29,6 +31,18 @@ struct PopoverView: View {
                 await viewModel.refresh()
             }
         }
+    }
+
+    // MARK: - Restoring session
+
+    private var restoringSessionContent: some View {
+        VStack(spacing: 12) {
+            ProgressView()
+            Text("Restoring session…")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+        }
+        .frame(width: 340, height: 120)
     }
 
     private func openSettingsKeepingPopover() {
