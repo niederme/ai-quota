@@ -78,9 +78,12 @@ final class QuotaViewModel {
     /// Full reset: signs out all services, clears cached data, resets settings
     /// and onboarding state — the app behaves exactly like a fresh install.
     func resetToNewUser() async {
-        // Step 1: stop refresh and await quiescence
+        // Step 1: stop refresh and await quiescence.
+        // Capture the task reference *before* stopAutoRefresh() sets refreshTask = nil,
+        // otherwise the await below is always a no-op.
+        let inFlight = refreshTask
         stopAutoRefresh()
-        await refreshTask?.value  // wait for any in-flight refresh to actually complete
+        await inFlight?.value  // actually suspends until the in-flight refresh completes
 
         // Step 2: auth reset
         let result = await resetCoordinator.reset()
@@ -94,7 +97,9 @@ final class QuotaViewModel {
         SharedDefaults.clearUsage()
         SharedDefaults.clearClaudeUsage()
         settings = .default
-        saveSettings()
+        // Persist settings directly — calling saveSettings() would invoke startAutoRefresh(),
+        // which must not fire while the auth coordinators are still in the resetting state.
+        SharedDefaults.saveSettings(settings)
         UserDefaults.standard.removeObject(forKey: "onboarding.v1.hasCompleted")
         onboardingTriggeredThisSession = false
         WidgetCenter.shared.reloadAllTimelines()
