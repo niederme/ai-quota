@@ -27,6 +27,8 @@ struct CodexAuthCoordinatorTests {
 
     @Test("bootstrap with no session → unauthenticated")
     func bootstrapNotFound() async throws {
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
         let sut = CodexAuthCoordinator(probe: { .notFound })
         await sut.bootstrap()
         #expect(await sut.state == .unauthenticated)
@@ -36,6 +38,8 @@ struct CodexAuthCoordinatorTests {
     func bootstrapSkipsWhenSignedOut() async throws {
         UserDefaults.standard.set(true, forKey: "codex.signedOutByUser")
         defer { UserDefaults.standard.removeObject(forKey: "codex.signedOutByUser") }
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
         let sut = CodexAuthCoordinator(probe: { .found(sessionToken: "tok") })
         await sut.bootstrap()
         #expect(await sut.state == .signedOutByUser)
@@ -59,13 +63,10 @@ struct CodexAuthCoordinatorTests {
         #expect(state == .unauthenticated)
     }
 
-    @Test("signIn from authenticated throws invalidTransition")
-    func signInIllegalFromAuthenticated() async throws {
-        // Can't reach authenticated without network (refreshAccessToken would fail)
-        // Test the illegal transition from signedOutByUser instead: that's legal,
-        // so test from unknown (before bootstrap) which hits the default throw.
+    @Test("signIn from unknown throws invalidTransition")
+    func signInIllegalFromUnknown() async throws {
         let sut = CodexAuthCoordinator(probe: { .notFound })
-        // Do NOT bootstrap — state is .unknown, which hits default: throw
+        // Do NOT bootstrap — state is .unknown, which hits the default: throw branch
         await #expect(throws: AuthCoordinatorError.self) {
             try await sut.signIn()
         }
