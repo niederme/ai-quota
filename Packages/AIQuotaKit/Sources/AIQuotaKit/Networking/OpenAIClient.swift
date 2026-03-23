@@ -1,22 +1,22 @@
 import Foundation
 
 public actor OpenAIClient {
-    private let authManager: AuthManager
+    private let coordinator: CodexAuthCoordinator
     private let session: URLSession
 
     private let baseURL = URL(string: "https://chatgpt.com")!
     // Confirmed endpoint from network inspection of chatgpt.com/codex/settings/usage
     private let usagePath = "/backend-api/wham/usage"
 
-    public init(authManager: AuthManager) {
-        self.authManager = authManager
+    public init(coordinator: CodexAuthCoordinator) {
+        self.coordinator = coordinator
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 15
         self.session = URLSession(configuration: config)
     }
 
     public func fetchUsage() async throws -> CodexUsage {
-        let token = try await authManager.accessToken
+        let token = try await coordinator.accessToken()
 
         var req = URLRequest(url: baseURL.appendingPathComponent(usagePath))
         req.httpMethod = "GET"
