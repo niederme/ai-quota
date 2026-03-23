@@ -353,15 +353,20 @@ struct CodexLoginResult {
 // MARK: - CodexLoginWindowController
 
 /// Presents a WKWebView login window and resolves with a CodexLoginResult.
-/// All paths converge on reading /api/auth/session from within the WKWebView so the
-/// access token (JWT) is obtained without a separate URLSession round-trip.
+///
+/// Auth detection strategy: on every chatgpt.com page load (via didFinish) and on every
+/// cookie change (via CodexCookieObserver), we call callAsyncJavaScript to fetch
+/// /api/auth/session from the page context. If the response contains an accessToken,
+/// we complete immediately. No secondary navigation to the JSON endpoint is needed —
+/// this avoids the "didFinish never fires for JSON endpoint" / "evaluateJavaScript hangs"
+/// failure modes from the previous approach.
 @MainActor
 private final class CodexLoginWindowController: NSObject {
     private var window: NSWindow?
     private var webView: WKWebView?
     private var cookieObserver: CodexCookieObserver?
     private var hasCompleted = false
-    private var hasNavigatedToSession = false  // prevents double-navigation
+    private var isFetchingSession = false
     private var selfRetain: CodexLoginWindowController?
     private let onComplete: (Result<CodexLoginResult, Error>) -> Void
     private let logger = Logger(subsystem: "ai.quota", category: "codex-login")
@@ -373,38 +378,75 @@ private final class CodexLoginWindowController: NSObject {
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .default()
 
-        // Check if already logged in — if so, navigate to /api/auth/session silently.
-        config.websiteDataStore.httpCookieStore.getAllCookies { [weak self] cookies in
-            guard let self else { return }
-            let alreadyLoggedIn = cookies.contains(where: {
-                $0.name == "__Secure-next-auth.session-token" && $0.domain.contains("chatgpt.com")
-            })
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                self.createWebView(config: config)
-                if alreadyLoggedIn {
-                    self.navigateToSessionEndpoint()
-                } else {
-                    self.showWindow()
-                }
-            }
-        }
-    }
-
-    private func createWebView(config: WKWebViewConfiguration) {
         let wv = WKWebView(frame: .init(x: 0, y: 0, width: 520, height: 680), configuration: config)
         wv.navigationDelegate = self
         self.webView = wv
 
         let observer = CodexCookieObserver { [weak self] in
-            Task { @MainActor [weak self] in self?.navigateToSessionEndpoint() }
+            Task { @MainActor [weak self] in
+                guard let self, let wv = self.webView else { return }
+                self.tryFetchSession(webView: wv)
+            }
         }
         config.websiteDataStore.httpCookieStore.add(observer)
         self.cookieObserver = observer
+
+        // Load chatgpt.com. didFinish will show the login window if needed,
+        // or fetch the session silently if already logged in.
+        wv.load(URLRequest(url: URL(string: "https://chatgpt.com")!))
     }
 
-    private func showWindow() {
-        guard let webView else { return }
+    /// Fetches /api/auth/session via JS fetch from the current page context.
+    /// If the response contains an accessToken we complete; otherwise we just wait.
+    private func tryFetchSession(webView: WKWebView) {
+        guard !hasCompleted, !isFetchingSession else { return }
+        guard webView.url?.host?.contains("chatgpt.com") == true else { return }
+        isFetchingSession = true
+        logger.info("[CodexLogin] tryFetchSession from \(webView.url?.path ?? "?")")
+
+        webView.callAsyncJavaScript("""
+            try {
+                const r = await fetch('/api/auth/session', {
+                    credentials: 'include',
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!r.ok) return null;
+                return await r.json();
+            } catch(e) { return null; }
+        """, arguments: [:], in: nil, in: .page) { [weak self] result in
+            Task { @MainActor [weak self] in
+                guard let self, !self.hasCompleted else { return }
+                self.isFetchingSession = false
+
+                guard case .success(let value) = result,
+                      let dict = value as? [String: Any],
+                      let accessToken = dict["accessToken"] as? String,
+                      !accessToken.isEmpty else {
+                    self.logger.info("[CodexLogin] session fetch: no accessToken yet")
+                    return
+                }
+
+                self.logger.info("[CodexLogin] session fetch succeeded — completing")
+                let expiresAt = self.parseExpiry(dict["expires"] as? String)
+
+                // Best-effort: sync WK cookies to shared URLSession storage.
+                webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { cookies in
+                    for c in cookies where c.domain.contains("chatgpt.com") || c.domain.contains("openai.com") {
+                        HTTPCookieStorage.shared.setCookie(c)
+                    }
+                }
+
+                self.complete(CodexLoginResult(
+                    sessionToken: "",   // wkProbe on next bootstrap will persist to Keychain
+                    accessToken: accessToken,
+                    expiresAt: expiresAt
+                ))
+            }
+        }
+    }
+
+    private func showLoginWindow() {
+        guard let webView, window == nil else { return }
         let win = NSWindow(contentRect: .init(x: 0, y: 0, width: 520, height: 680),
                            styleMask: [.titled, .closable], backing: .buffered, defer: false)
         win.title = "Sign in to ChatGPT"
@@ -414,18 +456,8 @@ private final class CodexLoginWindowController: NSObject {
         win.level = .floating
         win.delegate = self
         self.window = win
-        webView.load(URLRequest(url: URL(string: "https://chatgpt.com")!))
         win.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
-    }
-
-    /// Navigates to the JSON session endpoint so we can extract the JWT directly from
-    /// the WKWebView — no separate URLSession call needed.
-    private func navigateToSessionEndpoint() {
-        guard !hasNavigatedToSession, !hasCompleted, let wv = webView else { return }
-        hasNavigatedToSession = true
-        window?.orderOut(nil)  // hide window while fetching JWT
-        wv.load(URLRequest(url: URL(string: "https://chatgpt.com/api/auth/session")!))
     }
 
     private func complete(_ result: CodexLoginResult) {
@@ -462,52 +494,15 @@ private final class CodexLoginWindowController: NSObject {
 @MainActor
 extension CodexLoginWindowController: WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        guard let url = webView.url else { return }
+        guard let url = webView.url, url.host?.contains("chatgpt.com") == true else { return }
         logger.info("[CodexLogin] didFinish: \(url.path)")
 
-        if url.host?.contains("chatgpt.com") == true, url.path == "/api/auth/session" {
-            readSessionEndpoint(webView: webView)
-            return
-        }
-
-        // On any authenticated chatgpt.com page (not auth/login), navigate to session endpoint.
-        if url.host?.contains("chatgpt.com") == true,
-           !url.path.hasPrefix("/auth/"), !url.path.hasPrefix("/login") {
-            navigateToSessionEndpoint()
-        }
-    }
-
-    private func readSessionEndpoint(webView: WKWebView) {
-        webView.evaluateJavaScript("document.body.innerText") { [weak self] result, _ in
-            guard let self, !self.hasCompleted else { return }
-            guard let text = result as? String, let data = text.data(using: .utf8) else { return }
-            struct Body: Decodable { let accessToken: String?; let expires: String? }
-            let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase
-            guard let body = try? decoder.decode(Body.self, from: data),
-                  let accessToken = body.accessToken else {
-                // Not authenticated — show the login window.
-                self.window?.makeKeyAndOrderFront(nil)
-                NSApp.activate(ignoringOtherApps: true)
-                webView.load(URLRequest(url: URL(string: "https://chatgpt.com/auth/login")!))
-                return
-            }
-            let expiresAt = self.parseExpiry(body.expires)
-            // Sync cookies to shared URLSession storage (best-effort, don't block completion).
-            // getAllCookies can hang if the WK process is torn down, so we complete immediately
-            // rather than waiting for the callback. The session token will be found by wkProbe
-            // during the next bootstrap() if it wasn't already in HTTPCookieStorage.
-            webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { cookies in
-                for c in cookies where c.domain.contains("chatgpt.com") || c.domain.contains("openai.com") {
-                    HTTPCookieStorage.shared.setCookie(c)
-                }
-            }
-            Task { @MainActor [weak self] in
-                self?.complete(CodexLoginResult(
-                    sessionToken: "",  // will be persisted to Keychain by wkProbe on next bootstrap
-                    accessToken: accessToken,
-                    expiresAt: expiresAt
-                ))
-            }
+        if url.path.hasPrefix("/auth/") || url.path == "/login" {
+            // On a login/auth page — show the window so the user can sign in.
+            showLoginWindow()
+        } else {
+            // On an authenticated chatgpt.com page — try to fetch the session.
+            tryFetchSession(webView: webView)
         }
     }
 }
@@ -520,24 +515,12 @@ extension CodexLoginWindowController: NSWindowDelegate {
     }
 }
 
-/// Fires when the chatgpt.com session-token cookie appears, triggering navigation
-/// to /api/auth/session so the JWT can be read from the WKWebView.
+/// Fires when any cookie changes in the WK store, triggering a session fetch attempt.
 private final class CodexCookieObserver: NSObject, WKHTTPCookieStoreObserver, @unchecked Sendable {
-    private let onSessionFound: @MainActor @Sendable () -> Void
-    private var hasFound = false
-    init(onSessionFound: @MainActor @Sendable @escaping () -> Void) { self.onSessionFound = onSessionFound }
+    private let onCookiesChanged: @MainActor @Sendable () -> Void
+    init(onCookiesChanged: @MainActor @Sendable @escaping () -> Void) { self.onCookiesChanged = onCookiesChanged }
 
     func cookiesDidChange(in store: WKHTTPCookieStore) {
-        store.getAllCookies { [weak self] cookies in
-            Task { @MainActor [weak self] in
-                guard let self, !self.hasFound else { return }
-                if cookies.contains(where: {
-                    $0.name == "__Secure-next-auth.session-token" && $0.domain.contains("chatgpt.com")
-                }) {
-                    self.hasFound = true
-                    self.onSessionFound()
-                }
-            }
-        }
+        Task { @MainActor [weak self] in self?.onCookiesChanged() }
     }
 }
