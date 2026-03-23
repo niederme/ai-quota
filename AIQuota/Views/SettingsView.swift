@@ -199,9 +199,11 @@ struct SettingsView: View {
             titleVisibility: .visible
         ) {
             Button("Reset", role: .destructive) {
-                viewModel.resetToNewUser()
-                openWindow(id: "onboarding")
-                NSApp.activate(ignoringOtherApps: true)
+                Task {
+                    await viewModel.resetToNewUser()
+                    openWindow(id: "onboarding")
+                    NSApp.activate(ignoringOtherApps: true)
+                }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
