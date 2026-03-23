@@ -27,12 +27,14 @@ struct PopoverView: View {
                 .keyboardShortcut("r", modifiers: .command)
                 .hidden()
         }
-        .task {
+        .onAppear {
             if viewModel.shouldShowOnboarding {
                 viewModel.markOnboardingTriggered()
                 NSApp.activate(ignoringOtherApps: true)
                 openWindow(id: "onboarding")
             }
+        }
+        .task {
             if viewModel.usage == nil && viewModel.claudeUsage == nil {
                 await viewModel.refresh()
             }
