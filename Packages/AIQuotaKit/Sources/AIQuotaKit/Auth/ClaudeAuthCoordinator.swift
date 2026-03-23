@@ -404,7 +404,40 @@ private final class CoordLoginWindowController: NSObject {
 
 @MainActor
 extension CoordLoginWindowController: WKNavigationDelegate {
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { startPolling() }
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        startPolling()
+        tryAPIorgDetection(webView: webView)
+    }
+
+    private func tryAPIorgDetection(webView: WKWebView) {
+        guard let url = webView.url,
+              url.host?.contains("claude.ai") == true,
+              !url.path.hasPrefix("/login"),
+              !url.path.hasPrefix("/magic-link"),
+              !url.path.hasPrefix("/auth"),
+              !hasCompleted
+        else { return }
+
+        webView.callAsyncJavaScript("""
+            const r = await fetch('/api/organizations', {credentials: 'include'});
+            if (!r.ok) return null;
+            const orgs = await r.json();
+            if (!Array.isArray(orgs) || orgs.length === 0) return null;
+            const org = orgs[0];
+            return org.uuid || org.id || null;
+        """, arguments: [:], in: nil, in: .page) { [weak self] result in
+            guard let self, !self.hasCompleted else { return }
+            guard case .success(let value) = result,
+                  let orgId = value as? String, !orgId.isEmpty
+            else { return }
+            webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { [weak self] cookies in
+                let claudeCookies = cookies.filter { $0.domain.contains("claude.ai") }
+                Task { @MainActor [weak self] in
+                    self?.complete(orgId: orgId, cookies: claudeCookies)
+                }
+            }
+        }
+    }
 }
 
 @MainActor
