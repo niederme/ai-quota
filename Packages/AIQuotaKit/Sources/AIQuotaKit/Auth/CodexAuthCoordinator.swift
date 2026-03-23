@@ -331,12 +331,14 @@ private final class CodexLoginWindowController: NSObject {
     private var webView: WKWebView?
     private var cookieObserver: CodexCookieObserver?
     private var hasCompleted = false
+    private var selfRetain: CodexLoginWindowController?  // keeps self alive until continuation resumes
     private let onComplete: (Result<String, Error>) -> Void
     private let logger = Logger(subsystem: "ai.quota", category: "codex-login")
 
     init(onComplete: @escaping (Result<String, Error>) -> Void) { self.onComplete = onComplete }
 
     func show() {
+        selfRetain = self
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .default()
 
@@ -389,7 +391,9 @@ private final class CodexLoginWindowController: NSObject {
         hasCompleted = true
         window?.close()
         window = nil; webView = nil; cookieObserver = nil
-        onComplete(result)
+        let callback = onComplete
+        selfRetain = nil  // allow deallocation after continuation resumes
+        callback(result)
     }
 }
 
