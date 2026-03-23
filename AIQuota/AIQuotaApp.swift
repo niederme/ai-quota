@@ -39,7 +39,6 @@ struct AIQuotaApp: App {
                 isLoading: viewModel.isLoading,
                 worstPercent: menuBarWorstPercent
             )
-            .onboardingLauncher(viewModel: viewModel)
         }
         .menuBarExtraStyle(.window)
 
@@ -141,24 +140,3 @@ private struct WindowVibrancyInstaller: NSViewRepresentable {
     func updateNSView(_ nsView: NSView, context: Context) {}
 }
 
-// MARK: - Onboarding launcher modifier
-
-private struct OnboardingLauncherModifier: ViewModifier {
-    @Environment(\.openWindow) private var openWindow
-    let viewModel: QuotaViewModel
-
-    func body(content: Content) -> some View {
-        content.task {
-            if viewModel.shouldShowOnboarding {
-                viewModel.markOnboardingTriggered()
-                openWindow(id: "onboarding")
-            }
-        }
-    }
-}
-
-private extension View {
-    func onboardingLauncher(viewModel: QuotaViewModel) -> some View {
-        modifier(OnboardingLauncherModifier(viewModel: viewModel))
-    }
-}
