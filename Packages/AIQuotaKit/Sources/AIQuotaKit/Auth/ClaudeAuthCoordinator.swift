@@ -266,16 +266,33 @@ public actor ClaudeAuthCoordinator {
     }
 
     /// Runs the probe with a 10-second timeout. Returns nil on timeout.
+    ///
+    /// Uses withCheckedContinuation + OSAllocatedUnfairLock rather than withTaskGroup so the
+    /// timeout can win without waiting for the probe task to finish. withTaskGroup waits for
+    /// ALL child tasks before returning — if the probe is stuck in a WKHTTPCookieStore
+    /// getAllCookies callback that never fires (e.g. after the web content process crashes),
+    /// the group hangs forever. The atomic guard here ensures the continuation is resumed
+    /// exactly once regardless of which side wins.
     private func withProbeTimeout(_ probe: @escaping SessionProbe) async -> ClaudeProbeResult? {
-        await withTaskGroup(of: ClaudeProbeResult?.self) { group in
-            group.addTask { await probe() }
-            group.addTask {
-                try? await Task.sleep(for: .seconds(10))
-                return nil
+        await withCheckedContinuation { cont in
+            let resumed = OSAllocatedUnfairLock(initialState: false)
+            let probeTask = Task {
+                let result = await probe()
+                resumed.withLock { alreadyDone in
+                    guard !alreadyDone else { return }
+                    alreadyDone = true
+                    cont.resume(returning: result)
+                }
             }
-            let result = await group.next() ?? nil
-            group.cancelAll()
-            return result
+            Task {
+                try? await Task.sleep(for: .seconds(10))
+                resumed.withLock { alreadyDone in
+                    guard !alreadyDone else { return }
+                    alreadyDone = true
+                    probeTask.cancel()
+                    cont.resume(returning: nil)
+                }
+            }
         }
     }
 
