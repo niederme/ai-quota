@@ -267,12 +267,25 @@ public actor CodexAuthCoordinator {
     }
 
     private func withProbeTimeout(_ probe: @escaping SessionProbe) async -> CodexProbeResult? {
-        await withTaskGroup(of: CodexProbeResult?.self) { group in
-            group.addTask { await probe() }
-            group.addTask { try? await Task.sleep(for: .seconds(10)); return nil }
-            let result = await group.next() ?? nil
-            group.cancelAll()
-            return result
+        await withCheckedContinuation { cont in
+            let resumed = OSAllocatedUnfairLock(initialState: false)
+            let probeTask = Task {
+                let result = await probe()
+                resumed.withLock { alreadyDone in
+                    guard !alreadyDone else { return }
+                    alreadyDone = true
+                    cont.resume(returning: result)
+                }
+            }
+            Task {
+                try? await Task.sleep(for: .seconds(10))
+                resumed.withLock { alreadyDone in
+                    guard !alreadyDone else { return }
+                    alreadyDone = true
+                    probeTask.cancel()
+                    cont.resume(returning: nil)
+                }
+            }
         }
     }
 

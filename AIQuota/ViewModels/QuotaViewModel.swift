@@ -436,6 +436,9 @@ final class QuotaViewModel {
     func signInClaude() async {
         do {
             try await claudeCoordinator.signIn()
+            // Propagate auth state synchronously before refreshClaude() checks isClaudeAuthenticated.
+            // The stateStream observer will also fire, but may lag behind by one async hop.
+            claudeState = .authenticated
             await refreshClaude()
             if refreshTask == nil { startAutoRefresh() }
         } catch {
