@@ -15,6 +15,10 @@ Tint the icon rendered in the center of every gauge to match the gauge's status 
 | `AIQuota/Views/CircularGaugeView.swift` | Service logo (SwiftUI `Image`) | `.foregroundStyle(.secondary)` | `.foregroundStyle(statusColor)` |
 | `AIQuotaWidget/Views/WidgetGaugeView.swift` | Service logo (SwiftUI `Image`) | `.foregroundStyle(.secondary)` | `.foregroundStyle(statusColor)` |
 
+## Prerequisites
+
+All `icon` xcassets entries used by `CircularGaugeView` and `WidgetGaugeView` must be configured as **Template Image** (Render As: Template Image) in the asset catalog. `.foregroundStyle` is silently ignored for Original-rendering images — verify this before testing.
+
 ## Color Mapping
 
 Reuses the already-computed status colors with no new logic:
@@ -25,7 +29,9 @@ Reuses the already-computed status colors with no new logic:
 | Warning (≥ 85%) | Amber `(1.0, 0.65, 0.0)` | Amber `(1.0, 0.65, 0.0)` |
 | Critical (≥ 95% or limit reached) | Red `(1.0, 0.25, 0.25)` | Red `.red` |
 
-Note: in the healthy state the menubar sparkle remains white (unchanged visually), while the popover/widget logo shifts from `.secondary` gray to purple — a small bonus that makes the logo match the ring color.
+Note: in the healthy state the menubar sparkle remains white (unchanged visually), while the popover/widget logo shifts from `.secondary` gray to `Self.accent` purple — a small bonus that makes the logo match the ring color.
+
+`WidgetGaugeView` does not receive a `secondaryLimitReached` parameter (unlike `CircularGaugeView`), so its `statusColor` only checks `primaryLimitReached`. The icon tint in the widget is therefore consistent with the widget's existing ring behavior — no action needed, but implementors should be aware the two views are not fully symmetric.
 
 ## Changes
 
@@ -40,6 +46,8 @@ ctx.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 0.9))
 // After
 ctx.setFillColor(sharedColor.copy(alpha: 0.9) ?? sharedColor)
 ```
+
+`sharedColor` is always an sRGB `CGColor` (produced by `ringColor`), so `copy(alpha:)` never returns nil in practice. The `?? sharedColor` fallback is safe but note it would use alpha 1.0 if somehow triggered — this is a theoretical edge case only.
 
 ### `CircularGaugeView.swift`
 
