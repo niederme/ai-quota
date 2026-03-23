@@ -24,12 +24,12 @@ import Foundation
 ///   }
 
 public actor ClaudeClient {
-    private let authManager: ClaudeAuthManager
+    private let coordinator: ClaudeAuthCoordinator
     private let session: URLSession
     private let baseURL = URL(string: "https://claude.ai")!
 
-    public init(authManager: ClaudeAuthManager) {
-        self.authManager = authManager
+    public init(coordinator: ClaudeAuthCoordinator) {
+        self.coordinator = coordinator
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 15
         config.httpCookieStorage = HTTPCookieStorage.shared
@@ -40,22 +40,8 @@ public actor ClaudeClient {
     // MARK: - Public API
 
     public func fetchUsage() async throws -> ClaudeUsage {
-        // Ensure all claude.ai WKWebView cookies are visible to URLSession
-        await authManager.syncCookies()
-
-        // Log all claude.ai cookies so we can diagnose sync issues
-        let allCookies = HTTPCookieStorage.shared.cookies?
-            .filter { $0.domain.contains("claude.ai") } ?? []
-        print("[ClaudeClient] cookies after sync (\(allCookies.count)): \(allCookies.map { "\($0.name)(domain:\($0.domain))" })")
-
-        // Org UUID lives in the lastActiveOrg cookie — no /account call needed
-        guard let orgId = cookie(named: "lastActiveOrg"), !orgId.isEmpty else {
-            print("[ClaudeClient] ❌ lastActiveOrg cookie not found — not authenticated")
-            throw NetworkError.notAuthenticated
-        }
-        print("[ClaudeClient] orgId: \(orgId)")
-
-        return try await fetchUsageData(path: "/api/organizations/\(orgId)/usage")
+        let ctx = try await coordinator.requestContext()
+        return try await fetchUsageData(path: "/api/organizations/\(ctx.orgId)/usage")
     }
 
     // MARK: - Private

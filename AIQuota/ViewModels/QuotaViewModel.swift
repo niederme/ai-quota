@@ -3,7 +3,6 @@ import Network
 import os
 import AIQuotaKit
 import WidgetKit
-import Combine
 
 @MainActor
 @Observable
@@ -16,9 +15,8 @@ final class QuotaViewModel {
     var codexUsage: CodexUsage?
     var isCodexLoading = false
     var codexError: NetworkError?
-    private(set) var isCodexAuthenticated: Bool = false
 
-    let codexAuthManager: AuthManager
+    let codexCoordinator: CodexAuthCoordinator
     private let codexClient: OpenAIClient
 
     // MARK: - Claude
@@ -26,10 +24,23 @@ final class QuotaViewModel {
     var claudeUsage: ClaudeUsage?
     var isClaudeLoading = false
     var claudeError: NetworkError?
-    private(set) var isClaudeAuthenticated: Bool = false
 
-    let claudeAuthManager: ClaudeAuthManager
+    let claudeCoordinator: ClaudeAuthCoordinator
     private let claudeClient: ClaudeClient
+
+    // MARK: - Auth state (derived from coordinator streams)
+
+    private(set) var claudeState: AuthState = .unknown
+    private(set) var codexState:  AuthState = .unknown
+
+    var isClaudeAuthenticated: Bool { claudeState == .authenticated }
+    var isCodexAuthenticated:  Bool { codexState  == .authenticated }
+    var isRestoringSession: Bool {
+        claudeState == .unknown || claudeState == .restoringSession ||
+        codexState  == .unknown || codexState  == .restoringSession
+    }
+
+    private let resetCoordinator: AppResetCoordinator
 
     // MARK: - Shared state
 
@@ -66,13 +77,32 @@ final class QuotaViewModel {
 
     /// Full reset: signs out all services, clears cached data, resets settings
     /// and onboarding state — the app behaves exactly like a fresh install.
-    func resetToNewUser() {
-        signOut()
-        signOutClaude()
+    func resetToNewUser() async {
+        // Step 1: stop refresh and await quiescence.
+        // Capture the task reference *before* stopAutoRefresh() sets refreshTask = nil,
+        // otherwise the await below is always a no-op.
+        let inFlight = refreshTask
+        stopAutoRefresh()
+        await inFlight?.value  // actually suspends until the in-flight refresh completes
+
+        // Step 2: auth reset
+        let result = await resetCoordinator.reset()
+        if !result.warnings.isEmpty {
+            logger.warning("[Reset] warnings: \(result.warnings.joined(separator: "; "))")
+        }
+
+        // Step 3: product state reset (only after auth reset completes)
+        claudeUsage = nil
+        codexUsage  = nil
+        SharedDefaults.clearUsage()
+        SharedDefaults.clearClaudeUsage()
         settings = .default
-        saveSettings()
+        // Persist settings directly — calling saveSettings() would invoke startAutoRefresh(),
+        // which must not fire while the auth coordinators are still in the resetting state.
+        SharedDefaults.saveSettings(settings)
         UserDefaults.standard.removeObject(forKey: "onboarding.v1.hasCompleted")
         onboardingTriggeredThisSession = false
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     // MARK: - Backward-compatible aliases (used by MenuBarIconView / AIQuotaApp)
@@ -84,7 +114,6 @@ final class QuotaViewModel {
         set { codexError = newValue }
     }
     var isAuthenticated: Bool { isCodexAuthenticated }
-    var authManager: AuthManager { codexAuthManager }
 
     // MARK: - Last refreshed
 
@@ -93,8 +122,6 @@ final class QuotaViewModel {
     // MARK: - Private
 
     private var refreshTask: Task<Void, Never>?
-    private var authCancellable: AnyCancellable?
-    private var claudeAuthCancellable: AnyCancellable?
     /// Incremented on each manual refresh so the previous task's `defer` doesn't
     /// clear `isLoading` after the new request has already started.
     private var codexRefreshGeneration = 0
@@ -112,43 +139,52 @@ final class QuotaViewModel {
     // MARK: - Init
 
     init() {
-        let codexAuth  = AuthManager()
-        let claudeAuth = ClaudeAuthManager()
+        let claude = ClaudeAuthCoordinator()
+        let codex  = CodexAuthCoordinator()
 
-        self.codexAuthManager  = codexAuth
-        self.claudeAuthManager = claudeAuth
-        self.codexClient       = OpenAIClient(authManager: codexAuth)
-        self.claudeClient      = ClaudeClient(authManager: claudeAuth)
-
-        self.isCodexAuthenticated  = codexAuth.isAuthenticated
-        self.isClaudeAuthenticated = claudeAuth.isAuthenticated
+        self.claudeCoordinator = claude
+        self.codexCoordinator  = codex
+        self.claudeClient      = ClaudeClient(coordinator: claude)
+        self.codexClient       = OpenAIClient(coordinator: codex)
+        self.resetCoordinator  = AppResetCoordinator(claude: claude, codex: codex)
 
         // Load cached data immediately
         codexUsage  = SharedDefaults.loadCachedUsage()
         claudeUsage = SharedDefaults.loadCachedClaudeUsage()
 
-        // Bridge ObservableObject → @Observable.
-        // Also kick off auto-refresh when auth is first restored from Keychain — the
-        // Keychain load is deferred by one run loop tick (to keep the app window first
-        // in front of any OS "allow keychain" dialog), so isAuthenticated is always
-        // false at init time and must be handled reactively here instead.
-        authCancellable = codexAuth.$isAuthenticated
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] value in
-                guard let self else { return }
-                isCodexAuthenticated = value
-                if value && refreshTask == nil { startAutoRefresh() }
+        // Observe coordinator state streams and drive UI state + auto-refresh.
+        Task { [weak self] in
+            guard let self else { return }
+            for await state in claudeCoordinator.stateStream {
+                await MainActor.run {
+                    self.claudeState = state
+                    if state == .authenticated && self.refreshTask == nil {
+                        self.startAutoRefresh()
+                    }
+                    if state == .unauthenticated || state == .signedOutByUser {
+                        self.claudeUsage = nil
+                        SharedDefaults.clearClaudeUsage()
+                        WidgetCenter.shared.reloadAllTimelines()
+                    }
+                }
             }
-
-        claudeAuthCancellable = claudeAuth.$isAuthenticated
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] value in
-                guard let self else { return }
-                isClaudeAuthenticated = value
-                // Default active service to Claude if that's all that's authenticated
-                if value && !isCodexAuthenticated { activeService = .claude }
-                if value && refreshTask == nil { startAutoRefresh() }
+        }
+        Task { [weak self] in
+            guard let self else { return }
+            for await state in codexCoordinator.stateStream {
+                await MainActor.run {
+                    self.codexState = state
+                    if state == .authenticated && self.refreshTask == nil {
+                        self.startAutoRefresh()
+                    }
+                    if state == .unauthenticated || state == .signedOutByUser {
+                        self.codexUsage = nil
+                        SharedDefaults.clearUsage()
+                        WidgetCenter.shared.reloadAllTimelines()
+                    }
+                }
             }
+        }
 
         // Request notification permission on launch
         if settings.notifications.enabled {
@@ -158,11 +194,14 @@ final class QuotaViewModel {
         // Start path monitor first so currentPath is valid before the first fetch
         startPathMonitor()
 
-        // Warm up WKWebView's XPC service immediately — the first getAllCookies call
-        // takes up to 20 seconds on a cold process. Firing it here means the service
-        // is already running by the time silentSignInIfPossible() or syncCookies()
-        // is needed, whether or not Claude is currently authenticated.
-        Task { await claudeAuthManager.syncCookies() }
+        // Bootstrap both coordinators — handles Keychain / WKWebView session restore
+        // internally; no need for a deferred Keychain access pattern here.
+        Task {
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask { await self.claudeCoordinator.bootstrap() }
+                group.addTask { await self.codexCoordinator.bootstrap() }
+            }
+        }
     }
 
     // MARK: - Network path monitor
@@ -230,9 +269,7 @@ final class QuotaViewModel {
     }
 
     func refreshCodex() async {
-        if !isCodexAuthenticated {
-            guard await codexAuthManager.silentSignInIfPossible() else { return }
-        }
+        guard isCodexAuthenticated else { return }
         guard !isCodexLoading else { return }
         let gen = codexRefreshGeneration
         isCodexLoading = true
@@ -249,16 +286,19 @@ final class QuotaViewModel {
             if e.isAuthError {
                 codexUsage = nil
                 SharedDefaults.clearUsage()
-                // Session may have expired — try a forced cookie recheck before clearing
-                // auth state. Avoids a brief "Connect" flash when cookies are still valid
-                // but haven't been synced to URLSession yet.
-                if await codexAuthManager.silentSignInIfPossible(forceRecheck: true) {
-                    await refreshCodex()
-                    return
+                // Session may have expired — try a forced revalidation before clearing
+                // auth state. Avoids a brief "Connect" flash when cookies are still valid.
+                guard await codexCoordinator.revalidateSessionAfterAuthFailure() else { return }
+                // Retry once after successful revalidation
+                do {
+                    let result = try await codexClient.fetchUsage()
+                    codexUsage = result
+                    lastRefreshedAt = .now
+                    SharedDefaults.saveUsage(result)
+                    await NotificationManager.shared.evaluate(current: result, prefs: settings.notifications)
+                } catch {
+                    // Retry also failed — coordinator already transitioned to unauthenticated
                 }
-                // Recheck also failed — session is genuinely gone.
-                codexAuthManager.isAuthenticated = false
-                // Don't surface an error banner; the user can reconnect from the gauge.
                 return
             } else if case .networkUnavailable = e, !pathMonitorReady {
                 // Path monitor hasn't settled yet — suppress the banner to avoid
@@ -290,9 +330,7 @@ final class QuotaViewModel {
     }
 
     func refreshClaude() async {
-        if !isClaudeAuthenticated {
-            guard await claudeAuthManager.silentSignInIfPossible() else { return }
-        }
+        guard isClaudeAuthenticated else { return }
         guard !isClaudeLoading else { return }
         let gen = claudeRefreshGeneration
         isClaudeLoading = true
@@ -312,10 +350,7 @@ final class QuotaViewModel {
                 // Session may have expired — sync fresh cookies and retry the fetch
                 // once. Using a direct retry (not recursion) avoids an infinite loop
                 // if the session is genuinely invalid.
-                guard await claudeAuthManager.silentSignInIfPossible(forceRecheck: true) else {
-                    claudeAuthManager.isAuthenticated = false
-                    return
-                }
+                guard await claudeCoordinator.revalidateSessionAfterAuthFailure() else { return }
                 do {
                     let result = try await claudeClient.fetchUsage()
                     claudeUsage = result
@@ -323,8 +358,7 @@ final class QuotaViewModel {
                     SharedDefaults.saveClaudeUsage(result)
                     await NotificationManager.shared.evaluate(claude: result, prefs: settings.notifications)
                 } catch {
-                    // Retry also failed — session is genuinely gone.
-                    claudeAuthManager.isAuthenticated = false
+                    // Retry also failed — coordinator already transitioned to unauthenticated
                 }
                 return
             } else if case .networkUnavailable = e, !pathMonitorReady {
@@ -391,10 +425,8 @@ final class QuotaViewModel {
 
     func signIn() async {
         do {
-            try await codexAuthManager.signIn()
+            try await codexCoordinator.signIn()
             await refreshCodex()
-            // Only start auto-refresh if not already running — restarting it cancels
-            // any in-progress Claude fetch and can leave isClaudeLoading permanently true.
             if refreshTask == nil { startAutoRefresh() }
         } catch {
             codexError = .notAuthenticated
@@ -402,16 +434,11 @@ final class QuotaViewModel {
     }
 
     func signInClaude() async {
-        // Try silent re-auth first — if WKWebView session cookies are still
-        // valid (e.g. after an app update) this avoids opening a login window.
-        if await claudeAuthManager.silentSignInIfPossible() {
-            logger.info("[SignIn] Claude silent re-auth succeeded, skipping login window")
-            await refreshClaude()
-            if refreshTask == nil { startAutoRefresh() }
-            return
-        }
         do {
-            try await claudeAuthManager.signIn()
+            try await claudeCoordinator.signIn()
+            // Propagate auth state synchronously before refreshClaude() checks isClaudeAuthenticated.
+            // The stateStream observer will also fire, but may lag behind by one async hop.
+            claudeState = .authenticated
             await refreshClaude()
             if refreshTask == nil { startAutoRefresh() }
         } catch {
@@ -421,20 +448,17 @@ final class QuotaViewModel {
 
     func signOut() {
         stopAutoRefresh()
-        codexAuthManager.signOut()
-        codexUsage = nil
-        SharedDefaults.clearUsage()
-        WidgetCenter.shared.reloadAllTimelines()
-        // Keep auto-refresh alive if Claude is still signed in
-        if isClaudeAuthenticated { startAutoRefresh() }
+        Task {
+            try? await codexCoordinator.signOut()
+            // Auto-refresh restart is handled by the claudeCoordinator state stream observer
+        }
     }
 
     func signOutClaude() {
-        claudeAuthManager.signOut()
-        claudeUsage = nil
-        SharedDefaults.clearClaudeUsage()
-        WidgetCenter.shared.reloadAllTimelines()
-        if activeService == .claude { activeService = .codex }
+        Task {
+            try? await claudeCoordinator.signOut()
+            if activeService == .claude { activeService = .codex }
+        }
     }
 
     // MARK: - Settings
