@@ -304,6 +304,19 @@ public actor CodexAuthCoordinator {
     private func clearStateIfFreshInstall() async {
         let sentinel = Self.freshInstallKey
         guard UserDefaults.standard.object(forKey: sentinel) == nil else { return }
+        // If WK data already exists this is an upgrade from a pre-1.9 version that never set
+        // the sentinel. Treat it as an existing install — stamp the key and leave auth alone.
+        let hasExistingData: Bool = await withCheckedContinuation { cont in
+            Task { @MainActor in
+                WKWebsiteDataStore.default().fetchDataRecords(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes()) { records in
+                    cont.resume(returning: !records.isEmpty)
+                }
+            }
+        }
+        guard !hasExistingData else {
+            UserDefaults.standard.set(true, forKey: sentinel)
+            return
+        }
         KeychainStore.delete(forKey: "sessionToken")
         SharedDefaults.clearUsage()
         SharedDefaults.clearClaudeUsage()
