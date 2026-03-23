@@ -25,6 +25,7 @@ struct ServicesStepView: View {
                     name: "Codex",
                     subtitle: "ChatGPT / OpenAI",
                     isAuthenticated: viewModel.isCodexAuthenticated,
+                    isRestoring: viewModel.isRestoringSession,
                     onSignIn: { Task { await viewModel.signIn() } }
                 )
 
@@ -33,6 +34,7 @@ struct ServicesStepView: View {
                     name: "Claude Code",
                     subtitle: "Anthropic / claude.ai",
                     isAuthenticated: viewModel.isClaudeAuthenticated,
+                    isRestoring: viewModel.isRestoringSession,
                     onSignIn: { Task { await viewModel.signInClaude() } }
                 )
             }
@@ -57,6 +59,7 @@ private struct ServiceRow: View {
     let name: String
     let subtitle: String
     let isAuthenticated: Bool
+    let isRestoring: Bool
     let onSignIn: () -> Void
 
     var body: some View {
@@ -103,6 +106,7 @@ private struct ServiceRow: View {
                     .buttonStyle(.borderedProminent)
                     .tint(Color.brand)
                     .controlSize(.small)
+                    .disabled(isRestoring)
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isAuthenticated)
