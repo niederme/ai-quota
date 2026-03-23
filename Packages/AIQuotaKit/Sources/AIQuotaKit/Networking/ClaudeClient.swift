@@ -88,7 +88,8 @@ public actor ClaudeClient {
             let raw = try Self.decoder.decode(ClaudeUsageResponse.self, from: data)
             return buildUsage(from: raw)
         } catch {
-            print("[ClaudeClient] decode error: \(error)")
+            let preview = String(data: data.prefix(800), encoding: .utf8) ?? "<non-utf8>"
+            print("[ClaudeClient] decode error: \(error)\nResponse body: \(preview)")
             throw NetworkError.decodingError(underlying: error)
         }
     }
@@ -204,7 +205,7 @@ private struct ClaudeUsageResponse: Decodable {
 
     struct WindowBucket: Decodable {
         let utilization: Double
-        let resetsAt: Date
+        let resetsAt: Date?
     }
 
     struct ExtraUsageBucket: Decodable {

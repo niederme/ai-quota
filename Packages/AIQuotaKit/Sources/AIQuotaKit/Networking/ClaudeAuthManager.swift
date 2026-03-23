@@ -31,12 +31,24 @@ public final class ClaudeAuthManager: NSObject, ObservableObject {
 
     public override init() {
         super.init()
-        loadAuthFromKeychain()
+        // Defer Keychain access by one run loop tick so the app window appears
+        // before any OS "allow keychain access" dialog is shown to the user.
+        DispatchQueue.main.async { [weak self] in
+            self?.loadAuthFromKeychain()
+        }
     }
 
     // MARK: - Sign In
 
     public func signIn() async throws {
+        // Clear the WKWebView cookie store BEFORE opening the login window.
+        // ClaudeCookieObserver is registered with the WK store inside showWindow(),
+        // so if stale session cookies still exist at that moment the observer fires
+        // immediately and the window closes before the user can log in.
+        // Clearing here — synchronously from the caller's perspective — guarantees
+        // the store is empty when the observer is added, eliminating the race entirely.
+        await clearWKWebViewCookies()
+
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             let controller = ClaudeLoginWindowController { [weak self] result in
                 Task { @MainActor [weak self] in
@@ -66,16 +78,21 @@ public final class ClaudeAuthManager: NSObject, ObservableObject {
     @discardableResult
     public func silentSignInIfPossible(forceRecheck: Bool = false) async -> Bool {
         guard !isAuthenticated || forceRecheck else { return true }
-        // After an explicit sign-out, block silent re-auth from treating stale
-        // WKWebView cookies as valid. forceRecheck (session recovery) still passes.
-        guard forceRecheck || !UserDefaults.standard.bool(forKey: Self.explicitlySignedOutKey) else {
+        // explicitlySignedOut always blocks silent re-auth — even when forceRecheck is true.
+        // forceRecheck means "re-verify cookies even if already marked authenticated"
+        // (session recovery after an app update). It does NOT mean "override an explicit sign-out."
+        guard !UserDefaults.standard.bool(forKey: Self.explicitlySignedOutKey) else {
+            logger.info("[ClaudeAuth] silentSignIn blocked — explicitlySignedOut flag is set (forceRecheck=\(forceRecheck))")
             return false
         }
         return await withCheckedContinuation { continuation in
             WKWebsiteDataStore.default().httpCookieStore.getAllCookies { [weak self] cookies in
                 guard let self else { continuation.resume(returning: false); return }
                 let claudeCookies = cookies.filter { $0.domain.contains("claude.ai") }
+                let cookieNames = claudeCookies.map(\.name)
+                self.logger.info("[ClaudeAuth] silentSignIn checking \(claudeCookies.count) cookies: \(cookieNames)")
                 guard claudeCookies.contains(where: { Self.loginCookies.contains($0.name) }) else {
+                    self.logger.info("[ClaudeAuth] silentSignIn — no session cookies found, returning false")
                     continuation.resume(returning: false)
                     return
                 }
@@ -94,20 +111,35 @@ public final class ClaudeAuthManager: NSObject, ObservableObject {
 
     // MARK: - Sign Out
 
-    /// Clears all auth state and waits for WKWebView cookie deletion to complete
-    /// before returning. Callers must await this to prevent silentSignInIfPossible
-    /// from racing and finding stale cookies immediately after sign-out.
-    public func signOut() async {
+    /// Clears all auth state.
+    ///
+    /// The explicitlySignedOut flag is set synchronously — this is the primary guard
+    /// that blocks silentSignInIfPossible() immediately. WKWebView cookies are cleared
+    /// asynchronously (best-effort) so they don't persist across app restarts. signIn()
+    /// also clears WK cookies before opening the login window as a belt-and-suspenders
+    /// safety net in case the flag is ever absent from UserDefaults.
+    public func signOut() {
         isAuthenticated = false
         KeychainStore.delete(forKey: "claudeAuthenticated")
-        // Set synchronously — blocks silentSignInIfPossible immediately, even
-        // before the async WKWebView deletion completes.
+        // Set synchronously — blocks silentSignInIfPossible immediately.
         UserDefaults.standard.set(true, forKey: Self.explicitlySignedOutKey)
-        // Delete from HTTPCookieStorage synchronously — no race possible.
+        logger.info("[ClaudeAuth] signOut — explicitlySignedOut flag SET")
+        // Clear URLSession cookies synchronously.
         for cookie in HTTPCookieStorage.shared.cookies ?? [] where cookie.domain.contains("claude.ai") {
             HTTPCookieStorage.shared.deleteCookie(cookie)
         }
-        // Await WKWebView cookie deletion so callers don't race with it.
+        // Clear WKWebView cookies asynchronously — best-effort so stale cookies
+        // don't persist to disk and survive app restarts.
+        Task { await clearWKWebViewCookies() }
+    }
+
+    // MARK: - Cookie Sync
+
+    /// Deletes all claude.ai cookies from the WKWebView default data store and waits
+    /// for deletion to complete. Called at the start of signIn() so the login window
+    /// opens with a clean store — preventing ClaudeCookieObserver from firing on stale
+    /// session cookies from a previous login.
+    private func clearWKWebViewCookies() async {
         await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
             WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
                 let claudeCookies = cookies.filter { $0.domain.contains("claude.ai") }
@@ -121,8 +153,6 @@ public final class ClaudeAuthManager: NSObject, ObservableObject {
             }
         }
     }
-
-    // MARK: - Cookie Sync
 
     public func syncCookies() async {
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in

@@ -38,8 +38,12 @@ public final class AuthManager: NSObject, ObservableObject {
 
     public override init() {
         super.init()
-        Self.clearStateIfFreshInstall()
-        loadSessionFromKeychain()
+        // Defer Keychain access by one run loop tick so the app window appears
+        // before any OS "allow keychain access" dialog is shown to the user.
+        DispatchQueue.main.async { [weak self] in
+            Self.clearStateIfFreshInstall()
+            self?.loadSessionFromKeychain()
+        }
     }
 
     // MARK: - Fresh-install cleanup
