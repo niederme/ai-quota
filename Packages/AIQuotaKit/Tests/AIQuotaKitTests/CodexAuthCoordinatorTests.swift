@@ -124,4 +124,9 @@ struct CodexAuthCoordinatorTests {
             _ = try await sut.accessToken()
         }
     }
+
+    @Test("Codex login starts on explicit ChatGPT login route")
+    func loginStartsOnExplicitRoute() {
+        #expect(CodexAuthCoordinator.loginURL == URL(string: "https://chatgpt.com/auth/login")!)
+    }
 }

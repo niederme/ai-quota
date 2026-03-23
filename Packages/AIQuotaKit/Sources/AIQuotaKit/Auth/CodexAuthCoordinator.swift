@@ -16,6 +16,7 @@ public actor CodexAuthCoordinator {
 
     private static let signedOutKey    = "codex.signedOutByUser"
     private static let freshInstallKey = "app.installedAt.v2"
+    static let loginURL = URL(string: "https://chatgpt.com/auth/login")!
 
     public private(set) var state: AuthState = .unknown
     private var continuations: [UUID: AsyncStream<AuthState>.Continuation] = [:]
@@ -395,7 +396,7 @@ private final class CodexLoginWindowController: NSObject {
         // didFinish handles the two cases: login page (window already visible, user signs in)
         // or authenticated page (tryFetchSession completes and closes the window).
         showLoginWindow()
-        wv.load(URLRequest(url: URL(string: "https://chatgpt.com")!))
+        wv.load(URLRequest(url: CodexAuthCoordinator.loginURL))
     }
 
     /// Fetches /api/auth/session via JS fetch from the current page context.
