@@ -358,8 +358,8 @@ private final class CoordLoginWindowController: NSObject {
         self.window = win
 
         webView.load(URLRequest(url: URL(string: "https://claude.ai/login")!))
-        win.makeKeyAndOrderFront(nil)
-        NSApp.activate(ignoringOtherApps: true)
+        // Window is revealed in didFinish once the login page has settled, hiding intermediate SPA states.
+        win.alphaValue = 0
     }
 
     private func startPolling() {
@@ -405,6 +405,12 @@ private final class CoordLoginWindowController: NSObject {
 @MainActor
 extension CoordLoginWindowController: WKNavigationDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        // Reveal the window the first time the page finishes loading.
+        if let win = window, win.alphaValue == 0 {
+            win.makeKeyAndOrderFront(nil)
+            win.alphaValue = 1
+            NSApp.activate(ignoringOtherApps: true)
+        }
         startPolling()
         tryAPIorgDetection(webView: webView)
     }
