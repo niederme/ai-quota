@@ -26,7 +26,8 @@ public actor ClaudeAuthCoordinator {
 
     // MARK: Persistence keys
 
-    private static let signedOutKey = "claude.signedOutByUser"
+    private static let signedOutKey    = "claude.signedOutByUser"
+    private static let freshInstallKey = "app.installedAt.v2"  // shared with CodexAuthCoordinator
 
     // MARK: State
 
@@ -86,6 +87,8 @@ public actor ClaudeAuthCoordinator {
     public func bootstrap() async {
         guard state == .unknown else { return }
 
+        await clearStateIfFreshInstall()
+
         if UserDefaults.standard.bool(forKey: Self.signedOutKey) {
             transition(to: .signedOutByUser)
             return
@@ -102,6 +105,23 @@ public actor ClaudeAuthCoordinator {
         case .notFound, .none:
             transition(to: .unauthenticated)
         }
+    }
+
+    private func clearStateIfFreshInstall() async {
+        let sentinel = Self.freshInstallKey
+        guard UserDefaults.standard.object(forKey: sentinel) == nil else { return }
+        SharedDefaults.clearUsage()
+        SharedDefaults.clearClaudeUsage()
+        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+            Task { @MainActor in
+                let store = WKWebsiteDataStore.default()
+                let types = WKWebsiteDataStore.allWebsiteDataTypes()
+                store.removeData(ofTypes: types, modifiedSince: Date(timeIntervalSince1970: 0)) {
+                    cont.resume()
+                }
+            }
+        }
+        UserDefaults.standard.set(true, forKey: sentinel)
     }
 
     // MARK: - signIn()
