@@ -38,11 +38,6 @@ public actor ClaudeAuthCoordinator {
     private var capturedOrgId: String?
     private var capturedCookies: [HTTPCookie] = []
 
-    // MARK: Concurrency guards
-
-    private var bootstrapTask: Task<Void, Never>?
-    private var activeTransition: Task<Void, Never>?
-
     // MARK: Logger
 
     private let logger = Logger(subsystem: "ai.quota", category: "claude-coord")
@@ -168,6 +163,10 @@ public actor ClaudeAuthCoordinator {
         guard state == .authenticated else { return false }
 
         let result = await withProbeTimeout(probe)
+
+        // Re-check: another transition (e.g. signOut) may have run while probe was in flight.
+        guard state == .authenticated else { return false }
+
         switch result {
         case .found(let orgId, let cookies):
             capturedOrgId = orgId
@@ -186,12 +185,15 @@ public actor ClaudeAuthCoordinator {
     /// Legal from: authenticated, unauthenticated, signedOutByUser.
     /// If signingIn or signingOut is in progress, waits for it to settle first.
     public func reset() async {
-        // Wait for any in-flight transient transition to settle.
-        while state == .signingIn || state == .signingOut || state == .resetting {
+        // Wait up to 30 seconds for any in-flight transient transition to settle.
+        let deadline = Date.now.addingTimeInterval(30)
+        while (state == .signingIn || state == .signingOut || state == .resetting),
+              Date.now < deadline {
             try? await Task.sleep(for: .milliseconds(50))
         }
 
         guard state == .authenticated || state == .unauthenticated || state == .signedOutByUser else {
+            logger.warning("[ClaudeCoord] reset: timed out waiting for in-flight transition to settle")
             return
         }
 
@@ -412,12 +414,13 @@ extension CoordLoginWindowController: NSWindowDelegate {
 
 // MARK: - CoordCookieObserver
 
-private final class CoordCookieObserver: NSObject, WKHTTPCookieStoreObserver, @unchecked Sendable {
-    private let onFound: @Sendable (String, [HTTPCookie]) -> Void
+@MainActor
+private final class CoordCookieObserver: NSObject, WKHTTPCookieStoreObserver {
+    private let onFound: @MainActor @Sendable (String, [HTTPCookie]) -> Void
     private var hasFound = false
     private static let loginCookies = ["lastActiveOrg", "sessionKey", "routingHint"]
 
-    init(onFound: @Sendable @escaping (String, [HTTPCookie]) -> Void) { self.onFound = onFound }
+    init(onFound: @MainActor @escaping @Sendable (String, [HTTPCookie]) -> Void) { self.onFound = onFound }
 
     func cookiesDidChange(in store: WKHTTPCookieStore) {
         guard !hasFound else { return }
