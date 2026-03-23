@@ -4,7 +4,6 @@ import AIQuotaKit
 struct PopoverView: View {
     @Environment(QuotaViewModel.self) private var viewModel
     @Environment(\.openSettings) private var openSettings
-    @Environment(\.openWindow) private var openWindow
 
     /// Captured reference to the MenuBarExtra NSWindow so we can re-show it
     /// after Settings opens (which steals key focus and causes the window to close).
@@ -26,13 +25,6 @@ struct PopoverView: View {
             Button("") { viewModel.manualRefresh() }
                 .keyboardShortcut("r", modifiers: .command)
                 .hidden()
-        }
-        .onAppear {
-            if viewModel.shouldShowOnboarding {
-                viewModel.markOnboardingTriggered()
-                NSApp.activate(ignoringOtherApps: true)
-                openWindow(id: "onboarding")
-            }
         }
         .task {
             if viewModel.usage == nil && viewModel.claudeUsage == nil {

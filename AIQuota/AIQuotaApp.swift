@@ -39,6 +39,7 @@ struct AIQuotaApp: App {
                 isLoading: viewModel.isLoading,
                 worstPercent: menuBarWorstPercent
             )
+            .onboardingLauncher(viewModel: viewModel)
         }
         .menuBarExtraStyle(.window)
 
@@ -114,6 +115,30 @@ struct AIQuotaApp: App {
 /// menu bar apps per Sparkle documentation.
 final class GentleSparkleDriverDelegate: NSObject, SPUStandardUserDriverDelegate {
     var supportsGentleScheduledUpdateReminders: Bool { true }
+}
+
+// MARK: - Onboarding launcher
+
+private struct OnboardingLauncherModifier: ViewModifier {
+    @Environment(\.openWindow) private var openWindow
+    let viewModel: QuotaViewModel
+
+    func body(content: Content) -> some View {
+        content.task {
+            // Brief pause so the SwiftUI scene graph is ready to open windows at launch.
+            try? await Task.sleep(for: .milliseconds(200))
+            if viewModel.shouldShowOnboarding {
+                viewModel.markOnboardingTriggered()
+                openWindow(id: "onboarding")
+            }
+        }
+    }
+}
+
+private extension View {
+    func onboardingLauncher(viewModel: QuotaViewModel) -> some View {
+        modifier(OnboardingLauncherModifier(viewModel: viewModel))
+    }
 }
 
 // MARK: - Window vibrancy installer
