@@ -414,24 +414,24 @@ extension CoordLoginWindowController: NSWindowDelegate {
 
 // MARK: - CoordCookieObserver
 
-@MainActor
-private final class CoordCookieObserver: NSObject, WKHTTPCookieStoreObserver {
-    private let onFound: @MainActor @Sendable (String, [HTTPCookie]) -> Void
+private final class CoordCookieObserver: NSObject, WKHTTPCookieStoreObserver, @unchecked Sendable {
     private var hasFound = false
+    private let onFound: @MainActor @Sendable (String, [HTTPCookie]) -> Void
     private static let loginCookies = ["lastActiveOrg", "sessionKey", "routingHint"]
 
-    init(onFound: @MainActor @escaping @Sendable (String, [HTTPCookie]) -> Void) { self.onFound = onFound }
+    init(onFound: @MainActor @Sendable @escaping (String, [HTTPCookie]) -> Void) { self.onFound = onFound }
 
     func cookiesDidChange(in store: WKHTTPCookieStore) {
-        guard !hasFound else { return }
         store.getAllCookies { [weak self] cookies in
-            guard let self, !self.hasFound else { return }
-            let claude = cookies.filter { $0.domain.contains("claude.ai") }
-            guard claude.contains(where: { Self.loginCookies.contains($0.name) }),
-                  let orgId = claude.first(where: { $0.name == "lastActiveOrg" })?.value
-            else { return }
-            self.hasFound = true
-            self.onFound(orgId, claude)
+            Task { @MainActor [weak self] in
+                guard let self, !self.hasFound else { return }
+                let claude = cookies.filter { $0.domain.contains("claude.ai") }
+                guard claude.contains(where: { Self.loginCookies.contains($0.name) }),
+                      let orgId = claude.first(where: { $0.name == "lastActiveOrg" })?.value
+                else { return }
+                self.hasFound = true
+                self.onFound(orgId, claude)
+            }
         }
     }
 }
