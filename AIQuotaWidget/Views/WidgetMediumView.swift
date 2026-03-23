@@ -40,7 +40,7 @@ struct WidgetMediumView: View {
                     size: 80
                 )
             } else {
-                emptySlot(icon: "brain.fill", label: "Codex")
+                emptySlot(icon: "logo-openai", label: "Codex")
             }
 
         case .claude:
@@ -57,15 +57,17 @@ struct WidgetMediumView: View {
                     size: 80
                 )
             } else {
-                emptySlot(icon: "sparkles", label: "Claude Code")
+                emptySlot(icon: "logo-claude", label: "Claude Code")
             }
         }
     }
 
     private func emptySlot(icon: String, label: String) -> some View {
         VStack(spacing: 6) {
-            Image(systemName: icon)
-                .font(.title2)
+            Image(icon)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 28, height: 28)
                 .foregroundStyle(WidgetGaugeView.accent.opacity(0.3))
             Text(label).font(.caption.bold()).foregroundStyle(.secondary)
             Text("Sign in to AIQuota").font(.system(size: 9)).foregroundStyle(.tertiary)
