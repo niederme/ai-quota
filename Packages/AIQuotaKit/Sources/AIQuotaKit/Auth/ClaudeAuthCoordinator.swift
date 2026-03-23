@@ -326,6 +326,7 @@ private final class CoordLoginWindowController: NSObject {
     private var cookieObserver: CoordCookieObserver?
     private var pollTimer: Timer?
     private var hasCompleted = false
+    private var selfRetain: CoordLoginWindowController?  // keeps self alive until continuation resumes
     private let onComplete: (Result<(orgId: String, cookies: [HTTPCookie]), Error>) -> Void
     private static let loginCookies = ["lastActiveOrg", "sessionKey", "routingHint"]
     private let logger = Logger(subsystem: "ai.quota", category: "claude-login")
@@ -357,6 +358,7 @@ private final class CoordLoginWindowController: NSObject {
         win.delegate = self
         self.window = win
 
+        selfRetain = self  // prevent deallocation until complete() or fail() resumes the continuation
         webView.load(URLRequest(url: URL(string: "https://claude.ai/login")!))
         // Window is revealed in didFinish once the login page has settled, hiding intermediate SPA states.
         win.alphaValue = 0
@@ -389,7 +391,9 @@ private final class CoordLoginWindowController: NSObject {
         stopPolling()
         window?.close()
         window = nil; webView = nil; cookieObserver = nil
-        onComplete(.success((orgId: orgId, cookies: cookies)))
+        let callback = onComplete
+        selfRetain = nil  // allow deallocation after continuation resumes
+        callback(.success((orgId: orgId, cookies: cookies)))
     }
 
     private func fail(with error: Error) {
@@ -398,7 +402,9 @@ private final class CoordLoginWindowController: NSObject {
         stopPolling()
         window?.close()
         window = nil; webView = nil; cookieObserver = nil
-        onComplete(.failure(error))
+        let callback = onComplete
+        selfRetain = nil  // allow deallocation after continuation resumes
+        callback(.failure(error))
     }
 }
 
