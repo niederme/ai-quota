@@ -51,11 +51,13 @@ struct ClaudeAuthCoordinatorTests {
         await sut.bootstrap()
         await sut.bootstrap()
         #expect(callCount.value == 1)
+        let state = await sut.state
+        #expect(state == .unauthenticated)
     }
 
     // MARK: - signIn
 
-    @Test("signIn from unauthenticated throws invalidTransition (no window in tests)")
+    @Test("signIn from authenticated throws invalidTransition")
     func signInIllegalFromAuthenticated() async throws {
         let sut = ClaudeAuthCoordinator(probe: { .found(orgId: "x", cookies: []) })
         await sut.bootstrap()  // → authenticated
@@ -65,6 +67,29 @@ struct ClaudeAuthCoordinatorTests {
     }
 
     // MARK: - signOut
+
+    @Test("signOut from authenticated transitions to signedOutByUser")
+    func signOutFromAuthenticated() async throws {
+        UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+        let sut = ClaudeAuthCoordinator(probe: { .found(orgId: "org-1", cookies: []) })
+        await sut.bootstrap()
+        #expect(await sut.state == .authenticated)
+        try await sut.signOut()
+        #expect(await sut.state == .signedOutByUser)
+        // Also verify the UserDefaults flag was set
+        #expect(UserDefaults.standard.bool(forKey: Self.signedOutKey) == true)
+        // Clean up
+        UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+    }
+
+    @Test("signOut from unknown throws invalidTransition")
+    func signOutFromUnknownThrows() async throws {
+        let sut = ClaudeAuthCoordinator(probe: { .notFound })
+        // Do NOT call bootstrap — coordinator is in .unknown
+        await #expect(throws: AuthCoordinatorError.self) {
+            try await sut.signOut()
+        }
+    }
 
     @Test("signOut from unauthenticated is a no-op")
     func signOutNoOpFromUnauthenticated() async throws {
