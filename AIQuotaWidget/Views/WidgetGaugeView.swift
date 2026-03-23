@@ -75,7 +75,7 @@ struct WidgetGaugeView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: iconPt, height: iconPt)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(statusColor)
 
                     VStack(spacing: 0) {
                         HStack(alignment: .firstTextBaseline, spacing: 2) {

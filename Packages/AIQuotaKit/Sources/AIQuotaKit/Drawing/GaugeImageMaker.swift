@@ -107,7 +107,7 @@ public enum GaugeImageMaker {
         }
         sparkPath.closeSubpath()
         ctx.addPath(sparkPath)
-        ctx.setFillColor(CGColor(red: 1, green: 1, blue: 1, alpha: 0.9))
+        ctx.setFillColor(sharedColor.copy(alpha: 0.9) ?? sharedColor)
         ctx.fillPath()
 
         img.unlockFocus()
