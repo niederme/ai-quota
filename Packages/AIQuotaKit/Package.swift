@@ -16,6 +16,15 @@ let package = Package(
                 .linkedFramework("WebKit"),
                 .linkedFramework("AppKit"),
             ]
+        ),
+        .testTarget(
+            name: "AIQuotaKitTests",
+            dependencies: ["AIQuotaKit"],
+            path: "Tests/AIQuotaKitTests",
+            linkerSettings: [
+                .linkedFramework("WebKit"),
+                .linkedFramework("AppKit"),
+            ]
         )
     ]
 )
