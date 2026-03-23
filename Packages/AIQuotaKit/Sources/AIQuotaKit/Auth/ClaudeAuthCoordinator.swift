@@ -193,7 +193,10 @@ public actor ClaudeAuthCoordinator {
         }
 
         guard state == .authenticated || state == .unauthenticated || state == .signedOutByUser else {
-            logger.warning("[ClaudeCoord] reset: timed out waiting for in-flight transition to settle")
+            logger.warning("[ClaudeCoord] reset: timed out waiting for in-flight transition to settle; forcing signedOutByUser")
+            UserDefaults.standard.set(true, forKey: Self.signedOutKey)
+            clearAuthContext()
+            transition(to: .signedOutByUser)
             return
         }
 

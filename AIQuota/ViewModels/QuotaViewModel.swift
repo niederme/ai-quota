@@ -197,8 +197,10 @@ final class QuotaViewModel {
         // Bootstrap both coordinators — handles Keychain / WKWebView session restore
         // internally; no need for a deferred Keychain access pattern here.
         Task {
-            await claudeCoordinator.bootstrap()
-            await codexCoordinator.bootstrap()
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask { await self.claudeCoordinator.bootstrap() }
+                group.addTask { await self.codexCoordinator.bootstrap() }
+            }
         }
     }
 
@@ -445,7 +447,7 @@ final class QuotaViewModel {
         stopAutoRefresh()
         Task {
             try? await codexCoordinator.signOut()
-            if isClaudeAuthenticated { startAutoRefresh() }
+            // Auto-refresh restart is handled by the claudeCoordinator state stream observer
         }
     }
 

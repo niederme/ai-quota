@@ -20,7 +20,7 @@ public actor CodexAuthCoordinator {
     public private(set) var state: AuthState = .unknown
     private var continuations: [UUID: AsyncStream<AuthState>.Continuation] = [:]
 
-    // JWT cache (replaces AuthManager's in-memory cache)
+    // JWT cache — owned entirely by the coordinator
     private var cachedAccessToken: String?
     private var tokenExpiresAt: Date?
     private let sessionEndpoint = URL(string: "https://chatgpt.com/api/auth/session")!
@@ -163,7 +163,11 @@ public actor CodexAuthCoordinator {
             try? await Task.sleep(for: .milliseconds(50))
         }
         guard state == .authenticated || state == .unauthenticated || state == .signedOutByUser else {
-            logger.warning("[CodexCoord] reset: timed out waiting for in-flight transition to settle")
+            logger.warning("[CodexCoord] reset: timed out waiting for in-flight transition to settle; forcing signedOutByUser")
+            UserDefaults.standard.set(true, forKey: Self.signedOutKey)
+            clearTokenCache()
+            KeychainStore.delete(forKey: "sessionToken")
+            transition(to: .signedOutByUser)
             return
         }
 
