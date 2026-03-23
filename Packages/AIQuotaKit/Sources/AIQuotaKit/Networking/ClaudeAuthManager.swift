@@ -31,7 +31,11 @@ public final class ClaudeAuthManager: NSObject, ObservableObject {
 
     public override init() {
         super.init()
-        loadAuthFromKeychain()
+        // Defer Keychain access by one run loop tick so the app window appears
+        // before any OS "allow keychain access" dialog is shown to the user.
+        DispatchQueue.main.async { [weak self] in
+            self?.loadAuthFromKeychain()
+        }
     }
 
     // MARK: - Sign In

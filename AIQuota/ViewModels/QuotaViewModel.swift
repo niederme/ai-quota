@@ -127,19 +127,28 @@ final class QuotaViewModel {
         codexUsage  = SharedDefaults.loadCachedUsage()
         claudeUsage = SharedDefaults.loadCachedClaudeUsage()
 
-        // Default active service to first authenticated one
-        if !codexAuth.isAuthenticated && claudeAuth.isAuthenticated {
-            activeService = .claude
-        }
-
-        // Bridge ObservableObject → @Observable
+        // Bridge ObservableObject → @Observable.
+        // Also kick off auto-refresh when auth is first restored from Keychain — the
+        // Keychain load is deferred by one run loop tick (to keep the app window first
+        // in front of any OS "allow keychain" dialog), so isAuthenticated is always
+        // false at init time and must be handled reactively here instead.
         authCancellable = codexAuth.$isAuthenticated
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] value in self?.isCodexAuthenticated = value }
+            .sink { [weak self] value in
+                guard let self else { return }
+                isCodexAuthenticated = value
+                if value && refreshTask == nil { startAutoRefresh() }
+            }
 
         claudeAuthCancellable = claudeAuth.$isAuthenticated
             .receive(on: DispatchQueue.main)
-            .sink { [weak self] value in self?.isClaudeAuthenticated = value }
+            .sink { [weak self] value in
+                guard let self else { return }
+                isClaudeAuthenticated = value
+                // Default active service to Claude if that's all that's authenticated
+                if value && !isCodexAuthenticated { activeService = .claude }
+                if value && refreshTask == nil { startAutoRefresh() }
+            }
 
         // Request notification permission on launch
         if settings.notifications.enabled {
@@ -154,20 +163,6 @@ final class QuotaViewModel {
         // is already running by the time silentSignInIfPossible() or syncCookies()
         // is needed, whether or not Claude is currently authenticated.
         Task { await claudeAuthManager.syncCookies() }
-
-        // Kick off refresh on launch. For Claude, sync WKWebView cookies first so
-        // the session is available to URLSession before the first fetch — prevents
-        // the false-positive "Not signed in" banner that appears when the WKWebView
-        // process hasn't finished loading its cookie store yet.
-        if codexAuth.isAuthenticated || claudeAuth.isAuthenticated {
-            Task { [weak self] in
-                guard let self else { return }
-                if claudeAuth.isAuthenticated {
-                    await claudeAuthManager.syncCookies()
-                }
-                startAutoRefresh()
-            }
-        }
     }
 
     // MARK: - Network path monitor
