@@ -391,8 +391,10 @@ private final class CodexLoginWindowController: NSObject {
         config.websiteDataStore.httpCookieStore.add(observer)
         self.cookieObserver = observer
 
-        // Load chatgpt.com. didFinish will show the login window if needed,
-        // or fetch the session silently if already logged in.
+        // Show the window immediately so the user gets visual feedback right away.
+        // didFinish handles the two cases: login page (window already visible, user signs in)
+        // or authenticated page (tryFetchSession completes and closes the window).
+        showLoginWindow()
         wv.load(URLRequest(url: URL(string: "https://chatgpt.com")!))
     }
 
@@ -498,10 +500,9 @@ extension CodexLoginWindowController: WKNavigationDelegate {
         logger.info("[CodexLogin] didFinish: \(url.path)")
 
         if url.path.hasPrefix("/auth/") || url.path == "/login" {
-            // On a login/auth page — show the window so the user can sign in.
-            showLoginWindow()
+            // Login page — window is already visible, nothing extra needed.
         } else {
-            // On an authenticated chatgpt.com page — try to fetch the session.
+            // Authenticated chatgpt.com page — try to fetch the session.
             tryFetchSession(webView: webView)
         }
     }
