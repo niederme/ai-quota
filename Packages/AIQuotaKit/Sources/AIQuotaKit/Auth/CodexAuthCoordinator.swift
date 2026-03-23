@@ -492,21 +492,21 @@ extension CodexLoginWindowController: WKNavigationDelegate {
                 return
             }
             let expiresAt = self.parseExpiry(body.expires)
-            webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { [weak self] cookies in
-                guard let self, !self.hasCompleted else { return }
+            // Sync cookies to shared URLSession storage (best-effort, don't block completion).
+            // getAllCookies can hang if the WK process is torn down, so we complete immediately
+            // rather than waiting for the callback. The session token will be found by wkProbe
+            // during the next bootstrap() if it wasn't already in HTTPCookieStorage.
+            webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { cookies in
                 for c in cookies where c.domain.contains("chatgpt.com") || c.domain.contains("openai.com") {
                     HTTPCookieStorage.shared.setCookie(c)
                 }
-                let sessionToken = cookies.first(where: {
-                    $0.name == "__Secure-next-auth.session-token" && $0.domain.contains("chatgpt.com")
-                })?.value ?? ""
-                Task { @MainActor [weak self] in
-                    self?.complete(CodexLoginResult(
-                        sessionToken: sessionToken,
-                        accessToken: accessToken,
-                        expiresAt: expiresAt
-                    ))
-                }
+            }
+            Task { @MainActor [weak self] in
+                self?.complete(CodexLoginResult(
+                    sessionToken: "",  // will be persisted to Keychain by wkProbe on next bootstrap
+                    accessToken: accessToken,
+                    expiresAt: expiresAt
+                ))
             }
         }
     }
