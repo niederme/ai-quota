@@ -26,9 +26,16 @@ struct OnboardingView: View {
     @State private var step: OnboardingStep = .welcome
     @State private var direction: Int = 1   // +1 forward, -1 backward
 
-    // Fixed window size
-    static let width: CGFloat  = 520
-    static let height: CGFloat = 580
+    // Window size — expands when the menu bar picker is visible on the services step
+    static let width: CGFloat       = 520
+    static let height: CGFloat      = 580
+    static let heightWithPicker: CGFloat = 660
+
+    private var windowHeight: CGFloat {
+        step == .services && viewModel.isCodexAuthenticated && viewModel.isClaudeAuthenticated
+            ? Self.heightWithPicker
+            : Self.height
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -48,7 +55,8 @@ struct OnboardingView: View {
                 .frame(maxWidth: .infinity)
                 .background(.regularMaterial)
         }
-        .frame(width: Self.width, height: Self.height)
+        .frame(width: Self.width, height: windowHeight)
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: windowHeight)
         .background(.regularMaterial)
         .onAppear {
             // Window is reused by SwiftUI — always restart from the beginning
