@@ -17,7 +17,8 @@ A native macOS menubar utility to monitor your AI coding quota — track [OpenAI
 - **Codex + Claude Code** — each service shows reset timers, plan badges, and per-service refresh buttons; credits and plan info in a summary row below the gauges
 - **Widgets** — small widget shows one service (right-click to choose); medium widget always shows both Codex and Claude Code side by side with a refresh button
 - **Network recovery** — detects when connectivity is restored and refreshes immediately, clearing stale error banners automatically
-- **Guided onboarding** — a step-by-step setup wizard on first launch walks you through connecting services, configuring notifications, and adding the menu bar widget
+- **Guided onboarding** — a step-by-step setup wizard on first launch walks you through connecting services, configuring notifications, and adding the menu bar widget; when both services are connected, asks which to show in the menu bar
+- **Single-service layout** — the popover adapts its width and layout when only one service is enrolled; no wasted space or placeholder columns
 - **Sign in with ChatGPT / Claude** — OAuth via browser session, tokens stored securely in Keychain
 - **Notifications** — per-service master switches let you silence all alerts for a service at once; individual thresholds at 15%, 5%, limit reached, and quota reset; time-has-passed logic prevents spurious alerts from rolling-window drift
 - **Auto-update** — checks for a new version silently on every launch and twice daily via Sparkle; uses gentle reminders so update alerts never steal focus from your active app
@@ -98,6 +99,9 @@ See the pre-release checklist at the top of [`scripts/release.sh`](scripts/relea
 - [ ] Debug / release auth-state clarity — make it explicit whether Xcode builds share sign-in state with the installed release app, and add a clean testing mode if needed
 - [ ] Menu bar icon monochrome mode — option to disable amber/red status colours for a cleaner, always-white icon
 - [ ] Gemini quota support (Google AI plans)
+- [x] Single-service layout — popover adapts width and layout when only one service is enrolled
+- [x] Menu bar preference in onboarding — when both services are connected, setup asks which to show in the menu bar
+- [x] Stable popover layout — Connect button sits inside the gauge arc when a service needs to reconnect; no layout shifts
 - [x] Guided onboarding — step-by-step setup wizard on first launch; replayable from Settings
 - [x] Per-service notification switches — master toggle per service; sub-thresholds collapse when disabled
 - [x] Dual-arc gauge — concentric rings for 5h and 7-day windows; color-coded purple → amber → red; both percentages labelled in the centre
