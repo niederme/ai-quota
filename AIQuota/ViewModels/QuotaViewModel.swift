@@ -48,6 +48,15 @@ final class QuotaViewModel {
     /// Which service's panel is visible in the popover.
     var activeService: ServiceType = .codex
 
+    // MARK: - Enrollment
+
+    /// Persisted in SharedDefaults (app-group) so the widget can read it.
+    /// Populated from first successful sign-in; cleared only on explicit Sign Out or reset.
+    private(set) var enrolledServices: Set<ServiceType> = SharedDefaults.loadEnrolledServices()
+
+    var isCodexEnrolled: Bool { enrolledServices.contains(.codex) }
+    var isClaudeEnrolled: Bool { enrolledServices.contains(.claude) }
+
     // MARK: - Onboarding
 
     /// True if the user has never completed the onboarding wizard.
@@ -100,6 +109,8 @@ final class QuotaViewModel {
         // Persist settings directly — calling saveSettings() would invoke startAutoRefresh(),
         // which must not fire while the auth coordinators are still in the resetting state.
         SharedDefaults.saveSettings(settings)
+        enrolledServices = []
+        SharedDefaults.clearEnrolledServices()
         UserDefaults.standard.removeObject(forKey: "onboarding.v1.hasCompleted")
         onboardingTriggeredThisSession = false
         WidgetCenter.shared.reloadAllTimelines()
@@ -158,6 +169,11 @@ final class QuotaViewModel {
             for await state in claudeCoordinator.stateStream {
                 await MainActor.run {
                     self.claudeState = state
+                    // Auto-enroll on first successful auth (handles migration from pre-enrollment builds)
+                    if state == .authenticated && !self.enrolledServices.contains(.claude) {
+                        self.enrolledServices.insert(.claude)
+                        SharedDefaults.enrollService(.claude)
+                    }
                     if state == .authenticated && self.refreshTask == nil {
                         self.startAutoRefresh()
                     }
@@ -174,6 +190,10 @@ final class QuotaViewModel {
             for await state in codexCoordinator.stateStream {
                 await MainActor.run {
                     self.codexState = state
+                    if state == .authenticated && !self.enrolledServices.contains(.codex) {
+                        self.enrolledServices.insert(.codex)
+                        SharedDefaults.enrollService(.codex)
+                    }
                     if state == .authenticated && self.refreshTask == nil {
                         self.startAutoRefresh()
                     }
@@ -450,6 +470,14 @@ final class QuotaViewModel {
         stopAutoRefresh()
         Task {
             try? await codexCoordinator.signOut()
+            self.enrolledServices.remove(.codex)
+            SharedDefaults.unenrollService(.codex)
+            // If menuBarService is now unenrolled, correct it
+            if !self.enrolledServices.contains(self.settings.menuBarService),
+               let fallback = self.enrolledServices.first {
+                self.settings.menuBarService = fallback
+                self.saveSettings()
+            }
             // Auto-refresh restart is handled by the claudeCoordinator state stream observer
         }
     }
@@ -457,6 +485,13 @@ final class QuotaViewModel {
     func signOutClaude() {
         Task {
             try? await claudeCoordinator.signOut()
+            self.enrolledServices.remove(.claude)
+            SharedDefaults.unenrollService(.claude)
+            if !self.enrolledServices.contains(self.settings.menuBarService),
+               let fallback = self.enrolledServices.first {
+                self.settings.menuBarService = fallback
+                self.saveSettings()
+            }
             if activeService == .claude { activeService = .codex }
         }
     }
