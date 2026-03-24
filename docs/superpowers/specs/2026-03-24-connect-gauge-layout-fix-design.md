@@ -31,7 +31,11 @@ VStack {
 }
 ```
 
-### 3. Caption: match CircularGaugeView.caption
+### 3. Outer VStack spacing: match CircularGaugeView
+
+The outer `VStack` in `connectGauge` uses `spacing: 8`; `CircularGaugeView` uses `spacing: 4`. Change to `VStack(spacing: 4)`.
+
+### 4. Caption: match CircularGaugeView.caption
 
 Replace the current `VStack(spacing: 5) { Text(label).caption.bold.secondary + Button }` with:
 
@@ -52,7 +56,7 @@ Note: `CircularGaugeView.caption` conditionally changes colors to `.red` when `p
 
 - **One file:** `AIQuota/Views/PopoverView.swift`
 - **One function:** `connectGauge(icon:label:action:)`
-- No changes to `CircularGaugeView`, `gaugeRow`, `statsRow`, or outer layout.
+- No changes to `CircularGaugeView`, `gaugeRow`, `statsRow`.
 
 ## Edge Cases
 
