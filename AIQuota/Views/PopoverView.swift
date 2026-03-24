@@ -9,17 +9,21 @@ struct PopoverView: View {
     /// after Settings opens (which steals key focus and causes the window to close).
     @State private var menuBarWindow: NSWindow?
 
+    private var popoverWidth: CGFloat {
+        viewModel.enrolledServices.count == 1 ? 240 : 340
+    }
+
     var body: some View {
         Group {
             if viewModel.isRestoringSession {
                 restoringSessionContent
-            } else if viewModel.isCodexAuthenticated || viewModel.isClaudeAuthenticated {
+            } else if !viewModel.enrolledServices.isEmpty {
                 authenticatedContent
             } else {
                 signInContent
             }
         }
-        .frame(width: 340)
+        .frame(width: popoverWidth)
         .background(WindowCapture { menuBarWindow = $0 })
         .background {
             Button("") { viewModel.manualRefresh() }
@@ -42,7 +46,7 @@ struct PopoverView: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
         }
-        .frame(width: 340, height: 120)
+        .frame(width: popoverWidth, height: 120)
     }
 
     private func openSettingsKeepingPopover() {
@@ -58,42 +62,23 @@ struct PopoverView: View {
         VStack(spacing: 0) {
             header
 
-            // Error banners
-            if let error = viewModel.codexError {
+            if viewModel.isCodexEnrolled, let error = viewModel.codexError {
                 errorBanner(error,
                     dismiss: { viewModel.codexError = nil },
                     signIn: error.isAuthError ? { Task { await viewModel.signIn() } } : nil)
                 Divider()
             }
-            if let error = viewModel.claudeError {
+            if viewModel.isClaudeEnrolled, let error = viewModel.claudeError {
                 errorBanner(error,
                     dismiss: { viewModel.claudeError = nil },
                     signIn: error.isAuthError ? { Task { await viewModel.signInClaude() } } : nil)
                 Divider()
             }
 
-            // Gauge row
-            HStack(alignment: .top, spacing: 0) {
-                codexGaugeSlot.frame(maxWidth: .infinity)
-                Divider()
-                claudeGaugeSlot.frame(maxWidth: .infinity)
-            }
-            .padding(.top, 16).padding(.bottom, 10)
+            gaugeRow
+                .padding(.top, 16).padding(.bottom, 10)
 
-            // Stats row (horizontal rule separates it from gauges)
-            if viewModel.codexUsage != nil || viewModel.claudeUsage != nil {
-                Divider()
-                HStack(alignment: .top, spacing: 0) {
-                    codexSecondaryStats
-                        .padding(.horizontal, 14)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    Divider()
-                    claudeSecondaryStats
-                        .padding(.horizontal, 14)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .padding(.vertical, 10)
-            }
+            statsRow
 
             Divider()
             footer
@@ -168,6 +153,54 @@ struct PopoverView: View {
         } else {
             connectGauge(icon: "logo-claude", label: "Claude Code") {
                 Task { await viewModel.signInClaude() }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var gaugeRow: some View {
+        if viewModel.isCodexEnrolled && viewModel.isClaudeEnrolled {
+            HStack(alignment: .top, spacing: 0) {
+                codexGaugeSlot.frame(maxWidth: .infinity)
+                Divider()
+                claudeGaugeSlot.frame(maxWidth: .infinity)
+            }
+        } else if viewModel.isCodexEnrolled {
+            codexGaugeSlot
+        } else {
+            claudeGaugeSlot
+        }
+    }
+
+    @ViewBuilder
+    private var statsRow: some View {
+        let bothEnrolled = viewModel.isCodexEnrolled && viewModel.isClaudeEnrolled
+        let hasCodexStats = viewModel.isCodexEnrolled && viewModel.codexUsage != nil
+        let hasClaudeStats = viewModel.isClaudeEnrolled && viewModel.claudeUsage != nil
+
+        if hasCodexStats || hasClaudeStats {
+            Divider()
+            if bothEnrolled && hasCodexStats && hasClaudeStats {
+                HStack(alignment: .top, spacing: 0) {
+                    codexSecondaryStats
+                        .padding(.horizontal, 14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    Divider()
+                    claudeSecondaryStats
+                        .padding(.horizontal, 14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.vertical, 10)
+            } else if hasCodexStats {
+                codexSecondaryStats
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                claudeSecondaryStats
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
