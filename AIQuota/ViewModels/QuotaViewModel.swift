@@ -459,6 +459,11 @@ final class QuotaViewModel {
             // Propagate auth state synchronously before refreshClaude() checks isClaudeAuthenticated.
             // The stateStream observer will also fire, but may lag behind by one async hop.
             claudeState = .authenticated
+            // Mirror the stream-observer enrollment so isClaudeEnrolled is true before the refresh.
+            if !enrolledServices.contains(.claude) {
+                enrolledServices.insert(.claude)
+                SharedDefaults.enrollService(.claude)
+            }
             await refreshClaude()
             if refreshTask == nil { startAutoRefresh() }
         } catch {
@@ -478,7 +483,7 @@ final class QuotaViewModel {
                 self.settings.menuBarService = fallback
                 self.saveSettings()
             }
-            // Auto-refresh restart is handled by the claudeCoordinator state stream observer
+            // Refresh loop was stopped above; it will restart on next sign-in or manual refresh.
         }
     }
 
