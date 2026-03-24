@@ -8,6 +8,9 @@ struct CodexAuthCoordinatorTests {
     init() {
         UserDefaults.standard.removeObject(forKey: "codex.signedOutByUser")
         UserDefaults.standard.removeObject(forKey: "app.installedAt.v2")
+        UserDefaults.standard.removeObject(forKey: "onboarding.v1.hasCompleted")
+        SharedDefaults.clearUsage()
+        SharedDefaults.clearClaudeUsage()
     }
 
     @Test("bootstrap with valid session → authenticated")
@@ -61,6 +64,23 @@ struct CodexAuthCoordinatorTests {
         #expect(callCount.value == 1)
         let state = await sut.state
         #expect(state == .unauthenticated)
+    }
+
+    @Test("bootstrap without sentinel preserves legacy cached state")
+    func bootstrapPreservesLegacyCachedState() async throws {
+        SharedDefaults.saveUsage(.placeholder)
+        UserDefaults.standard.set(true, forKey: "onboarding.v1.hasCompleted")
+        defer {
+            SharedDefaults.clearUsage()
+            UserDefaults.standard.removeObject(forKey: "onboarding.v1.hasCompleted")
+            UserDefaults.standard.removeObject(forKey: "app.installedAt.v2")
+        }
+
+        let sut = CodexAuthCoordinator(probe: { .notFound })
+        await sut.bootstrap()
+
+        #expect(SharedDefaults.loadCachedUsage() != nil)
+        #expect(UserDefaults.standard.object(forKey: "app.installedAt.v2") != nil)
     }
 
     @Test("signIn from unknown throws invalidTransition")

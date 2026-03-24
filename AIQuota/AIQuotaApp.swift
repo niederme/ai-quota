@@ -5,7 +5,7 @@ import AIQuotaKit
 
 @main
 struct AIQuotaApp: App {
-    @State private var viewModel = QuotaViewModel()
+    @State private var viewModel: QuotaViewModel
 
     // Sparkle updater — must be held at app scope for its lifetime.
     // gentleDriverDelegate opts into polite (non-focus-stealing) update alerts,
@@ -14,6 +14,9 @@ struct AIQuotaApp: App {
     private let updaterController: SPUStandardUpdaterController
 
     init() {
+        LegacyWebKitMigration.migrateIfNeeded(bundleIdentifier: "com.niederme.AIQuota")
+        LegacyDefaultsMigration.migrateIfNeeded(bundleIdentifier: "com.niederme.AIQuota")
+        _viewModel = State(initialValue: QuotaViewModel())
         updaterController = SPUStandardUpdaterController(
             startingUpdater: true,
             updaterDelegate: nil,
@@ -164,4 +167,3 @@ private struct WindowVibrancyInstaller: NSViewRepresentable {
     }
     func updateNSView(_ nsView: NSView, context: Context) {}
 }
-

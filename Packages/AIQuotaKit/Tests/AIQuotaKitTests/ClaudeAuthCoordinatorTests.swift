@@ -10,6 +10,10 @@ struct ClaudeAuthCoordinatorTests {
     init() {
         // Ensure each test starts clean — parallel tests can bleed UserDefaults
         UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+        UserDefaults.standard.removeObject(forKey: "app.installedAt.v2")
+        UserDefaults.standard.removeObject(forKey: "onboarding.v1.hasCompleted")
+        SharedDefaults.clearUsage()
+        SharedDefaults.clearClaudeUsage()
     }
 
     // MARK: - Bootstrap
@@ -53,6 +57,23 @@ struct ClaudeAuthCoordinatorTests {
         #expect(callCount.value == 1)
         let state = await sut.state
         #expect(state == .unauthenticated)
+    }
+
+    @Test("bootstrap without sentinel preserves legacy cached state")
+    func bootstrapPreservesLegacyCachedState() async throws {
+        SharedDefaults.saveClaudeUsage(.placeholder)
+        UserDefaults.standard.set(true, forKey: "onboarding.v1.hasCompleted")
+        defer {
+            SharedDefaults.clearClaudeUsage()
+            UserDefaults.standard.removeObject(forKey: "onboarding.v1.hasCompleted")
+            UserDefaults.standard.removeObject(forKey: "app.installedAt.v2")
+        }
+
+        let sut = ClaudeAuthCoordinator(probe: { .notFound })
+        await sut.bootstrap()
+
+        #expect(SharedDefaults.loadCachedClaudeUsage() != nil)
+        #expect(UserDefaults.standard.object(forKey: "app.installedAt.v2") != nil)
     }
 
     // MARK: - signIn
