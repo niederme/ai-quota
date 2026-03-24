@@ -150,7 +150,6 @@ private struct MenuBarDefaultPicker: View {
     var body: some View {
         VStack(spacing: 10) {
             Divider()
-                .padding(.horizontal, 32)
 
             Text("Which should show in your menu bar?")
                 .font(.footnote)
