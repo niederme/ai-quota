@@ -47,7 +47,7 @@ struct NotificationsStepView: View {
                 }
 
                 // ── Codex ──────────────────────────────────────────────
-                if viewModel.isCodexAuthenticated {
+                if viewModel.isCodexEnrolled {
                     Section {
                         serviceRow(logo: "logo-openai", name: "Codex",
                                    isOn: sectionsEnabled ? $vm.settings.notifications.codexEnabled : .constant(false))
@@ -71,7 +71,7 @@ struct NotificationsStepView: View {
                 }
 
                 // ── Claude Code ────────────────────────────────────────
-                if viewModel.isClaudeAuthenticated {
+                if viewModel.isClaudeEnrolled {
                     Section {
                         serviceRow(logo: "logo-claude", name: "Claude Code",
                                    isOn: sectionsEnabled ? $vm.settings.notifications.claudeEnabled : .constant(false))
@@ -94,7 +94,7 @@ struct NotificationsStepView: View {
                     .opacity(sectionsEnabled ? 1 : 0.45)
                 }
 
-                if !viewModel.isCodexAuthenticated && !viewModel.isClaudeAuthenticated {
+                if viewModel.enrolledServices.isEmpty {
                     Section {
                         Text("Sign in to a service on the previous step to configure thresholds.")
                             .foregroundStyle(.secondary)
