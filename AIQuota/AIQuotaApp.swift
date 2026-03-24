@@ -95,16 +95,9 @@ struct AIQuotaApp: App {
     /// Respects `settings.menuBarService` but falls back gracefully.
     private var resolvedMenuBarService: ServiceType {
         let preferred = viewModel.settings.menuBarService
-        switch preferred {
-        case .codex:
-            return viewModel.isCodexAuthenticated ? .codex
-                 : viewModel.isClaudeAuthenticated ? .claude
-                 : .codex
-        case .claude:
-            return viewModel.isClaudeAuthenticated ? .claude
-                 : viewModel.isCodexAuthenticated ? .codex
-                 : .codex
-        }
+        // Use preferred service if enrolled; otherwise fall back to any enrolled service.
+        if viewModel.enrolledServices.contains(preferred) { return preferred }
+        return viewModel.enrolledServices.first ?? preferred
     }
 }
 
