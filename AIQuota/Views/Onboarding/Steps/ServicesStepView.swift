@@ -127,3 +127,84 @@ private struct ServiceRow: View {
         )
     }
 }
+
+// MARK: - Menu Bar Default Picker
+
+private struct MenuBarDefaultPicker: View {
+    let selection: ServiceType
+    let onSelect: (ServiceType) -> Void
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Divider()
+                .padding(.horizontal, 32)
+
+            Text("Which should show in your menu bar?")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 10) {
+                card(for: .codex,  logoName: "logo-openai", name: "Codex")
+                card(for: .claude, logoName: "logo-claude", name: "Claude Code")
+            }
+        }
+        .padding(.horizontal, 32)
+        .padding(.top, 16)
+    }
+
+    @ViewBuilder
+    private func card(for service: ServiceType, logoName: String, name: String) -> some View {
+        let isSelected = selection == service
+        Button { onSelect(service) } label: {
+            VStack(spacing: 10) {
+                Image(logoName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 36, height: 36)
+                    .padding(10)
+                    .background(
+                        Circle()
+                            .fill(isSelected
+                                  ? Color.brand.opacity(0.1)
+                                  : Color.secondary.opacity(0.08))
+                    )
+                    .overlay(
+                        Circle()
+                            .strokeBorder(
+                                isSelected ? Color.brand.opacity(0.3) : Color.clear,
+                                lineWidth: 1.5
+                            )
+                    )
+
+                Text(name)
+                    .font(.callout).fontWeight(.semibold)
+
+                Circle()
+                    .strokeBorder(isSelected ? Color.brand : Color.secondary.opacity(0.3),
+                                  lineWidth: 2)
+                    .frame(width: 16, height: 16)
+                    .overlay(
+                        Circle()
+                            .fill(Color.brand)
+                            .frame(width: 8, height: 8)
+                            .opacity(isSelected ? 1 : 0)
+                    )
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(.background)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(
+                                isSelected ? Color.brand.opacity(0.35) : Color.secondary.opacity(0.12),
+                                lineWidth: 1
+                            )
+                    )
+            )
+            .animation(.spring(response: 0.3, dampingFraction: 0.75), value: isSelected)
+        }
+        .buttonStyle(.plain)
+    }
+}
