@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.9.3</title>
+            <title>Version 1.9.4</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.9.3</h2>  <ul><li>Refined popover typography and improved footer tap targets</li></ul>
+<h2>What's New in 1.9.4</h2>  <ul><li><strong>Polished onboarding</strong> — frosted glass background, fixed window size, and a cleaner title bar</li> <li><strong>Menu bar preference</strong> — when both Claude and Codex are connected, setup now asks which to show in the menu bar</li> <li><strong>Stable popover layout</strong> — the Connect button now sits inside the gauge when a service needs to reconnect, no more layout shifts</li></ul>
 </body>
 </html>
 ]]></description>
-            <sparkle:version>249</sparkle:version>
-            <sparkle:shortVersionString>1.9.3</sparkle:shortVersionString>
+            <sparkle:version>272</sparkle:version>
+            <sparkle:shortVersionString>1.9.4</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.9.3/AIQuota.zip"
-                sparkle:edSignature="ts/Hu6Ntw3YsyCBxUa5qOQCo9K/JQ/4ELq6B3cEdmQWPXlyq10I6LLqoRGDuDIJ4xdAuxMeOiAZTU8oEPUZ2Cg=="
-                length="3265383"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.9.4/AIQuota.zip"
+                sparkle:edSignature="+vyAoXeXq4DG/8My/jAr8oD5+2B4qVJQlp38MpDke71Fj+MAjB1mHQei/4bbFRDUe2NhxZSHs54F282kfuDkDg=="
+                length="3319510"
                 type="application/zip"/>
         </item>
     </channel>
