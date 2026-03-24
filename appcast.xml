@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.9.2</title>
+            <title>Version 1.9.3</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.9.2</h2>  <ul><li><strong>Smoother upgrades</strong> — login sessions and preferences from previous versions are now automatically carried over after updating</li></ul>
+<h2>What's New in 1.9.3</h2>  <ul><li>Refined popover typography and improved footer tap targets</li></ul>
 </body>
 </html>
 ]]></description>
-            <sparkle:version>247</sparkle:version>
-            <sparkle:shortVersionString>1.9.2</sparkle:shortVersionString>
+            <sparkle:version>249</sparkle:version>
+            <sparkle:shortVersionString>1.9.3</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.9.2/AIQuota.zip"
-                sparkle:edSignature="eqOu3ERCCKfCbG3JNtPP7eHA+AenmQd4P+5iS5+GuQ7ThNNynH0zGnJtIek1QCSB1JOF+7SaXAcDw/5jB5GtBg=="
-                length="3261492"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.9.3/AIQuota.zip"
+                sparkle:edSignature="ts/Hu6Ntw3YsyCBxUa5qOQCo9K/JQ/4ELq6B3cEdmQWPXlyq10I6LLqoRGDuDIJ4xdAuxMeOiAZTU8oEPUZ2Cg=="
+                length="3265383"
                 type="application/zip"/>
         </item>
     </channel>
