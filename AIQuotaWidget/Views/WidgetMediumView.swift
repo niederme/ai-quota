@@ -5,26 +5,38 @@ struct WidgetMediumView: View {
     let entry: QuotaEntry
 
     var body: some View {
-        HStack(spacing: 0) {
-            // Left: Codex
-            gaugeSlot(for: .codex)
-                .frame(maxWidth: .infinity)
-
-            Divider().padding(.vertical, 12)
-
-            // Right: Claude Code
-            gaugeSlot(for: .claude)
-                .frame(maxWidth: .infinity)
+        Group {
+            // Exactly one service enrolled → centered single gauge.
+            // Zero (never enrolled / after reset) or two → dual layout.
+            if entry.enrolledServices.count == 1 {
+                singleLayout
+            } else {
+                dualLayout
+            }
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    private var dualLayout: some View {
+        HStack(spacing: 0) {
+            gaugeSlot(for: .codex, size: 80).frame(maxWidth: .infinity)
+            Divider().padding(.vertical, 12)
+            gaugeSlot(for: .claude, size: 80).frame(maxWidth: .infinity)
+        }
+    }
+
+    private var singleLayout: some View {
+        // `enrolledServices.count == 1` is guaranteed at call site
+        let service = entry.enrolledServices.first ?? .codex
+        return gaugeSlot(for: service, size: 90)
+    }
+
     // MARK: - Gauge slot
 
     @ViewBuilder
-    private func gaugeSlot(for service: ServiceType) -> some View {
+    private func gaugeSlot(for service: ServiceType, size: CGFloat) -> some View {
         switch service {
         case .codex:
             if let u = entry.codexUsage {
@@ -37,7 +49,7 @@ struct WidgetMediumView: View {
                     primaryLabel: "5h",
                     secondaryLabel: "7-day",
                     resetSeconds: u.hourlyResetAfterSeconds,
-                    size: 80
+                    size: size
                 )
             } else {
                 emptySlot(icon: "logo-openai", label: "Codex")
@@ -54,7 +66,7 @@ struct WidgetMediumView: View {
                     primaryLabel: "5h",
                     secondaryLabel: "7-day",
                     resetSeconds: u.resetAfterSeconds,
-                    size: 80
+                    size: size
                 )
             } else {
                 emptySlot(icon: "logo-claude", label: "Claude Code")

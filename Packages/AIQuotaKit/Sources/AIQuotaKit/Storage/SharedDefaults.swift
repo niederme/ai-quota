@@ -57,4 +57,36 @@ public enum SharedDefaults {
         else { return .default }
         return settings
     }
+
+    // MARK: - Enrolled services
+
+    private static let enrolledServicesKey = "enrolledServices"
+
+    public static func loadEnrolledServices() -> Set<ServiceType> {
+        guard let data = defaults.data(forKey: enrolledServicesKey),
+              let rawValues = try? JSONDecoder().decode([String].self, from: data)
+        else { return [] }
+        return Set(rawValues.compactMap { ServiceType(rawValue: $0) })
+    }
+
+    public static func saveEnrolledServices(_ services: Set<ServiceType>) {
+        guard let data = try? JSONEncoder().encode(services.map(\.rawValue)) else { return }
+        defaults.set(data, forKey: enrolledServicesKey)
+    }
+
+    public static func enrollService(_ service: ServiceType) {
+        var current = loadEnrolledServices()
+        current.insert(service)
+        saveEnrolledServices(current)
+    }
+
+    public static func unenrollService(_ service: ServiceType) {
+        var current = loadEnrolledServices()
+        current.remove(service)
+        saveEnrolledServices(current)
+    }
+
+    public static func clearEnrolledServices() {
+        defaults.removeObject(forKey: enrolledServicesKey)
+    }
 }
