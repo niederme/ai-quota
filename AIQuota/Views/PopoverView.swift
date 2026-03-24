@@ -234,15 +234,15 @@ struct PopoverView: View {
     }
 
     private func connectGauge(icon: String, label: String, action: @escaping () -> Void) -> some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 4) {
             ZStack {
                 Circle()
                     .trim(from: 0, to: 0.75)
-                    .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: 9, lineCap: .round))
+                    .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: 8, lineCap: .butt))
                     .rotationEffect(.degrees(135))
                 Circle()
                     .trim(from: 0, to: 0.75)
-                    .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                    .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: 8, lineCap: .butt))
                     .rotationEffect(.degrees(135))
                     .padding(8)
                 VStack(spacing: 2) {
@@ -255,14 +255,22 @@ struct PopoverView: View {
                         .font(.system(size: 15, weight: .bold, design: .rounded))
                         .foregroundStyle(.quaternary)
                 }
+                VStack {
+                    Spacer()
+                    Button("Connect", action: action)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .padding(.bottom, 2)
+                }
             }
             .frame(width: 114, height: 114)
 
-            VStack(spacing: 5) {
-                Text(label).font(.caption.bold()).foregroundStyle(.secondary)
-                Button("Connect", action: action)
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
+            VStack(spacing: 2) {
+                Text(label)
+                    .font(.headline.bold())
+                Text("Not connected")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.tertiary)
             }
         }
         .multilineTextAlignment(.center)
