@@ -115,7 +115,7 @@ struct PopoverView: View {
                     icon: "logo-openai",
                     label: "Codex",
                     primaryLabel: formatWindowDuration(u.hourlyWindowSeconds),
-                    secondaryLabel: "7-day",
+                    secondaryLabel: "7d",
                     resetSeconds: u.hourlyResetAfterSeconds,
                     isRefreshing: viewModel.isCodexLoading,
                     onRefresh: { viewModel.manualRefresh() }
@@ -126,7 +126,7 @@ struct PopoverView: View {
                     primaryPercent: 0, primaryLimitReached: false,
                     secondaryPercent: 0, secondaryLimitReached: false,
                     isLoading: true, icon: "logo-openai",
-                    label: "Codex", primaryLabel: "5h", secondaryLabel: "7-day",
+                    label: "Codex", primaryLabel: "5h", secondaryLabel: "7d",
                     resetSeconds: 0, isRefreshing: true, onRefresh: {}
                 )
             }
@@ -150,7 +150,7 @@ struct PopoverView: View {
                     icon: "logo-claude",
                     label: "Claude Code",
                     primaryLabel: "5h",
-                    secondaryLabel: "7-day",
+                    secondaryLabel: "7d",
                     resetSeconds: u.resetAfterSeconds,
                     isRefreshing: viewModel.isClaudeLoading,
                     onRefresh: { viewModel.manualRefresh() }
@@ -161,7 +161,7 @@ struct PopoverView: View {
                     primaryPercent: 0, primaryLimitReached: false,
                     secondaryPercent: 0, secondaryLimitReached: false,
                     isLoading: true, icon: "logo-claude",
-                    label: "Claude Code", primaryLabel: "5h", secondaryLabel: "7-day",
+                    label: "Claude Code", primaryLabel: "5h", secondaryLabel: "7d",
                     resetSeconds: 0, isRefreshing: true, onRefresh: {}
                 )
             }
@@ -284,7 +284,7 @@ struct PopoverView: View {
             // Colour key for the dual rings
             HStack(spacing: 8) {
                 ringKey(label: "5h",    opacity: 1.0)
-                ringKey(label: "7-day", opacity: 0.5)
+                ringKey(label: "7d", opacity: 0.5)
             }
         }
         .padding(.horizontal, 14)
@@ -298,7 +298,7 @@ struct PopoverView: View {
                 .fill(CircularGaugeView.accent.opacity(opacity))
                 .frame(width: 6, height: 6)
             Text(label)
-                .font(.system(size: 11))
+                .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(CircularGaugeView.accent.opacity(opacity))
         }
     }
@@ -308,9 +308,13 @@ struct PopoverView: View {
     private var footer: some View {
         ZStack {
             HStack {
-                Button("Settings") { openSettingsKeepingPopover() }
+                Button { openSettingsKeepingPopover() } label: {
+                    footerActionLabel("Settings")
+                }
                 Spacer()
-                Button("Quit", role: .destructive) { NSApp.terminate(nil) }
+                Button(role: .destructive) { NSApp.terminate(nil) } label: {
+                    footerActionLabel("Quit")
+                }
             }
             if let date = viewModel.lastRefreshedAt {
                 TimelineView(.periodic(from: date, by: 60)) { _ in
@@ -320,7 +324,7 @@ struct PopoverView: View {
             }
         }
         .buttonStyle(.borderless)
-        .font(.footnote)
+        .font(.system(size: 13, weight: .medium))
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
     }
@@ -355,12 +359,16 @@ struct PopoverView: View {
             .padding(24)
             Divider()
             HStack {
-                Button("Settings") { openSettingsKeepingPopover() }
+                Button { openSettingsKeepingPopover() } label: {
+                    footerActionLabel("Settings")
+                }
                 Spacer()
-                Button("Quit", role: .destructive) { NSApp.terminate(nil) }
+                Button(role: .destructive) { NSApp.terminate(nil) } label: {
+                    footerActionLabel("Quit")
+                }
             }
             .buttonStyle(.borderless)
-            .font(.footnote)
+            .font(.system(size: 13, weight: .medium))
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
         }
@@ -386,6 +394,13 @@ struct PopoverView: View {
         }
         .buttonStyle(.plain)
         .contentShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func footerActionLabel(_ title: String) -> some View {
+        Text(title)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
     }
 
     // MARK: - Error Banner

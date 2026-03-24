@@ -104,16 +104,16 @@ struct CircularGaugeView: View {
                                 .foregroundStyle(statusColor)
                                 .contentTransition(.numericText())
                             Text(primaryLabel)
-                                .font(.system(size: 10))
+                                .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(.secondary)
                         }
                         HStack(alignment: .firstTextBaseline, spacing: 3) {
                             Text("\(secondaryPercent)%")
-                                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                                .font(.system(size: 13, weight: .semibold, design: .rounded))
                                 .foregroundStyle(statusColor.opacity(0.5))
                                 .contentTransition(.numericText())
                             Text(secondaryLabel)
-                                .font(.system(size: 10))
+                                .font(.system(size: 13, weight: .medium))
                                 .foregroundStyle(.tertiary)
                         }
                     }
@@ -147,8 +147,10 @@ struct CircularGaugeView: View {
                 .foregroundStyle(primaryLimitReached ? .red : .primary)
 
             Text(primaryLimitReached ? "5h limit reached · \(resetText)" : resetText)
-                .font(.system(size: 9))
+                .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(primaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.tertiary))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
     }
 
