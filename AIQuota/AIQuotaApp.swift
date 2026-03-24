@@ -140,7 +140,7 @@ private extension View {
 // MARK: - Window vibrancy installer
 
 /// Zero-size view that reaches up to the hosting NSWindow and enables
-/// vibrancy + transparency so SwiftUI's .ultraThinMaterial fills the whole window.
+/// vibrancy + transparency so SwiftUI's .thinMaterial fills the whole window.
 private struct WindowVibrancyInstaller: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView {
         let view = NSView()

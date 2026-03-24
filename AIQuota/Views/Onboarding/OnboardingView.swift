@@ -51,11 +51,11 @@ struct OnboardingView: View {
                 .padding(.horizontal, 28)
                 .padding(.vertical, 16)
                 .frame(maxWidth: .infinity)
-                .background(.regularMaterial)
+                .background(.thinMaterial)
         }
         .frame(width: Self.width, height: windowHeight)
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: windowHeight)
-        .background(.regularMaterial)
+        .background(.thinMaterial)
         .onAppear {
             // Window is reused by SwiftUI — always restart from the beginning
             step = .welcome
