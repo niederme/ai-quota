@@ -94,6 +94,7 @@ See the pre-release checklist at the top of [`scripts/release.sh`](scripts/relea
 ## Roadmap
 
 - [ ] iOS / iPadOS app — native app and home screen widgets for iPhone and iPad
+- [ ] Settings is cramped — too much scrolling, notifications lack hierarchy; needs a structural pass
 - [ ] Debug / release auth-state clarity — make it explicit whether Xcode builds share sign-in state with the installed release app, and add a clean testing mode if needed
 - [ ] Menu bar icon monochrome mode — option to disable amber/red status colours for a cleaner, always-white icon
 - [ ] Gemini quota support (Google AI plans)
