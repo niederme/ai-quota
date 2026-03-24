@@ -53,6 +53,19 @@ The full release script is at `scripts/release.sh`. It handles zipping, signing,
 - GitHub release and appcast always use the tag `vX.Y.Z` format
 - **Before running `release.sh`**, draft user-facing release notes and get approval — the script opens an editor immediately and raw commit messages are not acceptable release notes
 - **Release notes must be shared in a code block** for approval before running the script
+- **Release notes ordering** — weight bullets by user impact: features affecting the most users first, one-time experiences (onboarding polish) last
+
+---
+
+## Worktrees
+
+When starting any session in a git worktree, immediately open the Xcode project from that worktree's path:
+
+```bash
+open /path/to/worktree/AIQuota.xcodeproj
+```
+
+This ensures Xcode is pointing at the right copy of the project, not the main checkout.
 
 ---
 

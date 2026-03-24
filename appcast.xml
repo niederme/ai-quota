@@ -40,7 +40,7 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.9.4</h2>  <ul><li><strong>Polished onboarding</strong> — frosted glass background, fixed window size, and a cleaner title bar</li> <li><strong>Menu bar preference</strong> — when both Claude and Codex are connected, setup now asks which to show in the menu bar</li> <li><strong>Stable popover layout</strong> — the Connect button now sits inside the gauge when a service needs to reconnect, no more layout shifts</li> <li><strong>Single-service layout</strong> — the popover adapts its width and layout when only one service is connected</li></ul>
+<h2>What's New in 1.9.4</h2>  <ul><li><strong>Single-service layout</strong> — the popover adapts its width and layout when only one service is connected</li> <li><strong>Menu bar preference</strong> — when both Claude and Codex are connected, setup now asks which to show in the menu bar</li> <li><strong>Stable popover layout</strong> — the Connect button now sits inside the gauge when a service needs to reconnect, no more layout shifts</li> <li><strong>Polished onboarding</strong> — frosted glass background, fixed window size, and a cleaner title bar</li></ul>
 </body>
 </html>
 ]]></description>
