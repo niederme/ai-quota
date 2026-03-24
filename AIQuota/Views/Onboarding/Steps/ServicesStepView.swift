@@ -40,6 +40,17 @@ struct ServicesStepView: View {
             }
             .padding(.horizontal, 32)
 
+            if viewModel.isCodexAuthenticated && viewModel.isClaudeAuthenticated {
+                MenuBarDefaultPicker(
+                    selection: viewModel.settings.menuBarService,
+                    onSelect: { service in
+                        viewModel.settings.menuBarService = service
+                        viewModel.saveSettings()
+                    }
+                )
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+
             Spacer()
 
             Text("You can connect more services later in Settings.")
@@ -49,6 +60,8 @@ struct ServicesStepView: View {
                 .padding(.horizontal, 32)
                 .padding(.bottom, 12)
         }
+        .animation(.spring(response: 0.35, dampingFraction: 0.85),
+                   value: viewModel.isCodexAuthenticated && viewModel.isClaudeAuthenticated)
     }
 }
 
@@ -144,8 +157,8 @@ private struct MenuBarDefaultPicker: View {
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 10) {
-                card(for: .codex,  logoName: "logo-openai", name: "Codex")
-                card(for: .claude, logoName: "logo-claude", name: "Claude Code")
+                card(for: .codex,  logoName: "logo-openai")
+                card(for: .claude, logoName: "logo-claude")
             }
         }
         .padding(.horizontal, 32)
@@ -153,7 +166,7 @@ private struct MenuBarDefaultPicker: View {
     }
 
     @ViewBuilder
-    private func card(for service: ServiceType, logoName: String, name: String) -> some View {
+    private func card(for service: ServiceType, logoName: String) -> some View {
         let isSelected = selection == service
         Button { onSelect(service) } label: {
             VStack(spacing: 10) {
@@ -176,7 +189,7 @@ private struct MenuBarDefaultPicker: View {
                             )
                     )
 
-                Text(name)
+                Text(service.displayName)
                     .font(.callout).fontWeight(.semibold)
 
                 Circle()
