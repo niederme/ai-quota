@@ -26,15 +26,13 @@ struct OnboardingView: View {
     @State private var step: OnboardingStep = .welcome
     @State private var direction: Int = 1   // +1 forward, -1 backward
 
-    // Window size — expands when the menu bar picker is visible on the services step
-    static let width: CGFloat       = 520
-    static let height: CGFloat      = 580
+    // Window size — services step is always taller to reserve space for the menu bar picker
+    static let width: CGFloat            = 520
+    static let height: CGFloat           = 580
     static let heightWithPicker: CGFloat = 660
 
     private var windowHeight: CGFloat {
-        step == .services && viewModel.isCodexAuthenticated && viewModel.isClaudeAuthenticated
-            ? Self.heightWithPicker
-            : Self.height
+        step == .services ? Self.heightWithPicker : Self.height
     }
 
     var body: some View {
