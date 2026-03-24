@@ -51,6 +51,7 @@ struct AIQuotaApp: App {
                 .environment(viewModel)
                 .background(WindowVibrancyInstaller())
         }
+        .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
         .defaultPosition(.center)
 
@@ -142,21 +143,16 @@ private extension View {
 /// Zero-size view that reaches up to the hosting NSWindow and enables
 /// vibrancy + transparency so SwiftUI's .thinMaterial fills the whole window.
 private struct WindowVibrancyInstaller: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        // Defer so the window is attached by the time we walk the hierarchy
+    func makeNSView(context: Context) -> NSView { NSView() }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        // Defer past SwiftUI's own window-configuration pass so our overrides win
         DispatchQueue.main.async {
-            guard let window = view.window else { return }
+            guard let window = nsView.window else { return }
             window.isOpaque = false
             window.backgroundColor = .clear
-            // Extend content view under the title bar so the material shows through
-            window.titlebarAppearsTransparent = true
-            window.titleVisibility = .hidden
-            window.styleMask.insert(.fullSizeContentView)
             // Float above other apps so it's never lost behind them
             window.level = .floating
         }
-        return view
     }
-    func updateNSView(_ nsView: NSView, context: Context) {}
 }
