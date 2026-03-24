@@ -30,10 +30,12 @@ struct SettingsView: View {
                 }
                 .pickerStyle(.segmented)
 
-                Picker("Menu bar service", selection: $vm.settings.menuBarService) {
-                    ForEach(ServiceType.allCases, id: \.self) { Text($0.displayName).tag($0) }
+                LabeledContent("Menu bar service") {
+                    EnrollmentSegmentedPicker(
+                        selection: $vm.settings.menuBarService,
+                        enrolledServices: vm.enrolledServices
+                    )
                 }
-                .pickerStyle(.segmented)
 
                 LaunchAtLoginToggle()
             }
@@ -59,7 +61,7 @@ struct SettingsView: View {
             }
 
             // MARK: Notifications — Codex
-            if viewModel.isCodexAuthenticated {
+            if viewModel.isCodexEnrolled {
                 Section {
                     notifServiceRow(logo: "logo-openai", name: "Codex",
                                     isOn: notifSectionsEnabled ? $vm.settings.notifications.codexEnabled : .constant(false))
@@ -82,7 +84,7 @@ struct SettingsView: View {
             }
 
             // MARK: Notifications — Claude Code
-            if viewModel.isClaudeAuthenticated {
+            if viewModel.isClaudeEnrolled {
                 Section {
                     notifServiceRow(logo: "logo-claude", name: "Claude Code",
                                     isOn: notifSectionsEnabled ? $vm.settings.notifications.claudeEnabled : .constant(false))
@@ -104,7 +106,7 @@ struct SettingsView: View {
                 .opacity(notifSectionsEnabled ? 1 : 0.45)
             }
 
-            if !viewModel.isCodexAuthenticated && !viewModel.isClaudeAuthenticated {
+            if viewModel.enrolledServices.isEmpty {
                 Section {
                     Text("Sign in to a service to configure thresholds.")
                         .foregroundStyle(.secondary)
@@ -306,5 +308,56 @@ private struct LaunchAtLoginToggle: View {
                     isEnabled = !newValue
                 }
             }
+    }
+}
+
+// MARK: - Enrollment-aware segmented picker
+
+/// A segmented-style service picker that visually deactivates unenrolled segments.
+private struct EnrollmentSegmentedPicker: View {
+    @Binding var selection: ServiceType
+    let enrolledServices: Set<ServiceType>
+
+    var body: some View {
+        HStack(spacing: 1) {
+            ForEach(ServiceType.allCases, id: \.self) { service in
+                segmentButton(for: service)
+            }
+        }
+        .background(Color(NSColor.controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .stroke(Color(NSColor.separatorColor), lineWidth: 0.5)
+        )
+    }
+
+    @ViewBuilder
+    private func segmentButton(for service: ServiceType) -> some View {
+        let enrolled = enrolledServices.contains(service)
+        let selected = selection == service
+
+        Button {
+            if enrolled { selection = service }
+        } label: {
+            Text(service.displayName)
+                .font(.system(size: 13))
+                .frame(minWidth: 70, maxWidth: .infinity)
+                .padding(.vertical, 4)
+                .background(
+                    selected && enrolled
+                        ? Color(NSColor.selectedControlColor)
+                        : Color.clear
+                )
+                .foregroundColor(
+                    selected && enrolled
+                        ? Color(NSColor.selectedControlTextColor)
+                        : enrolled
+                            ? Color(NSColor.controlTextColor)
+                            : Color(NSColor.disabledControlTextColor)
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(!enrolled)
     }
 }
