@@ -94,12 +94,12 @@ See the pre-release checklist at the top of [`scripts/release.sh`](scripts/relea
 
 ## Roadmap
 
-- [ ] iOS / iPadOS app — native app and home screen widgets for iPhone and iPad
 - [ ] Visualize 7-day quota reset timing — make it clear when the rolling 7-day window fully resets
 - [ ] Settings is cramped — too much scrolling, notifications lack hierarchy; needs a structural pass
 - [ ] Debug / release auth-state clarity — make it explicit whether Xcode builds share sign-in state with the installed release app, and add a clean testing mode if needed
-- [ ] Menu bar icon monochrome mode — option to disable amber/red status colours for a cleaner, always-white icon
+- [ ] iOS / iPadOS app — native app and home screen widgets for iPhone and iPad
 - [ ] Gemini quota support (Google AI plans)
+- [ ] Menu bar icon monochrome mode — option to disable amber/red status colours for a cleaner, always-white icon
 - [x] Single-service layout — popover adapts width and layout when only one service is enrolled
 - [x] Menu bar preference in onboarding — when both services are connected, setup asks which to show in the menu bar
 - [x] Stable popover layout — Connect button sits inside the gauge arc when a service needs to reconnect; no layout shifts
