@@ -102,6 +102,7 @@ struct PopoverView: View {
                     primaryLabel: formatWindowDuration(u.hourlyWindowSeconds),
                     secondaryLabel: "7d",
                     resetSeconds: u.hourlyResetAfterSeconds,
+                    weeklyResetSeconds: 0,
                     isRefreshing: viewModel.isCodexLoading,
                     onRefresh: { viewModel.manualRefresh() }
                 )
@@ -112,7 +113,7 @@ struct PopoverView: View {
                     secondaryPercent: 0, secondaryLimitReached: false,
                     isLoading: true, icon: "logo-openai",
                     label: "Codex", primaryLabel: "5h", secondaryLabel: "7d",
-                    resetSeconds: 0, isRefreshing: true, onRefresh: {}
+                    resetSeconds: 0, weeklyResetSeconds: 0, isRefreshing: true, onRefresh: {}
                 )
             }
         } else {
@@ -137,6 +138,7 @@ struct PopoverView: View {
                     primaryLabel: "5h",
                     secondaryLabel: "7d",
                     resetSeconds: u.resetAfterSeconds,
+                    weeklyResetSeconds: 0,
                     isRefreshing: viewModel.isClaudeLoading,
                     onRefresh: { viewModel.manualRefresh() }
                 )
@@ -147,7 +149,7 @@ struct PopoverView: View {
                     secondaryPercent: 0, secondaryLimitReached: false,
                     isLoading: true, icon: "logo-claude",
                     label: "Claude Code", primaryLabel: "5h", secondaryLabel: "7d",
-                    resetSeconds: 0, isRefreshing: true, onRefresh: {}
+                    resetSeconds: 0, weeklyResetSeconds: 0, isRefreshing: true, onRefresh: {}
                 )
             }
         } else {

@@ -20,6 +20,7 @@ struct CircularGaugeView: View {
     let primaryLabel: String   // e.g. "5h"
     let secondaryLabel: String // e.g. "7-day"
     let resetSeconds: Int
+    let weeklyResetSeconds: Int
     let isRefreshing: Bool
     let onRefresh: () -> Void
 
@@ -151,6 +152,14 @@ struct CircularGaugeView: View {
                 .foregroundStyle(primaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.tertiary))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
+
+            if !isLoading && (secondaryPercent >= 95 || secondaryLimitReached) {
+                Text(secondaryLimitReached ? "7d limit reached · \(weeklyResetText)" : weeklyResetText)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(secondaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.tertiary))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
         }
     }
 
@@ -161,6 +170,15 @@ struct CircularGaugeView: View {
         if days > 0  { return "5h Resets \(days)d \(hours)h" }
         if hours > 0 { return "5h Resets \(hours)h \(minutes)m" }
         return "5h Resets \(minutes)m"
+    }
+
+    private var weeklyResetText: String {
+        let days    = weeklyResetSeconds / 86400
+        let hours   = (weeklyResetSeconds % 86400) / 3600
+        let minutes = (weeklyResetSeconds % 3600) / 60
+        if days > 0  { return "7d Resets \(days)d \(hours)h" }
+        if hours > 0 { return "7d Resets \(hours)h \(minutes)m" }
+        return "7d Resets \(minutes)m"
     }
 }
 
