@@ -93,7 +93,7 @@ struct PopoverView: View {
             if let u = viewModel.codexUsage {
                 CircularGaugeView(
                     primaryPercent: u.hourlyUsedPercent,
-                    primaryLimitReached: u.limitReached,
+                    primaryLimitReached: u.hourlyUsedPercent >= 100,
                     secondaryPercent: u.weeklyUsedPercent,
                     secondaryLimitReached: u.isWeeklyExhausted,
                     isLoading: false,
