@@ -36,6 +36,31 @@ struct PopoverTypographyTests {
         #expect(popoverSource.contains(#".contentShape(Rectangle())"#))
     }
 
+    @Test("7d reset line appears in gauge caption when 7d is critical")
+    func sevenDayResetLineInCaption() throws {
+        let gaugeSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/CircularGaugeView.swift"), encoding: .utf8)
+        let popoverSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/PopoverView.swift"), encoding: .utf8)
+
+        // CircularGaugeView: new parameter exists
+        #expect(gaugeSource.contains("weeklyResetSeconds: Int"))
+
+        // CircularGaugeView: weeklyResetText produces full "7d Resets …" strings
+        #expect(gaugeSource.contains(#""7d Resets \(days)d \(hours)h""#))
+        #expect(gaugeSource.contains(#""7d Resets \(hours)h \(minutes)m""#))
+        #expect(gaugeSource.contains(#""7d Resets \(minutes)m""#))
+
+        // CircularGaugeView: 7d limit reached state
+        #expect(gaugeSource.contains(#""7d limit reached · \(weeklyResetText)""#))
+
+        // PopoverView: Codex passes real weekly reset seconds and exhaustion state
+        #expect(popoverSource.contains("u.weeklyResetAfterSeconds"))
+        #expect(popoverSource.contains("u.isWeeklyExhausted"))
+
+        // PopoverView: Claude passes real 7-day reset seconds and exhaustion state
+        #expect(popoverSource.contains("u.sevenDayResetAfterSeconds"))
+        #expect(popoverSource.contains("u.sevenDayUtilization >= 100"))
+    }
+
     private var repoRoot: URL {
         URL(filePath: #filePath)
             .deletingLastPathComponent()
