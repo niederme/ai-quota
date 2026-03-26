@@ -30,20 +30,22 @@ Time format: same `Xd Xh` / `Xh Xm` / `Xm` pattern used by the existing 5h reset
 
 ### `CircularGaugeView`
 
-- Add parameter: `weeklyResetSeconds: Int`
-- Add computed var `weeklyResetText` — formats `weeklyResetSeconds` into `Xd Xh` / `Xh Xm` / `Xm`
-- In `caption`: when `secondaryPercent >= 95 || secondaryLimitReached`, render a second `Text` line below the existing reset line
+- Add parameter: `weeklyResetSeconds: Int` alongside the existing `resetSeconds` parameter (which remains unchanged as the 5h reset input).
+- Add computed var `weeklyResetText` — returns the **full** string including prefix, e.g. `"7d Resets 3d 2h"`, mirroring the existing `resetText` pattern. Format: if days > 0 → `"7d Resets Xd Xh"`, if hours > 0 → `"7d Resets Xh Xm"`, else `"7d Resets Xm"`.
+- In `caption`: when `!isLoading && (secondaryPercent >= 95 || secondaryLimitReached)`, render a second `Text` line below the existing reset line. The `!isLoading` guard is needed to protect against stale `secondaryPercent` values during a refresh cycle.
 
 ### `PopoverView`
 
-Pass the weekly reset seconds into each `CircularGaugeView` call:
+Pass both `weeklyResetSeconds` and the corrected `secondaryLimitReached` into each `CircularGaugeView` call:
 
-| Slot | Value |
-|---|---|
-| Codex (authenticated, usage loaded) | `u.weeklyResetAfterSeconds` |
-| Codex (loading placeholder) | `0` |
-| Claude (authenticated, usage loaded) | `u.sevenDayResetAfterSeconds` |
-| Claude (loading placeholder) | `0` |
+| Slot | `weeklyResetSeconds` | `secondaryLimitReached` |
+|---|---|---|
+| Codex (authenticated, usage loaded) | `u.weeklyResetAfterSeconds` | `u.isWeeklyExhausted` |
+| Codex (loading placeholder) | `0` | `false` |
+| Claude (authenticated, usage loaded) | `u.sevenDayResetAfterSeconds` | `u.sevenDayUtilization >= 100` |
+| Claude (loading placeholder) | `0` | `false` |
+
+Note: `secondaryLimitReached` was previously hardcoded `false` in both call sites — this change wires it to real data.
 
 ## Out of scope
 
