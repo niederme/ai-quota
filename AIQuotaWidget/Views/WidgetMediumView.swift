@@ -42,13 +42,15 @@ struct WidgetMediumView: View {
             if let u = entry.codexUsage {
                 WidgetGaugeView(
                     primaryPercent: u.hourlyUsedPercent,
-                    primaryLimitReached: u.limitReached,
+                    primaryLimitReached: u.hourlyUsedPercent >= 100,
                     secondaryPercent: u.weeklyUsedPercent,
                     icon: "logo-openai",
                     label: "Codex",
                     primaryLabel: "5h",
                     secondaryLabel: "7-day",
                     resetSeconds: u.hourlyResetAfterSeconds,
+                    weeklyResetSeconds: u.weeklyResetAfterSeconds,
+                    secondaryLimitReached: u.isWeeklyExhausted,
                     size: size
                 )
             } else {
@@ -66,6 +68,8 @@ struct WidgetMediumView: View {
                     primaryLabel: "5h",
                     secondaryLabel: "7-day",
                     resetSeconds: u.resetAfterSeconds,
+                    weeklyResetSeconds: u.sevenDayResetAfterSeconds,
+                    secondaryLimitReached: u.sevenDayUtilization >= 100,
                     size: size
                 )
             } else {

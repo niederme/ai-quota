@@ -16,10 +16,12 @@ struct WidgetGaugeView: View {
     let primaryLabel: String   // e.g. "5h"
     let secondaryLabel: String // e.g. "7-day"
     let resetSeconds: Int
+    let weeklyResetSeconds: Int
+    let secondaryLimitReached: Bool
     let size: CGFloat
 
     private var statusColor: Color {
-        if primaryLimitReached { return .red }
+        if primaryLimitReached || secondaryLimitReached { return .red }
         let worst = max(primaryPercent, secondaryPercent)
         if worst >= 95 { return .red }
         if worst >= 85 { return Color(red: 1.0, green: 0.65, blue: 0.0) }
@@ -96,6 +98,23 @@ struct WidgetGaugeView: View {
                         }
                     }
                 }
+
+                // ── Refresh button — sits in the arc's bottom gap ─────────
+                VStack {
+                    Spacer()
+                    Button(intent: RefreshWidgetIntent()) {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: resetPt, weight: .medium))
+                            .foregroundStyle(.tertiary)
+                            .padding(3)
+                            .background(
+                                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                    .fill(.fill.tertiary)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.bottom, 2)
+                }
             }
             .frame(width: size, height: size)
 
@@ -106,17 +125,13 @@ struct WidgetGaugeView: View {
                 Text(resetText)
                     .font(.system(size: resetPt))
                     .foregroundStyle(.tertiary)
-                Button(intent: RefreshWidgetIntent()) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: resetPt, weight: .medium))
-                        .foregroundStyle(.tertiary)
-                        .padding(3)
-                        .background(
-                            RoundedRectangle(cornerRadius: 3, style: .continuous)
-                                .fill(.fill.tertiary)
-                        )
+                if secondaryPercent >= 95 || secondaryLimitReached {
+                    Text(secondaryLimitReached ? "7d limit reached · \(weeklyResetText)" : weeklyResetText)
+                        .font(.system(size: resetPt))
+                        .foregroundStyle(secondaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.tertiary))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
-                .buttonStyle(.plain)
             }
         }
         .multilineTextAlignment(.center)
@@ -129,5 +144,14 @@ struct WidgetGaugeView: View {
         if days > 0  { return "5h resets \(days)d \(hours)h" }
         if hours > 0 { return "5h resets \(hours)h \(minutes)m" }
         return "5h resets \(minutes)m"
+    }
+
+    private var weeklyResetText: String {
+        let days    = weeklyResetSeconds / 86400
+        let hours   = (weeklyResetSeconds % 86400) / 3600
+        let minutes = (weeklyResetSeconds % 3600) / 60
+        if days > 0  { return "7d resets \(days)d \(hours)h" }
+        if hours > 0 { return "7d resets \(hours)h \(minutes)m" }
+        return "7d resets \(minutes)m"
     }
 }
