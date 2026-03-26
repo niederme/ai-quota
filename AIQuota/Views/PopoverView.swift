@@ -95,14 +95,14 @@ struct PopoverView: View {
                     primaryPercent: u.hourlyUsedPercent,
                     primaryLimitReached: u.limitReached,
                     secondaryPercent: u.weeklyUsedPercent,
-                    secondaryLimitReached: false,
+                    secondaryLimitReached: u.isWeeklyExhausted,
                     isLoading: false,
                     icon: "logo-openai",
                     label: "Codex",
                     primaryLabel: formatWindowDuration(u.hourlyWindowSeconds),
                     secondaryLabel: "7d",
                     resetSeconds: u.hourlyResetAfterSeconds,
-                    weeklyResetSeconds: 0,
+                    weeklyResetSeconds: u.weeklyResetAfterSeconds,
                     isRefreshing: viewModel.isCodexLoading,
                     onRefresh: { viewModel.manualRefresh() }
                 )
@@ -131,14 +131,14 @@ struct PopoverView: View {
                     primaryPercent: u.usedPercent,
                     primaryLimitReached: u.limitReached,
                     secondaryPercent: Int(u.sevenDayUtilization.rounded()),
-                    secondaryLimitReached: false,
+                    secondaryLimitReached: u.sevenDayUtilization >= 100,
                     isLoading: false,
                     icon: "logo-claude",
                     label: "Claude Code",
                     primaryLabel: "5h",
                     secondaryLabel: "7d",
                     resetSeconds: u.resetAfterSeconds,
-                    weeklyResetSeconds: 0,
+                    weeklyResetSeconds: u.sevenDayResetAfterSeconds,
                     isRefreshing: viewModel.isClaudeLoading,
                     onRefresh: { viewModel.manualRefresh() }
                 )
