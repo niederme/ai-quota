@@ -10,7 +10,7 @@ struct CodexAuthCoordinatorTests {
         UserDefaults.standard.removeObject(forKey: "app.installedAt.v2")
         UserDefaults.standard.removeObject(forKey: "onboarding.v1.hasCompleted")
         SharedDefaults.clearUsage()
-        SharedDefaults.clearClaudeUsage()
+        SharedAuthContextStore.clearCodex()
     }
 
     @Test("bootstrap with valid session → authenticated")
@@ -81,6 +81,56 @@ struct CodexAuthCoordinatorTests {
 
         #expect(SharedDefaults.loadCachedUsage() != nil)
         #expect(UserDefaults.standard.object(forKey: "app.installedAt.v2") != nil)
+    }
+
+    @Test("bootstrap falls back to shared auth context when probe misses the live session")
+    func bootstrapFallsBackToSharedAuthContext() async throws {
+        SharedAuthContextStore.saveCodex(
+            SharedCodexAuthContext(
+                sessionToken: "session-from-shared-context",
+                accessToken: "access-from-shared-context",
+                accessTokenExpiresAt: Date.now.addingTimeInterval(600)
+            )
+        )
+        defer { SharedAuthContextStore.clearCodex() }
+
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
+
+        let sut = CodexAuthCoordinator(probe: { .notFound })
+        await sut.bootstrap()
+
+        #expect(await sut.state == .authenticated)
+        let token = try await sut.accessToken()
+        #expect(token == "access-from-shared-context")
+    }
+
+    @Test("bootstrap refreshes access token from shared session token when cached token is stale")
+    func bootstrapRefreshesAccessTokenFromSharedSessionToken() async throws {
+        SharedAuthContextStore.saveCodex(
+            SharedCodexAuthContext(
+                sessionToken: "session-from-shared-context",
+                accessToken: "expired-access-token",
+                accessTokenExpiresAt: Date.now.addingTimeInterval(-300)
+            )
+        )
+        defer { SharedAuthContextStore.clearCodex() }
+
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
+
+        let sut = CodexAuthCoordinator(
+            probe: { .notFound },
+            tokenRefresher: { sessionToken in
+                #expect(sessionToken == "session-from-shared-context")
+                return ("refreshed-access-token", Date.now.addingTimeInterval(900))
+            }
+        )
+        await sut.bootstrap()
+
+        #expect(await sut.state == .authenticated)
+        let token = try await sut.accessToken()
+        #expect(token == "refreshed-access-token")
     }
 
     @Test("signIn from unknown throws invalidTransition")

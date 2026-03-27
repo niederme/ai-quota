@@ -8,5 +8,9 @@
 	<array>
 		<string>group.com.niederme.AIQuota</string>
 	</array>
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)com.niederme.AIQuota</string>
+	</array>
 </dict>
 </plist>

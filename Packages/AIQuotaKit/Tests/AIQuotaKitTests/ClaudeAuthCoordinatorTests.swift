@@ -12,8 +12,8 @@ struct ClaudeAuthCoordinatorTests {
         UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
         UserDefaults.standard.removeObject(forKey: "app.installedAt.v2")
         UserDefaults.standard.removeObject(forKey: "onboarding.v1.hasCompleted")
-        SharedDefaults.clearUsage()
         SharedDefaults.clearClaudeUsage()
+        SharedAuthContextStore.clearClaude()
     }
 
     // MARK: - Bootstrap
@@ -74,6 +74,30 @@ struct ClaudeAuthCoordinatorTests {
 
         #expect(SharedDefaults.loadCachedClaudeUsage() != nil)
         #expect(UserDefaults.standard.object(forKey: "app.installedAt.v2") != nil)
+    }
+
+    @Test("bootstrap falls back to shared auth context when probe misses the live session")
+    func bootstrapFallsBackToSharedAuthContext() async throws {
+        let cookie = try #require(
+            HTTPCookie(properties: [
+                .domain: "claude.ai",
+                .path: "/",
+                .name: "sessionKey",
+                .value: "cookie-value",
+                .secure: true,
+            ])
+        )
+        SharedAuthContextStore.saveClaude(orgId: "org-shared", cookies: [cookie])
+        defer { SharedAuthContextStore.clearClaude() }
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
+
+        let sut = ClaudeAuthCoordinator(probe: { .notFound })
+        await sut.bootstrap()
+
+        #expect(await sut.state == .authenticated)
+        let ctx = try await sut.requestContext()
+        #expect(ctx.orgId == "org-shared")
     }
 
     // MARK: - signIn

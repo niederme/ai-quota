@@ -101,9 +101,15 @@ public actor ClaudeAuthCoordinator {
             capturedOrgId = orgId
             capturedCookies = cookies
             injectCookies(cookies)
+            persistSharedAuthContext()
             transition(to: .authenticated)
         case .notFound, .none:
-            transition(to: .unauthenticated)
+            if restoreFromSharedAuthContext() {
+                transition(to: .authenticated)
+            } else {
+                SharedAuthContextStore.clearClaude()
+                transition(to: .unauthenticated)
+            }
         }
     }
 
@@ -148,9 +154,11 @@ public actor ClaudeAuthCoordinator {
             capturedOrgId = orgId
             capturedCookies = cookies
             injectCookies(cookies)
+            persistSharedAuthContext()
             UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
             transition(to: .authenticated)
         } catch {
+            SharedAuthContextStore.clearClaude()
             transition(to: .unauthenticated)
             throw error
         }
@@ -196,6 +204,7 @@ public actor ClaudeAuthCoordinator {
             capturedOrgId = orgId
             capturedCookies = cookies
             injectCookies(cookies)
+            persistSharedAuthContext()
             return true
         case .notFound, .none:
             clearAuthContext()
@@ -253,10 +262,24 @@ public actor ClaudeAuthCoordinator {
     private func clearAuthContext() {
         capturedOrgId = nil
         capturedCookies = []
+        SharedAuthContextStore.clearClaude()
         for cookie in HTTPCookieStorage.shared.cookies ?? []
             where cookie.domain.contains("claude.ai") {
             HTTPCookieStorage.shared.deleteCookie(cookie)
         }
+    }
+
+    private func persistSharedAuthContext() {
+        guard let capturedOrgId else { return }
+        SharedAuthContextStore.saveClaude(orgId: capturedOrgId, cookies: capturedCookies)
+    }
+
+    private func restoreFromSharedAuthContext() -> Bool {
+        guard let context = SharedAuthContextStore.loadClaude() else { return false }
+        capturedOrgId = context.orgId
+        capturedCookies = context.httpCookies
+        injectCookies(capturedCookies)
+        return !context.orgId.isEmpty
     }
 
     private func injectCookies(_ cookies: [HTTPCookie]) {

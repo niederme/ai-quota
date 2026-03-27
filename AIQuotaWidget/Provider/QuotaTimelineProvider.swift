@@ -28,27 +28,37 @@ struct QuotaEntry: TimelineEntry {
     )
 }
 
-/// Static provider for the medium widget — no intent, always shows both services.
-struct StaticQuotaTimelineProvider: TimelineProvider {
+/// Async provider for the medium widget — always shows both services.
+struct MediumQuotaTimelineProvider: AppIntentTimelineProvider {
+    typealias Entry = QuotaEntry
+    typealias Intent = MediumConfigurationAppIntent
+
     func placeholder(in context: Context) -> QuotaEntry { .placeholder }
 
-    func getSnapshot(in context: Context, completion: @escaping (QuotaEntry) -> Void) {
-        completion(QuotaEntry(
+    func snapshot(for configuration: MediumConfigurationAppIntent, in context: Context) async -> QuotaEntry {
+        QuotaEntry(
             date: .now,
             codexUsage: SharedDefaults.loadCachedUsage(),
             claudeUsage: SharedDefaults.loadCachedClaudeUsage(),
             configuration: ConfigurationAppIntent(),
             enrolledServices: SharedDefaults.loadEnrolledServices()
-        ))
+        )
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<QuotaEntry>) -> Void) {
-        let codex  = SharedDefaults.loadCachedUsage()
-        let claude = SharedDefaults.loadCachedClaudeUsage()
-        let entry  = QuotaEntry(date: .now, codexUsage: codex, claudeUsage: claude, configuration: ConfigurationAppIntent(), enrolledServices: SharedDefaults.loadEnrolledServices())
-        let mostRecent = [codex?.fetchedAt, claude?.fetchedAt].compactMap { $0 }.max() ?? .now
-        let nextRefresh = max(mostRecent.addingTimeInterval(15 * 60), Date.now.addingTimeInterval(60))
-        completion(Timeline(entries: [entry], policy: .after(nextRefresh)))
+    func timeline(for configuration: MediumConfigurationAppIntent, in context: Context) async -> Timeline<QuotaEntry> {
+        let snapshot = await loadSnapshot(forceRefresh: false)
+        let entry = QuotaEntry(
+            date: .now,
+            codexUsage: snapshot.codexUsage,
+            claudeUsage: snapshot.claudeUsage,
+            configuration: ConfigurationAppIntent(),
+            enrolledServices: SharedDefaults.loadEnrolledServices()
+        )
+        let nextRefresh = WidgetRefreshPolicy.nextTimelineDate(
+            codex: snapshot.codexUsage,
+            claude: snapshot.claudeUsage
+        )
+        return Timeline(entries: [entry], policy: .after(nextRefresh))
     }
 }
 
@@ -69,14 +79,23 @@ struct QuotaTimelineProvider: AppIntentTimelineProvider {
     }
 
     func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<QuotaEntry> {
-        let codex  = SharedDefaults.loadCachedUsage()
-        let claude = SharedDefaults.loadCachedClaudeUsage()
-        let entry  = QuotaEntry(date: .now, codexUsage: codex, claudeUsage: claude, configuration: configuration, enrolledServices: SharedDefaults.loadEnrolledServices())
-
-        // Refresh 15 min after the most-recent app fetch, or in 15 min if no data
-        let mostRecent = [codex?.fetchedAt, claude?.fetchedAt].compactMap { $0 }.max() ?? .now
-        let nextRefresh = max(mostRecent.addingTimeInterval(15 * 60), Date.now.addingTimeInterval(60))
-
+        let snapshot = await loadSnapshot(forceRefresh: false)
+        let entry = QuotaEntry(
+            date: .now,
+            codexUsage: snapshot.codexUsage,
+            claudeUsage: snapshot.claudeUsage,
+            configuration: configuration,
+            enrolledServices: SharedDefaults.loadEnrolledServices()
+        )
+        let nextRefresh = WidgetRefreshPolicy.nextTimelineDate(
+            codex: snapshot.codexUsage,
+            claude: snapshot.claudeUsage
+        )
         return Timeline(entries: [entry], policy: .after(nextRefresh))
     }
+}
+
+private func loadSnapshot(forceRefresh: Bool) async -> WidgetRefreshSnapshot {
+    let refreshService = WidgetRefreshService()
+    return await refreshService.refreshAvailableServices(force: forceRefresh)
 }

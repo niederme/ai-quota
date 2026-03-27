@@ -1,5 +1,6 @@
 import AppIntents
 import WidgetKit
+import AIQuotaKit
 
 // MARK: - Refresh intent
 
@@ -9,6 +10,8 @@ struct RefreshWidgetIntent: AppIntent {
     nonisolated(unsafe) static var isDiscoverable: Bool = false
 
     func perform() async throws -> some IntentResult {
+        let refreshService = WidgetRefreshService()
+        _ = await refreshService.refreshAvailableServices(force: true)
         WidgetCenter.shared.reloadAllTimelines()
         return .result()
     }
@@ -33,4 +36,9 @@ struct ConfigurationAppIntent: WidgetConfigurationIntent {
 
     @Parameter(title: "Service", default: ServiceOption.codex)
     var service: ServiceOption
+}
+
+struct MediumConfigurationAppIntent: WidgetConfigurationIntent {
+    nonisolated(unsafe) static var title: LocalizedStringResource = "AIQuota"
+    nonisolated(unsafe) static var description = IntentDescription("Shows both Codex and Claude Code usage.")
 }

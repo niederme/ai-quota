@@ -96,7 +96,7 @@ See the pre-release checklist at the top of [`scripts/release.sh`](scripts/relea
 
 - [ ] Visualize 7-day quota reset timing — make it clear when the rolling 7-day window fully resets
 - [ ] Settings is cramped — too much scrolling, notifications lack hierarchy; needs a structural pass
-- [ ] Debug / release auth-state clarity — make it explicit whether Xcode builds share sign-in state with the installed release app, and add a clean testing mode if needed
+- [x] Auth recovery after updates — widgets refresh more aggressively, and valid Claude/Codex sessions now restore automatically after app updates instead of showing a stale Connect state
 - [ ] iOS / iPadOS app — native app and home screen widgets for iPhone and iPad
 - [ ] Gemini quota support (Google AI plans)
 - [ ] Menu bar icon monochrome mode — option to disable amber/red status colours for a cleaner, always-white icon

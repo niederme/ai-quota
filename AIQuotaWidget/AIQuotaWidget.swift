@@ -25,7 +25,7 @@ struct AIQuotaMediumWidget: Widget {
     let kind = "AIQuotaWidgetMedium"
 
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: StaticQuotaTimelineProvider()) { entry in
+        AppIntentConfiguration(kind: kind, intent: MediumConfigurationAppIntent.self, provider: MediumQuotaTimelineProvider()) { entry in
             WidgetMediumView(entry: entry)
                 .containerBackground(Color(white: 0.1), for: .widget)
         }
