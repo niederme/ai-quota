@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.9.4</title>
+            <title>Version 1.9.6</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.9.4</h2>  <ul><li><strong>Single-service layout</strong> — the popover adapts its width and layout when only one service is connected</li> <li><strong>Menu bar preference</strong> — when both Claude and Codex are connected, setup now asks which to show in the menu bar</li> <li><strong>Stable popover layout</strong> — the Connect button now sits inside the gauge when a service needs to reconnect, no more layout shifts</li> <li><strong>Polished onboarding</strong> — frosted glass background, fixed window size, and a cleaner title bar</li></ul>
+<h2>What's New in 1.9.6</h2>  <ul><li><strong>More reliable widgets</strong> — widgets now refresh far more aggressively and stay much closer to the live app state.</li> <li><strong>Real widget refresh</strong> — the refresh action now performs an actual data fetch instead of just repainting cached values.</li> <li><strong>Smoother updates</strong> — valid Claude and Codex sessions now restore automatically after app updates, so the app is much less likely to show stale Connect states.</li></ul>
 </body>
 </html>
 ]]></description>
-            <sparkle:version>272</sparkle:version>
-            <sparkle:shortVersionString>1.9.4</sparkle:shortVersionString>
+            <sparkle:version>289</sparkle:version>
+            <sparkle:shortVersionString>1.9.6</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.9.4/AIQuota.zip"
-                sparkle:edSignature="+vyAoXeXq4DG/8My/jAr8oD5+2B4qVJQlp38MpDke71Fj+MAjB1mHQei/4bbFRDUe2NhxZSHs54F282kfuDkDg=="
-                length="3319510"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.9.6/AIQuota.zip"
+                sparkle:edSignature="0NresFHjCt7pkmLUxZkthv5XPGUvOCTnPJ4eg6P6i4vKrUQl+dGuNe69xsJIMtjPQ2BN8Hvv+EOq+TrJ/XMYCg=="
+                length="3515199"
                 type="application/zip"/>
         </item>
     </channel>
