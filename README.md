@@ -96,7 +96,7 @@ See the pre-release checklist at the top of [`scripts/release.sh`](scripts/relea
 
 - [ ] Visualize 7-day quota reset timing — make it clear when the rolling 7-day window fully resets
 - [ ] Settings is cramped — too much scrolling, notifications lack hierarchy; needs a structural pass
-- [x] Auth recovery after updates — widgets refresh more aggressively, and valid Claude/Codex sessions now restore automatically after app updates instead of showing a stale Connect state
+- [x] Auth and widget recovery after updates — widgets recover more reliably after app replacements, refresh more aggressively, and valid Claude/Codex sessions now restore automatically instead of showing stale Connect states
 - [ ] iOS / iPadOS app — native app and home screen widgets for iPhone and iPad
 - [ ] Gemini quota support (Google AI plans)
 - [ ] Menu bar icon monochrome mode — option to disable amber/red status colours for a cleaner, always-white icon

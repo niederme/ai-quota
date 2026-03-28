@@ -28,37 +28,46 @@ struct QuotaEntry: TimelineEntry {
     )
 }
 
-/// Async provider for the medium widget — always shows both services.
-struct MediumQuotaTimelineProvider: AppIntentTimelineProvider {
-    typealias Entry = QuotaEntry
-    typealias Intent = MediumConfigurationAppIntent
+private final class TimelineCompletionBox: @unchecked Sendable {
+    let completion: (Timeline<QuotaEntry>) -> Void
 
+    init(_ completion: @escaping (Timeline<QuotaEntry>) -> Void) {
+        self.completion = completion
+    }
+}
+
+/// Static provider for the medium widget — keeps existing widget instances valid
+/// while still allowing async fetches via an internal task.
+struct StaticQuotaTimelineProvider: TimelineProvider {
     func placeholder(in context: Context) -> QuotaEntry { .placeholder }
 
-    func snapshot(for configuration: MediumConfigurationAppIntent, in context: Context) async -> QuotaEntry {
-        QuotaEntry(
+    func getSnapshot(in context: Context, completion: @escaping (QuotaEntry) -> Void) {
+        completion(QuotaEntry(
             date: .now,
             codexUsage: SharedDefaults.loadCachedUsage(),
             claudeUsage: SharedDefaults.loadCachedClaudeUsage(),
             configuration: ConfigurationAppIntent(),
             enrolledServices: SharedDefaults.loadEnrolledServices()
-        )
+        ))
     }
 
-    func timeline(for configuration: MediumConfigurationAppIntent, in context: Context) async -> Timeline<QuotaEntry> {
-        let snapshot = await loadSnapshot(forceRefresh: false)
-        let entry = QuotaEntry(
-            date: .now,
-            codexUsage: snapshot.codexUsage,
-            claudeUsage: snapshot.claudeUsage,
-            configuration: ConfigurationAppIntent(),
-            enrolledServices: SharedDefaults.loadEnrolledServices()
-        )
-        let nextRefresh = WidgetRefreshPolicy.nextTimelineDate(
-            codex: snapshot.codexUsage,
-            claude: snapshot.claudeUsage
-        )
-        return Timeline(entries: [entry], policy: .after(nextRefresh))
+    func getTimeline(in context: Context, completion: @escaping (Timeline<QuotaEntry>) -> Void) {
+        let completionBox = TimelineCompletionBox(completion)
+        Task {
+            let snapshot = await loadSnapshot(forceRefresh: false)
+            let entry = QuotaEntry(
+                date: .now,
+                codexUsage: snapshot.codexUsage,
+                claudeUsage: snapshot.claudeUsage,
+                configuration: ConfigurationAppIntent(),
+                enrolledServices: SharedDefaults.loadEnrolledServices()
+            )
+            let nextRefresh = WidgetRefreshPolicy.nextTimelineDate(
+                codex: snapshot.codexUsage,
+                claude: snapshot.claudeUsage
+            )
+            completionBox.completion(Timeline(entries: [entry], policy: .after(nextRefresh)))
+        }
     }
 }
 

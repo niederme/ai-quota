@@ -16,6 +16,7 @@ struct AIQuotaApp: App {
     init() {
         LegacyWebKitMigration.migrateIfNeeded(bundleIdentifier: "com.niederme.AIQuota")
         LegacyDefaultsMigration.migrateIfNeeded(bundleIdentifier: "com.niederme.AIQuota")
+        LaunchServicesSync.repairIfNeeded()
         _viewModel = State(initialValue: QuotaViewModel())
         updaterController = SPUStandardUpdaterController(
             startingUpdater: true,
