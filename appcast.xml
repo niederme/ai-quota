@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.9.6</title>
+            <title>Version 1.9.7</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.9.6</h2>  <ul><li><strong>More reliable widgets</strong> — widgets now refresh far more aggressively and stay much closer to the live app state.</li> <li><strong>Real widget refresh</strong> — the refresh action now performs an actual data fetch instead of just repainting cached values.</li> <li><strong>Smoother updates</strong> — valid Claude and Codex sessions now restore automatically after app updates, so the app is much less likely to show stale Connect states.</li></ul>
+<h2>What's New in 1.9.7</h2>  <ul><li><strong>More reliable widget updates</strong> — fixed cases where widgets could stay stuck on old values after an app update.</li> <li><strong>Refresh button behaves better</strong> — widget refreshes now recover more consistently instead of appearing to do nothing.</li> <li><strong>Smoother upgrades</strong> — the app repairs widget registration on launch so replacing or auto-updating the app is less likely to strand the widgets.</li></ul>
 </body>
 </html>
 ]]></description>
-            <sparkle:version>289</sparkle:version>
-            <sparkle:shortVersionString>1.9.6</sparkle:shortVersionString>
+            <sparkle:version>292</sparkle:version>
+            <sparkle:shortVersionString>1.9.7</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.9.6/AIQuota.zip"
-                sparkle:edSignature="0NresFHjCt7pkmLUxZkthv5XPGUvOCTnPJ4eg6P6i4vKrUQl+dGuNe69xsJIMtjPQ2BN8Hvv+EOq+TrJ/XMYCg=="
-                length="3515199"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.9.7/AIQuota.zip"
+                sparkle:edSignature="pTY9FDiW7Sc5unRcHCmiAuJ+X/Wd0m45BB4gX37RJFgqiIlmjUH8eFE7V41kY4r9zi0T+L3JoaLxk+jb9pI1Bw=="
+                length="3526169"
                 type="application/zip"/>
         </item>
     </channel>
