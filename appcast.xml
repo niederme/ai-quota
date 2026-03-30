@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.9.7</title>
+            <title>Version 1.9.8</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.9.7</h2>  <ul><li><strong>More reliable widget updates</strong> — fixed cases where widgets could stay stuck on old values after an app update.</li> <li><strong>Refresh button behaves better</strong> — widget refreshes now recover more consistently instead of appearing to do nothing.</li> <li><strong>Smoother upgrades</strong> — the app repairs widget registration on launch so replacing or auto-updating the app is less likely to strand the widgets.</li></ul>
+<h2>What\x27s New in 1.9.8</h2>  <ul><li><strong>Clearer 7-day warnings</strong> — reset timing now appears as weekly usage enters the warning range</li> <li><strong>Better widget consistency</strong> — widgets now reflect the same 7-day reset messaging as the app</li> <li><strong>Polish</strong> — cleaned up an internal widget refresh warning and release housekeeping</li></ul>
 </body>
 </html>
 ]]></description>
-            <sparkle:version>292</sparkle:version>
-            <sparkle:shortVersionString>1.9.7</sparkle:shortVersionString>
+            <sparkle:version>295</sparkle:version>
+            <sparkle:shortVersionString>1.9.8</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.9.7/AIQuota.zip"
-                sparkle:edSignature="pTY9FDiW7Sc5unRcHCmiAuJ+X/Wd0m45BB4gX37RJFgqiIlmjUH8eFE7V41kY4r9zi0T+L3JoaLxk+jb9pI1Bw=="
-                length="3526169"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.9.8/AIQuota.zip"
+                sparkle:edSignature="PSYFfhrZwAeS6zHqOaaSgXITN2pBjQ2ynKalGlz8XzuDxn4bxCSuErypF1URHNZnb1zXpoMB0FT8jEsAw7ibDA=="
+                length="3526159"
                 type="application/zip"/>
         </item>
     </channel>
