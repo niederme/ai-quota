@@ -61,6 +61,18 @@ struct PopoverTypographyTests {
         #expect(popoverSource.contains("u.sevenDayUtilization >= 100"))
     }
 
+    @Test("7d reset line appears when 7d enters the amber warning band")
+    func sevenDayResetLineUsesAmberThreshold() throws {
+        let gaugeSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/CircularGaugeView.swift"), encoding: .utf8)
+        let widgetGaugeSource = try String(contentsOf: repoRoot.appending(path: "AIQuotaWidget/Views/WidgetGaugeView.swift"), encoding: .utf8)
+
+        #expect(gaugeSource.contains("secondaryPercent >= 85 || secondaryLimitReached"))
+        #expect(!gaugeSource.contains("secondaryPercent >= 95 || secondaryLimitReached"))
+
+        #expect(widgetGaugeSource.contains("secondaryPercent >= 85 || secondaryLimitReached"))
+        #expect(!widgetGaugeSource.contains("secondaryPercent >= 95 || secondaryLimitReached"))
+    }
+
     private var repoRoot: URL {
         URL(filePath: #filePath)
             .deletingLastPathComponent()

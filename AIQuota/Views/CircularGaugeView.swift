@@ -153,7 +153,7 @@ struct CircularGaugeView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
 
-            if !isLoading && (secondaryPercent >= 95 || secondaryLimitReached) {
+            if !isLoading && (secondaryPercent >= 85 || secondaryLimitReached) {
                 Text(secondaryLimitReached ? "7d limit reached · \(weeklyResetText)" : weeklyResetText)
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(secondaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.tertiary))

@@ -125,7 +125,7 @@ struct WidgetGaugeView: View {
                 Text(resetText)
                     .font(.system(size: resetPt))
                     .foregroundStyle(.tertiary)
-                if secondaryPercent >= 95 || secondaryLimitReached {
+                if secondaryPercent >= 85 || secondaryLimitReached {
                     Text(secondaryLimitReached ? "7d limit reached · \(weeklyResetText)" : weeklyResetText)
                         .font(.system(size: resetPt))
                         .foregroundStyle(secondaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.tertiary))
