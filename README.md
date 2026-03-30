@@ -13,7 +13,7 @@ A native macOS menubar utility to monitor your AI coding quota — track [OpenAI
 ## Features
 
 - **Menubar gauge icon** — color-coded arc gauge showing quota consumption at a glance; tracks whichever service you configure (or falls back to whichever is authenticated)
-- **Dual-arc gauge** — both services displayed as concentric arc gauges in the popover, with the 5-hour window as the outer ring and the 7-day window as the inner ring; color shifts from purple → amber → red as you approach your limit
+- **Dual-arc gauge** — both services displayed as concentric arc gauges in the popover, with the 5-hour window as the outer ring and the 7-day window as the inner ring; color shifts from purple → amber → red as you approach your limit, and the UI now surfaces 7-day reset timing when weekly usage enters the warning range
 - **Codex + Claude Code** — each service shows reset timers, plan badges, and per-service refresh buttons; credits and plan info in a summary row below the gauges
 - **Widgets** — small widget shows one service (right-click to choose); medium widget always shows both Codex and Claude Code side by side with a refresh button
 - **Network recovery** — detects when connectivity is restored and refreshes immediately, clearing stale error banners automatically
@@ -94,7 +94,7 @@ See the pre-release checklist at the top of [`scripts/release.sh`](scripts/relea
 
 ## Roadmap
 
-- [ ] Visualize 7-day quota reset timing — make it clear when the rolling 7-day window fully resets
+- [x] Visualize 7-day quota reset timing — the app now surfaces 7-day reset timing when the weekly window enters the warning range
 - [ ] Settings is cramped — too much scrolling, notifications lack hierarchy; needs a structural pass
 - [x] Auth and widget recovery after updates — widgets recover more reliably after app replacements, refresh more aggressively, and valid Claude/Codex sessions now restore automatically instead of showing stale Connect states
 - [ ] iOS / iPadOS app — native app and home screen widgets for iPhone and iPad

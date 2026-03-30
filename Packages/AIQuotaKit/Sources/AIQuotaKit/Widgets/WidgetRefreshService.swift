@@ -240,7 +240,7 @@ public actor WidgetRefreshService {
         return formatter
     }()
 
-    private nonisolated(unsafe) static let claudeDecoder: JSONDecoder = {
+    private nonisolated static let claudeDecoder: JSONDecoder = {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         decoder.dateDecodingStrategy = .custom { container in
