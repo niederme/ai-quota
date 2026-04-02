@@ -65,6 +65,7 @@ struct AIQuotaApp: App {
                 .environment(viewModel)
                 .environment(UpdaterViewModel(updater: updaterController.updater))
         }
+        .defaultSize(width: 500, height: 720)
     }
 
     // MARK: - Menu bar gauge selection
