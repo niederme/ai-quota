@@ -48,22 +48,18 @@ struct NotificationsStepView: View {
 
                 // ── Codex ──────────────────────────────────────────────
                 if viewModel.isCodexEnrolled {
-                    Section {
-                        serviceRow(logo: "logo-openai", name: "Codex",
+                    Section("Codex") {
+                        serviceRow(logo: "logo-openai",
                                    isOn: sectionsEnabled ? $vm.settings.notifications.codexEnabled : .constant(false))
 
                         if sectionsEnabled && vm.settings.notifications.codexEnabled {
                             subHeader("5-hour window")
-                            Toggle("Less than 15% remaining", isOn: $vm.settings.notifications.codex5hAt15)
-                            Toggle("Less than 5% remaining",  isOn: $vm.settings.notifications.codex5hAt5)
-                            Toggle("Limit reached",           isOn: $vm.settings.notifications.codex5hLimitReached)
-                            Toggle("Window reset",            isOn: $vm.settings.notifications.codex5hReset)
+                            Toggle("Threshold alerts", isOn: $vm.settings.notifications.codex5hThresholdAlerts)
+                            Toggle("Window reset",     isOn: $vm.settings.notifications.codex5hReset)
 
                             subHeader("Weekly usage")
-                            Toggle("Less than 15% remaining", isOn: $vm.settings.notifications.codexAt15)
-                            Toggle("Less than 5% remaining",  isOn: $vm.settings.notifications.codexAt5)
-                            Toggle("Limit reached",           isOn: $vm.settings.notifications.codexLimitReached)
-                            Toggle("Weekly reset",            isOn: $vm.settings.notifications.codexReset)
+                            Toggle("Threshold alerts", isOn: $vm.settings.notifications.codexWeeklyThresholdAlerts)
+                            Toggle("Weekly reset",     isOn: $vm.settings.notifications.codexReset)
                         }
                     }
                     .disabled(!sectionsEnabled)
@@ -72,22 +68,18 @@ struct NotificationsStepView: View {
 
                 // ── Claude Code ────────────────────────────────────────
                 if viewModel.isClaudeEnrolled {
-                    Section {
-                        serviceRow(logo: "logo-claude", name: "Claude Code",
+                    Section("Claude Code") {
+                        serviceRow(logo: "logo-claude",
                                    isOn: sectionsEnabled ? $vm.settings.notifications.claudeEnabled : .constant(false))
 
                         if sectionsEnabled && vm.settings.notifications.claudeEnabled {
                             subHeader("5-hour window")
-                            Toggle("Less than 15% remaining", isOn: $vm.settings.notifications.claude5hAt15)
-                            Toggle("Less than 5% remaining",  isOn: $vm.settings.notifications.claude5hAt5)
-                            Toggle("Limit reached",           isOn: $vm.settings.notifications.claude5hLimitReached)
-                            Toggle("Window reset",            isOn: $vm.settings.notifications.claude5hReset)
+                            Toggle("Threshold alerts", isOn: $vm.settings.notifications.claude5hThresholdAlerts)
+                            Toggle("Window reset",     isOn: $vm.settings.notifications.claude5hReset)
 
                             subHeader("7-day window")
-                            Toggle("80% used (high)",         isOn: $vm.settings.notifications.claude7dAt80)
-                            Toggle("95% used (critical)",     isOn: $vm.settings.notifications.claude7dAt95)
-                            Toggle("Limit reached",           isOn: $vm.settings.notifications.claude7dLimitReached)
-                            Toggle("Period reset",            isOn: $vm.settings.notifications.claude7dReset)
+                            Toggle("Threshold alerts", isOn: $vm.settings.notifications.claude7dThresholdAlerts)
+                            Toggle("Period reset",     isOn: $vm.settings.notifications.claude7dReset)
                         }
                     }
                     .disabled(!sectionsEnabled)
@@ -103,8 +95,6 @@ struct NotificationsStepView: View {
             }
             .formStyle(.grouped)
             .animation(.spring(response: 0.4, dampingFraction: 0.85), value: sectionsEnabled)
-            .animation(.spring(response: 0.3, dampingFraction: 0.85), value: viewModel.settings.notifications.codexEnabled)
-            .animation(.spring(response: 0.3, dampingFraction: 0.85), value: viewModel.settings.notifications.claudeEnabled)
         }
         .task { await checkPermission() }
         .onChange(of: viewModel.settings) { viewModel.saveSettings() }
@@ -112,17 +102,15 @@ struct NotificationsStepView: View {
 
     // MARK: - Helpers
 
-    /// Bold service row: logo + name on the left, switch on the right.
+    /// Service row: logo on the left, enable/disable switch on the right.
+    /// The service name is provided by the enclosing Section title.
     @ViewBuilder
-    private func serviceRow(logo: String, name: String, isOn: Binding<Bool>) -> some View {
+    private func serviceRow(logo: String, isOn: Binding<Bool>) -> some View {
         HStack(spacing: 10) {
             Image(logo)
                 .resizable()
                 .scaledToFit()
                 .frame(width: 18, height: 18)
-            Text(name)
-                .fontWeight(.semibold)
-            Spacer()
             Toggle("", isOn: isOn)
                 .toggleStyle(.switch)
                 .labelsHidden()
