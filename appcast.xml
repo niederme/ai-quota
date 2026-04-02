@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.9.9</title>
+            <title>Version 1.9.10</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.9.9</h2>  <ul><li><strong>Accurate menu bar status color</strong> — the icon's warning color now reflects your selected service only, so Claude users no longer see Codex quota alerts (and vice versa)</li></ul>
+<h2>What's New in 1.9.10</h2>  <ul><li><strong>Settings redesigned</strong> — Accounts moved to the top of Settings so sign-in and sign-out are always easy to find; notification sections are now named per service with threshold alerts consolidated into a single toggle per window (instead of three separate ones)</li> <li><strong>Settings window fixed</strong> — the window reliably opens at the correct size for all users, including those upgrading from earlier versions where macOS had saved a smaller frame</li></ul>
 </body>
 </html>
 ]]></description>
-            <sparkle:version>300</sparkle:version>
-            <sparkle:shortVersionString>1.9.9</sparkle:shortVersionString>
+            <sparkle:version>310</sparkle:version>
+            <sparkle:shortVersionString>1.9.10</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.9.9/AIQuota.zip"
-                sparkle:edSignature="eW/l1SiM2gUxDxM5EYiiFD3KQmYi+7v3njdqztO7PZS1tZ/IvDa00hKk1DT8Ui4UID21VlC90NC0KnPfUfDbDg=="
-                length="3522938"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.9.10/AIQuota.zip"
+                sparkle:edSignature="u1TtfOXUSXjnWdrOn+q2h56eLuN277inRSps/G/SLEMtTY/GtN2iPay5r8xqo3p5In88qpt8CuMrX0CgFDmFDw=="
+                length="3591273"
                 type="application/zip"/>
         </item>
     </channel>
