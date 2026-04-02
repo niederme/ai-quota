@@ -1,6 +1,7 @@
 import SwiftUI
 import Sparkle
 import AppKit
+import WidgetKit
 import AIQuotaKit
 
 @main
@@ -27,6 +28,9 @@ struct AIQuotaApp: App {
         let updater = updaterController.updater
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             updater.checkForUpdatesInBackground()
+        }
+        DispatchQueue.main.async {
+            WidgetCenter.shared.reloadAllTimelines()
         }
     }
 

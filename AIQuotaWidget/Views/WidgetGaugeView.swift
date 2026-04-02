@@ -43,6 +43,7 @@ struct WidgetGaugeView: View {
     private var secPt:    CGFloat { size * 0.125 }
     private var labelPt:  CGFloat { size * 0.125 }
     private var resetPt:  CGFloat { size * 0.100 }
+    private var showsSecondaryResetLine: Bool { secondaryPercent >= 85 || secondaryLimitReached }
 
     var body: some View {
         VStack(spacing: size * 0.04) {
@@ -98,43 +99,37 @@ struct WidgetGaugeView: View {
                         }
                     }
                 }
-
-                // ── Refresh button — sits in the arc's bottom gap ─────────
-                VStack {
-                    Spacer()
-                    Button(intent: RefreshWidgetIntent()) {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: resetPt, weight: .medium))
-                            .foregroundStyle(.tertiary)
-                            .padding(3)
-                            .background(
-                                RoundedRectangle(cornerRadius: 3, style: .continuous)
-                                    .fill(.fill.tertiary)
-                            )
-                    }
-                    .buttonStyle(.plain)
-                    .padding(.bottom, 2)
-                }
             }
             .frame(width: size, height: size)
 
-            VStack(spacing: 2) {
-                Text(label)
-                    .font(.system(size: labelPt, weight: .bold))
-                    .foregroundStyle(primaryLimitReached ? .red : .primary)
-                Text(resetText)
-                    .font(.system(size: resetPt))
-                    .foregroundStyle(.tertiary)
-                if secondaryPercent >= 85 || secondaryLimitReached {
-                    Text(secondaryLimitReached ? "7d limit reached · \(weeklyResetText)" : weeklyResetText)
-                        .font(.system(size: resetPt))
-                        .foregroundStyle(secondaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.tertiary))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                }
+            ViewThatFits(in: .vertical) {
+                footer(showsSecondaryReset: showsSecondaryResetLine)
+                footer(showsSecondaryReset: false)
             }
         }
         .multilineTextAlignment(.center)
+    }
+
+    private func footer(showsSecondaryReset: Bool) -> some View {
+        VStack(spacing: 2) {
+            Text(label)
+                .font(.system(size: labelPt, weight: .bold))
+                .foregroundStyle(primaryLimitReached ? .red : .primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+            Text(resetText)
+                .font(.system(size: resetPt))
+                .foregroundStyle(.tertiary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            if showsSecondaryReset {
+                Text(secondaryLimitReached ? "7d limit reached · \(weeklyResetText)" : weeklyResetText)
+                    .font(.system(size: resetPt))
+                    .foregroundStyle(secondaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.tertiary))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+        }
     }
 
     private var resetText: String {

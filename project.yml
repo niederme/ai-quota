@@ -11,11 +11,11 @@ options:
 
 # ── Version / Build number ─────────────────────────────────────────────────
 # MARKETING_VERSION = user-facing version (1.0, 1.1, 2.0…) — bump manually.
-# CURRENT_PROJECT_VERSION = fallback; overridden at build time by git commit count.
+# CURRENT_PROJECT_VERSION = bundle build number used by the app + widget.
 settings:
   base:
     MARKETING_VERSION: "1.9.9"
-    CURRENT_PROJECT_VERSION: "1"
+    CURRENT_PROJECT_VERSION: "301"
 
 packages:
   AIQuotaKit:
