@@ -236,15 +236,30 @@ struct SettingsView: View {
     }
 }
 
-// MARK: - Window level helper
+// MARK: - Window level + size enforcer
 
 private struct FloatingWindowElevator: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
-        DispatchQueue.main.async { view.window?.level = .floating }
+        DispatchQueue.main.async { Self.configure(view.window) }
         return view
     }
-    func updateNSView(_ nsView: NSView, context: Context) {}
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async { Self.configure(nsView.window) }
+    }
+
+    private static func configure(_ window: NSWindow?) {
+        guard let window else { return }
+        window.level = .floating
+        // Override any macOS-restored frame — saved sizes from older builds
+        // would otherwise produce a window that's too small to scroll into.
+        let size = NSSize(width: 500, height: 700)
+        window.minSize = size
+        window.maxSize = size
+        if window.frame.size != size {
+            window.setContentSize(size)
+        }
+    }
 }
 
 // MARK: - Notification Status
