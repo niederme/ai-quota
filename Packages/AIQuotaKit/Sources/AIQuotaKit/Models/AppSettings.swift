@@ -58,6 +58,49 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
 
     public init() {}
 
+    // MARK: - Aggregate computed properties (UI consolidation)
+    // Each property covers one window type's threshold alerts (at-%, limit reached).
+    // Reads true if any underlying field is on; writes all three simultaneously.
+
+    public var codex5hThresholdAlerts: Bool {
+        get { codex5hAt15 || codex5hAt5 || codex5hLimitReached }
+        set { codex5hAt15 = newValue; codex5hAt5 = newValue; codex5hLimitReached = newValue }
+    }
+
+    public var codexWeeklyThresholdAlerts: Bool {
+        get { codexAt15 || codexAt5 || codexLimitReached }
+        set { codexAt15 = newValue; codexAt5 = newValue; codexLimitReached = newValue }
+    }
+
+    public var claude5hThresholdAlerts: Bool {
+        get { claude5hAt15 || claude5hAt5 || claude5hLimitReached }
+        set { claude5hAt15 = newValue; claude5hAt5 = newValue; claude5hLimitReached = newValue }
+    }
+
+    public var claude7dThresholdAlerts: Bool {
+        get { claude7dAt80 || claude7dAt95 || claude7dLimitReached }
+        set { claude7dAt80 = newValue; claude7dAt95 = newValue; claude7dLimitReached = newValue }
+    }
+
+    // MARK: - Migration
+
+    /// Normalises any threshold group where the three underlying booleans are not all
+    /// the same value. Mixed groups are resolved to their OR result (any=true → all-true).
+    /// Call once on app launch before UI renders; subsequent interactions use the
+    /// aggregate computed properties above which always write all three uniformly.
+    public mutating func normalizeThresholds() {
+        func normalize(_ a: inout Bool, _ b: inout Bool, _ c: inout Bool) {
+            let resolved = a || b || c
+            if a != resolved || b != resolved || c != resolved {
+                a = resolved; b = resolved; c = resolved
+            }
+        }
+        normalize(&codex5hAt15,  &codex5hAt5,  &codex5hLimitReached)
+        normalize(&codexAt15,    &codexAt5,    &codexLimitReached)
+        normalize(&claude5hAt15, &claude5hAt5, &claude5hLimitReached)
+        normalize(&claude7dAt80, &claude7dAt95, &claude7dLimitReached)
+    }
+
     /// Migration-safe decoder: missing keys fall back to defaults rather than throwing.
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
