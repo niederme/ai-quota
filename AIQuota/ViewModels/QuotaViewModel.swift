@@ -163,6 +163,13 @@ final class QuotaViewModel {
         codexUsage  = SharedDefaults.loadCachedUsage()
         claudeUsage = SharedDefaults.loadCachedClaudeUsage()
 
+        // Normalise any mixed per-threshold notification state from pre-consolidation builds.
+        // OR-resolves each group (any=true → all-true) so aggregate toggles always see
+        // a clean on/off state from the first render.
+        let preNorm = settings
+        settings.notifications.normalizeThresholds()
+        if settings != preNorm { SharedDefaults.saveSettings(settings) }
+
         // Observe coordinator state streams and drive UI state + auto-refresh.
         Task { [weak self] in
             guard let self else { return }
