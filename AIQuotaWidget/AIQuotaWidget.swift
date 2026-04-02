@@ -9,14 +9,28 @@ private struct ConfigurableQuotaWidgetView: View {
     var body: some View {
         switch family {
         case .systemMedium:
-            WidgetMediumView(entry: entry)
+            WidgetSingleServiceMediumView(entry: entry)
         default:
             WidgetSmallView(entry: entry)
         }
     }
 }
 
-// MARK: - Small widget (configurable service)
+private struct StaticQuotaWidgetView: View {
+    let entry: QuotaEntry
+    @Environment(\.widgetFamily) private var family
+
+    var body: some View {
+        switch family {
+        case .systemLarge:
+            WidgetLargeView(entry: entry)
+        default:
+            WidgetMediumView(entry: entry)
+        }
+    }
+}
+
+// MARK: - Configurable widget (small + medium, one service)
 
 struct AIQuotaSmallWidget: Widget {
     let kind = "AIQuotaWidget"
@@ -35,19 +49,19 @@ struct AIQuotaSmallWidget: Widget {
     }
 }
 
-// MARK: - Medium widget (always both services, no configuration)
+// MARK: - Static widget (medium + large, both services)
 
 struct AIQuotaMediumWidget: Widget {
     let kind = "AIQuotaWidgetMedium"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: StaticQuotaTimelineProvider()) { entry in
-            WidgetMediumView(entry: entry)
+            StaticQuotaWidgetView(entry: entry)
                 .containerBackground(Color(white: 0.1), for: .widget)
         }
         .configurationDisplayName("AI Quota")
-        .description("Track both Codex and Claude Code side by side.")
-        .supportedFamilies([.systemMedium])
+        .description("Track both Codex and Claude Code with room for more detail.")
+        .supportedFamilies([.systemMedium, .systemLarge])
         .contentMarginsDisabled()
     }
 }
@@ -62,6 +76,18 @@ struct AIQuotaMediumWidget: Widget {
 }
 
 #Preview(as: .systemMedium) {
+    AIQuotaSmallWidget()
+} timeline: {
+    QuotaEntry.placeholder
+}
+
+#Preview(as: .systemMedium) {
+    AIQuotaMediumWidget()
+} timeline: {
+    QuotaEntry.placeholder
+}
+
+#Preview(as: .systemLarge) {
     AIQuotaMediumWidget()
 } timeline: {
     QuotaEntry.placeholder
