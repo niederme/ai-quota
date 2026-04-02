@@ -102,7 +102,8 @@ struct NotificationsStepView: View {
 
     // MARK: - Helpers
 
-    /// Bold service row: logo + name on the left, switch on the right.
+    /// Service row: logo on the left, enable/disable switch on the right.
+    /// The service name is provided by the enclosing Section title.
     @ViewBuilder
     private func serviceRow(logo: String, isOn: Binding<Bool>) -> some View {
         HStack(spacing: 10) {
