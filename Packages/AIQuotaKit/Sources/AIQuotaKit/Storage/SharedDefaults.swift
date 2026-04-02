@@ -12,11 +12,18 @@ public enum SharedDefaults {
         return .standard
     }
 
+    /// WidgetKit can reload before app-group defaults are flushed cross-process.
+    /// Force persistence so the widget extension sees the latest snapshot.
+    private static func persistChanges() {
+        defaults.synchronize()
+    }
+
     // MARK: - Codex usage
 
     public static func saveUsage(_ usage: CodexUsage) {
         guard let data = try? JSONEncoder().encode(usage) else { return }
         defaults.set(data, forKey: codexUsageKey)
+        persistChanges()
     }
 
     public static func loadCachedUsage() -> CodexUsage? {
@@ -26,6 +33,7 @@ public enum SharedDefaults {
 
     public static func clearUsage() {
         defaults.removeObject(forKey: codexUsageKey)
+        persistChanges()
     }
 
     // MARK: - Claude usage
@@ -33,6 +41,7 @@ public enum SharedDefaults {
     public static func saveClaudeUsage(_ usage: ClaudeUsage) {
         guard let data = try? JSONEncoder().encode(usage) else { return }
         defaults.set(data, forKey: claudeUsageKey)
+        persistChanges()
     }
 
     public static func loadCachedClaudeUsage() -> ClaudeUsage? {
@@ -42,6 +51,7 @@ public enum SharedDefaults {
 
     public static func clearClaudeUsage() {
         defaults.removeObject(forKey: claudeUsageKey)
+        persistChanges()
     }
 
     // MARK: - Settings
@@ -49,6 +59,7 @@ public enum SharedDefaults {
     public static func saveSettings(_ settings: AppSettings) {
         guard let data = try? JSONEncoder().encode(settings) else { return }
         defaults.set(data, forKey: settingsKey)
+        persistChanges()
     }
 
     public static func loadSettings() -> AppSettings {
@@ -72,6 +83,7 @@ public enum SharedDefaults {
     public static func saveEnrolledServices(_ services: Set<ServiceType>) {
         guard let data = try? JSONEncoder().encode(services.map(\.rawValue)) else { return }
         defaults.set(data, forKey: enrolledServicesKey)
+        persistChanges()
     }
 
     public static func enrollService(_ service: ServiceType) {
@@ -88,5 +100,6 @@ public enum SharedDefaults {
 
     public static func clearEnrolledServices() {
         defaults.removeObject(forKey: enrolledServicesKey)
+        persistChanges()
     }
 }
