@@ -9,4 +9,13 @@ public enum WidgetBundleRegistrationPolicy {
     ) -> Bool {
         currentVersion != lastRegisteredVersion || currentPath != lastRegisteredPath
     }
+
+    public static func shouldRestartWidgetHosts(
+        currentVersion: String,
+        currentPath: String,
+        lastRestartedVersion: String?,
+        lastRestartedPath: String?
+    ) -> Bool {
+        currentVersion != lastRestartedVersion || currentPath != lastRestartedPath
+    }
 }
