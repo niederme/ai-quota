@@ -205,6 +205,8 @@ struct SettingsView: View {
 
     // MARK: - Notification helpers
 
+    /// Service row: logo on the left, enable/disable switch on the right.
+    /// The service name is provided by the enclosing Section title.
     @ViewBuilder
     private func notifServiceRow(logo: String, isOn: Binding<Bool>) -> some View {
         HStack(spacing: 10) {
