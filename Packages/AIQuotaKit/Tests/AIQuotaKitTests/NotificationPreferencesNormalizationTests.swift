@@ -26,6 +26,8 @@ struct NotificationPreferencesNormalizationTests {
         prefs.claude7dAt80 = false; prefs.claude7dAt95 = false; prefs.claude7dLimitReached = false
         prefs.normalizeThresholds()
         #expect(!prefs.codex5hAt15 && !prefs.codex5hAt5 && !prefs.codex5hLimitReached)
+        #expect(!prefs.codexAt15 && !prefs.codexAt5 && !prefs.codexLimitReached)
+        #expect(!prefs.claude5hAt15 && !prefs.claude5hAt5 && !prefs.claude5hLimitReached)
         #expect(!prefs.claude7dAt80 && !prefs.claude7dAt95 && !prefs.claude7dLimitReached)
     }
 
@@ -82,5 +84,31 @@ struct NotificationPreferencesNormalizationTests {
         prefs.codex5hAt15 = false; prefs.codex5hAt5 = false; prefs.codex5hLimitReached = false
         prefs.codex5hThresholdAlerts = true
         #expect(prefs.codex5hAt15 && prefs.codex5hAt5 && prefs.codex5hLimitReached)
+    }
+
+    @Test("codexWeeklyThresholdAlerts is true when all three are true")
+    func codexWeeklyAggregateAllOnIsTrue() {
+        let prefs = NotificationPreferences()
+        #expect(prefs.codexWeeklyThresholdAlerts == true)
+    }
+
+    @Test("claude5hThresholdAlerts is true when all three are true")
+    func claude5hAggregateAllOnIsTrue() {
+        let prefs = NotificationPreferences()
+        #expect(prefs.claude5hThresholdAlerts == true)
+    }
+
+    @Test("claude7dThresholdAlerts is false when all three are false")
+    func claude7dAggregateAllOffIsFalse() {
+        var prefs = NotificationPreferences()
+        prefs.claude7dAt80 = false; prefs.claude7dAt95 = false; prefs.claude7dLimitReached = false
+        #expect(prefs.claude7dThresholdAlerts == false)
+    }
+
+    @Test("setting claude7dThresholdAlerts=false clears all three fields")
+    func claude7dAggregateSetFalseClearsAll() {
+        var prefs = NotificationPreferences()
+        prefs.claude7dThresholdAlerts = false
+        #expect(!prefs.claude7dAt80 && !prefs.claude7dAt95 && !prefs.claude7dLimitReached)
     }
 }

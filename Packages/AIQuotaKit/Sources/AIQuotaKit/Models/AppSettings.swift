@@ -58,6 +58,30 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
 
     public init() {}
 
+    /// Migration-safe decoder: missing keys fall back to defaults rather than throwing.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        enabled              = try c.decodeIfPresent(Bool.self, forKey: .enabled)              ?? true
+        codexEnabled         = try c.decodeIfPresent(Bool.self, forKey: .codexEnabled)         ?? true
+        claudeEnabled        = try c.decodeIfPresent(Bool.self, forKey: .claudeEnabled)        ?? true
+        codex5hAt15          = try c.decodeIfPresent(Bool.self, forKey: .codex5hAt15)          ?? true
+        codex5hAt5           = try c.decodeIfPresent(Bool.self, forKey: .codex5hAt5)           ?? true
+        codex5hLimitReached  = try c.decodeIfPresent(Bool.self, forKey: .codex5hLimitReached)  ?? true
+        codex5hReset         = try c.decodeIfPresent(Bool.self, forKey: .codex5hReset)         ?? true
+        codexAt15            = try c.decodeIfPresent(Bool.self, forKey: .codexAt15)            ?? true
+        codexAt5             = try c.decodeIfPresent(Bool.self, forKey: .codexAt5)             ?? true
+        codexLimitReached    = try c.decodeIfPresent(Bool.self, forKey: .codexLimitReached)    ?? true
+        codexReset           = try c.decodeIfPresent(Bool.self, forKey: .codexReset)           ?? true
+        claude5hAt15         = try c.decodeIfPresent(Bool.self, forKey: .claude5hAt15)         ?? true
+        claude5hAt5          = try c.decodeIfPresent(Bool.self, forKey: .claude5hAt5)          ?? true
+        claude5hLimitReached = try c.decodeIfPresent(Bool.self, forKey: .claude5hLimitReached) ?? true
+        claude5hReset        = try c.decodeIfPresent(Bool.self, forKey: .claude5hReset)        ?? true
+        claude7dAt80         = try c.decodeIfPresent(Bool.self, forKey: .claude7dAt80)         ?? true
+        claude7dAt95         = try c.decodeIfPresent(Bool.self, forKey: .claude7dAt95)         ?? true
+        claude7dLimitReached = try c.decodeIfPresent(Bool.self, forKey: .claude7dLimitReached) ?? true
+        claude7dReset        = try c.decodeIfPresent(Bool.self, forKey: .claude7dReset)        ?? true
+    }
+
     // MARK: - Aggregate computed properties (UI consolidation)
     // Each property covers one window type's threshold alerts (at-%, limit reached).
     // Reads true if any underlying field is on; writes all three simultaneously.
@@ -99,30 +123,6 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
         normalize(&codexAt15,    &codexAt5,    &codexLimitReached)
         normalize(&claude5hAt15, &claude5hAt5, &claude5hLimitReached)
         normalize(&claude7dAt80, &claude7dAt95, &claude7dLimitReached)
-    }
-
-    /// Migration-safe decoder: missing keys fall back to defaults rather than throwing.
-    public init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        enabled              = try c.decodeIfPresent(Bool.self, forKey: .enabled)              ?? true
-        codexEnabled         = try c.decodeIfPresent(Bool.self, forKey: .codexEnabled)         ?? true
-        claudeEnabled        = try c.decodeIfPresent(Bool.self, forKey: .claudeEnabled)        ?? true
-        codex5hAt15          = try c.decodeIfPresent(Bool.self, forKey: .codex5hAt15)          ?? true
-        codex5hAt5           = try c.decodeIfPresent(Bool.self, forKey: .codex5hAt5)           ?? true
-        codex5hLimitReached  = try c.decodeIfPresent(Bool.self, forKey: .codex5hLimitReached)  ?? true
-        codex5hReset         = try c.decodeIfPresent(Bool.self, forKey: .codex5hReset)         ?? true
-        codexAt15            = try c.decodeIfPresent(Bool.self, forKey: .codexAt15)            ?? true
-        codexAt5             = try c.decodeIfPresent(Bool.self, forKey: .codexAt5)             ?? true
-        codexLimitReached    = try c.decodeIfPresent(Bool.self, forKey: .codexLimitReached)    ?? true
-        codexReset           = try c.decodeIfPresent(Bool.self, forKey: .codexReset)           ?? true
-        claude5hAt15         = try c.decodeIfPresent(Bool.self, forKey: .claude5hAt15)         ?? true
-        claude5hAt5          = try c.decodeIfPresent(Bool.self, forKey: .claude5hAt5)          ?? true
-        claude5hLimitReached = try c.decodeIfPresent(Bool.self, forKey: .claude5hLimitReached) ?? true
-        claude5hReset        = try c.decodeIfPresent(Bool.self, forKey: .claude5hReset)        ?? true
-        claude7dAt80         = try c.decodeIfPresent(Bool.self, forKey: .claude7dAt80)         ?? true
-        claude7dAt95         = try c.decodeIfPresent(Bool.self, forKey: .claude7dAt95)         ?? true
-        claude7dLimitReached = try c.decodeIfPresent(Bool.self, forKey: .claude7dLimitReached) ?? true
-        claude7dReset        = try c.decodeIfPresent(Bool.self, forKey: .claude7dReset)        ?? true
     }
 }
 
