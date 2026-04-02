@@ -6,8 +6,7 @@ struct MenuBarIconView: View {
     let secondaryPercent: Int
     let limitReached: Bool
     let isLoading: Bool
-    /// Worst metric across all authenticated services — drives ring colour
-    /// even when the displayed service is healthy.
+    /// Worst metric for the currently displayed service — drives ring colour.
     let worstPercent: Int
     var body: some View {
         Image(nsImage: GaugeImageMaker.image(

@@ -12,9 +12,8 @@ public enum GaugeImageMaker {
     ///   - limitReached: whether any service has hit its cap.
     ///   - isLoading: show a neutral half-fill while data is in flight.
     ///   - size: point size of the square image (rendered at backing scale).
-    ///   - worstPercent: 0–100, worst metric across *all* services — drives ring colour
-    ///     independently of which service's arcs are displayed. Defaults to the max of
-    ///     primaryPercent / secondaryPercent when omitted.
+    ///   - worstPercent: 0–100 status metric chosen by the caller to drive ring colour.
+    ///     Defaults to the max of primaryPercent / secondaryPercent when omitted.
     public static func image(
         primaryPercent: Int,
         secondaryPercent: Int,

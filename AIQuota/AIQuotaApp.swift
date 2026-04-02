@@ -41,7 +41,7 @@ struct AIQuotaApp: App {
                 secondaryPercent: menuBarSecondaryPercent,
                 limitReached: menuBarLimitReached,
                 isLoading: viewModel.isLoading,
-                worstPercent: menuBarWorstPercent
+                worstPercent: menuBarStatusPercent
             )
             .onboardingLauncher(viewModel: viewModel)
         }
@@ -82,19 +82,30 @@ struct AIQuotaApp: App {
         }
     }
 
-    /// Worst single metric across all authenticated services — used to colour
-    /// the menu bar rings regardless of which service's arcs are displayed.
-    private var menuBarWorstPercent: Int {
-        let codex  = [viewModel.codexUsage?.hourlyUsedPercent  ?? 0,
-                      viewModel.codexUsage?.weeklyUsedPercent  ?? 0]
-        let claude = [Int(viewModel.claudeUsage?.fiveHourUtilization.rounded() ?? 0),
-                      Int(viewModel.claudeUsage?.sevenDayUtilization.rounded() ?? 0)]
-        return (codex + claude).max() ?? 0
+    /// Worst metric for the resolved service only — keeps the menu bar icon's
+    /// warning colour aligned with the user's selected default service.
+    private var menuBarStatusPercent: Int {
+        switch resolvedMenuBarService {
+        case .codex:
+            return max(
+                viewModel.codexUsage?.hourlyUsedPercent ?? 0,
+                viewModel.codexUsage?.weeklyUsedPercent ?? 0
+            )
+        case .claude:
+            return max(
+                Int(viewModel.claudeUsage?.fiveHourUtilization.rounded() ?? 0),
+                Int(viewModel.claudeUsage?.sevenDayUtilization.rounded() ?? 0)
+            )
+        }
     }
 
     private var menuBarLimitReached: Bool {
-        (viewModel.codexUsage?.limitReached ?? false) ||
-        (viewModel.claudeUsage?.limitReached ?? false)
+        switch resolvedMenuBarService {
+        case .codex:
+            return viewModel.codexUsage?.limitReached ?? false
+        case .claude:
+            return viewModel.claudeUsage?.limitReached ?? false
+        }
     }
 
     /// Respects `settings.menuBarService` but falls back gracefully.
