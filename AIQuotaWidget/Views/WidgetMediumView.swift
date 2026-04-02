@@ -162,40 +162,19 @@ private struct WidgetHeaderView: View {
     }
 }
 
-private struct WidgetCornerKey: View {
-    var body: some View {
-        HStack(spacing: 8) {
-            ringKey(label: "5h", opacity: 1.0)
-            ringKey(label: "7d", opacity: 0.5)
-        }
-    }
-
-    private func ringKey(label: String, opacity: Double) -> some View {
-        HStack(spacing: 4) {
-            Circle()
-                .fill(widgetAccentColor.opacity(opacity))
-                .frame(width: 5, height: 5)
-            Text(label)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(widgetAccentColor.opacity(opacity))
-        }
-    }
-}
-
 private struct WidgetStatsColumn: View {
     let snapshot: WidgetServiceSnapshot?
     let emptyLabel: String
     let showsFooter: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Spacer(minLength: 0)
+        VStack(alignment: .leading, spacing: 4) {
             if let snapshot {
                 if let alertText = snapshot.alertText {
                     Label(alertText, systemImage: "exclamationmark.octagon.fill")
-                        .font(.caption.bold())
+                        .font(.system(size: 11, weight: .semibold))
                         .foregroundStyle(.red)
-                    Divider()
+                        .padding(.bottom, 3)
                 }
 
                 ForEach(snapshot.detailRows) { row in
@@ -215,15 +194,15 @@ private struct WidgetStatsColumn: View {
                     }
                 }
 
-                Spacer(minLength: 0)
-
                 if showsFooter {
                     Text(snapshot.detailFooter)
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
+                        .padding(.top, 4)
                 }
+                Spacer(minLength: 0)
             } else {
                 Text("Sign in to AIQuota")
                     .font(.caption.bold())
@@ -244,7 +223,7 @@ private struct WidgetMediumStatsColumn: View {
     let emptyLabel: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 8) {
             if let snapshot {
                 if let alertText = snapshot.alertText {
                     Label(alertText, systemImage: "exclamationmark.octagon.fill")
@@ -269,13 +248,14 @@ private struct WidgetMediumStatsColumn: View {
                     }
                 }
 
-                Spacer(minLength: 10)
-
                 Text(snapshot.detailFooter)
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
+                    .padding(.top, 4)
+
+                Spacer(minLength: 0)
             } else {
                 Spacer(minLength: 0)
                 Text("Sign in to AIQuota")
@@ -473,29 +453,25 @@ struct WidgetSingleServiceMediumView: View {
     var body: some View {
         let snapshot = entry.snapshot(for: service)
 
-        ZStack(alignment: .topTrailing) {
-            HStack(spacing: 0) {
-                WidgetSingleGaugePanel(snapshot: snapshot, service: service, gaugeSize: 96)
-                    .frame(width: 118)
+        HStack(spacing: 0) {
+            WidgetSingleGaugePanel(snapshot: snapshot, service: service, gaugeSize: 88)
+                .frame(width: 128)
 
-                Divider()
-                    .padding(.vertical, 18)
+            Divider()
+                .padding(.vertical, 22)
 
-                WidgetMediumStatsColumn(
-                    snapshot: snapshot,
-                    emptyLabel: service == .claude ? "Claude Code" : "Codex"
-                )
-                .padding(.leading, 12)
-                .padding(.trailing, 14)
-                .padding(.vertical, 12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding(.top, 8)
-
-            WidgetCornerKey()
-                .padding(.top, 8)
-                .padding(.trailing, 12)
+            WidgetMediumStatsColumn(
+                snapshot: snapshot,
+                emptyLabel: service == .claude ? "Claude Code" : "Codex"
+            )
+            .padding(.leading, 18)
+            .padding(.trailing, 18)
+            .padding(.top, 18)
+            .padding(.bottom, 14)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
@@ -596,42 +572,54 @@ struct WidgetLargeView: View {
     var body: some View {
         VStack(spacing: 0) {
             WidgetHeaderView(title: "AIQuota")
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 12)
             Divider()
 
-            HStack(alignment: .top, spacing: 0) {
-                largeGaugeColumn(for: .codex)
-                    .frame(maxWidth: .infinity)
-                Divider()
-                largeGaugeColumn(for: .claude)
-                    .frame(maxWidth: .infinity)
-            }
-            .padding(.top, 16)
-            .padding(.bottom, 10)
+            GeometryReader { geometry in
+                let topHeight = geometry.size.height * 0.64
+                let bottomHeight = max(0, geometry.size.height - topHeight - 1)
 
-            Divider()
+                VStack(spacing: 0) {
+                    HStack(alignment: .center, spacing: 0) {
+                        largeGaugeColumn(for: .codex)
+                            .frame(maxWidth: .infinity)
+                        Divider()
+                        largeGaugeColumn(for: .claude)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .frame(height: topHeight, alignment: .center)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
 
-            HStack(alignment: .top, spacing: 0) {
-                WidgetStatsColumn(
-                    snapshot: entry.snapshot(for: .codex),
-                    emptyLabel: "Codex",
-                    showsFooter: false
-                )
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                    Divider()
 
-                Divider()
+                    HStack(alignment: .top, spacing: 0) {
+                        WidgetStatsColumn(
+                            snapshot: entry.snapshot(for: .codex),
+                            emptyLabel: "Codex",
+                            showsFooter: false
+                        )
+                        .padding(.horizontal, 14)
+                        .padding(.top, 10)
+                        .padding(.bottom, 10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
-                WidgetStatsColumn(
-                    snapshot: entry.snapshot(for: .claude),
-                    emptyLabel: "Claude Code",
-                    showsFooter: false
-                )
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                        Divider()
+
+                        WidgetStatsColumn(
+                            snapshot: entry.snapshot(for: .claude),
+                            emptyLabel: "Claude Code",
+                            showsFooter: false
+                        )
+                        .padding(.horizontal, 14)
+                        .padding(.top, 10)
+                        .padding(.bottom, 10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(height: bottomHeight, alignment: .top)
+                }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -639,6 +627,6 @@ struct WidgetLargeView: View {
 
     @ViewBuilder
     private func largeGaugeColumn(for service: ServiceType) -> some View {
-        WidgetSingleGaugePanel(snapshot: entry.snapshot(for: service), service: service, gaugeSize: 86)
+        WidgetSingleGaugePanel(snapshot: entry.snapshot(for: service), service: service, gaugeSize: 96)
     }
 }

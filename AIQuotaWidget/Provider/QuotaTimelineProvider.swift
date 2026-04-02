@@ -28,6 +28,39 @@ struct QuotaEntry: TimelineEntry {
     )
 }
 
+private extension ServiceOption {
+    var serviceType: ServiceType {
+        switch self {
+        case .codex: return .codex
+        case .claude: return .claude
+        }
+    }
+}
+
+private func snapshotCodexUsage(
+    _ usage: CodexUsage?,
+    configuration: ConfigurationAppIntent?,
+    enrolledServices: Set<ServiceType>
+) -> CodexUsage? {
+    if let usage { return usage }
+    if let configuration {
+        return configuration.service.serviceType == .codex && enrolledServices.contains(.codex) ? .placeholder : nil
+    }
+    return enrolledServices.contains(.codex) ? .placeholder : nil
+}
+
+private func snapshotClaudeUsage(
+    _ usage: ClaudeUsage?,
+    configuration: ConfigurationAppIntent?,
+    enrolledServices: Set<ServiceType>
+) -> ClaudeUsage? {
+    if let usage { return usage }
+    if let configuration {
+        return configuration.service.serviceType == .claude && enrolledServices.contains(.claude) ? .placeholder : nil
+    }
+    return enrolledServices.contains(.claude) ? .placeholder : nil
+}
+
 private final class TimelineCompletionBox: @unchecked Sendable {
     let completion: (Timeline<QuotaEntry>) -> Void
 
@@ -42,12 +75,21 @@ struct StaticQuotaTimelineProvider: TimelineProvider {
     func placeholder(in context: Context) -> QuotaEntry { .placeholder }
 
     func getSnapshot(in context: Context, completion: @escaping (QuotaEntry) -> Void) {
+        let enrolledServices = SharedDefaults.loadEnrolledServices()
         completion(QuotaEntry(
             date: .now,
-            codexUsage: SharedDefaults.loadCachedUsage(),
-            claudeUsage: SharedDefaults.loadCachedClaudeUsage(),
+            codexUsage: snapshotCodexUsage(
+                SharedDefaults.loadCachedUsage(),
+                configuration: nil,
+                enrolledServices: enrolledServices
+            ),
+            claudeUsage: snapshotClaudeUsage(
+                SharedDefaults.loadCachedClaudeUsage(),
+                configuration: nil,
+                enrolledServices: enrolledServices
+            ),
             configuration: ConfigurationAppIntent(),
-            enrolledServices: SharedDefaults.loadEnrolledServices()
+            enrolledServices: enrolledServices
         ))
     }
 
@@ -78,12 +120,21 @@ struct QuotaTimelineProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> QuotaEntry { .placeholder }
 
     func snapshot(for configuration: ConfigurationAppIntent, in context: Context) async -> QuotaEntry {
-        QuotaEntry(
+        let enrolledServices = SharedDefaults.loadEnrolledServices()
+        return QuotaEntry(
             date: .now,
-            codexUsage: SharedDefaults.loadCachedUsage(),
-            claudeUsage: SharedDefaults.loadCachedClaudeUsage(),
+            codexUsage: snapshotCodexUsage(
+                SharedDefaults.loadCachedUsage(),
+                configuration: configuration,
+                enrolledServices: enrolledServices
+            ),
+            claudeUsage: snapshotClaudeUsage(
+                SharedDefaults.loadCachedClaudeUsage(),
+                configuration: configuration,
+                enrolledServices: enrolledServices
+            ),
             configuration: configuration,
-            enrolledServices: SharedDefaults.loadEnrolledServices()
+            enrolledServices: enrolledServices
         )
     }
 

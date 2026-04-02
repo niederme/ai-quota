@@ -117,17 +117,23 @@ struct WidgetGaugeView: View {
                 .foregroundStyle(primaryLimitReached ? .red : .primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
+                .frame(height: labelPt * 1.2, alignment: .top)
             Text(resetText)
                 .font(.system(size: resetPt))
                 .foregroundStyle(.tertiary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
+                .frame(height: resetPt * 1.25, alignment: .top)
             if showsSecondaryReset {
                 Text(secondaryLimitReached ? "7d limit reached · \(weeklyResetText)" : weeklyResetText)
                     .font(.system(size: resetPt))
                     .foregroundStyle(secondaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.tertiary))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
+                    .frame(height: resetPt * 1.25, alignment: .top)
+            } else {
+                Color.clear
+                    .frame(height: resetPt * 1.25)
             }
         }
     }
