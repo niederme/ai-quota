@@ -81,7 +81,7 @@ struct SettingsView: View {
             // MARK: Notifications — Codex
             if viewModel.isCodexEnrolled {
                 Section("Codex") {
-                    notifServiceRow(logo: "logo-openai", name: "Codex",
+                    notifServiceRow(logo: "logo-openai",
                                     isOn: notifSectionsEnabled ? $vm.settings.notifications.codexEnabled : .constant(false))
                     if notifSectionsEnabled && vm.settings.notifications.codexEnabled {
                         notifSubHeader("5-hour window")
@@ -100,7 +100,7 @@ struct SettingsView: View {
             // MARK: Notifications — Claude Code
             if viewModel.isClaudeEnrolled {
                 Section("Claude Code") {
-                    notifServiceRow(logo: "logo-claude", name: "Claude Code",
+                    notifServiceRow(logo: "logo-claude",
                                     isOn: notifSectionsEnabled ? $vm.settings.notifications.claudeEnabled : .constant(false))
                     if notifSectionsEnabled && vm.settings.notifications.claudeEnabled {
                         notifSubHeader("5-hour window")
@@ -206,15 +206,12 @@ struct SettingsView: View {
     // MARK: - Notification helpers
 
     @ViewBuilder
-    private func notifServiceRow(logo: String, name: String, isOn: Binding<Bool>) -> some View {
+    private func notifServiceRow(logo: String, isOn: Binding<Bool>) -> some View {
         HStack(spacing: 10) {
             Image(logo)
                 .resizable()
                 .scaledToFit()
                 .frame(width: 18, height: 18)
-            Text(name)
-                .fontWeight(.semibold)
-            Spacer()
             Toggle("", isOn: isOn)
                 .toggleStyle(.switch)
                 .labelsHidden()
