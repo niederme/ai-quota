@@ -93,8 +93,27 @@ public final class ClaudeAuthManager: NSObject, ObservableObject {
     // MARK: - Cookie Sync
 
     public func syncCookies() async {
+        // Use a simple reference-type gate so the continuation is resumed exactly
+        // once — by whichever fires first: getAllCookies or the 3-second timeout.
+        // Both closures run on the main thread (syncCookies is @MainActor and
+        // getAllCookies delivers on the main thread), so no locking is needed.
+        final class Once: @unchecked Sendable { var fired = false }
+        let gate = Once()
+
         await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            // Safety valve: if the WKWebsiteDataStore callback stalls (can happen
+            // when WebKit's process restarts after a data-store reset or sign-out),
+            // unblock after 3 s so fetchUsage() can proceed and fail fast with a
+            // missing-cookie error rather than hanging with isClaudeLoading = true.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                guard !gate.fired else { return }
+                gate.fired = true
+                continuation.resume()
+            }
+
             WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
+                guard !gate.fired else { return }
+                gate.fired = true
                 for cookie in cookies where cookie.domain.contains("claude.ai") {
                     HTTPCookieStorage.shared.setCookie(cookie)
                 }
