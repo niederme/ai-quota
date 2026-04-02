@@ -100,6 +100,7 @@ See the pre-release checklist at the top of [`scripts/release.sh`](scripts/relea
 - [ ] iOS / iPadOS app — native app and home screen widgets for iPhone and iPad
 - [ ] Gemini quota support (Google AI plans)
 - [ ] Menu bar icon monochrome mode — option to disable amber/red status colours for a cleaner, always-white icon
+- [x] Menu bar preference fully respected — the menu bar icon now follows the selected service for both gauge values and warning colour
 - [x] Single-service layout — popover adapts width and layout when only one service is enrolled
 - [x] Menu bar preference in onboarding — when both services are connected, setup asks which to show in the menu bar
 - [x] Stable popover layout — Connect button sits inside the gauge arc when a service needs to reconnect; no layout shifts
