@@ -14,6 +14,8 @@ The Settings window has two interrelated issues:
 
 2. **Notification section lacks hierarchy.** The master toggle, permission status, per-service toggles, sub-window sub-headers, and 16 individual threshold toggles all render at the same visual depth. There is no clear parent-child relationship.
 
+Additionally, `NotificationsStepView` (the onboarding notifications step) is a structural copy of the Settings notification section and exposes the same per-threshold individual toggles. Because "Guided Setup…" can be replayed at any time from Settings, leaving it with individual toggles creates two editors for the same data with conflicting semantics.
+
 ---
 
 ## Design
@@ -71,6 +73,8 @@ Row count per service (when expanded): **11 → 7**
 
 Total notification sub-rows with both services enrolled: **22 → 14**.
 
+The same hierarchy is applied identically in `NotificationsStepView` so both surfaces stay semantically consistent.
+
 ### Threshold alerts toggle — field mapping
 
 No new model fields are added. `NotificationPreferences` retains all existing fine-grained booleans. The consolidated "Threshold alerts" toggle:
@@ -91,11 +95,18 @@ Exact field mappings per service and window:
 | Claude | 7-day | Threshold alerts | `claude7dAt80`, `claude7dAt95`, `claude7dLimitReached` |
 | Claude | 7-day | Period reset | `claude7dReset` |
 
-This preserves stored preferences across app versions. Users who had a mixed on/off state see "on" in the consolidated toggle; their next interaction normalises all three to the same value. This is an acceptable one-time reset given how rarely these are tuned.
+### Mixed-state migration
+
+On app launch, before any UI renders, `QuotaViewModel` normalizes any threshold groups that have mixed values: if the three underlying booleans in a group are not all the same value, they are normalized to their OR result and saved. This is a one-time write for any user who had mixed per-threshold state.
+
+This ensures:
+- The aggregate toggle always reads a clean on/off state — no hidden partial state on first render
+- Toggling off sets all three to `false`; toggling on sets all three to `true` — no silent scope widening
+- A clean path exists if granular controls are ever reintroduced later, because per-group consistency is a guaranteed invariant from this version onward
 
 ### Sub-header rendering
 
-Sub-headers use `.font(.footnote.weight(.semibold))` and `.foregroundStyle(.secondary)` with `.listRowBackground(Color.clear)` — matching the existing `notifSubHeader` helper already in the view. No changes to `notifSubHeader`.
+Sub-headers use `.font(.footnote.weight(.semibold))` and `.foregroundStyle(.secondary)` with `.listRowBackground(Color.clear)` — matching the existing `notifSubHeader`/`subHeader` helpers already in both views. No changes to those helpers.
 
 ---
 
@@ -104,7 +115,7 @@ Sub-headers use `.font(.footnote.weight(.semibold))` and `.foregroundStyle(.seco
 - No changes to `NotificationPreferences` model fields or encoding keys
 - No changes to `NotificationManager` firing logic
 - No tab-based or sidebar navigation
-- No changes to the About footer content or Onboarding section behaviour
+- No changes to the About footer content or Onboarding section content/behaviour
 
 ---
 
@@ -113,5 +124,5 @@ Sub-headers use `.font(.footnote.weight(.semibold))` and `.foregroundStyle(.seco
 | File | Change |
 |------|--------|
 | `AIQuota/Views/SettingsView.swift` | Width (400→500), section reorder, per-service section titles, threshold toggle consolidation |
-
-No other files require changes.
+| `AIQuota/Views/Onboarding/Steps/NotificationsStepView.swift` | Same threshold toggle consolidation as SettingsView |
+| `AIQuota/ViewModels/QuotaViewModel.swift` (or equivalent settings load path) | Mixed-state normalization on launch |
