@@ -173,7 +173,7 @@ struct SettingsView: View {
         }
         .id(formID)
         .formStyle(.grouped)
-        .frame(width: 500, height: 600)
+        .frame(width: 500, height: 700)
         .navigationTitle("Settings")
         .task { await checkNotifPermission() }
         // macOS keeps the Settings window alive between opens (just hides it),
