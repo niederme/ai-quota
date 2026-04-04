@@ -1,5 +1,4 @@
 import Foundation
-import AppKit
 import AIQuotaKit
 
 // MARK: - Demo keyframe engine (DEMO_MODE builds only)
@@ -127,25 +126,17 @@ final class DemoDriver {
     private var claudeTimer: Timer?
     private var codexTimer:  Timer?
 
-    private var popoverObserver: NSObjectProtocol?
     private var hasStarted = false
 
     // MARK: - Public API
 
     /// Call once from `AIQuotaApp`. Idempotent — safe to call from `.task`.
+    /// The animation runs continuously in the background; opening/closing
+    /// the popover has no effect on playback.
     func startIfNeeded(driving viewModel: QuotaViewModel) {
         guard !hasStarted else { return }
         hasStarted = true
         target = viewModel
-
-        popoverObserver = NotificationCenter.default.addObserver(
-            forName: NSPopover.willShowNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.reset() }
-        }
-
         reset()
     }
 
