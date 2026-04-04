@@ -130,7 +130,7 @@ public struct CodexUsage: Codable, Sendable, Equatable {
         fetchedAt: .now
     )
 
-    private init(
+    public init(
         weeklyUsedPercent: Int, weeklyResetAt: Date, weeklyResetAfterSeconds: Int,
         hourlyUsedPercent: Int, hourlyResetAt: Date, hourlyResetAfterSeconds: Int,
         hourlyWindowSeconds: Int, limitReached: Bool, allowed: Bool, planType: String,
