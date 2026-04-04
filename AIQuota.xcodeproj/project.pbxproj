@@ -11,6 +11,7 @@
 		17126B49397A4A50A1B6325F /* MenuBarIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB657B3EE7EFE0906CC89C7E /* MenuBarIconView.swift */; };
 		1EDE4F3056D8B3FE3D63FD79 /* QuotaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5F53FC0B0CEEDEB3DD6488A /* QuotaViewModel.swift */; };
 		41AD8FA8B9500380BF0806C8 /* AIQuotaKit in Frameworks */ = {isa = PBXBuildFile; productRef = 4107956DD8A43F21A1968899 /* AIQuotaKit */; };
+		4BDBDF48A5EC8E1D8DE63AEE /* DemoDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CC237C662A19D0C0A77A43 /* DemoDriver.swift */; };
 		56024A9E038E05B44FFF61FE /* WidgetMediumView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76B773676A8FBADF9E560DB2 /* WidgetMediumView.swift */; };
 		5D841348FB1352DB4D417246 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8C0ACC770721BA686B7B6401 /* Assets.xcassets */; };
 		66BC2E8F33FD301642167B31 /* WidgetsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AEFC74142619076ED0AB5BA /* WidgetsStepView.swift */; };
@@ -88,6 +89,7 @@
 		AE3CDEE9A5B7D5B416193D23 /* UpdaterViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterViewModel.swift; sourceTree = "<group>"; };
 		B11BE061D1CEB4B5B6F120AD /* LaunchServicesSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchServicesSync.swift; sourceTree = "<group>"; };
 		B2B4A02F2F3618A00A9FE938 /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
+		C4CC237C662A19D0C0A77A43 /* DemoDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoDriver.swift; sourceTree = "<group>"; };
 		C66610C3B005AD239F7EDE75 /* ServicesStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServicesStepView.swift; sourceTree = "<group>"; };
 		D5F53FC0B0CEEDEB3DD6488A /* QuotaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaViewModel.swift; sourceTree = "<group>"; };
 		E012B199A00FF2ABD9B06DA4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -165,6 +167,7 @@
 				A8C3442C7767F3787BD134A1 /* Views */,
 				47A5B1739A08D397C631BFFE /* ViewModels */,
 				0CF29E076C587EA866F75396 /* Resources */,
+				FA64CFDF72582D2700992C65 /* Demo */,
 				C4AF85B00431CA922F35A916 /* Support */,
 			);
 			path = AIQuota;
@@ -257,6 +260,14 @@
 				561A3E63AB5C500E7FA650DE /* Info.plist */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		FA64CFDF72582D2700992C65 /* Demo */ = {
+			isa = PBXGroup;
+			children = (
+				C4CC237C662A19D0C0A77A43 /* DemoDriver.swift */,
+			);
+			path = Demo;
 			sourceTree = "<group>";
 		};
 		FC735AC25351BCB37F471540 /* Products */ = {
@@ -441,6 +452,7 @@
 				72AE89A41BD0B809A9D6DAB9 /* AIQuotaApp.swift in Sources */,
 				BD011637B9A98BF66EB809CD /* CircularGaugeView.swift in Sources */,
 				98F43072074B245C01E279A4 /* CountdownView.swift in Sources */,
+				4BDBDF48A5EC8E1D8DE63AEE /* DemoDriver.swift in Sources */,
 				F6564018685503ADEE6165C2 /* DoneStepView.swift in Sources */,
 				B337EC2AC2655557CDE13EC2 /* LaunchServicesSync.swift in Sources */,
 				17126B49397A4A50A1B6325F /* MenuBarIconView.swift in Sources */,

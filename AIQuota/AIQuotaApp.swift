@@ -7,6 +7,9 @@ import AIQuotaKit
 @main
 struct AIQuotaApp: App {
     @State private var viewModel: QuotaViewModel
+    #if DEMO_MODE
+    @State private var demoDriver: DemoDriver
+    #endif
 
     // Sparkle updater — must be held at app scope for its lifetime.
     // gentleDriverDelegate opts into polite (non-focus-stealing) update alerts,
@@ -19,6 +22,9 @@ struct AIQuotaApp: App {
         LegacyDefaultsMigration.migrateIfNeeded(bundleIdentifier: "com.niederme.AIQuota")
         LaunchServicesSync.repairIfNeeded()
         _viewModel = State(initialValue: QuotaViewModel())
+        #if DEMO_MODE
+        _demoDriver = State(initialValue: DemoDriver())
+        #endif
         updaterController = SPUStandardUpdaterController(
             startingUpdater: true,
             updaterDelegate: nil,
@@ -39,6 +45,11 @@ struct AIQuotaApp: App {
             PopoverView()
                 .environment(viewModel)
                 .environment(UpdaterViewModel(updater: updaterController.updater))
+                .task {
+                    #if DEMO_MODE
+                    demoDriver.startIfNeeded(driving: viewModel)
+                    #endif
+                }
         } label: {
             MenuBarIconView(
                 usedPercent: menuBarUsedPercent,
