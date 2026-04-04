@@ -78,6 +78,24 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
         extraUsage?.isEnabled == true ? "Max" : "Pro"
     }
 
+    // MARK: - Init
+
+    public init(
+        fiveHourUtilization: Double,
+        fiveHourResetsAt: Date,
+        sevenDayUtilization: Double,
+        sevenDayResetsAt: Date,
+        extraUsage: ExtraUsage?,
+        fetchedAt: Date
+    ) {
+        self.fiveHourUtilization = fiveHourUtilization
+        self.fiveHourResetsAt    = fiveHourResetsAt
+        self.sevenDayUtilization = sevenDayUtilization
+        self.sevenDayResetsAt    = sevenDayResetsAt
+        self.extraUsage          = extraUsage
+        self.fetchedAt           = fetchedAt
+    }
+
     // MARK: - Placeholder / preview
 
     public static let placeholder = ClaudeUsage(
