@@ -30,8 +30,8 @@ final class QuotaViewModel {
 
     // MARK: - Auth state (derived from coordinator streams)
 
-    private(set) var claudeState: AuthState = .unknown
-    private(set) var codexState:  AuthState = .unknown
+    var claudeState: AuthState = .unknown
+    var codexState:  AuthState = .unknown
 
     var isClaudeAuthenticated: Bool { claudeState == .authenticated }
     var isCodexAuthenticated:  Bool { codexState  == .authenticated }
@@ -52,7 +52,7 @@ final class QuotaViewModel {
 
     /// Persisted in SharedDefaults (app-group) so the widget can read it.
     /// Populated from first successful sign-in; cleared only on explicit Sign Out or reset.
-    private(set) var enrolledServices: Set<ServiceType> = SharedDefaults.loadEnrolledServices()
+    var enrolledServices: Set<ServiceType> = SharedDefaults.loadEnrolledServices()
 
     var isCodexEnrolled: Bool { enrolledServices.contains(.codex) }
     var isClaudeEnrolled: Bool { enrolledServices.contains(.claude) }
@@ -516,3 +516,39 @@ final class QuotaViewModel {
     }
 
 }
+
+// MARK: - Demo support
+
+#if DEMO_MODE
+extension QuotaViewModel {
+    /// Puts the view model into a stable authenticated-but-empty state
+    /// without touching the real auth or network layer.
+    func prepareForDemo() {
+        stopAutoRefresh()
+        claudeState      = .authenticated
+        codexState       = .authenticated
+        enrolledServices = [.claude, .codex]
+        claudeUsage      = nil
+        codexUsage       = nil
+        claudeError      = nil
+        codexError       = nil
+        isClaudeLoading  = true
+        isCodexLoading   = true
+        lastRefreshedAt  = nil
+    }
+
+    /// Pushes a scripted frame of fake usage data into the view model.
+    func applyDemoFrame(
+        claude: ClaudeUsage?,
+        codex: CodexUsage?,
+        claudeLoading: Bool = false,
+        codexLoading: Bool = false
+    ) {
+        claudeUsage     = claude
+        codexUsage      = codex
+        isClaudeLoading = claudeLoading
+        isCodexLoading  = codexLoading
+        lastRefreshedAt = claude != nil || codex != nil ? .now : nil
+    }
+}
+#endif
