@@ -24,6 +24,11 @@ packages:
     url: https://github.com/sparkle-project/Sparkle
     version: 2.9.0
 
+configs:
+  Debug: debug
+  Release: release
+  Demo: debug
+
 schemes:
   AIQuota:
     build:
@@ -36,6 +41,15 @@ schemes:
       config: Debug
     archive:
       config: Release
+
+  AIQuota-Demo:
+    build:
+      targets:
+        AIQuota: all
+    run:
+      config: Demo
+    archive:
+      config: Demo
 
 targets:
 
@@ -80,6 +94,9 @@ targets:
         Release:
           DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
           SWIFT_COMPILATION_MODE: wholemodule
+        Demo:
+          DEBUG_INFORMATION_FORMAT: dwarf
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG DEMO_MODE
     postBuildScripts:
       - name: Set Build Number from Git
         script: |
