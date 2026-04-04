@@ -1,5 +1,4 @@
 import Foundation
-import AppKit
 import AIQuotaKit
 
 // MARK: - Demo keyframe engine (DEMO_MODE builds only)
@@ -127,32 +126,15 @@ final class DemoDriver {
     private var claudeTimer: Timer?
     private var codexTimer:  Timer?
 
-    private var popoverObserver: NSObjectProtocol?
-    private var hasStarted = false
-
     // MARK: - Public API
 
-    /// Call once from `AIQuotaApp`. Idempotent — safe to call from `.task`.
-    /// Resets and replays from frame 0 every time the popover opens.
-    func startIfNeeded(driving viewModel: QuotaViewModel) {
-        guard !hasStarted else { return }
-        hasStarted = true
+    /// Store the view model target. Call once from `.task` in `AIQuotaApp`.
+    func prepare(for viewModel: QuotaViewModel) {
         target = viewModel
-
-        popoverObserver = NotificationCenter.default.addObserver(
-            forName: NSPopover.willShowNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.reset() }
-        }
-
-        reset()
     }
 
-    // MARK: - Private
-
-    private func reset() {
+    /// Restart the sequence from frame 0. Call from `.onAppear` and ⌘R.
+    func reset() {
         claudeTimer?.invalidate()
         codexTimer?.invalidate()
         claudeTimer = nil
@@ -164,6 +146,14 @@ final class DemoDriver {
         // Apply frame 0 of each service immediately — no loading state shown.
         applyNextClaudeFrame()
         applyNextCodexFrame()
+    }
+
+    /// Stop timers without resetting progress. Call from `.onDisappear`.
+    func pause() {
+        claudeTimer?.invalidate()
+        codexTimer?.invalidate()
+        claudeTimer = nil
+        codexTimer  = nil
     }
 
     // MARK: Claude advancement

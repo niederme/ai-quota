@@ -47,9 +47,18 @@ struct AIQuotaApp: App {
                 .environment(UpdaterViewModel(updater: updaterController.updater))
                 .task {
                     #if DEMO_MODE
-                    demoDriver.startIfNeeded(driving: viewModel)
+                    demoDriver.prepare(for: viewModel)
                     #endif
                 }
+                #if DEMO_MODE
+                .onAppear  { demoDriver.reset() }
+                .onDisappear { demoDriver.pause() }
+                .background {
+                    Button("") { demoDriver.reset() }
+                        .keyboardShortcut("r", modifiers: .command)
+                        .hidden()
+                }
+                #endif
         } label: {
             MenuBarIconView(
                 usedPercent: menuBarUsedPercent,
