@@ -2,6 +2,8 @@
 
 A native macOS menu bar app for monitoring AI coding quota. Track [OpenAI Codex](https://openai.com/codex) and [Claude Code](https://claude.ai) from the menu bar and desktop widgets without living in a browser tab.
 
+The marketing site in `docs/` follows the shared Codex web preview convention using `/Users/niederme/.codex/bin/codex-preview-env`. The canonical global convention lives at `/Users/niederme/.codex/docs/web-preview-convention.md`.
+
 ![macOS 15+](https://img.shields.io/badge/macOS-15%2B-black?logo=apple)
 ![Swift 6](https://img.shields.io/badge/Swift-6.0-orange?logo=swift)
 
@@ -53,6 +55,63 @@ Widgets refresh automatically from cached data, app-driven reloads, and backgrou
 4. Follow the guided setup to connect your ChatGPT and/or Claude account
 
 > Notarized by Apple — no Gatekeeper warning on first launch.
+
+---
+
+## Website Preview
+
+The lightweight website for `aiquota.app` lives in `docs/`.
+
+From the repo root:
+
+```bash
+make
+```
+
+That serves `docs/` on all interfaces, opens the site locally, and prints:
+
+- a `.local` URL for this Mac
+- a LAN URL for other devices on the same network
+
+Default preview port is `8123`. If that port is already in use, `make dev` automatically picks the next available port.
+
+Localhost-only preview:
+
+```bash
+make dev-local
+```
+
+Worktree-friendly preview:
+
+```bash
+make dev-thread
+```
+
+`make dev-thread` starts from `8124` so the main checkout can keep `8123`.
+
+Project worktrees should live under repo-local `.worktrees/`.
+
+### Live Reload
+
+Use `make dev-live` for the standard live-reload preview. The underlying switch is `LIVE=1`, which is also available for the thread and local-only variants:
+
+```bash
+make dev-live
+make dev-live-thread
+make dev-local LIVE=1
+```
+
+Live reload watches:
+
+- `docs/**/*.html`
+- `docs/**/*.css`
+- `docs/assets/**/*`
+
+Requirements for live reload:
+
+- Node.js with `npx` available
+- a Node runtime that supports `node:path`
+- recommended local version: Node 20
 
 ---
 

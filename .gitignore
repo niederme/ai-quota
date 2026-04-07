@@ -19,3 +19,6 @@ DerivedData/
 
 # Claude Code worktrees
 .claude/
+
+# Repo-local worktrees
+.worktrees/

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AIQuota Privacy Policy</title>
+    <meta
+      name="description"
+      content="Privacy Policy for AIQuota, the macOS app for tracking Codex and Claude Code quota."
+    />
+    <meta name="theme-color" content="#0b1730" />
+    <link rel="stylesheet" href="../site.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="site-header">
+        <div class="container">
+          <a class="brand" href="../">
+            <span class="brand-mark" aria-hidden="true"></span>
+            <span>AIQuota</span>
+          </a>
+          <nav class="site-nav" aria-label="Primary">
+            <a href="../">Home</a>
+            <a href="../releases/">Releases</a>
+            <a href="https://github.com/niederme/ai-quota">GitHub</a>
+          </nav>
+        </div>
+      </header>
+
+      <main class="policy-main">
+        <section class="policy-hero">
+          <div class="container policy-container">
+            <h1 class="policy-title">Privacy Policy</h1>
+            <p class="policy-date">Last updated: April 7, 2026</p>
+          </div>
+        </section>
+
+        <section>
+          <div class="container policy-container">
+            <article class="policy-card">
+              <p class="policy-lede">
+                AIQuota is a native macOS app that helps you monitor Codex and Claude Code quota.
+                This policy explains what AIQuota stores, what it reads, and what leaves your
+                device.
+              </p>
+
+              <h2>What AIQuota accesses</h2>
+              <p>Depending on which services you connect, AIQuota may access:</p>
+              <ul>
+                <li>Your OpenAI session information used to read Codex quota data.</li>
+                <li>Your Anthropic or Claude session information used to read Claude Code quota data.</li>
+                <li>Quota-related account details such as usage windows, reset times, plan names, and credits.</li>
+                <li>Notification settings and UI preferences you choose inside the app.</li>
+              </ul>
+
+              <h2>How that information is used</h2>
+              <p>AIQuota uses this information only to provide the app’s core functionality:</p>
+              <ul>
+                <li>Show your current quota state in the menu bar and widgets.</li>
+                <li>Display reset timing, warning states, and plan details.</li>
+                <li>Send optional notifications when quota is low, critical, or reset.</li>
+                <li>Restore your connected services and preferences across launches.</li>
+              </ul>
+              <p>AIQuota does not use your data for advertising, profiling, analytics resale, or marketing attribution.</p>
+
+              <h2>Where data is stored</h2>
+              <p>AIQuota is designed to keep data on-device whenever possible.</p>
+              <ul>
+                <li>Sensitive session information is stored in the macOS Keychain.</li>
+                <li>App preferences and widget-facing state may be stored in local app storage or shared app group storage.</li>
+                <li>Cached quota values may be stored locally to support widgets and fast refreshes.</li>
+              </ul>
+
+              <h2>What leaves your device</h2>
+              <p>AIQuota does not run its own hosted backend for quota tracking.</p>
+              <p>When AIQuota refreshes your status, requests are made directly from your device to the service you connected, such as OpenAI or Anthropic endpoints needed to retrieve quota-related account data.</p>
+
+              <h2>Third parties</h2>
+              <p>AIQuota relies on third-party services only where necessary to provide the app:</p>
+              <ul>
+                <li>OpenAI, when you connect Codex-related quota tracking.</li>
+                <li>Anthropic, when you connect Claude Code quota tracking.</li>
+                <li>Apple platform services used to run the app, widgets, notifications, and local secure storage.</li>
+              </ul>
+
+              <h2>Security</h2>
+              <p>AIQuota uses platform-provided security features such as Keychain storage and HTTPS requests where applicable. No method of storage or transmission is perfect, but the app is designed to minimize unnecessary data handling and avoid introducing a separate AIQuota-operated backend.</p>
+
+              <h2>Your choices</h2>
+              <ul>
+                <li>You can disconnect services inside the app.</li>
+                <li>You can disable notifications at any time.</li>
+                <li>You can remove the app and its local data from your Mac.</li>
+              </ul>
+
+              <h2>Changes to this policy</h2>
+              <p>This Privacy Policy may be updated as AIQuota changes. The date at the top of this page reflects the latest revision.</p>
+
+              <h2>Contact</h2>
+              <p>For privacy questions, email <a href="mailto:help@aiquota.app">help@aiquota.app</a>.</p>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <div class="container">
+          <div class="footer-meta">
+            <p>
+              <a href="https://nieder.me/">&copy; John Niedermeyer</a>
+              <span aria-hidden="true"> | </span>
+              Need help? Email
+              <a href="mailto:help@aiquota.app">help@aiquota.app</a>
+            </p>
+          </div>
+          <div class="footer-links">
+            <a href="../privacy/">Privacy Policy</a>
+            <a href="../terms/">Terms of Service</a>
+            <a href="../accessibility/">Accessibility</a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>
