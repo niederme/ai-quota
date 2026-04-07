@@ -670,6 +670,7 @@ video {
 
   .hero-visual {
     min-height: 0;
+    order: -1;
   }
 }
 
