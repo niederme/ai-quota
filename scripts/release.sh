@@ -21,6 +21,8 @@
 #   - gh CLI authenticated
 set -euo pipefail
 
+export PATH="/opt/homebrew/bin:$PATH"
+
 VERSION="${1:?Usage: release.sh <version>}"
 TAG="v${VERSION}"
 
