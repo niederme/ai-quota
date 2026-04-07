@@ -113,6 +113,33 @@ Requirements for live reload:
 - a Node runtime that supports `node:path`
 - recommended local version: Node 20
 
+### Website Deploy
+
+Pushing to `main` triggers the website deploy workflow automatically. The workflow:
+
+- minifies `docs/site.css` and `docs/site.js`
+- stages the `docs/` site with cache-busted asset URLs
+- syncs the staged site to the remote host over SSH
+
+For manual or local deploys, use:
+
+```bash
+./scripts/deploy-site.sh
+```
+
+Default deploy settings in [`scripts/deploy-site.sh`](scripts/deploy-site.sh):
+
+- `DEPLOY_HOST=ssh.suckahs.org`
+- `DEPLOY_USER=suckahs`
+- `DEPLOY_PATH=/home2/suckahs/public_html/aiquota`
+- `SITE_URL=https://aiquota.app`
+
+Optional overrides:
+
+- `DEPLOY_PORT`
+- `DRY_RUN=1`
+- `DEPLOY_IDENTITY_FILE`
+
 ---
 
 ## Building from Source

@@ -1,0 +1,43 @@
+name: Deploy Site
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Minify site assets
+        run: |
+          npm install -g lightningcss-cli terser
+          lightningcss --minify docs/site.css -o docs/site.css
+          terser docs/site.js -o docs/site.js --compress --mangle
+
+      - name: Set up SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p 22 ssh.suckahs.org >> ~/.ssh/known_hosts
+          cat >> ~/.ssh/config <<'EOF'
+          Host ssh.suckahs.org
+            IdentityFile ~/.ssh/deploy_key
+            StrictHostKeyChecking yes
+          EOF
+
+      - name: Deploy site
+        env:
+          DEPLOY_IDENTITY_FILE: ~/.ssh/deploy_key
+        run: ./scripts/deploy-site.sh
