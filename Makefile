@@ -8,7 +8,7 @@ PORT_AUTO ?= 1
 PORT_SCAN_LIMIT ?= 25
 LIVE ?= 0
 SITE_ROOT ?= docs
-LIVE_FILES ?= docs/**/*.html,docs/**/*.css,docs/assets/**/*
+LIVE_FILES ?= docs/**/*.html,docs/**/*.css,docs/site.js,docs/assets/**/*
 PREVIEW_ENV ?= $(HOME)/.codex/bin/codex-preview-env
 
 .DEFAULT_GOAL := dev
