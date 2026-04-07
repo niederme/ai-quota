@@ -367,6 +367,7 @@ video {
   border-radius: inherit;
   background: #000;
   -webkit-mask-image: -webkit-radial-gradient(white, black);
+  clip-path: inset(0 round 34px);
 }
 
 .hero-demo-video {
@@ -379,6 +380,7 @@ video {
   background: #000;
   cursor: pointer;
   transition: filter 0.24s ease;
+  clip-path: inset(0 round 34px);
 }
 
 .hero-demo-video.is-paused {
