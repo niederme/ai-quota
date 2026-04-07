@@ -204,14 +204,14 @@ See the pre-release checklist at the top of [`scripts/release.sh`](scripts/relea
 
 ## Roadmap
 
+- [ ] iOS / iPadOS app — native app and home screen widgets for iPhone and iPad
+- [ ] Gemini quota support (Google AI plans)
+- [ ] Menu bar icon monochrome mode — option to disable amber/red status colours for a cleaner, always-white icon
 - [x] Marketing website — `aiquota.app` is live with download, releases, and policy pages plus automated deploys from `main`
 - [x] Visualize 7-day quota reset timing — the app now surfaces 7-day reset timing when the weekly window enters the warning range
 - [x] Settings restructured — Accounts section promoted to the top; notification sections named per service with threshold alerts consolidated into a single toggle per window
 - [x] Auth and widget recovery after updates — widgets recover more reliably after app replacements, refresh more aggressively, and valid Claude/Codex sessions now restore automatically instead of showing stale Connect states
 - [x] Widget variations — configurable single-service medium widget plus a large two-service overview
-- [ ] iOS / iPadOS app — native app and home screen widgets for iPhone and iPad
-- [ ] Gemini quota support (Google AI plans)
-- [ ] Menu bar icon monochrome mode — option to disable amber/red status colours for a cleaner, always-white icon
 - [x] Menu bar preference fully respected — the menu bar icon now follows the selected service for both gauge values and warning colour
 - [x] Single-service layout — popover adapts width and layout when only one service is enrolled
 - [x] Menu bar preference in onboarding — when both services are connected, setup asks which to show in the menu bar
