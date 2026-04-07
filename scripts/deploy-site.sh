@@ -91,4 +91,11 @@ rsync "${RSYNC_ARGS[@]}" -e "$RSYNC_SSH_CMD" \
   "${STAGING_DIR}/" \
   "$REMOTE"
 
+# Shared hosting may inherit restrictive permissions from the temp staging dir.
+# Normalize the deployed tree so Apache can traverse directories and read files.
+"${SSH_CMD[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" "\
+  chmod 755 '${DEPLOY_PATH%/}' && \
+  find '${DEPLOY_PATH%/}' -type d -exec chmod 755 {} + && \
+  find '${DEPLOY_PATH%/}' -type f -exec chmod 644 {} +"
+
 echo "Deploy complete -> $REMOTE"
