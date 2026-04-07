@@ -25,6 +25,9 @@ jobs:
           lightningcss --minify docs/site.css -o docs/site.css
           terser docs/site.js -o docs/site.js --compress --mangle
 
+      - name: Smoke check site
+        run: ./scripts/check-site-pages.sh
+
       - name: Set up SSH
         run: |
           install -m 700 -d ~/.ssh

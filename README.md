@@ -127,6 +127,12 @@ For manual or local deploys, use:
 ./scripts/deploy-site.sh
 ```
 
+Smoke-check the site before deploy:
+
+```bash
+./scripts/check-site-pages.sh
+```
+
 Default deploy settings in [`scripts/deploy-site.sh`](scripts/deploy-site.sh):
 
 - `DEPLOY_HOST=ssh.suckahs.org`
