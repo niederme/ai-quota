@@ -367,6 +367,7 @@ video {
   border-radius: inherit;
   background: #000;
   -webkit-mask-image: -webkit-radial-gradient(white, black);
+  clip-path: inset(0 round 34px);
 }
 
 .hero-demo-video {
