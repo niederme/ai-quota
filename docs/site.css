@@ -321,7 +321,7 @@ video {
 .visual-frame {
   position: relative;
   overflow: hidden;
-  border-radius: 32px;
+  border-radius: 34px;
   border: 1px solid rgba(255, 255, 255, 0.07);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015)),
@@ -359,12 +359,24 @@ video {
   opacity: 1;
 }
 
+.hero-demo-media {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: inherit;
+  background: #000;
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+}
+
 .hero-demo-video {
   display: block;
   width: 100%;
-  height: auto;
-  cursor: pointer;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  border-radius: inherit;
   background: #000;
+  cursor: pointer;
   transition: filter 0.24s ease;
 }
 
@@ -372,7 +384,7 @@ video {
   filter: brightness(0.62) saturate(0.86);
 }
 
-.hero-demo-video:focus-visible {
+.hero-demo-media:focus-within {
   outline: 2px solid rgba(61, 108, 255, 0.9);
   outline-offset: 3px;
 }

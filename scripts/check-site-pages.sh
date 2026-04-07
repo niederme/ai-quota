@@ -55,4 +55,9 @@ check_status "/site.js"
 check_status "/assets/aiquota-demo-inline.mp4"
 check_status "/assets/aiquota-video-poster.png"
 
+check_contains "/" "hero-demo-media"
+check_contains "/site.css" ".hero-demo-media"
+check_contains "/site.css" "border-radius: inherit;"
+check_contains "/site.css" "object-position: center top;"
+
 echo "Site smoke check passed."
