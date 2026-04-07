@@ -111,15 +111,17 @@ Requirements for live reload:
 
 - Node.js with `npx` available
 - a Node runtime that supports `node:path`
-- recommended local version: Node 20
+- recommended local version: Node 24
 
 ### Website Deploy
 
-Pushing to `main` triggers the website deploy workflow automatically. The workflow:
+Pushing to `main` triggers the website deploy workflow automatically, and you can also run the same deploy manually with `workflow_dispatch` in GitHub Actions. The workflow:
 
 - minifies `docs/site.css` and `docs/site.js`
+- smoke-checks the public site pages before deploy
 - stages the `docs/` site with cache-busted asset URLs
 - syncs the staged site to the remote host over SSH
+- normalizes remote file permissions so shared hosting serves the site correctly
 
 For manual or local deploys, use:
 
@@ -145,6 +147,8 @@ Optional overrides:
 - `DEPLOY_PORT`
 - `DRY_RUN=1`
 - `DEPLOY_IDENTITY_FILE`
+
+GitHub Actions expects the repository secret `SSH_PRIVATE_KEY` to contain the deploy key for `suckahs@ssh.suckahs.org`.
 
 ---
 
