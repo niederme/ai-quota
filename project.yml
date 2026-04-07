@@ -14,7 +14,7 @@ options:
 # CURRENT_PROJECT_VERSION = bundle build number used by the app + widget.
 settings:
   base:
-    MARKETING_VERSION: "1.9.10"
+    MARKETING_VERSION: "1.9.11"
     CURRENT_PROJECT_VERSION: "301"
 
 packages:
