@@ -296,8 +296,11 @@ video {
 .visual-card {
   position: relative;
   overflow: hidden;
+  isolation: isolate;
   padding: 18px;
   border-radius: 40px;
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  mask-image: radial-gradient(white, black);
   background:
     linear-gradient(180deg, rgba(16, 30, 56, 0.98), rgba(8, 16, 31, 0.98)),
     rgba(12, 24, 44, 0.82);
@@ -321,7 +324,10 @@ video {
 .visual-frame {
   position: relative;
   overflow: hidden;
+  isolation: isolate;
   border-radius: 34px;
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  mask-image: radial-gradient(white, black);
   border: 1px solid rgba(255, 255, 255, 0.07);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015)),
@@ -363,9 +369,11 @@ video {
   position: relative;
   z-index: 1;
   overflow: hidden;
+  isolation: isolate;
   border-radius: inherit;
   background: #000;
   -webkit-mask-image: -webkit-radial-gradient(white, black);
+  mask-image: radial-gradient(white, black);
 }
 
 .hero-demo-video {

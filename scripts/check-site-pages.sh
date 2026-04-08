@@ -60,4 +60,24 @@ check_contains "/site.css" ".hero-demo-media"
 check_contains "/site.css" "border-radius: inherit;"
 check_contains "/site.css" "object-position: center top;"
 
+python3 - "$SITE_DIR/site.css" <<'PY'
+from pathlib import Path
+import sys
+
+css = Path(sys.argv[1]).read_text()
+
+for selector in (".visual-card", ".visual-frame", ".hero-demo-media"):
+    start = css.find(f"{selector} {{")
+    if start == -1:
+        raise SystemExit(f"Missing selector block: {selector}")
+    end = css.find("}", start)
+    block = css[start:end]
+    if "isolation: isolate;" not in block:
+        raise SystemExit(f"Missing isolation in {selector}")
+    if "-webkit-mask-image: -webkit-radial-gradient(white, black);" not in block:
+        raise SystemExit(f"Missing webkit mask in {selector}")
+    if "mask-image: radial-gradient(white, black);" not in block:
+        raise SystemExit(f"Missing mask-image in {selector}")
+PY
+
 echo "Site smoke check passed."
