@@ -45,6 +45,8 @@ check_status() {
 }
 
 check_contains "/" "Know your limits before they break your flow."
+check_contains "/" "AIQuota gives you clear visibility into Codex and Claude Code usage with Menu Bar"
+check_contains "/" "gauges, desktop widgets, reset timers, and warning states."
 check_contains "/" "Single or dual Menu Bar gauges across 5-hour and 7-day windows"
 check_contains "/" "Desktop widgets for background visibility"
 check_contains "/" "Reset timers, plan details, and warning states"
