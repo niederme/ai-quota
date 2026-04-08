@@ -56,28 +56,41 @@ check_status "/assets/aiquota-demo-inline.mp4"
 check_status "/assets/aiquota-video-poster.png"
 
 check_contains "/" "hero-demo-media"
-check_contains "/site.css" ".hero-demo-media"
-check_contains "/site.css" "border-radius: inherit;"
-check_contains "/site.css" "object-position: center top;"
-
 python3 - "$SITE_DIR/site.css" <<'PY'
 from pathlib import Path
+import re
 import sys
 
 css = Path(sys.argv[1]).read_text()
 
-for selector in (".visual-card", ".visual-frame", ".hero-demo-media"):
-    start = css.find(f"{selector} {{")
-    if start == -1:
+def selector_block(selector: str) -> str:
+    match = re.search(re.escape(selector) + r"\s*\{([^}]*)\}", css)
+    if not match:
         raise SystemExit(f"Missing selector block: {selector}")
-    end = css.find("}", start)
-    block = css[start:end]
-    if "isolation: isolate;" not in block:
-        raise SystemExit(f"Missing isolation in {selector}")
-    if "-webkit-mask-image: -webkit-radial-gradient(white, black);" not in block:
-        raise SystemExit(f"Missing webkit mask in {selector}")
-    if "mask-image: radial-gradient(white, black);" not in block:
-        raise SystemExit(f"Missing mask-image in {selector}")
+    return match.group(1)
+
+def expect(selector: str, pattern: str, message: str) -> None:
+    block = selector_block(selector)
+    if not re.search(pattern, block):
+        raise SystemExit(f"Missing {message} in {selector}")
+
+color = r"(?:white|#fff|#ffffff)\s*,\s*(?:black|#000|#000000)"
+
+for selector in (".visual-card", ".visual-frame", ".hero-demo-media"):
+    expect(selector, r"isolation\s*:\s*isolate", "isolation")
+    expect(
+        selector,
+        rf"-webkit-mask-image\s*:\s*-webkit-radial-gradient\(\s*{color}\s*\)",
+        "webkit mask",
+    )
+    expect(
+        selector,
+        rf"mask-image\s*:\s*radial-gradient\(\s*{color}\s*\)",
+        "mask-image",
+    )
+
+expect(".hero-demo-media", r"border-radius\s*:\s*inherit", "inherited border radius")
+expect(".hero-demo-video", r"object-position\s*:\s*center\s+top", "object-position")
 PY
 
 echo "Site smoke check passed."
