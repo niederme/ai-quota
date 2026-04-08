@@ -45,7 +45,7 @@ check_status() {
 }
 
 check_contains "/" "Know your limits before they break your flow."
-check_contains "/" "Menu bar gauges for Codex and Claude Code across 5-hour and 7-day windows"
+check_contains "/" "Single or dual Menu Bar gauges across 5-hour and 7-day windows"
 check_contains "/" "Desktop widgets for background visibility"
 check_contains "/" "Reset timers, plan details, and warning states"
 check_contains "/releases/" "<h1>Releases</h1>"
