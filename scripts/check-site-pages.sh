@@ -45,7 +45,9 @@ check_status() {
 }
 
 check_contains "/" "Know your limits before they break your flow."
-check_contains "/" "usage, desktop widgets, reset timers"
+check_contains "/" "Menu bar gauges for Codex and Claude Code across 5-hour and 7-day windows"
+check_contains "/" "Desktop widgets for background visibility"
+check_contains "/" "Reset timers, plan details, and warning states"
 check_contains "/releases/" "<h1>Releases</h1>"
 check_contains "/privacy/" "<h1 class=\"policy-title\">Privacy Policy</h1>"
 check_contains "/terms/" "<h1 class=\"policy-title\">Terms of Service</h1>"
