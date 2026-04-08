@@ -320,7 +320,7 @@ video {
 
 .visual-frame {
   position: relative;
-  overflow: hidden;
+  overflow: clip;
   border-radius: 34px;
   border: 1px solid rgba(255, 255, 255, 0.07);
   background:
@@ -365,7 +365,6 @@ video {
   overflow: hidden;
   border-radius: inherit;
   background: #000;
-  -webkit-mask-image: -webkit-radial-gradient(white, black);
 }
 
 .hero-demo-video {
@@ -375,6 +374,8 @@ video {
   object-fit: cover;
   object-position: center top;
   border-radius: inherit;
+  /* Force Safari to respect the parent's border-radius clip on video content */
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
   background: #000;
   cursor: pointer;
   transition: filter 0.24s ease;
