@@ -193,7 +193,7 @@ video {
   margin: 0 0 18px;
   font-family: "Sohne", "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont,
     "Helvetica Neue", "Arial Nova", "Arial", sans-serif;
-  font-size: clamp(46px, 6.8vw, 78px);
+  font-size: clamp(46px, 6.8vw, 72px);
   line-height: 0.92;
   letter-spacing: -0.038em;
 }
@@ -690,9 +690,21 @@ video {
     grid-template-columns: 1fr;
   }
 
+  .hero-grid {
+    gap: 30px;
+  }
+
   .hero-visual {
     min-height: 0;
     order: -1;
+    width: min(100%, clamp(520px, 68vw, 620px));
+    justify-self: center;
+    margin-inline: auto;
+  }
+
+  .hero-copy {
+    max-width: 640px;
+    margin-inline: auto;
   }
 }
 
@@ -718,6 +730,8 @@ video {
 
   .hero-visual {
     padding-bottom: 0;
+    width: 100%;
+    max-width: none;
   }
 
   .visual-card,

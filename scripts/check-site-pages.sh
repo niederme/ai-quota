@@ -45,6 +45,7 @@ check_status() {
 }
 
 check_contains "/" "Know your limits before they break your flow."
+check_contains "/" "usage, desktop widgets, reset timers"
 check_contains "/releases/" "<h1>Releases</h1>"
 check_contains "/privacy/" "<h1 class=\"policy-title\">Privacy Policy</h1>"
 check_contains "/terms/" "<h1 class=\"policy-title\">Terms of Service</h1>"
@@ -91,6 +92,72 @@ for selector in (".visual-card", ".visual-frame", ".hero-demo-media"):
 
 expect(".hero-demo-media", r"border-radius\s*:\s*inherit", "inherited border radius")
 expect(".hero-demo-video", r"object-position\s*:\s*center\s+top", "object-position")
+expect(
+    ".hero h1",
+    r"font-size\s*:\s*clamp\(\s*46px\s*,\s*6\.8vw\s*,\s*72px\s*\)",
+    "hero headline clamp",
+)
+
+media_1080 = re.search(
+    r"@media\s*\((?:max-width:\s*1080px|width\s*<=\s*1080px)\)\s*\{(.*?)\}\s*@media",
+    css,
+    re.S,
+)
+if not media_1080:
+    raise SystemExit("Missing 1080px media query")
+
+media_1080_css = media_1080.group(1)
+
+def expect_in_css(source: str, pattern: str, message: str) -> None:
+    if not re.search(pattern, source, re.S):
+        raise SystemExit(f"Missing {message}")
+
+expect_in_css(media_1080_css, r"\.hero-grid\s*\{[^}]*gap\s*:\s*30px", "mid-range hero gap")
+expect_in_css(
+    media_1080_css,
+    r"\.hero-visual\s*\{[^}]*width\s*:\s*min\(\s*100%\s*,\s*clamp\(\s*520px\s*,\s*68vw\s*,\s*620px\s*\)\s*\)",
+    "mid-range hero visual width clamp",
+)
+expect_in_css(
+    media_1080_css,
+    r"\.hero-visual\s*\{[^}]*justify-self\s*:\s*center",
+    "mid-range hero visual centering",
+)
+expect_in_css(
+    media_1080_css,
+    r"\.hero-visual\s*\{[^}]*margin-inline\s*:\s*auto",
+    "mid-range hero visual margin centering",
+)
+expect_in_css(
+    media_1080_css,
+    r"\.hero-copy\s*\{[^}]*max-width\s*:\s*640px",
+    "mid-range hero copy max width",
+)
+expect_in_css(
+    media_1080_css,
+    r"\.hero-copy\s*\{[^}]*margin-inline\s*:\s*auto",
+    "mid-range hero copy centering",
+)
+
+media_720 = re.search(
+    r"@media\s*\((?:max-width:\s*720px|width\s*<=\s*720px)\)\s*\{(.*)\}\s*$",
+    css,
+    re.S,
+)
+if not media_720:
+    raise SystemExit("Missing 720px media query")
+
+media_720_css = media_720.group(1)
+expect_in_css(
+    media_720_css,
+    r"\.hero-visual\s*\{[^}]*width\s*:\s*100%",
+    "mobile hero visual full width",
+)
+expect_in_css(
+    media_720_css,
+    r"\.hero-visual\s*\{[^}]*max-width\s*:\s*none",
+    "mobile hero visual max-width reset",
+)
 PY
 
 echo "Site smoke check passed."
