@@ -22,3 +22,12 @@ DerivedData/
 
 # Repo-local worktrees
 .worktrees/
+
+# Local tool artifacts
+.claire/
+.playwright-cli/
+.superpowers/brainstorm/
+output/playwright/
+
+# Xcode scheme management (machine-specific)
+**/xcschememanagement.plist
