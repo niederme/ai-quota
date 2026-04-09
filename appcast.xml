@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.9.11</title>
+            <title>Version 1.9.12</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-<h2>What's new in 1.9.11</h2>  <ul><li>Quota low and critical notifications now show when your window resets, so you know how long until you're back to full capacity</li></ul>
+<h2>What's new in 1.9.12</h2>  <ul><li>Added an optional setting to share anonymous usage analytics — helps improve AIQuota and is off by default</li></ul>
 </body>
 </html>
 ]]></description>
-            <sparkle:version>315</sparkle:version>
-            <sparkle:shortVersionString>1.9.11</sparkle:shortVersionString>
+            <sparkle:version>362</sparkle:version>
+            <sparkle:shortVersionString>1.9.12</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.9.11/AIQuota.zip"
-                sparkle:edSignature="QdFypwjxA1UEC8hKPp8NyUBv/IOcgPe9Jew9oHnEdthiZKNDO8F61ct4AKRwpl7GMcMb2KdJ2P6VIXMsiJMYAg=="
-                length="3593673"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.9.12/AIQuota.zip"
+                sparkle:edSignature="jEfsqrR3ri/W7KzDdBvh2UdzJXWqxXUOrFqWw4NFH5oC3GvhsllUM6EtiRgPVrpo8cQUz42+bSiV+sTVh4VRAQ=="
+                length="3670910"
                 type="application/zip"/>
         </item>
     </channel>
