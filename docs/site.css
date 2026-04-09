@@ -193,7 +193,7 @@ video {
   margin: 0 0 18px;
   font-family: "Sohne", "SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont,
     "Helvetica Neue", "Arial Nova", "Arial", sans-serif;
-  font-size: clamp(46px, 6.8vw, 78px);
+  font-size: clamp(46px, 6.8vw, 72px);
   line-height: 0.92;
   letter-spacing: -0.038em;
 }
@@ -373,6 +373,7 @@ video {
   border-radius: inherit;
   background: #000;
   -webkit-mask-image: -webkit-radial-gradient(white, black);
+  clip-path: inset(0 round 34px);
   mask-image: radial-gradient(white, black);
 }
 
@@ -386,6 +387,7 @@ video {
   background: #000;
   cursor: pointer;
   transition: filter 0.24s ease;
+  clip-path: inset(0 round 34px);
 }
 
 .hero-demo-video.is-paused {
@@ -828,7 +830,7 @@ video {
   .hero-visual {
     min-height: 0;
     order: -1;
-    width: min(100%, clamp(560px, 72vw, 680px));
+    width: min(100%, clamp(520px, 68vw, 620px));
     justify-self: center;
     margin-inline: auto;
   }

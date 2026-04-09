@@ -45,6 +45,11 @@ check_status() {
 }
 
 check_contains "/" "Know your limits before they break your flow."
+check_contains "/" "AIQuota gives you clear visibility into Codex and Claude Code usage with Menu Bar"
+check_contains "/" "gauges, desktop widgets, reset timers, and warning states."
+check_contains "/" "Single or dual Menu Bar gauges across 5-hour and 7-day windows"
+check_contains "/" "Desktop widgets for background visibility"
+check_contains "/" "Reset timers, plan details, and warning states"
 check_contains "/releases/" "<h1>Releases</h1>"
 check_contains "/privacy/" "<h1 class=\"policy-title\">Privacy Policy</h1>"
 check_contains "/terms/" "<h1 class=\"policy-title\">Terms of Service</h1>"
@@ -67,16 +72,6 @@ check_contains "/" "mailto:help@aiquota.app"
 check_contains "/site.css" ".hero-demo-media"
 check_contains "/site.css" ".faq-panel"
 check_contains "/site.css" ".faq-panel-header"
-check_contains "/site.css" "font-size: clamp(1.03rem, 1.15vw, 1.12rem);"
-check_contains "/site.css" "font-size: 0.94rem;"
-check_contains "/site.css" "font-size: clamp(1.16rem, 1.34vw, 1.24rem);"
-check_contains "/site.css" "padding-bottom: 12px;"
-check_contains "/site.css" "border-radius: inherit;"
-check_contains "/site.css" "object-position: center top;"
-check_contains "/site.css" "@media (max-width: 1080px)"
-check_contains "/site.css" "width: min(100%, clamp(560px, 72vw, 680px));"
-check_contains "/site.css" "margin-inline: auto;"
-check_contains "/site.css" "justify-self: center;"
 
 if curl -fsS "$BASE_URL/" | grep -q "faq-layout"; then
   echo "Expected old split FAQ layout class to be removed from homepage"
@@ -88,34 +83,142 @@ if curl -fsS "$BASE_URL/" | grep -q "Need help? Email"; then
   exit 1
 fi
 
-if curl -fsS "$BASE_URL/site.css" | grep -q "width: fit-content;"; then
-  echo "Expected FAQ kicker pill styling to be removed"
-  exit 1
-fi
-
-if curl -fsS "$BASE_URL/site.css" | grep -q "padding: 8px 12px;"; then
-  echo "Expected FAQ kicker padding pill styling to be removed"
-  exit 1
-fi
-
 python3 - "$SITE_DIR/site.css" <<'PY'
 from pathlib import Path
+import re
 import sys
 
 css = Path(sys.argv[1]).read_text()
 
-for selector in (".visual-card", ".visual-frame", ".hero-demo-media"):
-    start = css.find(f"{selector} {{")
-    if start == -1:
+def selector_block(selector: str) -> str:
+    match = re.search(re.escape(selector) + r"\s*\{([^}]*)\}", css)
+    if not match:
         raise SystemExit(f"Missing selector block: {selector}")
-    end = css.find("}", start)
-    block = css[start:end]
-    if "isolation: isolate;" not in block:
-        raise SystemExit(f"Missing isolation in {selector}")
-    if "-webkit-mask-image: -webkit-radial-gradient(white, black);" not in block:
-        raise SystemExit(f"Missing webkit mask in {selector}")
-    if "mask-image: radial-gradient(white, black);" not in block:
-        raise SystemExit(f"Missing mask-image in {selector}")
+    return match.group(1)
+
+def expect(selector: str, pattern: str, message: str) -> None:
+    block = selector_block(selector)
+    if not re.search(pattern, block):
+        raise SystemExit(f"Missing {message} in {selector}")
+
+def reject(selector: str, pattern: str, message: str) -> None:
+    block = selector_block(selector)
+    if re.search(pattern, block):
+        raise SystemExit(f"Unexpected {message} in {selector}")
+
+color = r"(?:white|#fff|#ffffff)\s*,\s*(?:black|#000|#000000)"
+
+for selector in (".visual-card", ".visual-frame", ".hero-demo-media"):
+    expect(selector, r"isolation\s*:\s*isolate", "isolation")
+    expect(
+        selector,
+        rf"-webkit-mask-image\s*:\s*-webkit-radial-gradient\(\s*{color}\s*\)",
+        "webkit mask",
+    )
+    expect(
+        selector,
+        rf"mask-image\s*:\s*radial-gradient\(\s*{color}\s*\)",
+        "mask-image",
+    )
+
+expect(".hero-demo-media", r"border-radius\s*:\s*inherit", "inherited border radius")
+expect(".hero-demo-video", r"object-position\s*:\s*center\s+top", "object-position")
+expect(
+    ".faq-panel-header .feature-kicker",
+    r"font-size\s*:\s*0?\.94rem",
+    "FAQ kicker scale",
+)
+reject(
+    ".faq-panel-header .feature-kicker",
+    r"width\s*:\s*fit-content",
+    "FAQ kicker pill width",
+)
+reject(
+    ".faq-panel-header .feature-kicker",
+    r"padding\s*:\s*8px\s+12px",
+    "FAQ kicker pill padding",
+)
+expect(
+    ".faq-item[open] summary",
+    r"padding-bottom\s*:\s*12px",
+    "FAQ open-state spacing",
+)
+expect(
+    ".faq-item summary",
+    r"font-size\s*:\s*clamp\(\s*1\.16rem\s*,\s*1\.34vw\s*,\s*1\.24rem\s*\)",
+    "FAQ question font size",
+)
+expect(
+    ".faq-item p",
+    r"font-size\s*:\s*clamp\(\s*1\.03rem\s*,\s*1\.15vw\s*,\s*1\.12rem\s*\)",
+    "FAQ answer font size",
+)
+expect(
+    ".hero h1",
+    r"font-size\s*:\s*clamp\(\s*46px\s*,\s*6\.8vw\s*,\s*72px\s*\)",
+    "hero headline clamp",
+)
+
+media_1080 = re.search(
+    r"@media\s*\((?:max-width:\s*1080px|width\s*<=\s*1080px)\)\s*\{(.*?)\}\s*@media",
+    css,
+    re.S,
+)
+if not media_1080:
+    raise SystemExit("Missing 1080px media query")
+
+media_1080_css = media_1080.group(1)
+
+def expect_in_css(source: str, pattern: str, message: str) -> None:
+    if not re.search(pattern, source, re.S):
+        raise SystemExit(f"Missing {message}")
+
+expect_in_css(media_1080_css, r"\.hero-grid\s*\{[^}]*gap\s*:\s*30px", "mid-range hero gap")
+expect_in_css(
+    media_1080_css,
+    r"\.hero-visual\s*\{[^}]*width\s*:\s*min\(\s*100%\s*,\s*clamp\(\s*520px\s*,\s*68vw\s*,\s*620px\s*\)\s*\)",
+    "mid-range hero visual width clamp",
+)
+expect_in_css(
+    media_1080_css,
+    r"\.hero-visual\s*\{[^}]*justify-self\s*:\s*center",
+    "mid-range hero visual centering",
+)
+expect_in_css(
+    media_1080_css,
+    r"\.hero-visual\s*\{[^}]*margin-inline\s*:\s*auto",
+    "mid-range hero visual margin centering",
+)
+expect_in_css(
+    media_1080_css,
+    r"\.hero-copy\s*\{[^}]*max-width\s*:\s*640px",
+    "mid-range hero copy max width",
+)
+expect_in_css(
+    media_1080_css,
+    r"\.hero-copy\s*\{[^}]*margin-inline\s*:\s*auto",
+    "mid-range hero copy centering",
+)
+
+media_720 = re.search(
+    r"@media\s*\((?:max-width:\s*720px|width\s*<=\s*720px)\)\s*\{(.*)\}\s*$",
+    css,
+    re.S,
+)
+if not media_720:
+    raise SystemExit("Missing 720px media query")
+
+media_720_css = media_720.group(1)
+expect_in_css(
+    media_720_css,
+    r"\.hero-visual\s*\{[^}]*width\s*:\s*100%",
+    "mobile hero visual full width",
+)
+expect_in_css(
+    media_720_css,
+    r"\.hero-visual\s*\{[^}]*max-width\s*:\s*none",
+    "mobile hero visual max-width reset",
+)
 PY
 
 python3 - "$BASE_URL/" <<'PY'
