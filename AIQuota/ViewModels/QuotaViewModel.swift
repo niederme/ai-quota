@@ -81,6 +81,17 @@ final class QuotaViewModel {
         }
     }
 
+    func recordDailyActiveIfNeeded() {
+        let today = String(ISO8601DateFormatter().string(from: Date()).prefix(10))
+        let key = "analytics.lastActiveDate"
+        guard UserDefaults.standard.string(forKey: key) != today else { return }
+        UserDefaults.standard.set(today, forKey: key)
+        let enabled = settings.analyticsEnabled
+        Task {
+            await AnalyticsClient.shared.send("app_active", enabled: enabled)
+        }
+    }
+
     func resetOnboardingForReplay() {
         // Called from Settings "Guided Setup…" button — lets the user re-run
         // the wizard without wiping any auth or settings state.

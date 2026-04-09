@@ -55,6 +55,7 @@ struct AIQuotaApp: App {
             PopoverView()
                 .environment(viewModel)
                 .environment(UpdaterViewModel(updater: updaterController.updater))
+                .onAppear { viewModel.recordDailyActiveIfNeeded() }
                 .task {
                     #if DEMO_MODE
                     demoDriver.prepare(for: viewModel)
