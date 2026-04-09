@@ -16,7 +16,6 @@ struct PopoverTypographyTests {
         #expect(popoverSource.contains(#".font(.system(size: 13, weight: .medium))"#))
         #expect(popoverSource.contains(#"Text(label + ":").font(.caption2).foregroundStyle(.secondary)"#))
         #expect(popoverSource.contains(#"Text(value).font(.caption2.monospacedDigit().bold())"#))
-        #expect(popoverSource.contains(#".font(.system(size: 9))"#))
         #expect(!popoverSource.contains(#".font(.system(size: 13, weight: .bold).monospacedDigit())"#))
 
         #expect(gaugeSource.contains(#".font(.system(size: 13, weight: .medium))"#))
@@ -34,6 +33,18 @@ struct PopoverTypographyTests {
         #expect(popoverSource.contains(#".padding(.horizontal, 12)"#))
         #expect(popoverSource.contains(#".padding(.vertical, 8)"#))
         #expect(popoverSource.contains(#".contentShape(Rectangle())"#))
+    }
+
+    @Test("secondary stat rows omit service-specific icons")
+    func secondaryStatRowsOmitIcons() throws {
+        let popoverSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/PopoverView.swift"), encoding: .utf8)
+
+        #expect(popoverSource.contains(#"compactRow("Credits", "\(Int(balance))")"#))
+        #expect(popoverSource.contains(#"compactRow("Extra", "\(Int(extra.usedCredits))/\(extra.monthlyLimit)")"#))
+        #expect(popoverSource.contains(#"private func compactRow(_ label: String, _ value: String) -> some View"#))
+        #expect(!popoverSource.contains(#"Image(systemName: icon)"#))
+        #expect(!popoverSource.contains(#"compactRow("Credits", "\(Int(balance))", "creditcard.fill")"#))
+        #expect(!popoverSource.contains(#"compactRow("Extra", "\(Int(extra.usedCredits))/\(extra.monthlyLimit)", "plus.circle.fill")"#))
     }
 
     @Test("7d reset line appears in gauge caption when 7d is critical")

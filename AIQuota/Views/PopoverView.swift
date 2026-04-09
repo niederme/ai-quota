@@ -285,9 +285,9 @@ struct PopoverView: View {
         if let usage = viewModel.codexUsage {
             VStack(alignment: .leading, spacing: 5) {
                 if let balance = usage.creditBalance {
-                    compactRow("Credits", "\(Int(balance))", "creditcard.fill")
+                    compactRow("Credits", "\(Int(balance))")
                 }
-                compactRow("Plan", usage.planType.capitalized, "person.fill")
+                compactRow("Plan", usage.planType.capitalized)
             }
         }
     }
@@ -297,19 +297,15 @@ struct PopoverView: View {
         if let usage = viewModel.claudeUsage {
             VStack(alignment: .leading, spacing: 5) {
                 if let extra = usage.extraUsage, extra.isEnabled {
-                    compactRow("Extra", "\(Int(extra.usedCredits))/\(extra.monthlyLimit)", "plus.circle.fill")
+                    compactRow("Extra", "\(Int(extra.usedCredits))/\(extra.monthlyLimit)")
                 }
-                compactRow("Plan", usage.planDisplayName, "person.fill")
+                compactRow("Plan", usage.planDisplayName)
             }
         }
     }
 
-    private func compactRow(_ label: String, _ value: String, _ icon: String) -> some View {
+    private func compactRow(_ label: String, _ value: String) -> some View {
         HStack(spacing: 5) {
-            Image(systemName: icon)
-                .font(.system(size: 9))
-                .foregroundStyle(.secondary)
-                .frame(width: 13)
             Text(label + ":").font(.caption2).foregroundStyle(.secondary)
             Text(value).font(.caption2.monospacedDigit().bold())
         }
