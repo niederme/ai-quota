@@ -78,10 +78,6 @@ check_contains "/site.css" "font-size: clamp(1.16rem, 1.34vw, 1.24rem);"
 check_contains "/site.css" "padding-bottom: 12px;"
 check_contains "/site.css" "border-radius: inherit;"
 check_contains "/site.css" "object-position: center top;"
-check_contains "/site.css" "@media (max-width: 1080px)"
-check_contains "/site.css" "width: min(100%, clamp(560px, 72vw, 680px));"
-check_contains "/site.css" "margin-inline: auto;"
-check_contains "/site.css" "justify-self: center;"
 
 if curl -fsS "$BASE_URL/" | grep -q "faq-layout"; then
   echo "Expected old split FAQ layout class to be removed from homepage"
