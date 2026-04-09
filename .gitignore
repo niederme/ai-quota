@@ -31,3 +31,6 @@ output/playwright/
 
 # Xcode scheme management (machine-specific)
 **/xcschememanagement.plist
+
+# Analytics credentials (never commit — contains GA4 API secret)
+AIQuota/Resources/Analytics.plist
