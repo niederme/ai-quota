@@ -133,21 +133,26 @@ public struct AppSettings: Codable, Sendable, Equatable {
     public var notifications: NotificationPreferences
     /// Which service's gauge shows in the menu bar when multiple are signed in.
     public var menuBarService: ServiceType
+    /// Whether the user opted into anonymous usage analytics.
+    public var analyticsEnabled: Bool
 
     public static let `default` = AppSettings(
         refreshIntervalMinutes: 15,
         notifications: NotificationPreferences(),
-        menuBarService: .codex
+        menuBarService: .codex,
+        analyticsEnabled: false
     )
 
     public init(
         refreshIntervalMinutes: Int,
         notifications: NotificationPreferences = NotificationPreferences(),
-        menuBarService: ServiceType = .codex
+        menuBarService: ServiceType = .codex,
+        analyticsEnabled: Bool = false
     ) {
         self.refreshIntervalMinutes = refreshIntervalMinutes
         self.notifications = notifications
         self.menuBarService = menuBarService
+        self.analyticsEnabled = analyticsEnabled
     }
 
     /// Migration-safe decoder: unknown keys are ignored, missing keys use defaults.
@@ -157,6 +162,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
         menuBarService = try c.decodeIfPresent(ServiceType.self, forKey: .menuBarService) ?? .codex
         notifications = try c.decodeIfPresent(NotificationPreferences.self, forKey: .notifications)
             ?? NotificationPreferences()
+        analyticsEnabled = try c.decodeIfPresent(Bool.self, forKey: .analyticsEnabled) ?? false
         // Legacy key `notificationsEnabled` is intentionally not migrated —
         // the default (all on) is the right starting point for all users.
     }

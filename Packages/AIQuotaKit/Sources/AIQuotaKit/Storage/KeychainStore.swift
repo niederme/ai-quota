@@ -2,7 +2,17 @@ import Foundation
 import Security
 
 public enum KeychainStore {
-    private static let service = "com.niederme.AIQuota"
+    private static var service: String {
+        let base = "com.niederme.AIQuota"
+        guard isRunningTests else {
+            return base
+        }
+        return "\(base).tests.\(ProcessInfo.processInfo.processIdentifier)"
+    }
+
+    private static var isRunningTests: Bool {
+        Bundle.allBundles.contains { $0.bundlePath.hasSuffix(".xctest") }
+    }
 
     private static var sharedAccessGroup: String? {
         guard let task = SecTaskCreateFromSelf(nil),

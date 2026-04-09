@@ -26,5 +26,6 @@ struct SharedDefaultsPersistenceTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
             .deletingLastPathComponent()
+            .deletingLastPathComponent()
     }
 }

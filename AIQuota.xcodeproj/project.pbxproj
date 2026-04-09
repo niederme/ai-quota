@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1575BAA1F4C10951443BA5C8 /* AnalyticsConsentStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89176CF3C6B8574A223A6E55 /* AnalyticsConsentStepView.swift */; };
 		168599BDC65516BFAFB4B2DF /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AFDFAA7F9E0650962EC80DC /* OnboardingView.swift */; };
 		17126B49397A4A50A1B6325F /* MenuBarIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB657B3EE7EFE0906CC89C7E /* MenuBarIconView.swift */; };
 		1EDE4F3056D8B3FE3D63FD79 /* QuotaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5F53FC0B0CEEDEB3DD6488A /* QuotaViewModel.swift */; };
@@ -83,6 +84,7 @@
 		7AEFC74142619076ED0AB5BA /* WidgetsStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetsStepView.swift; sourceTree = "<group>"; };
 		872D4B7AB7221C3A55960CE1 /* WelcomeStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeStepView.swift; sourceTree = "<group>"; };
 		88FA3DF197FD04781EF8C4EF /* NotificationsStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsStepView.swift; sourceTree = "<group>"; };
+		89176CF3C6B8574A223A6E55 /* AnalyticsConsentStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsConsentStepView.swift; sourceTree = "<group>"; };
 		8C0ACC770721BA686B7B6401 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AABA7E1FF303A5852FC6BCC6 /* WidgetSmallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSmallView.swift; sourceTree = "<group>"; };
 		ACD5E0D36B8FCEF6F2E97EFA /* QuotaTimelineProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaTimelineProvider.swift; sourceTree = "<group>"; };
@@ -176,6 +178,7 @@
 		8061A6E4FF1208BDC0241F3D /* Steps */ = {
 			isa = PBXGroup;
 			children = (
+				89176CF3C6B8574A223A6E55 /* AnalyticsConsentStepView.swift */,
 				F20C382E39D030AC581CA9B4 /* DoneStepView.swift */,
 				88FA3DF197FD04781EF8C4EF /* NotificationsStepView.swift */,
 				C66610C3B005AD239F7EDE75 /* ServicesStepView.swift */,
@@ -450,6 +453,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				72AE89A41BD0B809A9D6DAB9 /* AIQuotaApp.swift in Sources */,
+				1575BAA1F4C10951443BA5C8 /* AnalyticsConsentStepView.swift in Sources */,
 				BD011637B9A98BF66EB809CD /* CircularGaugeView.swift in Sources */,
 				98F43072074B245C01E279A4 /* CountdownView.swift in Sources */,
 				4BDBDF48A5EC8E1D8DE63AEE /* DemoDriver.swift in Sources */,
@@ -514,7 +518,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 301;
+				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -527,7 +531,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.9.11;
+				MARKETING_VERSION = 1.9.8;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -613,7 +617,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 301;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -632,7 +636,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.9.8;
+				MARKETING_VERSION = 1.9.11;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

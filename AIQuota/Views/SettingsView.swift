@@ -123,6 +123,18 @@ struct SettingsView: View {
                 }
             }
 
+            // MARK: Privacy
+            Section("Privacy") {
+                Toggle("Help John improve AIQuota with anonymous usage analytics",
+                       isOn: $vm.settings.analyticsEnabled)
+                Text("Share simple anonymous metrics with John, like installs, active use, app version, and setup completion. No prompts, tokens, or personal info.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Link("Privacy Policy", destination: URL(string: "https://aiquota.app/privacy/")!)
+                    .foregroundColor(Color.brand)
+            }
+
             // MARK: Updates
             Section("Updates") {
                 Toggle("Check for updates automatically", isOn: $u.automaticallyChecksForUpdates)
