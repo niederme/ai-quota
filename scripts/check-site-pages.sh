@@ -72,12 +72,6 @@ check_contains "/" "mailto:help@aiquota.app"
 check_contains "/site.css" ".hero-demo-media"
 check_contains "/site.css" ".faq-panel"
 check_contains "/site.css" ".faq-panel-header"
-check_contains "/site.css" "font-size: clamp(1.03rem, 1.15vw, 1.12rem);"
-check_contains "/site.css" "font-size: 0.94rem;"
-check_contains "/site.css" "font-size: clamp(1.16rem, 1.34vw, 1.24rem);"
-check_contains "/site.css" "padding-bottom: 12px;"
-check_contains "/site.css" "border-radius: inherit;"
-check_contains "/site.css" "object-position: center top;"
 
 if curl -fsS "$BASE_URL/" | grep -q "faq-layout"; then
   echo "Expected old split FAQ layout class to be removed from homepage"
@@ -89,15 +83,6 @@ if curl -fsS "$BASE_URL/" | grep -q "Need help? Email"; then
   exit 1
 fi
 
-if curl -fsS "$BASE_URL/site.css" | grep -q "width: fit-content;"; then
-  echo "Expected FAQ kicker pill styling to be removed"
-  exit 1
-fi
-
-if curl -fsS "$BASE_URL/site.css" | grep -q "padding: 8px 12px;"; then
-  echo "Expected FAQ kicker padding pill styling to be removed"
-  exit 1
-fi
 python3 - "$SITE_DIR/site.css" <<'PY'
 from pathlib import Path
 import re
@@ -116,6 +101,11 @@ def expect(selector: str, pattern: str, message: str) -> None:
     if not re.search(pattern, block):
         raise SystemExit(f"Missing {message} in {selector}")
 
+def reject(selector: str, pattern: str, message: str) -> None:
+    block = selector_block(selector)
+    if re.search(pattern, block):
+        raise SystemExit(f"Unexpected {message} in {selector}")
+
 color = r"(?:white|#fff|#ffffff)\s*,\s*(?:black|#000|#000000)"
 
 for selector in (".visual-card", ".visual-frame", ".hero-demo-media"):
@@ -133,6 +123,36 @@ for selector in (".visual-card", ".visual-frame", ".hero-demo-media"):
 
 expect(".hero-demo-media", r"border-radius\s*:\s*inherit", "inherited border radius")
 expect(".hero-demo-video", r"object-position\s*:\s*center\s+top", "object-position")
+expect(
+    ".faq-panel-header .feature-kicker",
+    r"font-size\s*:\s*0?\.94rem",
+    "FAQ kicker scale",
+)
+reject(
+    ".faq-panel-header .feature-kicker",
+    r"width\s*:\s*fit-content",
+    "FAQ kicker pill width",
+)
+reject(
+    ".faq-panel-header .feature-kicker",
+    r"padding\s*:\s*8px\s+12px",
+    "FAQ kicker pill padding",
+)
+expect(
+    ".faq-item[open] summary",
+    r"padding-bottom\s*:\s*12px",
+    "FAQ open-state spacing",
+)
+expect(
+    ".faq-item summary",
+    r"font-size\s*:\s*clamp\(\s*1\.16rem\s*,\s*1\.34vw\s*,\s*1\.24rem\s*\)",
+    "FAQ question font size",
+)
+expect(
+    ".faq-item p",
+    r"font-size\s*:\s*clamp\(\s*1\.03rem\s*,\s*1\.15vw\s*,\s*1\.12rem\s*\)",
+    "FAQ answer font size",
+)
 expect(
     ".hero h1",
     r"font-size\s*:\s*clamp\(\s*46px\s*,\s*6\.8vw\s*,\s*72px\s*\)",
