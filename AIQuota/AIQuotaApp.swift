@@ -38,6 +38,16 @@ struct AIQuotaApp: App {
         DispatchQueue.main.async {
             WidgetCenter.shared.reloadAllTimelines()
         }
+        // ── Analytics ──────────────────────────────────────────────────────────
+        let analyticsEnabled = _viewModel.wrappedValue.settings.analyticsEnabled
+        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+        Task {
+            await AnalyticsClient.shared.send(
+                "app_launched",
+                params: ["app_version": appVersion],
+                enabled: analyticsEnabled
+            )
+        }
     }
 
     var body: some Scene {

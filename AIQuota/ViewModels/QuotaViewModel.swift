@@ -76,6 +76,9 @@ final class QuotaViewModel {
     func completeOnboarding() {
         UserDefaults.standard.set(true, forKey: "onboarding.v1.hasCompleted")
         onboardingTriggeredThisSession = true
+        Task {
+            await AnalyticsClient.shared.send("onboarding_completed", enabled: settings.analyticsEnabled)
+        }
     }
 
     func resetOnboardingForReplay() {
@@ -200,6 +203,13 @@ final class QuotaViewModel {
                     if state == .authenticated && !self.enrolledServices.contains(.codex) {
                         self.enrolledServices.insert(.codex)
                         SharedDefaults.enrollService(.codex)
+                        Task {
+                            await AnalyticsClient.shared.send(
+                                "service_connected",
+                                params: ["service_name": "codex"],
+                                enabled: self.settings.analyticsEnabled
+                            )
+                        }
                     }
                     if state == .authenticated && self.refreshTask == nil {
                         self.startAutoRefresh()
@@ -470,6 +480,13 @@ final class QuotaViewModel {
             if !enrolledServices.contains(.claude) {
                 enrolledServices.insert(.claude)
                 SharedDefaults.enrollService(.claude)
+                Task {
+                    await AnalyticsClient.shared.send(
+                        "service_connected",
+                        params: ["service_name": "claude"],
+                        enabled: settings.analyticsEnabled
+                    )
+                }
             }
             await refreshClaude()
             if refreshTask == nil { startAutoRefresh() }
