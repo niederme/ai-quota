@@ -1,4 +1,6 @@
 import Foundation
+import AppKit
+import CoreGraphics
 import Network
 import os
 import AIQuotaKit
@@ -160,6 +162,9 @@ final class QuotaViewModel {
     private var pathMonitorReady = false
     private let pathMonitor = NWPathMonitor()
     private let pathMonitorQueue = DispatchQueue(label: "ai.quota.pathmonitor")
+    private var appIsActive = false
+    private var appLifecycleObservers: [NSObjectProtocol] = []
+    private var workspaceLifecycleObservers: [NSObjectProtocol] = []
 
     // MARK: - Init
 
@@ -241,6 +246,7 @@ final class QuotaViewModel {
 
         // Start path monitor first so currentPath is valid before the first fetch
         startPathMonitor()
+        startLifecycleObservers()
 
         // Bootstrap both coordinators — handles Keychain / WKWebView session restore
         // internally; no need for a deferred Keychain access pattern here.
@@ -271,17 +277,87 @@ final class QuotaViewModel {
                     if case .networkUnavailable = self.codexError  { self.codexError  = nil }
                     if case .networkUnavailable = self.claudeError { self.claudeError = nil }
                     if self.wasOffline {
-                        // Came back online — fire an immediate refresh.
+                        // Came back online — resume the loop with a fresh fetch so
+                        // Auto mode can ramp back up immediately.
                         self.wasOffline = false
-                        guard self.isCodexAuthenticated || self.isClaudeAuthenticated else { return }
-                        Task { await self.refresh() }
+                        self.restartAutoRefresh(immediateRefresh: true)
                     }
                 } else {
                     self.wasOffline = true
+                    self.restartAutoRefresh(immediateRefresh: false)
                 }
             }
         }
         pathMonitor.start(queue: pathMonitorQueue)
+    }
+
+    private func startLifecycleObservers() {
+        appIsActive = NSApp.isActive
+
+        let notificationCenter = NotificationCenter.default
+        appLifecycleObservers.append(
+            notificationCenter.addObserver(
+                forName: NSApplication.didBecomeActiveNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    self.appIsActive = true
+                    self.restartAutoRefresh(immediateRefresh: true)
+                }
+            }
+        )
+        appLifecycleObservers.append(
+            notificationCenter.addObserver(
+                forName: NSApplication.didResignActiveNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    self.appIsActive = false
+                    self.restartAutoRefresh(immediateRefresh: false)
+                }
+            }
+        )
+        appLifecycleObservers.append(
+            notificationCenter.addObserver(
+                forName: .NSProcessInfoPowerStateDidChange,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    let shouldRefreshNow = !ProcessInfo.processInfo.isLowPowerModeEnabled
+                    self.restartAutoRefresh(immediateRefresh: shouldRefreshNow)
+                }
+            }
+        )
+
+        let workspaceCenter = NSWorkspace.shared.notificationCenter
+        workspaceLifecycleObservers.append(
+            workspaceCenter.addObserver(
+                forName: NSWorkspace.didWakeNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.restartAutoRefresh(immediateRefresh: true)
+                }
+            }
+        )
+        workspaceLifecycleObservers.append(
+            workspaceCenter.addObserver(
+                forName: NSWorkspace.willSleepNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    self?.restartAutoRefresh(immediateRefresh: false)
+                }
+            }
+        )
     }
 
     /// Returns true only for URLErrors that indicate genuine connectivity loss,
@@ -440,16 +516,21 @@ final class QuotaViewModel {
 
     // MARK: - Auto-refresh
 
-    func startAutoRefresh() {
+    func startAutoRefresh(immediateRefresh: Bool = true) {
         if settings.notifications.enabled {
             Task { await NotificationManager.shared.requestPermission() }
         }
         refreshTask?.cancel()
         refreshTask = Task { [weak self] in
             guard let self else { return }
-            while !Task.isCancelled {
+            if immediateRefresh {
                 await refresh()
-                try? await Task.sleep(for: .seconds(settings.refreshInterval))
+            }
+            while !Task.isCancelled {
+                let sleepInterval = self.nextRefreshInterval()
+                try? await Task.sleep(for: .seconds(sleepInterval))
+                guard !Task.isCancelled else { break }
+                await self.refresh()
             }
         }
     }
@@ -457,6 +538,52 @@ final class QuotaViewModel {
     func stopAutoRefresh() {
         refreshTask?.cancel()
         refreshTask = nil
+    }
+
+    private func restartAutoRefresh(immediateRefresh: Bool) {
+        guard isCodexAuthenticated || isClaudeAuthenticated else { return }
+        startAutoRefresh(immediateRefresh: immediateRefresh)
+    }
+
+    private func nextRefreshInterval() -> TimeInterval {
+        if let fixedRefreshInterval = settings.fixedRefreshInterval {
+            return fixedRefreshInterval
+        }
+
+        return AutoRefreshPolicy.interval(for: autoRefreshContext())
+    }
+
+    private func autoRefreshContext() -> AutoRefreshContext {
+        AutoRefreshContext(
+            appIsActive: appIsActive,
+            lowPowerModeEnabled: ProcessInfo.processInfo.isLowPowerModeEnabled,
+            networkAvailable: !pathMonitorReady || pathMonitor.currentPath.status == .satisfied,
+            machineIdleSeconds: CGEventSource.secondsSinceLastEventType(
+                .combinedSessionState,
+                eventType: .null
+            ),
+            hasCachedUsageData: codexUsage != nil || claudeUsage != nil,
+            codexNearThreshold: isCodexNearThreshold,
+            claudeNearThreshold: isClaudeNearThreshold
+        )
+    }
+
+    private var isCodexNearThreshold: Bool {
+        guard let codexUsage else { return false }
+        return codexUsage.limitReached
+            || codexUsage.hourlyUsedPercent >= 85
+            || codexUsage.weeklyUsedPercent >= 85
+            || codexUsage.hourlyResetAfterSeconds <= 900
+            || codexUsage.weeklyResetAfterSeconds <= 900
+    }
+
+    private var isClaudeNearThreshold: Bool {
+        guard let claudeUsage else { return false }
+        return claudeUsage.limitReached
+            || claudeUsage.usedPercent >= 85
+            || claudeUsage.sevenDayUtilization >= 85
+            || claudeUsage.resetAfterSeconds <= 900
+            || claudeUsage.sevenDayResetAfterSeconds <= 900
     }
 
     /// User-initiated refresh. Cancels any in-flight auto-refresh and restarts

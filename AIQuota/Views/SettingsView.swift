@@ -16,7 +16,7 @@ struct SettingsView: View {
         viewModel.settings.notifications.enabled && notifPermissionGranted
     }
 
-    private let refreshOptions = [5, 15, 30, 60]
+    private let refreshOptions = AppSettings.supportedRefreshIntervalMinutes
 
     var body: some View {
         @Bindable var vm = viewModel
@@ -26,9 +26,16 @@ struct SettingsView: View {
             // MARK: General
             Section("General") {
                 Picker("Refresh every", selection: $vm.settings.refreshIntervalMinutes) {
-                    ForEach(refreshOptions, id: \.self) { Text("\($0) min").tag($0) }
+                    ForEach(refreshOptions, id: \.self) { minutes in
+                        Text(refreshLabel(for: minutes)).tag(minutes)
+                    }
                 }
                 .pickerStyle(.segmented)
+
+                Text("Auto refreshes faster when the app is active and slows down when idle.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 LabeledContent("Menu bar service") {
                     EnrollmentSegmentedPicker(
@@ -245,6 +252,10 @@ struct SettingsView: View {
         withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
             notifPermissionGranted = settings.authorizationStatus == .authorized
         }
+    }
+
+    private func refreshLabel(for minutes: Int) -> String {
+        minutes == AppSettings.autoRefreshIntervalMinutes ? "Auto" : "\(minutes)"
     }
 }
 

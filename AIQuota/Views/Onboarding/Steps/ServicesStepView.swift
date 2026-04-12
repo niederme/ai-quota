@@ -51,6 +51,17 @@ struct ServicesStepView: View {
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
 
+            if viewModel.isCodexAuthenticated || viewModel.isClaudeAuthenticated {
+                RefreshPreferencePicker(
+                    selection: viewModel.settings.refreshIntervalMinutes,
+                    onSelect: { minutes in
+                        viewModel.settings.refreshIntervalMinutes = minutes
+                        viewModel.saveSettings()
+                    }
+                )
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+
             Spacer()
 
             Text("You can connect more services later in Settings.")
@@ -62,6 +73,49 @@ struct ServicesStepView: View {
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85),
                    value: viewModel.isCodexAuthenticated && viewModel.isClaudeAuthenticated)
+    }
+}
+
+// MARK: - Refresh preference picker
+
+@MainActor
+private struct RefreshPreferencePicker: View {
+    let selection: Int
+    let onSelect: (Int) -> Void
+
+    private let options = AppSettings.supportedRefreshIntervalMinutes
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Divider()
+
+            Text("How often should AIQuota refresh?")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+
+            Picker(
+                "Refresh interval",
+                selection: Binding(get: { selection }, set: { newValue in onSelect(newValue) })
+            ) {
+                ForEach(options, id: \.self) { minutes in
+                    Text(refreshLabel(for: minutes)).tag(minutes)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+
+            Text("Auto refreshes faster when the app is active and slows down when idle.")
+                .font(.footnote)
+                .foregroundStyle(.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 32)
+        .padding(.top, 16)
+    }
+
+    private func refreshLabel(for minutes: Int) -> String {
+        minutes == AppSettings.autoRefreshIntervalMinutes ? "Auto" : "\(minutes)"
     }
 }
 

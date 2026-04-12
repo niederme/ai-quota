@@ -129,6 +129,9 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
 // MARK: - AppSettings
 
 public struct AppSettings: Codable, Sendable, Equatable {
+    public static let autoRefreshIntervalMinutes = 0
+    public static let supportedRefreshIntervalMinutes = [autoRefreshIntervalMinutes, 1, 5, 10, 30]
+
     public var refreshIntervalMinutes: Int
     public var notifications: NotificationPreferences
     /// Which service's gauge shows in the menu bar when multiple are signed in.
@@ -137,7 +140,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
     public var analyticsEnabled: Bool
 
     public static let `default` = AppSettings(
-        refreshIntervalMinutes: 15,
+        refreshIntervalMinutes: autoRefreshIntervalMinutes,
         notifications: NotificationPreferences(),
         menuBarService: .codex,
         analyticsEnabled: false
@@ -149,7 +152,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
         menuBarService: ServiceType = .codex,
         analyticsEnabled: Bool = false
     ) {
-        self.refreshIntervalMinutes = refreshIntervalMinutes
+        self.refreshIntervalMinutes = Self.normalizeRefreshIntervalMinutes(refreshIntervalMinutes)
         self.notifications = notifications
         self.menuBarService = menuBarService
         self.analyticsEnabled = analyticsEnabled
@@ -158,7 +161,9 @@ public struct AppSettings: Codable, Sendable, Equatable {
     /// Migration-safe decoder: unknown keys are ignored, missing keys use defaults.
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        refreshIntervalMinutes = try c.decodeIfPresent(Int.self, forKey: .refreshIntervalMinutes) ?? 15
+        let decodedRefreshInterval = try c.decodeIfPresent(Int.self, forKey: .refreshIntervalMinutes)
+            ?? Self.autoRefreshIntervalMinutes
+        refreshIntervalMinutes = Self.normalizeRefreshIntervalMinutes(decodedRefreshInterval)
         menuBarService = try c.decodeIfPresent(ServiceType.self, forKey: .menuBarService) ?? .codex
         notifications = try c.decodeIfPresent(NotificationPreferences.self, forKey: .notifications)
             ?? NotificationPreferences()
@@ -167,7 +172,15 @@ public struct AppSettings: Codable, Sendable, Equatable {
         // the default (all on) is the right starting point for all users.
     }
 
-    public var refreshInterval: TimeInterval {
-        TimeInterval(refreshIntervalMinutes * 60)
+    public static func normalizeRefreshIntervalMinutes(_ minutes: Int) -> Int {
+        supportedRefreshIntervalMinutes.contains(minutes) ? minutes : autoRefreshIntervalMinutes
+    }
+
+    public var usesAdaptiveRefresh: Bool {
+        refreshIntervalMinutes == Self.autoRefreshIntervalMinutes
+    }
+
+    public var fixedRefreshInterval: TimeInterval? {
+        usesAdaptiveRefresh ? nil : TimeInterval(refreshIntervalMinutes * 60)
     }
 }
