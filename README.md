@@ -19,7 +19,8 @@ The marketing site in `docs/` follows the shared Codex web preview convention us
 - **Service details that matter** — reset timers, plan info, credits or extra usage, and clear warning states are visible at a glance
 - **Desktop widgets** — polished widget variants for single-service and dual-service monitoring, including configurable small and medium widgets plus a large two-service layout
 - **Graceful empty and loading states** — widgets and the popover keep a stable layout when a service is disconnected, restoring, or waiting on fresh data
-- **Guided onboarding** — first launch walks through connecting services, notifications, and widget setup; if both services are connected, onboarding also asks which one should drive the menu bar icon
+- **Adaptive refresh controls** — choose `Auto` to refresh every minute when the app is active or quota is near a threshold, then back off automatically when idle, offline, or on low power
+- **Guided onboarding** — first launch walks through connecting services, refresh preferences, notifications, and widget setup; if both services are connected, onboarding also asks which one should drive the menu bar icon
 - **Single-service adaptation** — when only one service is enrolled, the app and widgets avoid dead space instead of pretending there should be a second column
 - **ChatGPT and Claude sign-in** — authenticates using your existing browser-backed session, with secrets stored in Keychain and shared widget data kept in the app group
 - **Notification controls** — per-service master switches plus consolidated threshold alerts (one toggle covers low quota, critical quota, and limit reached) plus reset events
