@@ -25,17 +25,19 @@ struct SettingsView: View {
         Form {
             // MARK: General
             Section("General") {
-                Picker("Refresh every", selection: $vm.settings.refreshIntervalMinutes) {
-                    ForEach(refreshOptions, id: \.self) { minutes in
-                        Text(refreshLabel(for: minutes)).tag(minutes)
+                VStack(alignment: .leading, spacing: 6) {
+                    Picker("Refresh every", selection: $vm.settings.refreshIntervalMinutes) {
+                        ForEach(refreshOptions, id: \.self) { minutes in
+                            Text(refreshLabel(for: minutes)).tag(minutes)
+                        }
                     }
-                }
-                .pickerStyle(.segmented)
+                    .pickerStyle(.segmented)
 
-                Text("Auto refreshes faster when the app is active and slows down when idle.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    Text("Auto refreshes every 1 min when the app is active or usage is near a threshold, then slows down when idle.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
 
                 LabeledContent("Menu bar service") {
                     EnrollmentSegmentedPicker(

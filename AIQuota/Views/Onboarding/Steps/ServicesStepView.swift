@@ -105,7 +105,7 @@ private struct RefreshPreferencePicker: View {
             .pickerStyle(.segmented)
             .labelsHidden()
 
-            Text("Auto refreshes faster when the app is active and slows down when idle.")
+            Text("Auto refreshes every 1 min when the app is active or usage is near a threshold, then slows down when idle.")
                 .font(.footnote)
                 .foregroundStyle(.tertiary)
                 .fixedSize(horizontal: false, vertical: true)

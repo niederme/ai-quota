@@ -63,8 +63,8 @@ struct RefreshSettingsTests {
             encoding: .utf8
         )
 
-        #expect(settingsSource.contains("Auto refreshes faster when the app is active and slows down when idle."))
+        #expect(settingsSource.contains("Auto refreshes every 1 min when the app is active or usage is near a threshold, then slows down when idle."))
         #expect(servicesSource.contains("How often should AIQuota refresh?"))
-        #expect(servicesSource.contains("Auto refreshes faster when the app is active and slows down when idle."))
+        #expect(servicesSource.contains("Auto refreshes every 1 min when the app is active or usage is near a threshold, then slows down when idle."))
     }
 }
