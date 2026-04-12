@@ -197,9 +197,10 @@ ai-quota/
 See the pre-release checklist at the top of [`scripts/release.sh`](scripts/release.sh). The short version:
 
 1. Update `README.md` (features, requirements, roadmap) — **always do this first**
-2. Bump `MARKETING_VERSION` in `project.yml`, then run `xcodegen generate`
-3. Archive in Xcode (`Product → Archive`) and export the notarized `.app` to `~/Desktop/AIQuota.app`
-4. Run `./scripts/release.sh <version>`
+2. Bump `MARKETING_VERSION` in `project.yml`
+3. Run `./scripts/bump-build.sh` to increment `CURRENT_PROJECT_VERSION` and regenerate the Xcode project
+4. Archive in Xcode (`Product → Archive`) and export the notarized `.app` to `~/Desktop/AIQuota.app`
+5. Run `./scripts/release.sh <version>`
 
 ---
 

@@ -11,11 +11,11 @@ options:
 
 # ── Version / Build number ─────────────────────────────────────────────────
 # MARKETING_VERSION = user-facing version (1.0, 1.1, 2.0…) — bump manually.
-# CURRENT_PROJECT_VERSION = bundle build number used by the app + widget.
+# CURRENT_PROJECT_VERSION = Sparkle / bundle build number — bump for every release.
 settings:
   base:
     MARKETING_VERSION: "1.9.13"
-    CURRENT_PROJECT_VERSION: "301"
+    CURRENT_PROJECT_VERSION: "369"
 
 packages:
   AIQuotaKit:
@@ -97,14 +97,6 @@ targets:
         Demo:
           DEBUG_INFORMATION_FORMAT: dwarf
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: DEBUG DEMO_MODE
-    postBuildScripts:
-      - name: Set Build Number from Git
-        script: |
-          BUILD=$(git -C "$SRCROOT" rev-list --count HEAD)
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "${BUILT_PRODUCTS_DIR}/${INFOPLIST_PATH}"
-          echo "Build number → $BUILD"
-        basedOnDependencyAnalysis: false
-
   # ── Widget Extension ──────────────────────────────────────────────────────
 
   AIQuotaWidget:
@@ -127,10 +119,3 @@ targets:
         CODE_SIGN_ENTITLEMENTS: AIQuotaWidget/Resources/AIQuotaWidget.entitlements
         ENABLE_HARDENED_RUNTIME: YES
         INFOPLIST_FILE: AIQuotaWidget/Resources/Info.plist
-    postBuildScripts:
-      - name: Set Build Number from Git
-        script: |
-          BUILD=$(git -C "$SRCROOT" rev-list --count HEAD)
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD" "${BUILT_PRODUCTS_DIR}/${INFOPLIST_PATH}"
-          echo "Build number → $BUILD"
-        basedOnDependencyAnalysis: false

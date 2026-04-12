@@ -8,11 +8,12 @@
 # Pre-release checklist (do these BEFORE running this script):
 #   1. Ask Claude: "prepare release notes for X.X" — get user-facing summary
 #   2. Update README.md — features, requirements, roadmap
-#   3. Bump MARKETING_VERSION in Xcode (project.pbxproj, both Debug and Release)
-#   4. Archive: Product → Archive in Xcode
-#   5. Export the notarized .app to ~/Desktop/AIQuota.app
+#   3. Bump MARKETING_VERSION in project.yml
+#   4. Run ./scripts/bump-build.sh so CFBundleVersion increases for Sparkle
+#   5. Archive: Product → Archive in Xcode
+#   6. Export the notarized .app to ~/Desktop/AIQuota.app
 #      (Distribute App → Direct Distribution → Export)
-#   6. Commit & push all changes to main
+#   7. Commit & push all changes to main
 #   Then run this script and paste the release notes into the editor when it opens.
 #
 # Prerequisites:
@@ -100,7 +101,20 @@ echo "  Length:    ${LENGTH}"
 
 # ── Generate appcast.xml ──────────────────────────────────────────────────────
 echo "▶ Generating appcast.xml…"
-BUILD=$(defaults read "${APP_SRC}/Contents/Info" CFBundleVersion 2>/dev/null || git -C "$REPO_ROOT" rev-list --count HEAD)
+BUILD=$(defaults read "${APP_SRC}/Contents/Info" CFBundleVersion 2>/dev/null || echo "")
+if [ -z "$BUILD" ]; then
+    echo "✗ Could not read CFBundleVersion from ${APP_SRC}."
+    exit 1
+fi
+
+CURRENT_APPCAST_BUILD=$(grep -o '<sparkle:version>[^<]*</sparkle:version>' "$APPCAST" 2>/dev/null | head -1 | sed 's#<sparkle:version>##;s#</sparkle:version>##')
+if [[ -n "$CURRENT_APPCAST_BUILD" && "$BUILD" =~ ^[0-9]+$ && "$CURRENT_APPCAST_BUILD" =~ ^[0-9]+$ ]]; then
+    if [ "$BUILD" -le "$CURRENT_APPCAST_BUILD" ]; then
+        echo "✗ Exported app build ${BUILD} is not newer than current appcast build ${CURRENT_APPCAST_BUILD}."
+        echo "  Run ./scripts/bump-build.sh, archive again, and export a fresh ~/Desktop/AIQuota.app before releasing."
+        exit 1
+    fi
+fi
 DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${TAG}/AIQuota.zip"
 
 # Convert markdown notes to styled HTML for Sparkle's in-app WebView
