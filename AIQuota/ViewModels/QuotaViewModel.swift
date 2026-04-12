@@ -292,7 +292,7 @@ final class QuotaViewModel {
     }
 
     private func startLifecycleObservers() {
-        appIsActive = NSApp.isActive
+        appIsActive = NSApplication.shared.isActive
 
         let notificationCenter = NotificationCenter.default
         appLifecycleObservers.append(
