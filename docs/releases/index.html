@@ -8,8 +8,23 @@
       name="description"
       content="Release information and download links for AIQuota, the macOS quota tracker for Codex and Claude Code."
     />
+    <meta name="color-scheme" content="dark light" />
     <meta name="theme-color" content="#0b1730" />
+    <script>
+      (() => {
+        const storedTheme = window.localStorage.getItem("aiquota-docs-theme");
+        const resolvedTheme =
+          storedTheme === "light" || storedTheme === "dark"
+            ? storedTheme
+            : window.matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark";
+        document.documentElement.dataset.theme = resolvedTheme;
+        document.documentElement.style.colorScheme = resolvedTheme;
+      })();
+    </script>
     <link rel="stylesheet" href="../site.css" />
+    <script src="../site.js" defer></script>
   </head>
   <body>
     <div class="page-shell">
@@ -30,6 +45,7 @@
             <a href="../">Home</a>
             <a href="../releases/">Releases</a>
             <a href="https://github.com/niederme/ai-quota">GitHub</a>
+            <button class="button theme-toggle" type="button" data-theme-toggle></button>
             <a
               class="button"
               href="https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip"

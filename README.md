@@ -119,7 +119,7 @@ Requirements for live reload:
 Pushing to `main` triggers the website deploy workflow automatically, and you can also run the same deploy manually with `workflow_dispatch` in GitHub Actions. The workflow:
 
 - minifies `docs/site.css` and `docs/site.js`
-- smoke-checks the public site pages before deploy
+- smoke-checks the public site pages before deploy, including release-page sync against GitHub
 - stages the `docs/` site with cache-busted asset URLs
 - syncs the staged site to the remote host over SSH
 - normalizes remote file permissions so shared hosting serves the site correctly
@@ -201,6 +201,7 @@ See the pre-release checklist at the top of [`scripts/release.sh`](scripts/relea
 3. Run `./scripts/bump-build.sh` to increment `CURRENT_PROJECT_VERSION` and regenerate the Xcode project
 4. Archive in Xcode (`Product → Archive`) and export the notarized `.app` to `~/Desktop/AIQuota.app`
 5. Run `./scripts/release.sh <version>`
+6. Verify `docs/releases/index.html` matches the GitHub releases list, run `./scripts/check-site-pages.sh`, then push the site/appcast updates to `main`
 
 ---
 
