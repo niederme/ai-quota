@@ -44,6 +44,16 @@ struct SettingsView: View {
                         selection: $vm.settings.menuBarService,
                         enrolledServices: vm.enrolledServices
                     )
+                    .onChange(of: vm.settings.menuBarService) { _, newValue in
+                        let enabled = vm.settings.analyticsEnabled
+                        Task {
+                            await AnalyticsClient.shared.send(
+                                "menubar_service_changed",
+                                params: ["service": newValue.rawValue],
+                                enabled: enabled
+                            )
+                        }
+                    }
                 }
 
                 LaunchAtLoginToggle()

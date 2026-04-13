@@ -41,10 +41,11 @@ struct AIQuotaApp: App {
         // ── Analytics ──────────────────────────────────────────────────────────
         let analyticsEnabled = _viewModel.wrappedValue.settings.analyticsEnabled
         let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+        let services = _viewModel.wrappedValue.analyticsServicesParam
         Task {
             await AnalyticsClient.shared.send(
                 "app_launched",
-                params: ["app_version": appVersion],
+                params: ["app_version": appVersion, "services": services],
                 enabled: analyticsEnabled
             )
         }
@@ -55,7 +56,18 @@ struct AIQuotaApp: App {
             PopoverView()
                 .environment(viewModel)
                 .environment(UpdaterViewModel(updater: updaterController.updater))
-                .onAppear { viewModel.recordDailyActiveIfNeeded() }
+                .onAppear {
+                    viewModel.recordDailyActiveIfNeeded()
+                    let enabled = viewModel.settings.analyticsEnabled
+                    let services = viewModel.analyticsServicesParam
+                    Task {
+                        await AnalyticsClient.shared.send(
+                            "popover_opened",
+                            params: ["services": services],
+                            enabled: enabled
+                        )
+                    }
+                }
                 .task {
                     #if DEMO_MODE
                     demoDriver.prepare(for: viewModel)

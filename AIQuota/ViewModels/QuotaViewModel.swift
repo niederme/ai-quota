@@ -83,6 +83,15 @@ final class QuotaViewModel {
         }
     }
 
+    /// "codex", "claude", "both", or "none" — used as an analytics param.
+    var analyticsServicesParam: String {
+        switch enrolledServices.count {
+        case 0:  return "none"
+        case 1:  return enrolledServices.first!.rawValue
+        default: return "both"
+        }
+    }
+
     func recordDailyActiveIfNeeded() {
         let today = String(ISO8601DateFormatter().string(from: Date()).prefix(10))
         let key = "analytics.lastActiveDate"
@@ -594,6 +603,15 @@ final class QuotaViewModel {
         isCodexLoading = false
         isClaudeLoading = false
         startAutoRefresh()
+        let enabled = settings.analyticsEnabled
+        let services = analyticsServicesParam
+        Task {
+            await AnalyticsClient.shared.send(
+                "manual_refresh",
+                params: ["services": services],
+                enabled: enabled
+            )
+        }
     }
 
     // MARK: - Sign In / Out
