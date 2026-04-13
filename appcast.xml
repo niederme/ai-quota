@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.9.13</title>
+            <title>Version 1.9.14</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.9.13</h2>  <ul><li><strong>Smarter Auto refresh</strong> — AIQuota now defaults to an adaptive Auto mode that refreshes every 1 minute while the app is active or your quota is near a threshold, then slows down automatically when your Mac is idle, offline, or in Low Power Mode.</li> <li><strong>Refresh setup from day one</strong> — onboarding now lets you choose your refresh preference as soon as you connect a service, so AIQuota can stay as up to date as you want from the start.</li> <li><strong>Clearer refresh controls</strong> — Settings now explains Auto more clearly, including that its fastest refresh cadence is 1 minute.</li> <li><strong>More reliable archived builds</strong> — fixed a launch issue that could prevent some exported app builds from opening after being moved into Applications.</li></ul>
+<h2>What's New in 1.9.14</h2>  <ul><li><strong>Under the hood</strong> — improvements to help make AIQuota better over time.</li></ul>
 </body>
 </html>
 ]]></description>
-            <sparkle:version>369</sparkle:version>
-            <sparkle:shortVersionString>1.9.13</sparkle:shortVersionString>
+            <sparkle:version>370</sparkle:version>
+            <sparkle:shortVersionString>1.9.14</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.9.13/AIQuota.zip"
-                sparkle:edSignature="9nFyx0yfsK7a9gQ80yOnaA8kCcTI6PHmMtqXvu1HYian/vQKSeu1GPXEJrBDqSqnqd+yOcaWTwLXqSnbf6eSDw=="
-                length="3700152"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.9.14/AIQuota.zip"
+                sparkle:edSignature="Fo99k+RTggqLGnY8K72tCvCmvYUTUaB1fDePsB1R4IVj3Aic3b+8nDVheE2e8qOex85xZI8Yt26GfFagdmHXAw=="
+                length="3706093"
                 type="application/zip"/>
         </item>
     </channel>
