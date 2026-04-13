@@ -40,9 +40,15 @@ The full release script is at `scripts/release.sh`. It handles zipping, signing,
    ```
    The script will open a text editor to edit release notes, then zip, sign, update appcast, create GitHub release, and push.
 
-5. **Commit & push** the updated `appcast.xml`:
+5. **Verify the website release page is in sync with GitHub**:
    ```bash
-   git add appcast.xml && git commit -m "chore: update appcast for vX.Y.NEW" && git push
+   ./scripts/check-site-pages.sh
+   ```
+   If the release page drifted, update `docs/releases/index.html` before pushing.
+
+6. **Commit & push** the updated `appcast.xml` and any site changes:
+   ```bash
+   git add appcast.xml docs/releases/index.html && git commit -m "chore: update release metadata for vX.Y.NEW" && git push
    ```
 
 > **Important:** `appcast.xml` must also be uploaded as a release asset on the GitHub release — Sparkle fetches it from `releases/latest/download/appcast.xml`. The `release.sh` script does this automatically. If doing a manual release, run:

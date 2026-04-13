@@ -16,6 +16,11 @@
 #   7. Commit & push all changes to main
 #   Then run this script and paste the release notes into the editor when it opens.
 #
+# Post-release checklist (do these AFTER this script succeeds):
+#   1. Make sure docs/releases/index.html reflects the latest GitHub releases
+#   2. Run ./scripts/check-site-pages.sh to verify the site, including release-page sync
+#   3. Commit & push the appcast/site updates to main so the website deploy workflow publishes them
+#
 # Prerequisites:
 #   - Sparkle tools in PATH or at $SPARKLE_TOOLS (default: /tmp/sparkle-tools/bin)
 #   - App exported from Xcode to ~/Desktop/AIQuota.app

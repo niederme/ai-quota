@@ -44,6 +44,66 @@ check_status() {
   curl -fsS "$BASE_URL$path" >/dev/null
 }
 
+check_release_page_matches_github() {
+  python3 - "$BASE_URL/releases/" <<'PY'
+from datetime import datetime
+import json
+import sys
+from urllib.request import Request, urlopen
+
+page_url = sys.argv[1]
+page_html = urlopen(page_url).read().decode("utf-8")
+api_request = Request(
+    "https://api.github.com/repos/niederme/ai-quota/releases?per_page=4",
+    headers={
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "aiquota-site-check",
+    },
+)
+releases = json.load(urlopen(api_request))
+stable_releases = [
+    release
+    for release in releases
+    if not release.get("draft") and not release.get("prerelease")
+]
+
+if len(stable_releases) < 4:
+    raise SystemExit("Expected at least 4 stable GitHub releases to validate site sync")
+
+def release_date(published_at: str) -> str:
+    published = datetime.strptime(published_at, "%Y-%m-%dT%H:%M:%SZ")
+    return f"{published.strftime('%B')} {published.day}, {published.year}"
+
+missing = []
+for index, release in enumerate(stable_releases[:4]):
+    version = release["tag_name"].removeprefix("v")
+    tag_url = f"https://github.com/niederme/ai-quota/releases/tag/{release['tag_name']}"
+    required_tokens = [
+        f"Version {version}",
+        tag_url,
+        release_date(release["published_at"]),
+    ]
+
+    if index == 0:
+        required_tokens.extend(
+            [
+                f"AIQuota {version}",
+                f"Download {version}",
+            ]
+        )
+
+    for token in required_tokens:
+        if token not in page_html:
+            missing.append(token)
+
+if missing:
+    formatted = "\n".join(f"- {token}" for token in missing)
+    raise SystemExit(
+        "Release page is out of sync with GitHub releases. Missing:\n" + formatted
+    )
+PY
+}
+
 check_contains "/" "Know your limits before they break your flow."
 check_contains "/" "AIQuota gives you clear visibility into Codex and Claude Code usage with Menu Bar"
 check_contains "/" "gauges, desktop widgets, reset timers, and warning states."
@@ -54,6 +114,7 @@ check_contains "/releases/" "<h1>Releases</h1>"
 check_contains "/privacy/" "<h1 class=\"policy-title\">Privacy Policy</h1>"
 check_contains "/terms/" "<h1 class=\"policy-title\">Terms of Service</h1>"
 check_contains "/accessibility/" "<h1 class=\"policy-title\">Accessibility</h1>"
+check_release_page_matches_github
 
 check_status "/site.css"
 check_status "/site.js"
