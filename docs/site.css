@@ -706,7 +706,7 @@ video {
 .site-footer .container {
   flex-direction: column;
   justify-content: center;
-  gap: 10px;
+  gap: 14px;
 }
 
 .footer-meta {
