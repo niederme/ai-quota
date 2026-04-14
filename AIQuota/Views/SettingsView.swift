@@ -104,12 +104,12 @@ struct SettingsView: View {
                                     isOn: notifSectionsEnabled ? $vm.settings.notifications.codexEnabled : .constant(false))
                     if notifSectionsEnabled && vm.settings.notifications.codexEnabled {
                         notifSubHeader("5-hour window")
-                        Toggle("Threshold alerts", isOn: $vm.settings.notifications.codex5hThresholdAlerts)
-                        Toggle("Window reset",     isOn: $vm.settings.notifications.codex5hReset)
+                        Toggle("Usage alerts", isOn: $vm.settings.notifications.codex5hThresholdAlerts)
+                        Toggle("Reset alert",  isOn: $vm.settings.notifications.codex5hReset)
 
-                        notifSubHeader("Weekly usage")
-                        Toggle("Threshold alerts", isOn: $vm.settings.notifications.codexWeeklyThresholdAlerts)
-                        Toggle("Weekly reset",     isOn: $vm.settings.notifications.codexReset)
+                        notifSubHeader("7-day window")
+                        Toggle("Usage alerts", isOn: $vm.settings.notifications.codexWeeklyThresholdAlerts)
+                        Toggle("Reset alert",  isOn: $vm.settings.notifications.codexReset)
                     }
                 }
                 .disabled(!notifSectionsEnabled)
@@ -123,12 +123,12 @@ struct SettingsView: View {
                                     isOn: notifSectionsEnabled ? $vm.settings.notifications.claudeEnabled : .constant(false))
                     if notifSectionsEnabled && vm.settings.notifications.claudeEnabled {
                         notifSubHeader("5-hour window")
-                        Toggle("Threshold alerts", isOn: $vm.settings.notifications.claude5hThresholdAlerts)
-                        Toggle("Window reset",     isOn: $vm.settings.notifications.claude5hReset)
+                        Toggle("Usage alerts", isOn: $vm.settings.notifications.claude5hThresholdAlerts)
+                        Toggle("Reset alert",  isOn: $vm.settings.notifications.claude5hReset)
 
                         notifSubHeader("7-day window")
-                        Toggle("Threshold alerts", isOn: $vm.settings.notifications.claude7dThresholdAlerts)
-                        Toggle("Period reset",     isOn: $vm.settings.notifications.claude7dReset)
+                        Toggle("Usage alerts", isOn: $vm.settings.notifications.claude7dThresholdAlerts)
+                        Toggle("Reset alert",  isOn: $vm.settings.notifications.claude7dReset)
                     }
                 }
                 .disabled(!notifSectionsEnabled)

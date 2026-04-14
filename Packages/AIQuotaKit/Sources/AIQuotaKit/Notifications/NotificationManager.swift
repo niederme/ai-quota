@@ -61,8 +61,8 @@ public actor NotificationManager {
                 if prefs.codexReset {
                     await send(
                         id: "codexReset",
-                        title: "Codex 7-day quota reset",
-                        body: "Your 7-day Codex quota has reset — you're back to 100%."
+                        title: "Codex 7-day window reset",
+                        body: "Your Codex 7-day window has reset. You're back to full capacity."
                     )
                 }
                 return
@@ -87,7 +87,7 @@ public actor NotificationManager {
                     await send(
                         id: "codex5hReset",
                         title: "Codex 5-hour window reset",
-                        body: "Your Codex 5-hour window has reset — you're back to full capacity."
+                        body: "Your Codex 5-hour window has reset. You're back to full capacity."
                     )
                 }
             } else {
@@ -97,15 +97,15 @@ public actor NotificationManager {
                 if current.limitReached && !notified5h.contains("limitReached") && prefs.codex5hLimitReached {
                     markThreshold("limitReached", key: Key.codex5hThresholds)
                     await send(id: "codex5hLimitReached", title: "Codex 5-hour limit reached",
-                               body: "Your Codex 5-hour window is fully used. Resets in \(timeString(current.hourlyResetAfterSeconds)).")
+                               body: "You've hit the limit for your Codex 5-hour window. Resets in \(timeString(current.hourlyResetAfterSeconds)).")
                 } else if remaining5h < 5 && !notified5h.contains("below5") && prefs.codex5hAt5 {
                     markThreshold("below5", key: Key.codex5hThresholds)
-                    await send(id: "codex5hBelow5", title: "Codex 5-hour quota critical",
-                               body: "Less than 5% of your Codex 5-hour window remains. Resets in \(timeString(current.hourlyResetAfterSeconds)).")
+                    await send(id: "codex5hBelow5", title: "Codex 5-hour near limit",
+                               body: "You're almost at the limit for your Codex 5-hour window. Resets in \(timeString(current.hourlyResetAfterSeconds)).")
                 } else if remaining5h < 15 && !notified5h.contains("below15") && prefs.codex5hAt15 {
                     markThreshold("below15", key: Key.codex5hThresholds)
-                    await send(id: "codex5hBelow15", title: "Codex 5-hour quota low",
-                               body: "Less than 15% of your Codex 5-hour window remains. Resets in \(timeString(current.hourlyResetAfterSeconds)).")
+                    await send(id: "codex5hBelow15", title: "Codex 5-hour usage high",
+                               body: "You've used most of your Codex 5-hour window. Resets in \(timeString(current.hourlyResetAfterSeconds)).")
                 }
             }
         } else {
@@ -120,22 +120,22 @@ public actor NotificationManager {
             markThreshold("limitReached", key: Key.codexThresholds)
             await send(
                 id: "codexLimitReached",
-                title: "Codex 7-day quota reached",
-                body: "Your 7-day Codex quota is fully used. Resets in \(timeString(current.weeklyResetAfterSeconds))."
+                title: "Codex 7-day limit reached",
+                body: "You've hit the limit for your Codex 7-day window. Resets in \(timeString(current.weeklyResetAfterSeconds))."
             )
         } else if remaining < 5 && !notified.contains("below5") && prefs.codexAt5 {
             markThreshold("below5", key: Key.codexThresholds)
             await send(
                 id: "codexBelow5",
-                title: "Codex 7-day quota critical",
-                body: "Less than 5% of your 7-day Codex quota remains. Resets in \(timeString(current.weeklyResetAfterSeconds))."
+                title: "Codex 7-day near limit",
+                body: "You're almost at the limit for your Codex 7-day window. Resets in \(timeString(current.weeklyResetAfterSeconds))."
             )
         } else if remaining < 15 && !notified.contains("below15") && prefs.codexAt15 {
             markThreshold("below15", key: Key.codexThresholds)
             await send(
                 id: "codexBelow15",
-                title: "Codex 7-day quota low",
-                body: "Less than 15% of your 7-day Codex quota remains. Resets in \(timeString(current.weeklyResetAfterSeconds))."
+                title: "Codex 7-day usage high",
+                body: "You've used most of your Codex 7-day window. Resets in \(timeString(current.weeklyResetAfterSeconds))."
             )
         }
     }
@@ -165,7 +165,7 @@ public actor NotificationManager {
                     await send(
                         id: "claudeReset",
                         title: "Claude 5-hour window reset",
-                        body: "Your Claude 5-hour window has reset — you're back to full capacity."
+                        body: "Your Claude 5-hour window has reset. You're back to full capacity."
                     )
                 }
                 return
@@ -185,21 +185,21 @@ public actor NotificationManager {
             await send(
                 id: "claudeLimitReached",
                 title: "Claude 5-hour limit reached",
-                body: "Your Claude 5-hour window is fully used. Resets in \(timeString(claude.resetAfterSeconds))."
+                body: "You've hit the limit for your Claude 5-hour window. Resets in \(timeString(claude.resetAfterSeconds))."
             )
         } else if remaining < 5 && !notified.contains("below5") && prefs.claude5hAt5 {
             markThreshold("below5", key: Key.claudeThresholds)
             await send(
                 id: "claudeBelow5",
-                title: "Claude 5-hour quota critical",
-                body: "Less than 5% of your Claude 5-hour window capacity remains. Resets in \(timeString(claude.resetAfterSeconds))."
+                title: "Claude 5-hour near limit",
+                body: "You're almost at the limit for your Claude 5-hour window. Resets in \(timeString(claude.resetAfterSeconds))."
             )
         } else if remaining < 15 && !notified.contains("below15") && prefs.claude5hAt15 {
             markThreshold("below15", key: Key.claudeThresholds)
             await send(
                 id: "claudeBelow15",
-                title: "Claude 5-hour quota low",
-                body: "Less than 15% of your Claude 5-hour window capacity remains. Resets in \(timeString(claude.resetAfterSeconds))."
+                title: "Claude 5-hour usage high",
+                body: "You've used most of your Claude 5-hour window. Resets in \(timeString(claude.resetAfterSeconds))."
             )
         }
 
@@ -218,7 +218,7 @@ public actor NotificationManager {
                     await send(
                         id: "claudeSevenDayReset",
                         title: "Claude 7-day window reset",
-                        body: "Your 7-day Claude allowance has reset — you're back to full capacity."
+                        body: "Your Claude 7-day window has reset. You're back to full capacity."
                     )
                 }
             } else {
@@ -230,21 +230,21 @@ public actor NotificationManager {
                     await send(
                         id: "claudeSevenDayLimit",
                         title: "Claude 7-day limit reached",
-                        body: "Your 7-day Claude allowance is fully used. Resets in \(timeString(claude.sevenDayResetAfterSeconds))."
+                        body: "You've hit the limit for your Claude 7-day window. Resets in \(timeString(claude.sevenDayResetAfterSeconds))."
                     )
                 } else if sevenDayUsed >= 95 && !sevenDayNotified.contains("above95") && prefs.claude7dAt95 {
                     markThreshold("above95", key: Key.claudeSevenDayThresholds)
                     await send(
                         id: "claudeSevenDay95",
-                        title: "Claude 7-day limit critical",
-                        body: "You've used 95% of your 7-day Claude allowance. Resets in \(timeString(claude.sevenDayResetAfterSeconds))."
+                        title: "Claude 7-day near limit",
+                        body: "You're almost at the limit for your Claude 7-day window. Resets in \(timeString(claude.sevenDayResetAfterSeconds))."
                     )
                 } else if sevenDayUsed >= 80 && !sevenDayNotified.contains("above80") && prefs.claude7dAt80 {
                     markThreshold("above80", key: Key.claudeSevenDayThresholds)
                     await send(
                         id: "claudeSevenDay80",
                         title: "Claude 7-day usage high",
-                        body: "You've used 80% of your 7-day Claude allowance — consider slowing down. Resets in \(timeString(claude.sevenDayResetAfterSeconds))."
+                        body: "You've used most of your Claude 7-day window. Resets in \(timeString(claude.sevenDayResetAfterSeconds))."
                     )
                 }
             }
@@ -279,9 +279,6 @@ public actor NotificationManager {
     }
 
     private func timeString(_ seconds: Int) -> String {
-        let h = seconds / 3600
-        let m = (seconds % 3600) / 60
-        if h > 0 { return "\(h)h \(m)m" }
-        return "\(m)m"
+        CountdownTextFormatter.duration(seconds)
     }
 }

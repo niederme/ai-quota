@@ -8,16 +8,10 @@ struct CountdownView: View {
     private let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     private var text: String {
-        guard let resetAt else { return "Reset time unknown" }
-        if resetAt < now { return "Resetting…" }
-        let diff = resetAt.timeIntervalSince(now)
-        let days = Int(diff / 86400)
-        let hours = Int((diff.truncatingRemainder(dividingBy: 86400)) / 3600)
-        let minutes = Int((diff.truncatingRemainder(dividingBy: 3600)) / 60)
-
-        if days > 0 { return "Resets in \(days)d \(hours)h" }
-        if hours > 0 { return "Resets in \(hours)h \(minutes)m" }
-        return "Resets in \(minutes)m"
+        guard let resetAt else { return "Reset time unavailable" }
+        if resetAt < now { return "Resetting now…" }
+        let seconds = Int(resetAt.timeIntervalSince(now))
+        return "Resets in \(CountdownTextFormatter.duration(seconds))"
     }
 
     private var absoluteText: String {

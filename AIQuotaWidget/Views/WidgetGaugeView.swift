@@ -125,7 +125,7 @@ struct WidgetGaugeView: View {
                 .minimumScaleFactor(0.8)
                 .frame(height: resetPt * 1.25, alignment: .top)
             if showsSecondaryReset {
-                Text(secondaryLimitReached ? "7d limit reached · \(weeklyResetText)" : weeklyResetText)
+                Text(secondaryLimitReached ? "\(secondaryLabel) limit reached · \(secondaryLimitCountdownText)" : secondaryCountdownText)
                     .font(.system(size: resetPt))
                     .foregroundStyle(secondaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.tertiary))
                     .lineLimit(1)
@@ -139,20 +139,14 @@ struct WidgetGaugeView: View {
     }
 
     private var resetText: String {
-        let days    = resetSeconds / 86400
-        let hours   = (resetSeconds % 86400) / 3600
-        let minutes = (resetSeconds % 3600) / 60
-        if days > 0  { return "5h resets \(days)d \(hours)h" }
-        if hours > 0 { return "5h resets \(hours)h \(minutes)m" }
-        return "5h resets \(minutes)m"
+        "\(primaryLabel) reset in \(CountdownTextFormatter.duration(resetSeconds, style: .compact))"
     }
 
-    private var weeklyResetText: String {
-        let days    = weeklyResetSeconds / 86400
-        let hours   = (weeklyResetSeconds % 86400) / 3600
-        let minutes = (weeklyResetSeconds % 3600) / 60
-        if days > 0  { return "7d resets \(days)d \(hours)h" }
-        if hours > 0 { return "7d resets \(hours)h \(minutes)m" }
-        return "7d resets \(minutes)m"
+    private var secondaryCountdownText: String {
+        "\(secondaryLabel) reset in \(CountdownTextFormatter.duration(weeklyResetSeconds, style: .compact))"
+    }
+
+    private var secondaryLimitCountdownText: String {
+        "resets in \(CountdownTextFormatter.duration(weeklyResetSeconds, style: .compact))"
     }
 }

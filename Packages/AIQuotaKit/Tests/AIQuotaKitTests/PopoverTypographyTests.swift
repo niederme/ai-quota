@@ -55,13 +55,12 @@ struct PopoverTypographyTests {
         // CircularGaugeView: new parameter exists
         #expect(gaugeSource.contains("weeklyResetSeconds: Int"))
 
-        // CircularGaugeView: weeklyResetText produces full "7d Resets …" strings
-        #expect(gaugeSource.contains(#""7d Resets \(days)d \(hours)h""#))
-        #expect(gaugeSource.contains(#""7d Resets \(hours)h \(minutes)m""#))
-        #expect(gaugeSource.contains(#""7d Resets \(minutes)m""#))
+        // CircularGaugeView: captions use the shared countdown formatter
+        #expect(gaugeSource.contains("CountdownTextFormatter.duration(resetSeconds, style: .compact)"))
+        #expect(gaugeSource.contains("CountdownTextFormatter.duration(weeklyResetSeconds, style: .compact)"))
 
         // CircularGaugeView: 7d limit reached state
-        #expect(gaugeSource.contains(#""7d limit reached · \(weeklyResetText)""#))
+        #expect(gaugeSource.contains(#""\(secondaryLabel) limit reached · \(secondaryLimitCountdownText)""#))
 
         // PopoverView: Codex passes real weekly reset seconds and exhaustion state
         #expect(popoverSource.contains("u.weeklyResetAfterSeconds"))
@@ -82,6 +81,7 @@ struct PopoverTypographyTests {
 
         #expect(widgetGaugeSource.contains("secondaryPercent >= 85 || secondaryLimitReached"))
         #expect(!widgetGaugeSource.contains("secondaryPercent >= 95 || secondaryLimitReached"))
+        #expect(widgetGaugeSource.contains("CountdownTextFormatter.duration(weeklyResetSeconds, style: .compact)"))
     }
 
     private var repoRoot: URL {

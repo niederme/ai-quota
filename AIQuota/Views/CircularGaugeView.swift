@@ -1,4 +1,5 @@
 import SwiftUI
+import AIQuotaKit
 
 /// Dual-arc circular gauge — outer ring = primary window (5h),
 /// inner ring = secondary window (7-day).
@@ -147,14 +148,14 @@ struct CircularGaugeView: View {
                 .font(.headline.bold())
                 .foregroundStyle(primaryLimitReached ? .red : .primary)
 
-            Text(primaryLimitReached ? "5h limit reached · \(resetText)" : resetText)
+            Text(primaryLimitReached ? "\(primaryLabel) limit reached · \(primaryLimitCountdownText)" : primaryCountdownText)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(primaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.tertiary))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
 
             if !isLoading && (secondaryPercent >= 85 || secondaryLimitReached) {
-                Text(secondaryLimitReached ? "7d limit reached · \(weeklyResetText)" : weeklyResetText)
+                Text(secondaryLimitReached ? "\(secondaryLabel) limit reached · \(secondaryLimitCountdownText)" : secondaryCountdownText)
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(secondaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.tertiary))
                     .lineLimit(1)
@@ -163,22 +164,20 @@ struct CircularGaugeView: View {
         }
     }
 
-    private var resetText: String {
-        let days    = resetSeconds / 86400
-        let hours   = (resetSeconds % 86400) / 3600
-        let minutes = (resetSeconds % 3600) / 60
-        if days > 0  { return "5h Resets \(days)d \(hours)h" }
-        if hours > 0 { return "5h Resets \(hours)h \(minutes)m" }
-        return "5h Resets \(minutes)m"
+    private var primaryCountdownText: String {
+        "\(primaryLabel) reset in \(CountdownTextFormatter.duration(resetSeconds, style: .compact))"
     }
 
-    private var weeklyResetText: String {
-        let days    = weeklyResetSeconds / 86400
-        let hours   = (weeklyResetSeconds % 86400) / 3600
-        let minutes = (weeklyResetSeconds % 3600) / 60
-        if days > 0  { return "7d Resets \(days)d \(hours)h" }
-        if hours > 0 { return "7d Resets \(hours)h \(minutes)m" }
-        return "7d Resets \(minutes)m"
+    private var primaryLimitCountdownText: String {
+        "resets in \(CountdownTextFormatter.duration(resetSeconds, style: .compact))"
+    }
+
+    private var secondaryCountdownText: String {
+        "\(secondaryLabel) reset in \(CountdownTextFormatter.duration(weeklyResetSeconds, style: .compact))"
+    }
+
+    private var secondaryLimitCountdownText: String {
+        "resets in \(CountdownTextFormatter.duration(weeklyResetSeconds, style: .compact))"
     }
 }
 
