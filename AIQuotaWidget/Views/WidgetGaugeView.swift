@@ -34,10 +34,11 @@ struct WidgetGaugeView: View {
         max(primaryPercent, secondaryPercent) >= 85 ? 0.65 : 0.45
     }
 
-    // Scaled dimensions
-    private var outerLW: CGFloat { size * 0.08 }
-    private var innerLW: CGFloat { size * 0.08 }  // equal width
-    private var innerPad: CGFloat { outerLW }      // touching rings
+    // Scaled dimensions — outer ring wider, inner narrower, 2pt-equivalent gap between them.
+    // At size=100: outerLW=9, innerLW=7, gap=2 → innerPad=10
+    private var outerLW: CGFloat { size * 0.090 }
+    private var innerLW: CGFloat { size * 0.070 }
+    private var innerPad: CGFloat { outerLW / 2 + size * 0.020 + innerLW / 2 }
     private var iconPt:   CGFloat { size * 0.16 }
     private var primPt:   CGFloat { size * 0.175 }
     private var secPt:    CGFloat { size * 0.125 }
