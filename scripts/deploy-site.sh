@@ -43,6 +43,11 @@ cp docs/site.css "$STAGING_DIR/"
 cp docs/site.js "$STAGING_DIR/"
 cp -R docs/assets "$STAGING_DIR/"
 
+# Favicon files
+for f in docs/favicon.ico docs/favicon-16x16.png docs/favicon-32x32.png docs/apple-touch-icon.png; do
+  [[ -f "$f" ]] && cp "$f" "$STAGING_DIR/"
+done
+
 PUBLIC_DIRS=(
   accessibility
   privacy
