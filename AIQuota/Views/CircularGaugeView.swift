@@ -42,9 +42,11 @@ struct CircularGaugeView: View {
         return worst >= 85 ? 0.65 : 0.45
     }
 
-    // Both rings equal width (8pt). Inner padding = lw so they touch with no gap.
-    private let lw: CGFloat = 8
-    private var innerPad: CGFloat { lw }  // lw/2 + lw/2 = lw
+    // Outer ring is slightly wider than inner (9pt vs 7pt), with a 2pt optical gap.
+    // innerPad = outerLw/2 + 2 + innerLw/2 = 4.5 + 2 + 3.5 = 10
+    private let outerLw: CGFloat = 9
+    private let innerLw: CGFloat = 7
+    private var innerPad: CGFloat { outerLw / 2 + 2 + innerLw / 2 }
 
     var body: some View {
         VStack(spacing: 4) {
@@ -63,27 +65,27 @@ struct CircularGaugeView: View {
             // ── Outer track ───────────────────────────────────────────
             Circle()
                 .trim(from: 0, to: 0.75)
-                .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: lw, lineCap: .butt))
+                .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: outerLw, lineCap: .butt))
                 .rotationEffect(.degrees(135))
 
             // ── Outer fill (primary) ──────────────────────────────────
             Circle()
                 .trim(from: 0, to: 0.75 * primaryFill)
-                .stroke(statusColor, style: StrokeStyle(lineWidth: lw, lineCap: .butt))
+                .stroke(statusColor, style: StrokeStyle(lineWidth: outerLw, lineCap: .butt))
                 .rotationEffect(.degrees(135))
                 .animation(.easeInOut(duration: 0.5), value: primaryFill)
 
-            // ── Inner track (equal width, touching) ───────────────────
+            // ── Inner track (7pt, 2pt gap from outer) ─────────────────
             Circle()
                 .trim(from: 0, to: 0.75)
-                .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: lw, lineCap: .butt))
+                .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: innerLw, lineCap: .butt))
                 .rotationEffect(.degrees(135))
                 .padding(innerPad)
 
             // ── Inner fill (secondary) ────────────────────────────────
             Circle()
                 .trim(from: 0, to: 0.75 * secondaryFill)
-                .stroke(statusColor.opacity(secondaryOpacity), style: StrokeStyle(lineWidth: lw, lineCap: .butt))
+                .stroke(statusColor.opacity(secondaryOpacity), style: StrokeStyle(lineWidth: innerLw, lineCap: .butt))
                 .rotationEffect(.degrees(135))
                 .padding(innerPad)
                 .animation(.easeInOut(duration: 0.5), value: secondaryFill)
