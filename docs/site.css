@@ -834,8 +834,8 @@ html[data-theme="light"] .release-kicker {
 
 .release-panel {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 24px;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
   align-items: center;
   padding: 30px;
   border-radius: var(--radius-xl);
@@ -879,6 +879,12 @@ html[data-theme="light"] .release-panel ul {
 .release-panel li {
   margin-bottom: 10px;
   line-height: 1.5;
+}
+
+.release-screenshot {
+  display: block;
+  width: 100%;
+  border-radius: 12px;
 }
 
 .release-archive-link {

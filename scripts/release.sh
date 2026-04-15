@@ -91,6 +91,35 @@ fi
 RELEASE_NOTES=$(cat "$NOTES_FILE")
 rm "$NOTES_FILE"
 
+# ── Attach screenshot if present on Desktop ───────────────────────────────────
+if [ -z "$SCREENSHOT_SRC" ] || [ ! -f "$SCREENSHOT_SRC" ]; then
+    echo ""
+    read -r -p "No screenshot at ~/Desktop/AIQuota-${VERSION}.png. Add one now and press Enter, or type 's' to skip: " SCREENSHOT_REPLY
+    if [[ "$SCREENSHOT_REPLY" == "s" || "$SCREENSHOT_REPLY" == "S" ]]; then
+        SCREENSHOT_SRC=""
+    else
+        SCREENSHOT_SRC=$(find "$HOME/Desktop" -maxdepth 1 -iname "AIQuota-${VERSION}.png" -o -iname "AIQuota ${VERSION}.png" 2>/dev/null | head -1)
+        SCREENSHOT_SRC="${SCREENSHOT_SRC:-}"
+        SCREENSHOT_FILENAME=$(basename "${SCREENSHOT_SRC:-AIQuota-${VERSION}.png}")
+        SCREENSHOT_UPLOAD_NAME="${SCREENSHOT_FILENAME// /.}"
+        SCREENSHOT_URL="https://github.com/${REPO}/releases/download/${TAG}/${SCREENSHOT_UPLOAD_NAME}"
+    fi
+    if [ -z "$SCREENSHOT_SRC" ] || [ ! -f "$SCREENSHOT_SRC" ]; then
+        echo "✗ Still not found — skipping screenshot."
+        SCREENSHOT_SRC=""
+    fi
+fi
+
+if [ -f "${SCREENSHOT_SRC:-}" ]; then
+    echo "▶ Screenshot found — preparing for upload…"
+    SCREENSHOT_UPLOAD_PATH="/tmp/${SCREENSHOT_UPLOAD_NAME}"
+    cp "$SCREENSHOT_SRC" "$SCREENSHOT_UPLOAD_PATH"
+    SCREENSHOT_SRC="$SCREENSHOT_UPLOAD_PATH"
+    RELEASE_NOTES="${RELEASE_NOTES}
+
+![Screenshot](${SCREENSHOT_URL})"
+fi
+
 # ── Build ZIP ─────────────────────────────────────────────────────────────────
 # ZIP is required for sandboxed Sparkle apps — DMG triggers "installer launch" errors.
 echo "▶ Building ZIP for ${TAG}…"
@@ -121,6 +150,11 @@ if [[ -n "$CURRENT_APPCAST_BUILD" && "$BUILD" =~ ^[0-9]+$ && "$CURRENT_APPCAST_B
     fi
 fi
 DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${TAG}/AIQuota.zip"
+SCREENSHOT_SRC=$(find "$HOME/Desktop" -maxdepth 1 -iname "AIQuota-${VERSION}.png" -o -iname "AIQuota ${VERSION}.png" 2>/dev/null | head -1)
+SCREENSHOT_SRC="${SCREENSHOT_SRC:-}"
+SCREENSHOT_FILENAME=$(basename "${SCREENSHOT_SRC:-AIQuota-${VERSION}.png}")
+SCREENSHOT_UPLOAD_NAME="${SCREENSHOT_FILENAME// /.}"
+SCREENSHOT_URL="https://github.com/${REPO}/releases/download/${TAG}/${SCREENSHOT_UPLOAD_NAME}"
 
 # Convert markdown notes to styled HTML for Sparkle's in-app WebView
 NOTES_HTML=$(echo "$RELEASE_NOTES" | sed \
@@ -194,11 +228,14 @@ EOF
 
 # ── Push to GitHub ────────────────────────────────────────────────────────────
 echo "▶ Creating/updating GitHub release ${TAG}…"
+EXTRA_ASSETS=()
+[ -n "${SCREENSHOT_SRC:-}" ] && [ -f "${SCREENSHOT_SRC:-}" ] && EXTRA_ASSETS+=("$SCREENSHOT_SRC")
+
 if gh release view "$TAG" -R "$REPO" &>/dev/null; then
     gh release edit "$TAG" --notes "$RELEASE_NOTES" -R "$REPO"
-    gh release upload "$TAG" "$ZIP" "$APPCAST" --clobber -R "$REPO"
+    gh release upload "$TAG" "$ZIP" "$APPCAST" "${EXTRA_ASSETS[@]}" --clobber -R "$REPO"
 else
-    gh release create "$TAG" "$ZIP" "$APPCAST" \
+    gh release create "$TAG" "$ZIP" "$APPCAST" "${EXTRA_ASSETS[@]}" \
         --title "AIQuota ${VERSION}" \
         --notes "$RELEASE_NOTES" \
         -R "$REPO"
