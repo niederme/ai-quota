@@ -30,11 +30,6 @@ struct PopoverView: View {
                 .keyboardShortcut("r", modifiers: .command)
                 .hidden()
         }
-        .task {
-            if viewModel.usage == nil && viewModel.claudeUsage == nil {
-                await viewModel.refresh()
-            }
-        }
     }
 
     // MARK: - Restoring session

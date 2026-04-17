@@ -174,6 +174,7 @@ final class QuotaViewModel {
     private var appIsActive = false
     private var appLifecycleObservers: [NSObjectProtocol] = []
     private var workspaceLifecycleObservers: [NSObjectProtocol] = []
+    private let popoverOpenRefreshMinimumInterval: TimeInterval = 30
 
     // MARK: - Init
 
@@ -612,6 +613,25 @@ final class QuotaViewModel {
                 enabled: enabled
             )
         }
+    }
+
+    /// Refresh on menu bar popover open when the cached data is missing or stale,
+    /// but avoid refetching on rapid open/close cycles.
+    func refreshOnPopoverOpenIfNeeded() {
+        guard isCodexAuthenticated || isClaudeAuthenticated else { return }
+        guard !isLoading else { return }
+        guard shouldRefreshOnPopoverOpen else { return }
+
+        codexRefreshGeneration += 1
+        claudeRefreshGeneration += 1
+        isCodexLoading = false
+        isClaudeLoading = false
+        startAutoRefresh(immediateRefresh: true)
+    }
+
+    private var shouldRefreshOnPopoverOpen: Bool {
+        guard let lastRefreshedAt else { return true }
+        return Date.now.timeIntervalSince(lastRefreshedAt) >= popoverOpenRefreshMinimumInterval
     }
 
     // MARK: - Sign In / Out

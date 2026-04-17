@@ -58,6 +58,7 @@ struct AIQuotaApp: App {
                 .environment(UpdaterViewModel(updater: updaterController.updater))
                 .onAppear {
                     viewModel.recordDailyActiveIfNeeded()
+                    viewModel.refreshOnPopoverOpenIfNeeded()
                     let enabled = viewModel.settings.analyticsEnabled
                     let services = viewModel.analyticsServicesParam
                     Task {
