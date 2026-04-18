@@ -31,6 +31,7 @@ export PATH="/opt/homebrew/bin:$PATH"
 
 VERSION="${1:?Usage: release.sh <version>}"
 TAG="v${VERSION}"
+SCREENSHOT_SRC=""
 
 # Auto-detect sign_update: prefer $SPARKLE_TOOLS, then DerivedData, then PATH
 if [ -n "${SPARKLE_TOOLS:-}" ]; then

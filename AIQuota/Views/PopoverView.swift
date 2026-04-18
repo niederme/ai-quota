@@ -96,8 +96,8 @@ struct PopoverView: View {
                     label: "Codex",
                     primaryLabel: formatWindowDuration(u.hourlyWindowSeconds),
                     secondaryLabel: "7d",
-                    resetSeconds: u.hourlyResetAfterSeconds,
-                    weeklyResetSeconds: u.weeklyResetAfterSeconds,
+                    resetAt: u.hourlyResetAt == .distantFuture ? nil : u.hourlyResetAt,
+                    weeklyResetAt: u.weeklyResetAt == .distantFuture ? nil : u.weeklyResetAt,
                     isRefreshing: viewModel.isCodexLoading,
                     onRefresh: { viewModel.manualRefresh() }
                 )
@@ -108,7 +108,7 @@ struct PopoverView: View {
                     secondaryPercent: 0, secondaryLimitReached: false,
                     isLoading: true, icon: "logo-openai",
                     label: "Codex", primaryLabel: "5h", secondaryLabel: "7d",
-                    resetSeconds: 0, weeklyResetSeconds: 0, isRefreshing: true, onRefresh: {}
+                    resetAt: nil, weeklyResetAt: nil, isRefreshing: true, onRefresh: {}
                 )
             }
         } else {
@@ -132,8 +132,8 @@ struct PopoverView: View {
                     label: "Claude Code",
                     primaryLabel: "5h",
                     secondaryLabel: "7d",
-                    resetSeconds: u.resetAfterSeconds,
-                    weeklyResetSeconds: u.sevenDayResetAfterSeconds,
+                    resetAt: u.fiveHourResetsAt,
+                    weeklyResetAt: u.sevenDayResetsAt,
                     isRefreshing: viewModel.isClaudeLoading,
                     onRefresh: { viewModel.manualRefresh() }
                 )
@@ -144,7 +144,7 @@ struct PopoverView: View {
                     secondaryPercent: 0, secondaryLimitReached: false,
                     isLoading: true, icon: "logo-claude",
                     label: "Claude Code", primaryLabel: "5h", secondaryLabel: "7d",
-                    resetSeconds: 0, weeklyResetSeconds: 0, isRefreshing: true, onRefresh: {}
+                    resetAt: nil, weeklyResetAt: nil, isRefreshing: true, onRefresh: {}
                 )
             }
         } else {

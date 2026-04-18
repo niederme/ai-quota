@@ -46,10 +46,13 @@ struct SettingsView: View {
                     )
                     .onChange(of: vm.settings.menuBarService) { _, newValue in
                         let enabled = vm.settings.analyticsEnabled
+                        let params = vm.analyticsContextParams.merging(
+                            ["service": newValue.rawValue]
+                        ) { _, new in new }
                         Task {
                             await AnalyticsClient.shared.send(
                                 "menubar_service_changed",
-                                params: ["service": newValue.rawValue],
+                                params: params,
                                 enabled: enabled
                             )
                         }

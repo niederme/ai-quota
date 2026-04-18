@@ -34,3 +34,6 @@ output/playwright/
 
 # Analytics credentials (never commit — contains GA4 API secret)
 AIQuota/Resources/Analytics.plist
+
+# Firebase app config (local-only even though the values are non-secret)
+AIQuota/Resources/GoogleService-Info.plist

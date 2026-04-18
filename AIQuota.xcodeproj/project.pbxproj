@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2A2E12F9C8A44C8AA1B5F001 /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2A2E12F9C8A44C8AA1B5F005 /* FirebaseAnalyticsCore */; };
+		2A2E12F9C8A44C8AA1B5F002 /* AnalyticsAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A2E12F9C8A44C8AA1B5F003 /* AnalyticsAppDelegate.swift */; };
+		2A2E12F9C8A44C8AA1B5F006 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 2A2E12F9C8A44C8AA1B5F007 /* GoogleService-Info.plist */; };
 		1575BAA1F4C10951443BA5C8 /* AnalyticsConsentStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89176CF3C6B8574A223A6E55 /* AnalyticsConsentStepView.swift */; };
 		168599BDC65516BFAFB4B2DF /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AFDFAA7F9E0650962EC80DC /* OnboardingView.swift */; };
 		17126B49397A4A50A1B6325F /* MenuBarIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB657B3EE7EFE0906CC89C7E /* MenuBarIconView.swift */; };
@@ -70,6 +73,8 @@
 		05DE0EF729DDBD14B958D28B /* AIQuota.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AIQuota.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		07B0B4CEC9ACF96AC981FA29 /* CircularGaugeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircularGaugeView.swift; sourceTree = "<group>"; };
 		0CC4153FE01FA354752C247C /* AnalyticsClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsClient.swift; sourceTree = "<group>"; };
+		2A2E12F9C8A44C8AA1B5F003 /* AnalyticsAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsAppDelegate.swift; sourceTree = "<group>"; };
+		2A2E12F9C8A44C8AA1B5F007 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		16BD0A4CB52E425D9A5A6C34 /* AIQuotaKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = AIQuotaKit; path = Packages/AIQuotaKit; sourceTree = SOURCE_ROOT; };
 		1F1F18DB5A7FD4515D863D71 /* WidgetIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetIntent.swift; sourceTree = "<group>"; };
 		384CCB3989C01F13B3E22D43 /* WidgetGaugeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetGaugeView.swift; sourceTree = "<group>"; };
@@ -116,6 +121,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2A2E12F9C8A44C8AA1B5F001 /* FirebaseAnalyticsCore in Frameworks */,
 				9FD10589109C0FC5A53692FD /* AIQuotaKit in Frameworks */,
 				B5FDF2BA2E1AF047B995BACE /* Sparkle in Frameworks */,
 				94EB3B6AC94DDB40E367306C /* WebKit.framework in Frameworks */,
@@ -129,6 +135,7 @@
 			isa = PBXGroup;
 			children = (
 				FB0180B641391BD6AFC75C41 /* Assets.xcassets */,
+				2A2E12F9C8A44C8AA1B5F007 /* GoogleService-Info.plist */,
 				E012B199A00FF2ABD9B06DA4 /* Info.plist */,
 			);
 			path = Resources;
@@ -219,6 +226,7 @@
 		C4AF85B00431CA922F35A916 /* Support */ = {
 			isa = PBXGroup;
 			children = (
+				2A2E12F9C8A44C8AA1B5F003 /* AnalyticsAppDelegate.swift */,
 				B11BE061D1CEB4B5B6F120AD /* LaunchServicesSync.swift */,
 			);
 			path = Support;
@@ -312,6 +320,7 @@
 			);
 			name = AIQuota;
 			packageProductDependencies = (
+				2A2E12F9C8A44C8AA1B5F005 /* FirebaseAnalyticsCore */,
 				6F3F89B4746C627C8A2D541C /* AIQuotaKit */,
 				FB0002B3439366F7C9621561 /* Sparkle */,
 			);
@@ -368,6 +377,7 @@
 			mainGroup = 8A80EB9F69E97A481D4D779B;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				2A2E12F9C8A44C8AA1B5F004 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				482320011C9DDFBCEE718F58 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				B29429342060C8AE503CD0EE /* XCLocalSwiftPackageReference "Packages/AIQuotaKit" */,
 			);
@@ -388,6 +398,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				96ECF77AF4F522CAF9619D23 /* Assets.xcassets in Resources */,
+				2A2E12F9C8A44C8AA1B5F006 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -420,6 +431,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2A2E12F9C8A44C8AA1B5F002 /* AnalyticsAppDelegate.swift in Sources */,
 				72AE89A41BD0B809A9D6DAB9 /* AIQuotaApp.swift in Sources */,
 				C85373188A0821406ACB6164 /* AnalyticsClient.swift in Sources */,
 				1575BAA1F4C10951443BA5C8 /* AnalyticsConsentStepView.swift in Sources */,
@@ -806,6 +818,14 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		2A2E12F9C8A44C8AA1B5F004 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = exactVersion;
+				version = 12.7.0;
+			};
+		};
 		482320011C9DDFBCEE718F58 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sparkle-project/Sparkle";
@@ -817,6 +837,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		2A2E12F9C8A44C8AA1B5F005 /* FirebaseAnalyticsCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2A2E12F9C8A44C8AA1B5F004 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalyticsCore;
+		};
 		4107956DD8A43F21A1968899 /* AIQuotaKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AIQuotaKit;
