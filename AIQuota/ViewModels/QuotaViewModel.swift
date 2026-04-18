@@ -47,6 +47,7 @@ final class QuotaViewModel {
     // MARK: - Shared state
 
     var settings: AppSettings = SharedDefaults.loadSettings()
+    private var lastSavedSettings: AppSettings = SharedDefaults.loadSettings()
     /// Which service's panel is visible in the popover.
     var activeService: ServiceType = .codex
 
@@ -71,6 +72,10 @@ final class QuotaViewModel {
     /// so clicking the menu bar icon repeatedly doesn't re-open it.
     private(set) var onboardingTriggeredThisSession = false
 
+    private var hasCompletedOnboarding: Bool {
+        UserDefaults.standard.bool(forKey: "onboarding.v1.hasCompleted")
+    }
+
     func markOnboardingTriggered() {
         onboardingTriggeredThisSession = true
     }
@@ -78,9 +83,13 @@ final class QuotaViewModel {
     func completeOnboarding() {
         UserDefaults.standard.set(true, forKey: "onboarding.v1.hasCompleted")
         onboardingTriggeredThisSession = true
-        Task {
-            await AnalyticsClient.shared.send("onboarding_completed", enabled: settings.analyticsEnabled)
-        }
+        trackAnalytics(
+            "onboarding_completed",
+            extraParams: [
+                "completed_from": "guided_setup",
+                "has_connected_service": boolString(!enrolledServices.isEmpty)
+            ]
+        )
     }
 
     /// "codex", "claude", "both", or "none" — used as an analytics param.
@@ -92,15 +101,23 @@ final class QuotaViewModel {
         }
     }
 
+    var analyticsContextParams: [String: String] {
+        [
+            "services": analyticsServicesParam,
+            "service_count": String(enrolledServices.count),
+            "active_service": activeService.rawValue,
+            "menu_bar_service": settings.menuBarService.rawValue,
+            "notifications_enabled": boolString(settings.notifications.enabled),
+            "onboarding_completed": boolString(hasCompletedOnboarding)
+        ]
+    }
+
     func recordDailyActiveIfNeeded() {
         let today = String(ISO8601DateFormatter().string(from: Date()).prefix(10))
         let key = "analytics.lastActiveDate"
         guard UserDefaults.standard.string(forKey: key) != today else { return }
         UserDefaults.standard.set(today, forKey: key)
-        let enabled = settings.analyticsEnabled
-        Task {
-            await AnalyticsClient.shared.send("app_active", enabled: enabled)
-        }
+        trackAnalytics("app_active", extraParams: ["surface": "popover"])
     }
 
     func resetOnboardingForReplay() {
@@ -209,6 +226,7 @@ final class QuotaViewModel {
                     if state == .authenticated && !self.enrolledServices.contains(.claude) {
                         self.enrolledServices.insert(.claude)
                         SharedDefaults.enrollService(.claude)
+                        self.trackServiceConnected(.claude)
                     }
                     if state == .authenticated && self.refreshTask == nil {
                         self.startAutoRefresh()
@@ -229,13 +247,7 @@ final class QuotaViewModel {
                     if state == .authenticated && !self.enrolledServices.contains(.codex) {
                         self.enrolledServices.insert(.codex)
                         SharedDefaults.enrollService(.codex)
-                        Task {
-                            await AnalyticsClient.shared.send(
-                                "service_connected",
-                                params: ["service_name": "codex"],
-                                enabled: self.settings.analyticsEnabled
-                            )
-                        }
+                        self.trackServiceConnected(.codex)
                     }
                     if state == .authenticated && self.refreshTask == nil {
                         self.startAutoRefresh()
@@ -604,15 +616,7 @@ final class QuotaViewModel {
         isCodexLoading = false
         isClaudeLoading = false
         startAutoRefresh()
-        let enabled = settings.analyticsEnabled
-        let services = analyticsServicesParam
-        Task {
-            await AnalyticsClient.shared.send(
-                "manual_refresh",
-                params: ["services": services],
-                enabled: enabled
-            )
-        }
+        trackAnalytics("manual_refresh")
     }
 
     /// Refresh on menu bar popover open when the cached data is missing or stale,
@@ -656,13 +660,7 @@ final class QuotaViewModel {
             if !enrolledServices.contains(.claude) {
                 enrolledServices.insert(.claude)
                 SharedDefaults.enrollService(.claude)
-                Task {
-                    await AnalyticsClient.shared.send(
-                        "service_connected",
-                        params: ["service_name": "claude"],
-                        enabled: settings.analyticsEnabled
-                    )
-                }
+                trackServiceConnected(.claude)
             }
             await refreshClaude()
             if refreshTask == nil { startAutoRefresh() }
@@ -677,6 +675,7 @@ final class QuotaViewModel {
             try? await codexCoordinator.signOut()
             self.enrolledServices.remove(.codex)
             SharedDefaults.unenrollService(.codex)
+            self.trackServiceDisconnected(.codex)
             // If menuBarService is now unenrolled, correct it
             if !self.enrolledServices.contains(self.settings.menuBarService),
                let fallback = self.enrolledServices.first {
@@ -692,6 +691,7 @@ final class QuotaViewModel {
             try? await claudeCoordinator.signOut()
             self.enrolledServices.remove(.claude)
             SharedDefaults.unenrollService(.claude)
+            self.trackServiceDisconnected(.claude)
             if !self.enrolledServices.contains(self.settings.menuBarService),
                let fallback = self.enrolledServices.first {
                 self.settings.menuBarService = fallback
@@ -704,8 +704,57 @@ final class QuotaViewModel {
     // MARK: - Settings
 
     func saveSettings() {
+        let previous = lastSavedSettings
         SharedDefaults.saveSettings(settings)
+        if !previous.analyticsEnabled && settings.analyticsEnabled {
+            trackAnalytics(
+                "analytics_enabled",
+                extraParams: [
+                    "consent_surface": hasCompletedOnboarding ? "settings" : "onboarding",
+                    "has_connected_service": boolString(!enrolledServices.isEmpty)
+                ],
+                enabledOverride: true
+            )
+        }
+        AnalyticsClient.shared.setCollectionEnabled(settings.analyticsEnabled)
+        lastSavedSettings = settings
         if isCodexAuthenticated || isClaudeAuthenticated { startAutoRefresh() }
+    }
+
+    private func trackServiceConnected(_ service: ServiceType) {
+        trackAnalytics(
+            "service_connected",
+            extraParams: [
+                "service": service.rawValue,
+                "services_after_connect": analyticsServicesParam
+            ]
+        )
+    }
+
+    private func trackServiceDisconnected(_ service: ServiceType) {
+        trackAnalytics(
+            "service_disconnected",
+            extraParams: [
+                "service": service.rawValue,
+                "services_after_disconnect": analyticsServicesParam
+            ]
+        )
+    }
+
+    private func trackAnalytics(
+        _ eventName: String,
+        extraParams: [String: String] = [:],
+        enabledOverride: Bool? = nil
+    ) {
+        let enabled = enabledOverride ?? settings.analyticsEnabled
+        let params = analyticsContextParams.merging(extraParams) { _, new in new }
+        Task {
+            await AnalyticsClient.shared.send(eventName, params: params, enabled: enabled)
+        }
+    }
+
+    private func boolString(_ value: Bool) -> String {
+        value ? "true" : "false"
     }
 
 }

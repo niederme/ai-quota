@@ -52,22 +52,22 @@ struct PopoverTypographyTests {
         let gaugeSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/CircularGaugeView.swift"), encoding: .utf8)
         let popoverSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/PopoverView.swift"), encoding: .utf8)
 
-        // CircularGaugeView: new parameter exists
-        #expect(gaugeSource.contains("weeklyResetSeconds: Int"))
+        // CircularGaugeView: date-based reset parameters exist
+        #expect(gaugeSource.contains("resetAt: Date?"))
+        #expect(gaugeSource.contains("weeklyResetAt: Date?"))
 
-        // CircularGaugeView: captions use the shared countdown formatter
-        #expect(gaugeSource.contains("CountdownTextFormatter.duration(resetSeconds, style: .compact)"))
-        #expect(gaugeSource.contains("CountdownTextFormatter.duration(weeklyResetSeconds, style: .compact)"))
+        // CircularGaugeView: captions use the shared absolute-time formatter
+        #expect(gaugeSource.contains("ResetTimeTextFormatter.windowCaption(primaryLabel, resetAt: resetAt)"))
+        #expect(gaugeSource.contains("ResetTimeTextFormatter.windowCaption(secondaryLabel, resetAt: weeklyResetAt)"))
+        #expect(gaugeSource.contains("Text(primaryCountdownText)"))
+        #expect(gaugeSource.contains("Text(secondaryCountdownText)"))
 
-        // CircularGaugeView: 7d limit reached state
-        #expect(gaugeSource.contains(#""\(secondaryLabel) limit reached · \(secondaryLimitCountdownText)""#))
-
-        // PopoverView: Codex passes real weekly reset seconds and exhaustion state
-        #expect(popoverSource.contains("u.weeklyResetAfterSeconds"))
+        // PopoverView: Codex passes real weekly reset dates and exhaustion state
+        #expect(popoverSource.contains("u.weeklyResetAt"))
         #expect(popoverSource.contains("u.isWeeklyExhausted"))
 
-        // PopoverView: Claude passes real 7-day reset seconds and exhaustion state
-        #expect(popoverSource.contains("u.sevenDayResetAfterSeconds"))
+        // PopoverView: Claude passes real 7-day reset dates and exhaustion state
+        #expect(popoverSource.contains("u.sevenDayResetsAt"))
         #expect(popoverSource.contains("u.sevenDayUtilization >= 100"))
     }
 

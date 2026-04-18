@@ -6,6 +6,7 @@ import AIQuotaKit
 
 @main
 struct AIQuotaApp: App {
+    @NSApplicationDelegateAdaptor(AnalyticsAppDelegate.self) private var analyticsDelegate
     @State private var viewModel: QuotaViewModel
     #if DEMO_MODE
     @State private var demoDriver: DemoDriver
@@ -38,17 +39,6 @@ struct AIQuotaApp: App {
         DispatchQueue.main.async {
             WidgetCenter.shared.reloadAllTimelines()
         }
-        // ── Analytics ──────────────────────────────────────────────────────────
-        let analyticsEnabled = _viewModel.wrappedValue.settings.analyticsEnabled
-        let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
-        let services = _viewModel.wrappedValue.analyticsServicesParam
-        Task {
-            await AnalyticsClient.shared.send(
-                "app_launched",
-                params: ["app_version": appVersion, "services": services],
-                enabled: analyticsEnabled
-            )
-        }
     }
 
     var body: some Scene {
@@ -60,11 +50,11 @@ struct AIQuotaApp: App {
                     viewModel.recordDailyActiveIfNeeded()
                     viewModel.refreshOnPopoverOpenIfNeeded()
                     let enabled = viewModel.settings.analyticsEnabled
-                    let services = viewModel.analyticsServicesParam
+                    let params = viewModel.analyticsContextParams
                     Task {
                         await AnalyticsClient.shared.send(
                             "popover_opened",
-                            params: ["services": services],
+                            params: params,
                             enabled: enabled
                         )
                     }

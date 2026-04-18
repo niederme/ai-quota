@@ -20,8 +20,8 @@ struct CircularGaugeView: View {
     let label: String
     let primaryLabel: String   // e.g. "5h"
     let secondaryLabel: String // e.g. "7-day"
-    let resetSeconds: Int
-    let weeklyResetSeconds: Int
+    let resetAt: Date?
+    let weeklyResetAt: Date?
     let isRefreshing: Bool
     let onRefresh: () -> Void
 
@@ -150,14 +150,14 @@ struct CircularGaugeView: View {
                 .font(.headline.bold())
                 .foregroundStyle(primaryLimitReached ? .red : .primary)
 
-            Text(primaryLimitReached ? "\(primaryLabel) limit reached · \(primaryLimitCountdownText)" : primaryCountdownText)
+            Text(primaryCountdownText)
                 .font(.system(size: 11, weight: .medium))
                 .foregroundStyle(primaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.tertiary))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
 
             if !isLoading && (secondaryPercent >= 85 || secondaryLimitReached) {
-                Text(secondaryLimitReached ? "\(secondaryLabel) limit reached · \(secondaryLimitCountdownText)" : secondaryCountdownText)
+                Text(secondaryCountdownText)
                     .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(secondaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.tertiary))
                     .lineLimit(1)
@@ -167,19 +167,11 @@ struct CircularGaugeView: View {
     }
 
     private var primaryCountdownText: String {
-        "\(primaryLabel) reset in \(CountdownTextFormatter.duration(resetSeconds, style: .compact))"
-    }
-
-    private var primaryLimitCountdownText: String {
-        "resets in \(CountdownTextFormatter.duration(resetSeconds, style: .compact))"
+        ResetTimeTextFormatter.windowCaption(primaryLabel, resetAt: resetAt)
     }
 
     private var secondaryCountdownText: String {
-        "\(secondaryLabel) reset in \(CountdownTextFormatter.duration(weeklyResetSeconds, style: .compact))"
-    }
-
-    private var secondaryLimitCountdownText: String {
-        "resets in \(CountdownTextFormatter.duration(weeklyResetSeconds, style: .compact))"
+        ResetTimeTextFormatter.windowCaption(secondaryLabel, resetAt: weeklyResetAt)
     }
 }
 
