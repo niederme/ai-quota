@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.9.14</title>
+            <title>Version 1.9.15</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -40,17 +40,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.9.14</h2>  <ul><li><strong>Under the hood</strong> — improvements to help make AIQuota better over time.</li></ul>
+<h2>What's New in 1.9.15</h2>  <ul><li><strong>Clearer reset times</strong> — The menu bar popover now shows local reset times like `today 8:29pm` and `tomorrow 12:32am`.</li> <li><strong>Cleaner compact captions</strong> — Reset labels fit more naturally in the popover without truncating.</li> <li><strong>Better optional analytics</strong> — Optional anonymous analytics now covers more of the app experience to help make AIQuota better over time.</li>  ![Screenshot](https://github.com/niederme/ai-quota/releases/download/v1.9.15/AIQuota-1.9.15.png) 
 </body>
 </html>
 ]]></description>
-            <sparkle:version>370</sparkle:version>
-            <sparkle:shortVersionString>1.9.14</sparkle:shortVersionString>
+            <sparkle:version>371</sparkle:version>
+            <sparkle:shortVersionString>1.9.15</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.9.14/AIQuota.zip"
-                sparkle:edSignature="Fo99k+RTggqLGnY8K72tCvCmvYUTUaB1fDePsB1R4IVj3Aic3b+8nDVheE2e8qOex85xZI8Yt26GfFagdmHXAw=="
-                length="3706093"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.9.15/AIQuota.zip"
+                sparkle:edSignature="jW/VyJcJjbvXDUPp1Piu+JuhSZB1uJnslb7Zf+OwRbqb2K3MkCp/2tRc4/DSu+VRB7B415CwrtL5/cbbDGheAA=="
+                length="5109901"
                 type="application/zip"/>
         </item>
     </channel>
