@@ -152,6 +152,7 @@ struct CircularGaugeView: View {
 
             Text(primaryCountdownText)
                 .font(.system(size: 11, weight: .medium))
+                .monospacedDigit()
                 .foregroundStyle(primaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.tertiary))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
@@ -159,6 +160,7 @@ struct CircularGaugeView: View {
             if !isLoading && (secondaryPercent >= 85 || secondaryLimitReached) {
                 Text(secondaryCountdownText)
                     .font(.system(size: 11, weight: .medium))
+                    .monospacedDigit()
                     .foregroundStyle(secondaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.tertiary))
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)

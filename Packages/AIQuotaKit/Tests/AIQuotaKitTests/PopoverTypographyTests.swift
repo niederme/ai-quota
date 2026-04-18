@@ -21,6 +21,7 @@ struct PopoverTypographyTests {
         #expect(gaugeSource.contains(#".font(.system(size: 13, weight: .medium))"#))
         #expect(gaugeSource.contains(#".font(.system(size: 13, weight: .semibold, design: .rounded))"#))
         #expect(gaugeSource.contains(#".font(.system(size: 11, weight: .medium))"#))
+        #expect(gaugeSource.contains(".monospacedDigit()"))
         #expect(!gaugeSource.contains(#".font(.system(size: 12, weight: .semibold, design: .rounded))"#))
     }
 
