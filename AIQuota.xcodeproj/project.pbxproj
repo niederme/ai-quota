@@ -7,9 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		2A2E12F9C8A44C8AA1B5F001 /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2A2E12F9C8A44C8AA1B5F005 /* FirebaseAnalyticsCore */; };
-		2A2E12F9C8A44C8AA1B5F002 /* AnalyticsAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A2E12F9C8A44C8AA1B5F003 /* AnalyticsAppDelegate.swift */; };
-		2A2E12F9C8A44C8AA1B5F006 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 2A2E12F9C8A44C8AA1B5F007 /* GoogleService-Info.plist */; };
 		1575BAA1F4C10951443BA5C8 /* AnalyticsConsentStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89176CF3C6B8574A223A6E55 /* AnalyticsConsentStepView.swift */; };
 		168599BDC65516BFAFB4B2DF /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AFDFAA7F9E0650962EC80DC /* OnboardingView.swift */; };
 		17126B49397A4A50A1B6325F /* MenuBarIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB657B3EE7EFE0906CC89C7E /* MenuBarIconView.swift */; };
@@ -18,12 +15,15 @@
 		4BDBDF48A5EC8E1D8DE63AEE /* DemoDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CC237C662A19D0C0A77A43 /* DemoDriver.swift */; };
 		56024A9E038E05B44FFF61FE /* WidgetMediumView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76B773676A8FBADF9E560DB2 /* WidgetMediumView.swift */; };
 		5D841348FB1352DB4D417246 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8C0ACC770721BA686B7B6401 /* Assets.xcassets */; };
+		64E9FF14FC1DB51A9FDD0DCB /* AnalyticsAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F97C407C158BC0A25FD792 /* AnalyticsAppDelegate.swift */; };
 		66BC2E8F33FD301642167B31 /* WidgetsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AEFC74142619076ED0AB5BA /* WidgetsStepView.swift */; };
 		6C522866B159D2A3FE422C0D /* UsageGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 521E05B6030711C7B85B8092 /* UsageGaugeView.swift */; };
 		72AE89A41BD0B809A9D6DAB9 /* AIQuotaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3E5BEBFAE5CBFD5ABBEB22 /* AIQuotaApp.swift */; };
 		72ED593D13B133B274DE2113 /* WelcomeStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 872D4B7AB7221C3A55960CE1 /* WelcomeStepView.swift */; };
 		7301F858542C589FF8A78E37 /* UpdaterViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE3CDEE9A5B7D5B416193D23 /* UpdaterViewModel.swift */; };
 		779B5BCC2EBC1AC187C561A5 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716B00F14F1370CDAC33B5EB /* SettingsView.swift */; };
+		7FC7023A34574E128139E41C /* Analytics.plist in Resources */ = {isa = PBXBuildFile; fileRef = 095F7EB6636590F35E245E34 /* Analytics.plist */; };
+		8A678576DAF63D66580896B2 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 86DF6785AE8D42F76729C72B /* GoogleService-Info.plist */; };
 		924F0EB6579EBF80E4C0FF46 /* WidgetIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F1F18DB5A7FD4515D863D71 /* WidgetIntent.swift */; };
 		92585202E96046BAB9CFF37E /* QuotaTimelineProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACD5E0D36B8FCEF6F2E97EFA /* QuotaTimelineProvider.swift */; };
 		94EB3B6AC94DDB40E367306C /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDE2263EBEB7008EF6988081 /* WebKit.framework */; };
@@ -31,10 +31,11 @@
 		98B72F5B1196475CAB2D49DB /* AIQuotaWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 76D9EEAA0A27FF50A5E170F4 /* AIQuotaWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		98F43072074B245C01E279A4 /* CountdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D136AA90C5E64F0E69E5B51 /* CountdownView.swift */; };
 		9FD10589109C0FC5A53692FD /* AIQuotaKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6F3F89B4746C627C8A2D541C /* AIQuotaKit */; };
+		A235B96E676D7BB0D9AA389F /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = FB0002B3439366F7C9621561 /* Sparkle */; };
 		ADD6CD78B8173A141696E733 /* AIQuotaWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FC79333A7787720CC4F63B8 /* AIQuotaWidget.swift */; };
 		B2719944C98CCEAFFCA0BBB9 /* NotificationsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88FA3DF197FD04781EF8C4EF /* NotificationsStepView.swift */; };
 		B337EC2AC2655557CDE13EC2 /* LaunchServicesSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11BE061D1CEB4B5B6F120AD /* LaunchServicesSync.swift */; };
-		B5FDF2BA2E1AF047B995BACE /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = FB0002B3439366F7C9621561 /* Sparkle */; };
+		B5FDF2BA2E1AF047B995BACE /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = 99ECBE0988C11C866C163C4A /* FirebaseAnalyticsCore */; };
 		B9AB1446FA6064350C523453 /* WidgetGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 384CCB3989C01F13B3E22D43 /* WidgetGaugeView.swift */; };
 		BD011637B9A98BF66EB809CD /* CircularGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07B0B4CEC9ACF96AC981FA29 /* CircularGaugeView.swift */; };
 		C85373188A0821406ACB6164 /* AnalyticsClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC4153FE01FA354752C247C /* AnalyticsClient.swift */; };
@@ -72,11 +73,11 @@
 /* Begin PBXFileReference section */
 		05DE0EF729DDBD14B958D28B /* AIQuota.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AIQuota.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		07B0B4CEC9ACF96AC981FA29 /* CircularGaugeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircularGaugeView.swift; sourceTree = "<group>"; };
+		095F7EB6636590F35E245E34 /* Analytics.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Analytics.plist; sourceTree = "<group>"; };
 		0CC4153FE01FA354752C247C /* AnalyticsClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsClient.swift; sourceTree = "<group>"; };
-		2A2E12F9C8A44C8AA1B5F003 /* AnalyticsAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsAppDelegate.swift; sourceTree = "<group>"; };
-		2A2E12F9C8A44C8AA1B5F007 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		16BD0A4CB52E425D9A5A6C34 /* AIQuotaKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = AIQuotaKit; path = Packages/AIQuotaKit; sourceTree = SOURCE_ROOT; };
 		1F1F18DB5A7FD4515D863D71 /* WidgetIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetIntent.swift; sourceTree = "<group>"; };
+		29F97C407C158BC0A25FD792 /* AnalyticsAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsAppDelegate.swift; sourceTree = "<group>"; };
 		384CCB3989C01F13B3E22D43 /* WidgetGaugeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetGaugeView.swift; sourceTree = "<group>"; };
 		3E3E5BEBFAE5CBFD5ABBEB22 /* AIQuotaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIQuotaApp.swift; sourceTree = "<group>"; };
 		3FC79333A7787720CC4F63B8 /* AIQuotaWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIQuotaWidget.swift; sourceTree = "<group>"; };
@@ -89,6 +90,7 @@
 		76B773676A8FBADF9E560DB2 /* WidgetMediumView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetMediumView.swift; sourceTree = "<group>"; };
 		76D9EEAA0A27FF50A5E170F4 /* AIQuotaWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AIQuotaWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7AEFC74142619076ED0AB5BA /* WidgetsStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetsStepView.swift; sourceTree = "<group>"; };
+		86DF6785AE8D42F76729C72B /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		872D4B7AB7221C3A55960CE1 /* WelcomeStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeStepView.swift; sourceTree = "<group>"; };
 		88FA3DF197FD04781EF8C4EF /* NotificationsStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsStepView.swift; sourceTree = "<group>"; };
 		89176CF3C6B8574A223A6E55 /* AnalyticsConsentStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsConsentStepView.swift; sourceTree = "<group>"; };
@@ -121,9 +123,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2A2E12F9C8A44C8AA1B5F001 /* FirebaseAnalyticsCore in Frameworks */,
 				9FD10589109C0FC5A53692FD /* AIQuotaKit in Frameworks */,
-				B5FDF2BA2E1AF047B995BACE /* Sparkle in Frameworks */,
+				B5FDF2BA2E1AF047B995BACE /* FirebaseAnalyticsCore in Frameworks */,
+				A235B96E676D7BB0D9AA389F /* Sparkle in Frameworks */,
 				94EB3B6AC94DDB40E367306C /* WebKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -134,8 +136,9 @@
 		0CF29E076C587EA866F75396 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				095F7EB6636590F35E245E34 /* Analytics.plist */,
 				FB0180B641391BD6AFC75C41 /* Assets.xcassets */,
-				2A2E12F9C8A44C8AA1B5F007 /* GoogleService-Info.plist */,
+				86DF6785AE8D42F76729C72B /* GoogleService-Info.plist */,
 				E012B199A00FF2ABD9B06DA4 /* Info.plist */,
 			);
 			path = Resources;
@@ -226,7 +229,7 @@
 		C4AF85B00431CA922F35A916 /* Support */ = {
 			isa = PBXGroup;
 			children = (
-				2A2E12F9C8A44C8AA1B5F003 /* AnalyticsAppDelegate.swift */,
+				29F97C407C158BC0A25FD792 /* AnalyticsAppDelegate.swift */,
 				B11BE061D1CEB4B5B6F120AD /* LaunchServicesSync.swift */,
 			);
 			path = Support;
@@ -320,8 +323,8 @@
 			);
 			name = AIQuota;
 			packageProductDependencies = (
-				2A2E12F9C8A44C8AA1B5F005 /* FirebaseAnalyticsCore */,
 				6F3F89B4746C627C8A2D541C /* AIQuotaKit */,
+				99ECBE0988C11C866C163C4A /* FirebaseAnalyticsCore */,
 				FB0002B3439366F7C9621561 /* Sparkle */,
 			);
 			productName = AIQuota;
@@ -377,7 +380,7 @@
 			mainGroup = 8A80EB9F69E97A481D4D779B;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				2A2E12F9C8A44C8AA1B5F004 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				3D6FCD5A7ED571B14516168D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				482320011C9DDFBCEE718F58 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				B29429342060C8AE503CD0EE /* XCLocalSwiftPackageReference "Packages/AIQuotaKit" */,
 			);
@@ -397,8 +400,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7FC7023A34574E128139E41C /* Analytics.plist in Resources */,
 				96ECF77AF4F522CAF9619D23 /* Assets.xcassets in Resources */,
-				2A2E12F9C8A44C8AA1B5F006 /* GoogleService-Info.plist in Resources */,
+				8A678576DAF63D66580896B2 /* GoogleService-Info.plist in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -431,8 +435,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2A2E12F9C8A44C8AA1B5F002 /* AnalyticsAppDelegate.swift in Sources */,
 				72AE89A41BD0B809A9D6DAB9 /* AIQuotaApp.swift in Sources */,
+				64E9FF14FC1DB51A9FDD0DCB /* AnalyticsAppDelegate.swift in Sources */,
 				C85373188A0821406ACB6164 /* AnalyticsClient.swift in Sources */,
 				1575BAA1F4C10951443BA5C8 /* AnalyticsConsentStepView.swift in Sources */,
 				BD011637B9A98BF66EB809CD /* CircularGaugeView.swift in Sources */,
@@ -499,7 +503,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 369;
+				CURRENT_PROJECT_VERSION = 371;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -512,7 +516,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.9.13;
+				MARKETING_VERSION = 1.9.15;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -598,7 +602,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 369;
+				CURRENT_PROJECT_VERSION = 371;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -617,7 +621,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.9.13;
+				MARKETING_VERSION = 1.9.15;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -724,7 +728,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 369;
+				CURRENT_PROJECT_VERSION = 371;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -743,7 +747,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.9.13;
+				MARKETING_VERSION = 1.9.15;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -818,7 +822,7 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		2A2E12F9C8A44C8AA1B5F004 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+		3D6FCD5A7ED571B14516168D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
 			requirement = {
@@ -837,11 +841,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		2A2E12F9C8A44C8AA1B5F005 /* FirebaseAnalyticsCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 2A2E12F9C8A44C8AA1B5F004 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAnalyticsCore;
-		};
 		4107956DD8A43F21A1968899 /* AIQuotaKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AIQuotaKit;
@@ -849,6 +848,11 @@
 		6F3F89B4746C627C8A2D541C /* AIQuotaKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AIQuotaKit;
+		};
+		99ECBE0988C11C866C163C4A /* FirebaseAnalyticsCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3D6FCD5A7ED571B14516168D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalyticsCore;
 		};
 		FB0002B3439366F7C9621561 /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;

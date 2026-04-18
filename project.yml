@@ -14,12 +14,15 @@ options:
 # CURRENT_PROJECT_VERSION = Sparkle / bundle build number — bump for every release.
 settings:
   base:
-    MARKETING_VERSION: "1.9.14"
-    CURRENT_PROJECT_VERSION: "370"
+    MARKETING_VERSION: "1.9.15"
+    CURRENT_PROJECT_VERSION: "371"
 
 packages:
   AIQuotaKit:
     path: Packages/AIQuotaKit
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    exactVersion: 12.7.0
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
     version: 2.9.0
@@ -69,6 +72,8 @@ targets:
           - AIQuota.entitlements
     dependencies:
       - package: AIQuotaKit
+      - package: Firebase
+        product: FirebaseAnalyticsCore
       - package: Sparkle
         product: Sparkle
       - target: AIQuotaWidget
