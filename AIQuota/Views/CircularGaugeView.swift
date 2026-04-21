@@ -39,13 +39,11 @@ struct CircularGaugeView: View {
     private var primaryCaptionStyle: AnyShapeStyle {
         if primaryLimitReached || primaryPercent >= 95 { return AnyShapeStyle(.red.opacity(0.8)) }
         if primaryPercent >= 85 { return AnyShapeStyle(Self.amber) }
-        return AnyShapeStyle(.secondary)
+        return AnyShapeStyle(Self.accent.opacity(0.85))
     }
 
     private var secondaryCaptionStyle: AnyShapeStyle {
-        if secondaryLimitReached || secondaryPercent >= 95 { return AnyShapeStyle(.red.opacity(0.8)) }
-        if secondaryPercent >= 85 { return AnyShapeStyle(Self.amber) }
-        return AnyShapeStyle(.secondary)
+        AnyShapeStyle(statusColor.opacity(secondaryOpacity))
     }
 
     private var primaryFill:   Double { isLoading ? 0.5 : Double(max(0, min(100, primaryPercent)))   / 100.0 }
@@ -111,6 +109,7 @@ struct CircularGaugeView: View {
                     .scaledToFit()
                     .frame(width: 15, height: 15)
                     .foregroundStyle(statusColor)
+                    .accentLegibilityLift()
 
                 if isLoading {
                     ProgressView().controlSize(.mini)
@@ -121,18 +120,22 @@ struct CircularGaugeView: View {
                                 .font(.system(size: 14, weight: .bold, design: .rounded))
                                 .foregroundStyle(statusColor)
                                 .contentTransition(.numericText())
+                                .accentLegibilityLift()
                             Text(primaryLabel)
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(statusColor)
+                                .accentLegibilityLift()
                         }
                         HStack(alignment: .firstTextBaseline, spacing: 3) {
                             Text("\(secondaryPercent)%")
                                 .font(.system(size: 13, weight: .semibold, design: .rounded))
                                 .foregroundStyle(statusColor.opacity(0.5))
                                 .contentTransition(.numericText())
+                                .accentLegibilityLift()
                             Text(secondaryLabel)
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundStyle(statusColor.opacity(0.5))
+                                .accentLegibilityLift()
                         }
                     }
                 }
@@ -151,6 +154,7 @@ struct CircularGaugeView: View {
                 }
                 .animation(.easeInOut(duration: 0.15), value: isRefreshing)
                 .padding(.bottom, 2)
+                .offset(y: 3)
             }
         }
         .frame(width: 114, height: 114)
@@ -159,29 +163,39 @@ struct CircularGaugeView: View {
     // MARK: - Caption
 
     private var caption: some View {
-        VStack(spacing: 2) {
+        VStack(spacing: 4) {
             Text(label)
                 .font(.headline.bold())
                 .foregroundStyle(primaryLimitReached ? .red : .primary)
 
-            Text(primaryCountdownText)
-                .font(.caption2)
-                .foregroundStyle(primaryCaptionStyle)
+            VStack(spacing: 0) {
+                Text(primaryCountdownText)
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(primaryCaptionStyle)
+                    .accentLegibilityLift()
 
-            if !isLoading {
-                Text(secondaryCountdownText)
-                    .font(.caption2)
-                    .foregroundStyle(secondaryCaptionStyle)
+                if !isLoading {
+                    Text(secondaryCountdownText)
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(secondaryCaptionStyle)
+                        .accentLegibilityLift()
+                }
             }
         }
     }
 
     private var primaryCountdownText: String {
-        ResetTimeTextFormatter.windowCaption(primaryLabel, resetAt: resetAt)
+        ResetTimeTextFormatter.compactWindowCaption(primaryLabel, resetAt: resetAt)
     }
 
     private var secondaryCountdownText: String {
-        ResetTimeTextFormatter.windowCaption(secondaryLabel, resetAt: weeklyResetAt)
+        ResetTimeTextFormatter.compactWindowCaption(secondaryLabel, resetAt: weeklyResetAt)
+    }
+}
+
+private extension View {
+    func accentLegibilityLift() -> some View {
+        shadow(color: .black.opacity(0.35), radius: 1, y: 0.5)
     }
 }
 

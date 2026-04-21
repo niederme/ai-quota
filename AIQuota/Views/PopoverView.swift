@@ -24,6 +24,7 @@ struct PopoverView: View {
             }
         }
         .frame(width: popoverWidth)
+        .background(Color.black.opacity(0.18))
         .background(WindowCapture { menuBarWindow = $0 })
         .background {
             Button("") { viewModel.manualRefresh() }
@@ -331,9 +332,11 @@ struct PopoverView: View {
             Circle()
                 .fill(CircularGaugeView.accent.opacity(opacity))
                 .frame(width: 6, height: 6)
+                .shadow(color: .black.opacity(0.3), radius: 1, y: 0.5)
             Text(label)
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(CircularGaugeView.accent.opacity(opacity))
+                .shadow(color: .black.opacity(0.3), radius: 1, y: 0.5)
         }
     }
 

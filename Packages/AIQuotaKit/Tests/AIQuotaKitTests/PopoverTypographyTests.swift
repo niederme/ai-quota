@@ -20,7 +20,7 @@ struct PopoverTypographyTests {
 
         #expect(gaugeSource.contains(#".font(.system(size: 13, weight: .medium))"#))
         #expect(gaugeSource.contains(#".font(.system(size: 13, weight: .semibold, design: .rounded))"#))
-        #expect(gaugeSource.contains(#".font(.system(size: 11, weight: .medium))"#))
+        #expect(gaugeSource.contains(#".font(.caption2.monospacedDigit())"#))
         #expect(gaugeSource.contains(".monospacedDigit()"))
         #expect(!gaugeSource.contains(#".font(.system(size: 12, weight: .semibold, design: .rounded))"#))
     }
@@ -48,8 +48,8 @@ struct PopoverTypographyTests {
         #expect(!popoverSource.contains(#"compactRow("Extra", "\(Int(extra.usedCredits))/\(extra.monthlyLimit)", "plus.circle.fill")"#))
     }
 
-    @Test("7d reset line appears in gauge caption when 7d is critical")
-    func sevenDayResetLineInCaption() throws {
+    @Test("reset lines use compact local-time captions")
+    func resetLinesUseCompactCaptions() throws {
         let gaugeSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/CircularGaugeView.swift"), encoding: .utf8)
         let popoverSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/PopoverView.swift"), encoding: .utf8)
 
@@ -57,9 +57,9 @@ struct PopoverTypographyTests {
         #expect(gaugeSource.contains("resetAt: Date?"))
         #expect(gaugeSource.contains("weeklyResetAt: Date?"))
 
-        // CircularGaugeView: captions use the shared absolute-time formatter
-        #expect(gaugeSource.contains("ResetTimeTextFormatter.windowCaption(primaryLabel, resetAt: resetAt)"))
-        #expect(gaugeSource.contains("ResetTimeTextFormatter.windowCaption(secondaryLabel, resetAt: weeklyResetAt)"))
+        // CircularGaugeView: captions use the compact formatter for popover density
+        #expect(gaugeSource.contains("ResetTimeTextFormatter.compactWindowCaption(primaryLabel, resetAt: resetAt)"))
+        #expect(gaugeSource.contains("ResetTimeTextFormatter.compactWindowCaption(secondaryLabel, resetAt: weeklyResetAt)"))
         #expect(gaugeSource.contains("Text(primaryCountdownText)"))
         #expect(gaugeSource.contains("Text(secondaryCountdownText)"))
 
@@ -72,13 +72,14 @@ struct PopoverTypographyTests {
         #expect(popoverSource.contains("u.sevenDayUtilization >= 100"))
     }
 
-    @Test("7d reset line appears when 7d enters the amber warning band")
-    func sevenDayResetLineUsesAmberThreshold() throws {
+    @Test("7d reset line uses the inner-ring color treatment")
+    func sevenDayResetLineMatchesInnerRingColor() throws {
         let gaugeSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/CircularGaugeView.swift"), encoding: .utf8)
         let widgetGaugeSource = try String(contentsOf: repoRoot.appending(path: "AIQuotaWidget/Views/WidgetGaugeView.swift"), encoding: .utf8)
 
-        #expect(gaugeSource.contains("secondaryPercent >= 85 || secondaryLimitReached"))
-        #expect(!gaugeSource.contains("secondaryPercent >= 95 || secondaryLimitReached"))
+        #expect(gaugeSource.contains("Circle()"))
+        #expect(gaugeSource.contains(".stroke(statusColor.opacity(secondaryOpacity), style: StrokeStyle(lineWidth: innerLw, lineCap: .butt))"))
+        #expect(gaugeSource.contains("AnyShapeStyle(statusColor.opacity(secondaryOpacity))"))
 
         #expect(widgetGaugeSource.contains("secondaryPercent >= 85 || secondaryLimitReached"))
         #expect(!widgetGaugeSource.contains("secondaryPercent >= 95 || secondaryLimitReached"))

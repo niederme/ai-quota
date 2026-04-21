@@ -70,6 +70,38 @@ struct ResetTimeTextFormatterTests {
         #expect(formatted == "5h resets soon")
     }
 
+    @Test("compact same-day resets omit today")
+    func compactSameDayResetUsesTimeOnly() {
+        let now = date(year: 2026, month: 4, day: 17, hour: 17, minute: 55)
+        let resetAt = date(year: 2026, month: 4, day: 17, hour: 22, minute: 30)
+
+        let formatted = ResetTimeTextFormatter.compactWindowCaption(
+            "5h",
+            resetAt: resetAt,
+            now: now,
+            calendar: calendar,
+            locale: locale
+        )
+
+        #expect(formatted == "5h resets 10:30pm")
+    }
+
+    @Test("compact future resets show weekday")
+    func compactFutureResetUsesWeekdayAndTime() {
+        let now = date(year: 2026, month: 4, day: 17, hour: 17, minute: 55)
+        let resetAt = date(year: 2026, month: 4, day: 23, hour: 22, minute: 30)
+
+        let formatted = ResetTimeTextFormatter.compactWindowCaption(
+            "7d",
+            resetAt: resetAt,
+            now: now,
+            calendar: calendar,
+            locale: locale
+        )
+
+        #expect(formatted == "7d resets Thurs. 10:30pm")
+    }
+
     private func date(year: Int, month: Int, day: Int, hour: Int, minute: Int) -> Date {
         calendar.date(from: DateComponents(
             timeZone: calendar.timeZone,
