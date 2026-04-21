@@ -27,15 +27,15 @@ public enum ResetTimeTextFormatter {
 
         let time = timeText(for: resetAt, locale: locale)
         if calendar.isDate(resetAt, inSameDayAs: now) {
-            return "today \(time)"
+            return "Today \(time)"
         }
 
         if let tomorrow = calendar.date(byAdding: .day, value: 1, to: now),
            calendar.isDate(resetAt, inSameDayAs: tomorrow) {
-            return "tomorrow \(time)"
+            return "Tomorrow \(time)"
         }
 
-        return "\(weekdayText(for: resetAt, locale: locale)) \(time)"
+        return "\(weekdayAbbrev(for: resetAt, calendar: calendar)) \(time)"
     }
 
     private static func timeText(for date: Date, locale: Locale) -> String {
@@ -49,10 +49,16 @@ public enum ResetTimeTextFormatter {
             .lowercased()
     }
 
-    private static func weekdayText(for date: Date, locale: Locale) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = locale
-        formatter.setLocalizedDateFormatFromTemplate("EEEE")
-        return formatter.string(from: date)
+    private static func weekdayAbbrev(for date: Date, calendar: Calendar) -> String {
+        switch calendar.component(.weekday, from: date) {
+        case 1: return "Sun."
+        case 2: return "Mon."
+        case 3: return "Tues."
+        case 4: return "Wed."
+        case 5: return "Thurs."
+        case 6: return "Fri."
+        case 7: return "Sat."
+        default: return ""
+        }
     }
 }

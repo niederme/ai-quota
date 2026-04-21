@@ -1,4 +1,5 @@
 import SwiftUI
+import ServiceManagement
 
 struct AnalyticsConsentStepView: View {
     @Environment(QuotaViewModel.self) private var viewModel
@@ -73,6 +74,11 @@ struct AnalyticsConsentStepView: View {
                 .padding(.trailing, 16)
             }
             .toggleStyle(.switch)
+
+            Divider()
+                .overlay(Color.secondary.opacity(0.12))
+
+            LaunchAtLoginToggle()
 
             Divider()
                 .overlay(Color.secondary.opacity(0.12))

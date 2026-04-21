@@ -337,7 +337,7 @@ private struct NotificationStatusRow: View {
 
 // MARK: - Launch at Login
 
-private struct LaunchAtLoginToggle: View {
+struct LaunchAtLoginToggle: View {
     @State private var isEnabled = (SMAppService.mainApp.status == .enabled)
 
     var body: some View {
