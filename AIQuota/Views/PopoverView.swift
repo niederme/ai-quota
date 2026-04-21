@@ -187,16 +187,16 @@ struct PopoverView: View {
                         .padding(.horizontal, 14)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(.vertical, 10)
+                .padding(.vertical, 7)
             } else if hasCodexStats {
                 codexSecondaryStats
                     .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 7)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 claudeSecondaryStats
                     .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 7)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
@@ -316,7 +316,7 @@ struct PopoverView: View {
             Text("AIQuota").font(.headline)
             Spacer()
             // Colour key for the dual rings
-            HStack(spacing: 8) {
+            HStack(spacing: 12) {
                 ringKey(label: "5h",    opacity: 1.0)
                 ringKey(label: "7d", opacity: 0.5)
             }
@@ -327,7 +327,7 @@ struct PopoverView: View {
     }
 
     private func ringKey(label: String, opacity: Double) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 2) {
             Circle()
                 .fill(CircularGaugeView.accent.opacity(opacity))
                 .frame(width: 6, height: 6)

@@ -24,7 +24,7 @@ struct ResetTimeTextFormatterTests {
             locale: locale
         )
 
-        #expect(formatted == "5h resets today 8:29pm")
+        #expect(formatted == "5h resets Today 8:29pm")
     }
 
     @Test("next-day resets show tomorrow and the local time compactly")
@@ -40,7 +40,7 @@ struct ResetTimeTextFormatterTests {
             locale: locale
         )
 
-        #expect(formatted == "5h resets tomorrow 12:15am")
+        #expect(formatted == "5h resets Tomorrow 12:15am")
     }
 
     @Test("future-day resets show the weekday and time")
@@ -56,7 +56,7 @@ struct ResetTimeTextFormatterTests {
             locale: locale
         )
 
-        #expect(formatted == "7d resets Wednesday 1:03pm")
+        #expect(formatted == "7d resets Wed. 1:03pm")
     }
 
     @Test("missing reset dates degrade gracefully")

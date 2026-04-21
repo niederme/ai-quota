@@ -34,6 +34,20 @@ struct CircularGaugeView: View {
         return Self.accent
     }
 
+    private static let amber = Color(red: 1.0, green: 0.65, blue: 0.0)
+
+    private var primaryCaptionStyle: AnyShapeStyle {
+        if primaryLimitReached || primaryPercent >= 95 { return AnyShapeStyle(.red.opacity(0.8)) }
+        if primaryPercent >= 85 { return AnyShapeStyle(Self.amber) }
+        return AnyShapeStyle(.secondary)
+    }
+
+    private var secondaryCaptionStyle: AnyShapeStyle {
+        if secondaryLimitReached || secondaryPercent >= 95 { return AnyShapeStyle(.red.opacity(0.8)) }
+        if secondaryPercent >= 85 { return AnyShapeStyle(Self.amber) }
+        return AnyShapeStyle(.secondary)
+    }
+
     private var primaryFill:   Double { isLoading ? 0.5 : Double(max(0, min(100, primaryPercent)))   / 100.0 }
     private var secondaryFill: Double { isLoading ? 0.5 : Double(max(0, min(100, secondaryPercent))) / 100.0 }
     /// Inner ring is always subordinate — same hue, lower opacity.
@@ -109,7 +123,7 @@ struct CircularGaugeView: View {
                                 .contentTransition(.numericText())
                             Text(primaryLabel)
                                 .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(statusColor)
                         }
                         HStack(alignment: .firstTextBaseline, spacing: 3) {
                             Text("\(secondaryPercent)%")
@@ -118,7 +132,7 @@ struct CircularGaugeView: View {
                                 .contentTransition(.numericText())
                             Text(secondaryLabel)
                                 .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(statusColor.opacity(0.5))
                         }
                     }
                 }
@@ -151,19 +165,13 @@ struct CircularGaugeView: View {
                 .foregroundStyle(primaryLimitReached ? .red : .primary)
 
             Text(primaryCountdownText)
-                .font(.system(size: 11, weight: .medium))
-                .monospacedDigit()
-                .foregroundStyle(primaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.tertiary))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                .font(.caption2)
+                .foregroundStyle(primaryCaptionStyle)
 
-            if !isLoading && (secondaryPercent >= 85 || secondaryLimitReached) {
+            if !isLoading {
                 Text(secondaryCountdownText)
-                    .font(.system(size: 11, weight: .medium))
-                    .monospacedDigit()
-                    .foregroundStyle(secondaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.tertiary))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
+                    .font(.caption2)
+                    .foregroundStyle(secondaryCaptionStyle)
             }
         }
     }
