@@ -46,8 +46,8 @@ struct CircularGaugeView: View {
         AnyShapeStyle(statusColor.opacity(secondaryOpacity))
     }
 
-    private var primaryFill:   Double { isLoading ? 0.5 : Double(max(0, min(100, primaryPercent)))   / 100.0 }
-    private var secondaryFill: Double { isLoading ? 0.5 : Double(max(0, min(100, secondaryPercent))) / 100.0 }
+    private var primaryFill:   Double { Double(max(0, min(100, primaryPercent))) / 100.0 }
+    private var secondaryFill: Double { Double(max(0, min(100, secondaryPercent))) / 100.0 }
     /// Inner ring is always subordinate — same hue, lower opacity.
     private var secondaryOpacity: Double {
         let worst = max(primaryPercent, secondaryPercent)

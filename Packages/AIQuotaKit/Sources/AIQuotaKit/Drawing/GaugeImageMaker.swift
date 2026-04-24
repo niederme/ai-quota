@@ -10,7 +10,9 @@ public enum GaugeImageMaker {
     ///   - primaryPercent: 0–100, short window (5h) consumption for the displayed service.
     ///   - secondaryPercent: 0–100, long window (7-day) consumption for the displayed service.
     ///   - limitReached: whether any service has hit its cap.
-    ///   - isLoading: show a neutral half-fill while data is in flight.
+    ///   - isLoading: retained for API compatibility; callers may use it to
+    ///     coordinate external loading affordances while the gauge keeps its
+    ///     last-known values.
     ///   - size: point size of the square image (rendered at backing scale).
     ///   - worstPercent: 0–100 status metric chosen by the caller to drive ring colour.
     ///     Defaults to the max of primaryPercent / secondaryPercent when omitted.
@@ -57,10 +59,10 @@ public enum GaugeImageMaker {
         // is worse. Inner ring stays dimmed (45%) when healthy so the outer
         // ring reads as primary; both brighten together when either crosses a
         // threshold, keeping the palette coherent.
-        let pct1: Double = isLoading ? 0.5 : Double(primaryPercent) / 100.0
-        let pct2: Double = isLoading ? 0.5 : Double(secondaryPercent) / 100.0
+        let pct1: Double = Double(primaryPercent) / 100.0
+        let pct2: Double = Double(secondaryPercent) / 100.0
         let worstLimitReached = limitReached || pct2 >= 1.0
-        let colorPct: Double = isLoading ? 0.5 : Double(worstPercent ?? max(primaryPercent, secondaryPercent)) / 100.0
+        let colorPct: Double = Double(worstPercent ?? max(primaryPercent, secondaryPercent)) / 100.0
         let sharedColor = ringColor(pct: colorPct, limitReached: worstLimitReached)
 
         // ── Outer fill: primary (5h) ───────────────────────────────────────
