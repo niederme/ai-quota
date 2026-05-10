@@ -46,6 +46,13 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
         public let usedCredits: Double
         /// Percentage of monthly credits consumed, 0–100.
         public let utilization: Double
+
+        public init(isEnabled: Bool, monthlyLimit: Int, usedCredits: Double, utilization: Double) {
+            self.isEnabled = isEnabled
+            self.monthlyLimit = monthlyLimit
+            self.usedCredits = usedCredits
+            self.utilization = utilization
+        }
     }
 
     // MARK: - Computed (gauge / notification compatibility)

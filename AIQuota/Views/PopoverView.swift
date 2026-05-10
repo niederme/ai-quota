@@ -281,29 +281,42 @@ struct PopoverView: View {
         if let usage = viewModel.codexUsage {
             VStack(alignment: .leading, spacing: 5) {
                 if let balance = usage.creditBalance {
-                    compactRow("Credits", "\(Int(balance))")
+                    compactRow("Credits", "\(Int(balance))", valueTint: creditTint(balance))
                 }
                 compactRow("Plan", usage.planType.capitalized)
             }
         }
     }
 
+    /// Mirrors the Claude strip's escalation in a balance-based world:
+    /// red below $5 (critical), amber below $20 (running low), normal otherwise.
+    private func creditTint(_ balance: Double) -> Color {
+        if balance < 5 { return .red }
+        if balance < 20 { return .orange }
+        return .primary
+    }
+
     @ViewBuilder
     private var claudeSecondaryStats: some View {
         if let usage = viewModel.claudeUsage {
-            VStack(alignment: .leading, spacing: 5) {
+            VStack(alignment: .leading, spacing: 6) {
                 if let extra = usage.extraUsage, extra.isEnabled {
-                    compactRow("Extra", "\(Int(extra.usedCredits))/\(extra.monthlyLimit)")
+                    if extra.utilization >= BudgetStripView.showThreshold {
+                        BudgetStripView(extra: extra)
+                    } else {
+                        compactRow("Extra", "\(Int(extra.usedCredits))/\(extra.monthlyLimit)")
+                    }
                 }
                 compactRow("Plan", usage.planDisplayName)
             }
         }
     }
 
-    private func compactRow(_ label: String, _ value: String) -> some View {
+    private func compactRow(_ label: String, _ value: String, valueTint: Color = .primary) -> some View {
         HStack(spacing: 5) {
             Text(label + ":").font(.caption2).foregroundStyle(.secondary)
             Text(value).font(.caption2.monospacedDigit().bold())
+                .foregroundStyle(valueTint)
         }
     }
 
