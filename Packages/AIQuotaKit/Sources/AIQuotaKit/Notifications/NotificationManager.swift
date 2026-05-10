@@ -18,6 +18,8 @@ public actor NotificationManager {
         // Codex — weekly window
         static let codexThresholds  = "notificationThresholds"
         static let codexLastResetAt = "notificationLastResetAt"
+        // Codex — credit balance (for top-up diffing)
+        static let lastCodexBalance = "lastCodexBalance"
         // Claude 5h window
         static let claudeThresholds  = "claudeNotificationThresholds"
         static let claudeLastResetAt = "claudeNotificationLastResetAt"
@@ -25,6 +27,11 @@ public actor NotificationManager {
         static let claudeSevenDayThresholds  = "claudeSevenDayThresholds"
         static let claudeSevenDayLastResetAt = "claudeSevenDayLastResetAt"
     }
+
+    /// Minimum credit increase that qualifies as a top-up event.
+    /// Daily consumption is typically 100–300 credits; real refills are ≥ 125 credits
+    /// (recharge_target − recharge_threshold). 50 sits comfortably above session noise.
+    private let topUpNoiseFloor: Double = 50
 
     private var defaults: UserDefaults {
         UserDefaults(suiteName: "group.com.niederme.AIQuota") ?? .standard
@@ -251,6 +258,44 @@ public actor NotificationManager {
         } else {
             defaults.set(sevenDayResetAt, forKey: Key.claudeSevenDayLastResetAt)
         }
+    }
+
+    // MARK: - Codex top-up detection
+
+    /// Called after every successful Codex fetch. Persists the balance for diffing and,
+    /// when the balance has jumped by more than `topUpNoiseFloor`, fires a single
+    /// "credits topped up" notification.
+    ///
+    /// Always updates `lastCodexBalance` — even when no notification fires — so the
+    /// comparison stays fresh for future refreshes. On first launch (no stored value)
+    /// stores the balance without firing.
+    public func evaluateCodexTopUp(
+        currentBalance: Double,
+        autoReload: CodexAutoReload?,
+        prefs: NotificationPreferences
+    ) async {
+        let lastBalance = defaults.object(forKey: Key.lastCodexBalance) as? Double
+        defaults.set(currentBalance, forKey: Key.lastCodexBalance)
+
+        guard prefs.enabled, prefs.codexEnabled, prefs.codexTopUpEvents else { return }
+        guard let lastBalance else { return }  // first launch — stored above, no notification
+
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        guard settings.authorizationStatus == .authorized else { return }
+
+        guard currentBalance > lastBalance + topUpNoiseFloor else { return }
+
+        let title: String
+        let body: String
+        if autoReload?.isEnabled == true {
+            title = "Codex credits topped up"
+            body = "Auto-reload added credits. New balance: \(Int(currentBalance))."
+        } else {
+            title = "Codex credits added"
+            body = "New balance: \(Int(currentBalance))."
+        }
+        await send(id: "codexTopUp", title: title, body: body)
     }
 
     // MARK: - Private helpers

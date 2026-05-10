@@ -56,6 +56,9 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
     public var claude7dLimitReached: Bool = true
     public var claude7dReset: Bool = true
 
+    // Codex — credit top-up events (auto-reload or manual purchase)
+    public var codexTopUpEvents: Bool = true
+
     public init() {}
 
     /// Migration-safe decoder: missing keys fall back to defaults rather than throwing.
@@ -80,6 +83,7 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
         claude7dAt95         = try c.decodeIfPresent(Bool.self, forKey: .claude7dAt95)         ?? true
         claude7dLimitReached = try c.decodeIfPresent(Bool.self, forKey: .claude7dLimitReached) ?? true
         claude7dReset        = try c.decodeIfPresent(Bool.self, forKey: .claude7dReset)        ?? true
+        codexTopUpEvents     = try c.decodeIfPresent(Bool.self, forKey: .codexTopUpEvents)     ?? true
     }
 
     // MARK: - Aggregate computed properties (UI consolidation)
