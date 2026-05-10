@@ -1,5 +1,41 @@
 import Foundation
 
+// MARK: - Auto-reload settings
+
+/// Codex auto-reload (auto top-up) state fetched from the subscription settings endpoint.
+/// When `isEnabled` is true the user has opted into automatic credit refills, so hitting a
+/// low balance is a routine refill event rather than a crisis.
+public struct CodexAutoReload: Codable, Sendable, Equatable {
+    public let isEnabled: Bool
+    /// Balance level that triggers a refill (parsed from the JSON String field).
+    public let rechargeThreshold: Double
+    /// Balance the refill brings the account up to (parsed from the JSON String field).
+    public let rechargeTarget: Double
+
+    public init(isEnabled: Bool, rechargeThreshold: Double, rechargeTarget: Double) {
+        self.isEnabled = isEnabled
+        self.rechargeThreshold = rechargeThreshold
+        self.rechargeTarget = rechargeTarget
+    }
+}
+
+/// Raw response from `GET /backend-api/subscriptions/auto_top_up/settings`.
+/// `rechargeThreshold` and `rechargeTarget` arrive as JSON strings — convert to Double on decode.
+struct AutoTopUpSettingsResponse: Decodable, Sendable {
+    let isEnabled: Bool
+    let rechargeThreshold: String?
+    let rechargeTarget: String?
+
+    /// Returns nil if either numeric field is missing or unparseable.
+    func toCodexAutoReload() -> CodexAutoReload? {
+        guard
+            let thresholdStr = rechargeThreshold, let threshold = Double(thresholdStr),
+            let targetStr = rechargeTarget, let target = Double(targetStr)
+        else { return nil }
+        return CodexAutoReload(isEnabled: isEnabled, rechargeThreshold: threshold, rechargeTarget: target)
+    }
+}
+
 // MARK: - Raw API response from GET https://chatgpt.com/backend-api/wham/usage
 
 public struct WhamUsageResponse: Decodable, Sendable {
