@@ -282,33 +282,11 @@ struct PopoverView: View {
             let autoReload = viewModel.codexAutoReload
             VStack(alignment: .leading, spacing: 5) {
                 if let balance = usage.creditBalance {
-                    compactRow(
-                        "Credits", "\(Int(balance))",
-                        valueTint: creditTint(balance, autoReload: autoReload),
-                        suffix: autoReload?.isEnabled == true ? "· auto-reload" : nil
-                    )
+                    CodexCreditsRow(balance: balance, autoReload: autoReload)
                 }
                 compactRow("Plan", usage.planType.capitalized)
             }
         }
-    }
-
-    /// Returns a tint color for the credits balance row.
-    ///
-    /// Auto-reload on: cap at amber when below the user's own recharge threshold
-    /// (a refill is imminent), never red. Primary above the threshold.
-    ///
-    /// Auto-reload off: existing absolute thresholds — red below 5, amber below 20.
-    /// These thresholds were calibrated for dollar amounts and are acknowledged as
-    /// imprecise for credit units; recalibration is deferred to a follow-up.
-    private func creditTint(_ balance: Double, autoReload: CodexAutoReload?) -> Color {
-        if autoReload?.isEnabled == true {
-            if balance <= autoReload!.rechargeThreshold { return .orange }
-            return .primary
-        }
-        if balance < 5 { return .red }
-        if balance < 20 { return .orange }
-        return .primary
     }
 
     @ViewBuilder
@@ -319,12 +297,22 @@ struct PopoverView: View {
                     if extra.utilization >= BudgetStripView.showThreshold {
                         BudgetStripView(extra: extra)
                     } else {
-                        compactRow("Extra", "\(Int(extra.usedCredits))/\(extra.monthlyLimit)")
+                        compactRow(
+                            "Extra",
+                            "\(Int(extra.usedCredits))/\(extra.monthlyLimit)",
+                            valueTint: extraUsageTint(extra.utilization)
+                        )
                     }
                 }
                 compactRow("Plan", usage.planDisplayName)
             }
         }
+    }
+
+    private func extraUsageTint(_ utilization: Double) -> Color {
+        if utilization >= 95 { return .red }
+        if utilization >= 85 { return Color(red: 1.0, green: 0.65, blue: 0.0) }
+        return .primary
     }
 
     private func compactRow(_ label: String, _ value: String, valueTint: Color = .primary, suffix: String? = nil) -> some View {
@@ -508,6 +496,117 @@ struct PopoverView: View {
     private func formatWindowDuration(_ seconds: Int) -> String {
         let hours = seconds / 3600
         return hours > 0 ? "\(hours)h" : "\(seconds / 60)m"
+    }
+}
+
+private struct CodexCreditsRow: View {
+    let balance: Double
+    let autoReload: CodexAutoReload?
+
+    private static let amber = Color(red: 1.0, green: 0.65, blue: 0.0)
+    private static let exhaustedThreshold: Double = 0
+
+    private var isAutoReloadEnabled: Bool {
+        autoReload?.isEnabled == true
+    }
+
+    private var isExhaustedWithoutReload: Bool {
+        balance <= Self.exhaustedThreshold && !isAutoReloadEnabled
+    }
+
+    private var shouldShowExceptionBar: Bool {
+        isExhaustedWithoutReload && autoReload != nil
+    }
+
+    private var valueTint: Color {
+        if isAutoReloadEnabled, let autoReload {
+            return balance <= autoReload.rechargeThreshold ? Self.amber : .primary
+        }
+        if balance < 5 { return .red }
+        if balance < 20 { return Self.amber }
+        return .primary
+    }
+
+    private var statusText: String? {
+        if isExhaustedWithoutReload { return "reload off" }
+        if let autoReload, autoReload.isEnabled, balance <= autoReload.rechargeThreshold {
+            return "· auto-reload"
+        }
+        return nil
+    }
+
+    private var statusTint: Color {
+        if isExhaustedWithoutReload { return .red }
+        return balance <= (autoReload?.rechargeThreshold ?? 0) ? Self.amber : .secondary.opacity(0.65)
+    }
+
+    private var target: Double {
+        guard let autoReload else { return 1 }
+        return max(autoReload.rechargeTarget, autoReload.rechargeThreshold, 1)
+    }
+
+    private var fillFraction: Double {
+        let depleted = (target - balance) / target
+        return min(max(depleted, 0), 1)
+    }
+
+    private var thresholdFraction: Double {
+        guard let autoReload else { return 0 }
+        return min(max(autoReload.rechargeThreshold / target, 0), 1)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: 5) {
+                Text("Credits:")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text("\(Int(balance))")
+                    .font(.caption2.monospacedDigit().bold())
+                    .foregroundStyle(valueTint)
+                Spacer(minLength: 4)
+                if let statusText {
+                    Text(statusText)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(statusTint)
+                        .lineLimit(1)
+                }
+            }
+
+            if shouldShowExceptionBar, let autoReload {
+                GeometryReader { geo in
+                    let markerX = geo.size.width * thresholdFraction
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 1.5)
+                            .fill(.fill.quaternary)
+                        RoundedRectangle(cornerRadius: 1.5)
+                            .fill(.red)
+                            .frame(width: geo.size.width * fillFraction)
+                        Rectangle()
+                            .fill(.primary.opacity(0.65))
+                            .frame(width: 1, height: 7)
+                            .offset(x: markerX)
+                    }
+                }
+                .frame(height: 3)
+
+                Text("empty; reload target \(Int(autoReload.rechargeTarget))")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+            }
+        }
+        .help(helpText)
+    }
+
+    private var helpText: String {
+        guard let autoReload else {
+            return "Codex credits: \(Int(balance))"
+        }
+        if autoReload.isEnabled {
+            return "Codex credits: \(Int(balance))\nAuto-reload at \(Int(autoReload.rechargeThreshold)); target \(Int(autoReload.rechargeTarget))."
+        }
+        return "Codex credits: \(Int(balance))\nAuto-reload is off."
     }
 }
 

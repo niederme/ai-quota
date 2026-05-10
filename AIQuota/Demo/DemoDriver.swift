@@ -65,7 +65,7 @@ final class DemoDriver {
         .init(fiveH: 100, sevenD:  64, resetSecs: 15900, weeklyResetDays: 3, tick: 0.7), // red
         .init(fiveH:   0, sevenD:  66, resetSecs: 18000, weeklyResetDays: 3, tick: 0.3),
 
-        // Cycle 4: 7d hits amber (≥ 85%), budget strip escalates
+        // Cycle 4: 7d hits amber (≥ 85%), monthly extra approaches the cap
         .init(fiveH:  22, sevenD:  73, resetSecs: 14400, weeklyResetDays: 2, tick: 0.5),
         .init(fiveH:  48, sevenD:  79, resetSecs: 11400, weeklyResetDays: 2, tick: 0.5),
         .init(fiveH:  70, sevenD:  85, resetSecs:  8400, weeklyResetDays: 2, tick: 0.6), // 7d amber
@@ -126,14 +126,16 @@ final class DemoDriver {
     // MARK: - Extra-usage progression (mirrors Claude timeline cycle indices)
     //
     // Cycles 1–2: no extra usage (Pro plan, strip hidden).
-    // Cycle 3 onwards: Max plan, extra usage climbs from ~55% → ~92%,
-    // triggering the budget strip at ≥ 70% and escalating to red at ≥ 85%.
+    // Cycle 3 onwards: Max plan, extra usage climbs from normal → amber → red.
+    // The strip itself appears only once monthly extra usage reaches the cap,
+    // matching the "bars are exception states" rule.
 
     // MARK: - Codex balance progression
     //
-    // First half: auto-reload off — drains into red so the absolute-threshold
-    // tint is visible. Second half: auto-reload on — balance jumps on reload,
-    // stays softened to amber below the threshold, never red.
+    // First half: no known reload target — plain balance text slowly drains.
+    // Just before auto-reload kicks in, the demo shows the exception state:
+    // credits empty with reload configured but off, so the red bar earns space.
+    // Then auto-reload turns on and the balance jumps to the target.
 
     private let codexBalance: [Int: Double] = {
         var map: [Int: Double] = [:]
@@ -144,11 +146,13 @@ final class DemoDriver {
         // Final approach (auto-reload off): amber territory
         map[21] = 18
         map[22] = 11
-        // Frames 23–24: red territory (auto-reload still off)
+        // Frame 23: red text, but no bar; without a reload target there is no
+        // honest denominator to draw against.
         map[23] = 6
-        map[24] = 3
-        // Frame 25: auto-reload kicks in — balance jumps from 3 → 250.
-        // This triggers the top-up notification (delta = 247 >> noise floor 50).
+        // Frame 24: exhausted with reload configured but off — exception bar.
+        map[24] = 0
+        // Frame 25: auto-reload kicks in — balance jumps from 0 → 250.
+        // This triggers the top-up notification (delta = 250 >> noise floor 50).
         map[25] = 250
         // Frames 26–27: healthy balance, auto-reload on, warning softened
         map[26] = 200
@@ -158,14 +162,17 @@ final class DemoDriver {
 
     // MARK: - Codex auto-reload progression
     //
-    // Frames 0–24: auto-reload off — absolute red/amber thresholds apply (showcases
-    // the urgency treatment users see before opting into auto-reload).
-    // Frames 25–27: auto-reload on — warning softens, · auto-reload hint appears,
+    // Frames 0–23: no auto-reload settings known, so Codex remains text-only.
+    // Frame 24: reload is configured but off and credits hit zero, which shows
+    // the exception bar.
+    // Frames 25–27: auto-reload is on; normal/caution states stay text-only,
     // and the balance jump at frame 25 fires the top-up notification.
 
     private let codexAutoReloadFrames: [Int: CodexAutoReload] = {
         var map: [Int: CodexAutoReload] = [:]
+        let off = CodexAutoReload(isEnabled: false, rechargeThreshold: 125, rechargeTarget: 250)
         let on = CodexAutoReload(isEnabled: true, rechargeThreshold: 125, rechargeTarget: 250)
+        map[24] = off
         for i in 25...27 { map[i] = on }
         return map
     }()
@@ -174,11 +181,11 @@ final class DemoDriver {
         var map: [Int: ClaudeUsage.ExtraUsage] = [:]
         // Cycle 3 starts at frame index 15 — moderate usage, below threshold
         for i in 15...19 { map[i] = .init(isEnabled: true, monthlyLimit: 2000, usedCredits: Double(i - 15) * 55 + 1100, utilization: Double(i - 15) * 3.5 + 55) }
-        // Cycle 4: strip appears (≥ 70%) and climbs toward red (≥ 85%)
+        // Cycle 4: caution text only; strip still hidden below 100%.
         for i in 20...25 { map[i] = .init(isEnabled: true, monthlyLimit: 2000, usedCredits: Double(i - 20) * 60 + 1400, utilization: Double(i - 20) * 5 + 70) }
-        // Final frames: clearly in the red zone
-        map[26] = .init(isEnabled: true, monthlyLimit: 2000, usedCredits: 1840, utilization: 92)
-        map[27] = .init(isEnabled: true, monthlyLimit: 2000, usedCredits: 1860, utilization: 93)
+        // Final frames: over the monthly extra cap, so the exception strip appears.
+        map[26] = .init(isEnabled: true, monthlyLimit: 2000, usedCredits: 2000, utilization: 100)
+        map[27] = .init(isEnabled: true, monthlyLimit: 2000, usedCredits: 2060, utilization: 103)
         return map
     }()
 

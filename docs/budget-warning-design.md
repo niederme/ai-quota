@@ -1,169 +1,89 @@
-# Budget warning design — open conversation
+# Budget warning design
 
-> **Status:** Open design discussion, not a build spec. Everything below is the
-> shape of a thought, not a decision. Pick this up before building anything new
-> on top of `BudgetStripView` or `creditTint`.
+> **Status:** Decided and implemented. Bars are exception states, not routine
+> status. Keep this rule in mind before adding new warning chrome to the popover.
 
-## Where we are today
+## Final rule
 
-Two warning treatments live in the popover, both shipped:
+The popover should stay quiet during normal and caution states. Text color is
+enough for caution. A bar earns space only when the user has crossed into an
+exception state.
 
-- **Claude — `BudgetStripView`** (`AIQuota/Views/BudgetStripView.swift`)
-  - Renders inside the Claude column of the stats row when
-    `extraUsage.utilization >= 70`
-  - Bar **fills up** as utilization grows: amber from 70%, red at 85%
-  - Fraction is honest: `usedCredits / monthlyLimit`, both real values from the
-    `/overage_spend_limit` endpoint
-  - Hides entirely below 70% (option-3 "only when actionable" pattern)
+- **Normal:** text only, primary color.
+- **Caution:** text only, amber or red as appropriate for that metric.
+- **Exception:** show the bar.
 
-- **Codex — value tint** (`creditTint(_:autoReload:)` in `PopoverView.swift`)
-  - Just a colored number, no bar. `Credits: 230` in primary; amber below
-    the user's `rechargeThreshold` (or `$20` if no auto-reload configured);
-    red below `$5`
-  - When auto-reload is on, urgency is capped at amber + a `· auto-reload`
-    tertiary hint
-  - Always visible (so long as `creditBalance` is known)
+This keeps the popover from turning into an accounting dashboard and gives bars
+a clear meaning: "look here now."
 
-The asymmetry was deliberate — Codex's API doesn't return a denominator the
-way Claude's does. We picked tint-without-bar to be honest about that.
+## Claude extra usage
 
-## The question that opened this conversation
+Claude's extra usage has a real denominator: `usedCredits / monthlyLimit`.
+That makes `BudgetStripView` honest, but it should still appear only once the
+monthly extra cap has been reached.
 
-**Codex genuinely could now have a bar**, since the auto-reload endpoint gives
-us `rechargeTarget` and `rechargeThreshold`. So:
+Current rules:
 
-- Should it?
-- If yes, should the bar fill the same direction as Claude's (toward "bad")
-  or invert (deplete toward zero)?
-- What threshold gates visibility?
-- Does Claude's existing 70% threshold still feel right once we re-examine
-  the bigger picture?
+| Monthly extra utilization | Treatment |
+|---|---|
+| `< 85%` | `Extra` text in primary |
+| `85%...94%` | `Extra` text in amber |
+| `95%...99%` | `Extra` text in red |
+| `>= 100%` | `BudgetStripView` |
 
-## Harmonized direction — both bars fill toward "bad"
+Important: this tinting is based only on the monthly extra cap. It should not
+inherit the 5-hour or 7-day gauge state. For example, if the Claude 5-hour ring
+is amber at 93% but monthly extra is 79%, `Extra` should remain primary.
 
-Original instinct was to invert (Claude fills up; Codex empties down). But
-that puts two bars in the same popover that read opposite directions, which
-fights itself visually.
+## Codex credits
 
-If we instead define Codex's bar as "**fraction depleted from full**":
+Codex does not have a routine denominator comparable to Claude's monthly cap.
+The auto-reload endpoint can provide an honest reference (`rechargeTarget`), but
+that does not mean the popover should always draw a bar.
 
-```
+Current rules:
+
+- If no auto-reload settings are known, show text only.
+- If auto-reload is enabled and the balance is below `rechargeThreshold`, show
+  amber text plus the quiet `· auto-reload` hint. Do not show a bar; the refill
+  is expected.
+- If credits are low with no active safety net, use text color first.
+- If credits are exhausted (`0`) while auto-reload settings are known but
+  disabled, show the Codex exception bar.
+
+The Codex bar uses depletion from target:
+
+```swift
 fractionDepleted = (rechargeTarget - currentBalance) / rechargeTarget
 ```
 
-Then for a user with `threshold: 125 / target: 250`:
+So, with `threshold: 125` and `target: 250`:
 
 | Balance | Fraction depleted | Bar reads |
 |---|---|---|
-| 250 (target, just refilled) | 0% | empty |
-| 125 (threshold, refill imminent) | 50% | half full |
-| 0 (cut off / refill failed) | 100% | full |
+| `250` | `0%` | empty |
+| `125` | `50%` | half full |
+| `0` | `100%` | full |
 
-Both Claude's strip and a Codex strip would fill in the same direction
-(toward red as things get worse). That's worth doing.
+Both Claude and Codex bars therefore fill toward "bad," but Codex only draws the
+bar in the exhausted/no-active-reload exception state.
 
-## Wrinkle 1: reference availability for Codex
+## Demo coverage
 
-A bar needs a "100% full" reference point. For Claude that's
-`monthly_credit_limit` — always present, always meaningful. For Codex, the
-candidates are:
+The Demo scheme should demonstrate both exception bars:
 
-- **`rechargeTarget`** from `auto_top_up/settings`. Persisted even when
-  `is_enabled = false`. Honest.
-- **Last manual purchase amount.** We'd have to track this ourselves. Magic;
-  opaque.
-- **Highest balance seen recently.** Heuristic; opaque.
-- **A hardcoded constant.** Lying.
+- Claude reaches and exceeds monthly extra cap (`100%`, then `103%`) so
+  `BudgetStripView` appears.
+- Codex reaches `Credits: 0` with reload configured but off, so the Codex
+  exception bar appears, then auto-reload turns on and the balance jumps to the
+  target.
 
-`rechargeTarget` is the only honest option. Implication: **Codex bar requires
-the user to have at some point configured auto-reload**, even if it's
-currently disabled. If they haven't, fall back to the existing tint-only
-treatment.
+## Follow-ups
 
-## Wrinkle 2: per-user thresholds vs a single global rule
-
-Claude's "show the bar at 70% utilization" is a number we picked. It's the
-same for everyone.
-
-Codex's natural threshold isn't a constant — it's the **user's own**
-`rechargeThreshold / rechargeTarget` ratio. For one user that's 50%
-(125/250); for another it might be 30% (75/250). So there's no single
-"show at X%" rule for Codex; it's "show when **below the user's own
-threshold**."
-
-That actually feels more honest. The user has already told the system
-what counts as "low" for them — we should use it.
-
-## Wrinkle 3: auto-reload state changes the meaning, not the visual
-
-Same Codex bar reads differently depending on `is_enabled`:
-
-- **Auto-reload ON:** "approaching next refill." Mild interest. Refill is
-  imminent. Don't escalate to red — refill is the resolution.
-- **Auto-reload OFF:** "approaching empty without a safety net." Escalate
-  to red as the bar fills further.
-
-This is exactly the logic the existing `creditTint` already does — just
-expressed visually as a bar instead of as text color. No new logic, just
-a different presentation surface.
-
-## The bigger question this surfaces
-
-> **When do we show *either* bar?**
-
-Right now Claude's strip uses a hand-picked global threshold (70%). If we
-add a Codex bar with a per-user threshold, the popover has two different
-"when to show" rules. That's worth unifying.
-
-Candidate unified rule (sketch — not a decision):
-
-> Show the bar when the user is below their own actionable threshold for
-> that service. For Claude, "actionable" means utilization above 70% (we
-> still pick this number — Anthropic's API doesn't give us a per-user
-> threshold setting). For Codex, "actionable" means balance below the
-> user's `rechargeThreshold`.
-
-Or alternatively:
-
-> Always show the bar once it has data; let color carry urgency. Below
-> threshold = neutral; near threshold = amber; past threshold = red.
-
-The first hides chrome until it matters (matches our existing
-"only-when-actionable" instinct on the strip). The second normalizes the
-visual layout regardless of state. Both are defensible. **Discuss before
-building.**
-
-## Adjacent issues worth flagging in the same pass
-
-- **Currency formatting for Claude.** The strip currently renders
-  `Extra: 6342 / 8k` for a user whose `monthly_credit_limit` is 8000 in
-  USD. The API response includes `"currency": "USD"`, so we should be
-  rendering as `$6,342 / $8k`. Pure visual polish; small change in
-  `BudgetStripView.swift`.
-
-- **Codex credit-unit recalibration.** The `<$5` red / `<$20` amber
-  thresholds in the auto-reload-OFF path were dollar-thinking; Codex
-  credits are abstract units. Daily burn is in 100–300 credit territory,
-  so 20 is comfortably "running on fumes" for most users — but it's still
-  arbitrary. Not urgent, but we should pick numbers that feel reasoned
-  rather than inherited.
-
-- **Burn-rate runway** ("≈ 3 days remaining at current pace"). The
-  `/wham/usage/credit-usage-events` endpoint returns daily consumption —
-  enough to compute a rolling rate. Could appear inline next to the
-  Codex credit number when balance is low. More information than just
-  a tint, more honest than a fake-denominator bar. Worth considering as
-  an alternative to (or in addition to) the Codex bar idea.
-
-## Suggested next conversation
-
-Before any code change, agree on:
-
-1. **Do we want a Codex bar at all?** If runway-text is more useful than a
-   bar, the bar conversation collapses.
-2. **If we do want a Codex bar — unified "when to show" rule for both
-   services.**
-3. **Currency formatting for Claude** can ship anytime; it's small and
-   independent.
-
-Implementation only after these are settled.
+- Claude currency formatting is still worth a separate polish pass. The API
+  includes `currency`, but the UI currently renders compact credit-style values.
+- Codex low-credit thresholds (`< 20` amber, `< 5` red) are still inherited from
+  earlier dollar-thinking. They are intentionally left alone here, but deserve
+  a separate calibration pass against real credit burn.
+- Burn-rate runway text may become more useful than additional bars once daily
+  credit consumption is available from `credit-usage-events`.

@@ -40,14 +40,32 @@ struct PopoverTypographyTests {
     func secondaryStatRowsOmitIcons() throws {
         let popoverSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/PopoverView.swift"), encoding: .utf8)
 
-        // Credits row uses compactRow helper (not a custom icon row)
-        #expect(popoverSource.contains(#""Credits", "\(Int(balance))""#))
-        #expect(popoverSource.contains(#"compactRow("Extra", "\(Int(extra.usedCredits))/\(extra.monthlyLimit)")"#))
-        // compactRow signature now supports optional suffix for the · auto-reload hint
+        // Credits row uses a dedicated text-first component, not a custom icon row.
+        #expect(popoverSource.contains("CodexCreditsRow(balance: balance, autoReload: autoReload)"))
+        #expect(popoverSource.contains("compactRow("))
         #expect(popoverSource.contains(#"private func compactRow(_ label: String, _ value: String, valueTint: Color = .primary, suffix: String? = nil) -> some View"#))
         #expect(!popoverSource.contains(#"Image(systemName: icon)"#))
         #expect(!popoverSource.contains(#"compactRow("Credits", "\(Int(balance))", "creditcard.fill")"#))
         #expect(!popoverSource.contains(#"compactRow("Extra", "\(Int(extra.usedCredits))/\(extra.monthlyLimit)", "plus.circle.fill")"#))
+    }
+
+    @Test("budget strips appear only for exception states")
+    func budgetStripsAppearOnlyForExceptionStates() throws {
+        let popoverSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/PopoverView.swift"), encoding: .utf8)
+        let budgetStripSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/BudgetStripView.swift"), encoding: .utf8)
+        let demoSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Demo/DemoDriver.swift"), encoding: .utf8)
+
+        #expect(budgetStripSource.contains("static let showThreshold: Double = 100"))
+        #expect(popoverSource.contains("if extra.utilization >= BudgetStripView.showThreshold"))
+        #expect(popoverSource.contains("if utilization >= 95 { return .red }"))
+        #expect(popoverSource.contains("if utilization >= 85 { return Color(red: 1.0, green: 0.65, blue: 0.0) }"))
+        #expect(!popoverSource.contains("if utilization >= 70"))
+        #expect(popoverSource.contains("isExhaustedWithoutReload && autoReload != nil"))
+        #expect(popoverSource.contains("if shouldShowExceptionBar, let autoReload"))
+        #expect(!popoverSource.contains("auto-reloads to"))
+        #expect(demoSource.contains("map[24] = 0"))
+        #expect(demoSource.contains("map[24] = off"))
+        #expect(demoSource.contains("usedCredits: 2060, utilization: 103"))
     }
 
     @Test("reset lines use compact local-time captions")

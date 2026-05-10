@@ -4,7 +4,7 @@ import AIQuotaKit
 struct BudgetStripView: View {
     let extra: ClaudeUsage.ExtraUsage
 
-    static let showThreshold: Double = 70
+    static let showThreshold: Double = 100
 
     private var color: Color {
         extra.utilization >= 85 ? .red : .orange
@@ -88,10 +88,10 @@ struct BudgetStripView: View {
 #Preview {
     VStack(spacing: 0) {
         Divider()
-        BudgetStripView(extra: .init(isEnabled: true, monthlyLimit: 2000, usedCredits: 1609, utilization: 80.45))
+        BudgetStripView(extra: .init(isEnabled: true, monthlyLimit: 2000, usedCredits: 2000, utilization: 100))
             .frame(width: 170)
         Divider()
-        BudgetStripView(extra: .init(isEnabled: true, monthlyLimit: 2000, usedCredits: 1780, utilization: 89))
+        BudgetStripView(extra: .init(isEnabled: true, monthlyLimit: 2000, usedCredits: 2060, utilization: 103))
             .frame(width: 170)
     }
     .frame(width: 170)
