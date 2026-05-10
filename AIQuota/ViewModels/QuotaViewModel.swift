@@ -15,6 +15,7 @@ final class QuotaViewModel {
     // MARK: - Codex (OpenAI)
 
     var codexUsage: CodexUsage?
+    var codexAutoReload: CodexAutoReload?
     var isCodexLoading = false
     var codexError: NetworkError?
 
@@ -423,11 +424,27 @@ final class QuotaViewModel {
         defer { if codexRefreshGeneration == gen { isCodexLoading = false } }
 
         do {
-            let result = try await codexClient.fetchUsage()
+            // Fire usage and auto-reload concurrently to avoid doubling latency.
+            // Auto-reload errors are suppressed and leave codexAutoReload at its previous
+            // value (fail open — a hiccup here must not regress credit-warning behavior).
+            async let usageFetch = codexClient.fetchUsage()
+            async let autoReloadFetch = silentAutoReloadFetch()
+
+            let result = try await usageFetch
+            let freshAutoReload = await autoReloadFetch
+            if let freshAutoReload { codexAutoReload = freshAutoReload }
+
             codexUsage = result
             lastRefreshedAt = .now
             SharedDefaults.saveUsage(result)
             await NotificationManager.shared.evaluate(current: result, prefs: settings.notifications)
+            if let balance = result.creditBalance {
+                await NotificationManager.shared.evaluateCodexTopUp(
+                    currentBalance: balance,
+                    autoReload: codexAutoReload,
+                    prefs: settings.notifications
+                )
+            }
         } catch let e as NetworkError {
             if e.isAuthError {
                 codexUsage = nil
@@ -442,6 +459,13 @@ final class QuotaViewModel {
                     lastRefreshedAt = .now
                     SharedDefaults.saveUsage(result)
                     await NotificationManager.shared.evaluate(current: result, prefs: settings.notifications)
+                    if let balance = result.creditBalance {
+                        await NotificationManager.shared.evaluateCodexTopUp(
+                            currentBalance: balance,
+                            autoReload: codexAutoReload,
+                            prefs: settings.notifications
+                        )
+                    }
                 } catch {
                     // Retry also failed — coordinator already transitioned to unauthenticated
                 }
@@ -476,6 +500,15 @@ final class QuotaViewModel {
             if isConnectivityError(error) || (pathMonitorReady && pathStatus != .satisfied) {
                 codexError = .networkUnavailable
             }
+        }
+    }
+
+    private func silentAutoReloadFetch() async -> CodexAutoReload? {
+        do {
+            return try await codexClient.fetchAutoReload()
+        } catch {
+            logger.info("[CodexRefresh] auto-reload fetch failed: \(error) — ignoring")
+            return nil
         }
     }
 
@@ -792,13 +825,15 @@ extension QuotaViewModel {
         claude: ClaudeUsage?,
         codex: CodexUsage?,
         claudeLoading: Bool = false,
-        codexLoading: Bool = false
+        codexLoading: Bool = false,
+        codexAutoReload newAutoReload: CodexAutoReload? = nil
     ) {
-        claudeUsage     = claude
-        codexUsage      = codex
-        isClaudeLoading = claudeLoading
-        isCodexLoading  = codexLoading
-        lastRefreshedAt = claude != nil || codex != nil ? .now : nil
+        claudeUsage        = claude
+        codexUsage         = codex
+        codexAutoReload    = newAutoReload
+        isClaudeLoading    = claudeLoading
+        isCodexLoading     = codexLoading
+        lastRefreshedAt    = claude != nil || codex != nil ? .now : nil
     }
 }
 #endif

@@ -113,6 +113,9 @@ struct SettingsView: View {
                         notifSubHeader("7-day window")
                         Toggle("Usage alerts", isOn: $vm.settings.notifications.codexWeeklyThresholdAlerts)
                         Toggle("Reset alert",  isOn: $vm.settings.notifications.codexReset)
+
+                        notifSubHeader("Credits")
+                        Toggle("Top-up events", isOn: $vm.settings.notifications.codexTopUpEvents)
                     }
                 }
                 .disabled(!notifSectionsEnabled)

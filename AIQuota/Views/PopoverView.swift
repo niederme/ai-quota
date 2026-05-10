@@ -281,16 +281,27 @@ struct PopoverView: View {
         if let usage = viewModel.codexUsage {
             VStack(alignment: .leading, spacing: 5) {
                 if let balance = usage.creditBalance {
-                    compactRow("Credits", "\(Int(balance))", valueTint: creditTint(balance))
+                    let autoReload = viewModel.codexAutoReload
+                    compactRow(
+                        "Credits", "\(Int(balance))",
+                        valueTint: creditTint(balance, autoReload: autoReload),
+                        suffix: autoReload?.isEnabled == true ? "auto-reload" : nil
+                    )
                 }
                 compactRow("Plan", usage.planType.capitalized)
             }
         }
     }
 
-    /// Mirrors the Claude strip's escalation in a balance-based world:
-    /// red below $5 (critical), amber below $20 (running low), normal otherwise.
-    private func creditTint(_ balance: Double) -> Color {
+    /// Tints the credit balance. When auto-reload is on, the user will be refilled
+    /// automatically, so urgency is softened: amber only when below the user's own
+    /// recharge threshold, never red. When off, absolute thresholds apply.
+    /// (Note: the <$5/<$20 thresholds are admittedly arbitrary for credit units vs dollars —
+    /// recalibration is a separate follow-up; they are left unchanged for the reload-off path.)
+    private func creditTint(_ balance: Double, autoReload: CodexAutoReload?) -> Color {
+        if autoReload?.isEnabled == true {
+            return balance <= autoReload!.rechargeThreshold ? .orange : .primary
+        }
         if balance < 5 { return .red }
         if balance < 20 { return .orange }
         return .primary
@@ -312,11 +323,14 @@ struct PopoverView: View {
         }
     }
 
-    private func compactRow(_ label: String, _ value: String, valueTint: Color = .primary) -> some View {
+    private func compactRow(_ label: String, _ value: String, valueTint: Color = .primary, suffix: String? = nil) -> some View {
         HStack(spacing: 5) {
             Text(label + ":").font(.caption2).foregroundStyle(.secondary)
             Text(value).font(.caption2.monospacedDigit().bold())
                 .foregroundStyle(valueTint)
+            if let suffix {
+                Text("· \(suffix)").font(.caption2).foregroundStyle(.tertiary)
+            }
         }
     }
 
