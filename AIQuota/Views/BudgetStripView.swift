@@ -25,11 +25,31 @@ struct BudgetStripView: View {
 
     private var resetText: String {
         let cal = Calendar.current
-        guard
-            let nextMonth = cal.date(byAdding: .month, value: 1, to: .now),
-            let first = cal.date(from: cal.dateComponents([.year, .month], from: nextMonth))
-        else { return "monthly" }
-        return "resets " + first.formatted(.dateTime.month(.abbreviated).day())
+        guard let nextMonth = cal.date(byAdding: .month, value: 1, to: .now) else {
+            return "monthly"
+        }
+        let month = cal.component(.month, from: nextMonth)
+        return "resets \(Self.nytMonth(month)) 1"
+    }
+
+    /// NYT style: short months get periods (Jan., Feb., Aug., Sept., Oct., Nov., Dec.);
+    /// March, April, May, June, July are written out in full.
+    private static func nytMonth(_ month: Int) -> String {
+        switch month {
+        case 1:  return "Jan."
+        case 2:  return "Feb."
+        case 3:  return "March"
+        case 4:  return "April"
+        case 5:  return "May"
+        case 6:  return "June"
+        case 7:  return "July"
+        case 8:  return "Aug."
+        case 9:  return "Sept."
+        case 10: return "Oct."
+        case 11: return "Nov."
+        case 12: return "Dec."
+        default: return ""
+        }
     }
 
     var body: some View {
