@@ -153,3 +153,30 @@ public struct CodexUsage: Codable, Sendable, Equatable {
         self.fetchedAt = fetchedAt
     }
 }
+
+// MARK: - Auto-reload settings
+
+/// Codex auto-reload state fetched from `/backend-api/subscriptions/auto_top_up/settings`.
+/// When `isEnabled` is true, the balance refills automatically when it drops below
+/// `rechargeThreshold` — hitting zero is routine, not a crisis.
+public struct CodexAutoReload: Codable, Sendable, Equatable {
+    public let isEnabled: Bool
+    /// Balance level that triggers a refill (parsed from the JSON String field).
+    public let rechargeThreshold: Double
+    /// Balance target after a refill (parsed from the JSON String field).
+    public let rechargeTarget: Double
+
+    public init(isEnabled: Bool, rechargeThreshold: Double, rechargeTarget: Double) {
+        self.isEnabled = isEnabled
+        self.rechargeThreshold = rechargeThreshold
+        self.rechargeTarget = rechargeTarget
+    }
+}
+
+// Internal decode type — the API returns `rechargeThreshold` and `rechargeTarget` as
+// JSON strings rather than numbers, so we can't decode directly into Double.
+struct AutoTopUpSettingsResponse: Decodable, Sendable {
+    let isEnabled: Bool
+    let rechargeThreshold: String
+    let rechargeTarget: String
+}
