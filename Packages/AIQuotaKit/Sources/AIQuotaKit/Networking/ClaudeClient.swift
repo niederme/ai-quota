@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 // MARK: - ClaudeClient
 
@@ -27,6 +28,7 @@ public actor ClaudeClient {
     private let coordinator: ClaudeAuthCoordinator
     private let session: URLSession
     private let baseURL = URL(string: "https://claude.ai")!
+    private let logger = Logger(subsystem: "app.aiquota", category: "ClaudeClient")
 
     public init(coordinator: ClaudeAuthCoordinator) {
         self.coordinator = coordinator
@@ -58,14 +60,15 @@ public actor ClaudeClient {
         do {
             (data, response) = try await session.data(for: req)
         } catch {
-            print("[ClaudeClient] ❌ session error: \(error)")
+            logger.error("[ClaudeClient] session error: \(error)")
             throw error
         }
 
         let status = (response as? HTTPURLResponse)?.statusCode ?? -1
-        print("[ClaudeClient] GET \(path) → HTTP \(status)")
+        logger.info("[ClaudeClient] GET \(path) → HTTP \(status)")
         if status != 200 {
-            print("[ClaudeClient] response headers: \((response as? HTTPURLResponse)?.allHeaderFields ?? [:])")
+            let headers = (response as? HTTPURLResponse)?.allHeaderFields ?? [:]
+            logger.warning("[ClaudeClient] non-200 headers: \(headers as NSDictionary)")
         }
 
         try checkStatus(response, data: data)
@@ -74,8 +77,8 @@ public actor ClaudeClient {
             let raw = try Self.decoder.decode(ClaudeUsageResponse.self, from: data)
             return buildUsage(from: raw)
         } catch {
-            let preview = String(data: data.prefix(800), encoding: .utf8) ?? "<non-utf8>"
-            print("[ClaudeClient] decode error: \(error)\nResponse body: \(preview)")
+            let preview = String(data: data.prefix(2000), encoding: .utf8) ?? "<non-utf8>"
+            logger.error("[ClaudeClient] decodingError: \(error) | body: \(preview)")
             throw NetworkError.decodingError(underlying: error)
         }
     }
