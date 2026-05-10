@@ -131,24 +131,43 @@ final class DemoDriver {
 
     // MARK: - Codex balance progression
     //
-    // Drains gradually so the demo also showcases the credits row's
-    // amber (< $20) and red (< $5) treatment alongside the Claude strip.
+    // First half (frames 0–8, auto-reload OFF): drain from healthy through amber and
+    // into red territory, ending at 8 credits. Shows the existing red/amber tint treatment.
+    //
+    // Frame 9 (transition): auto-reload turns ON and balance jumps to 250 — this is
+    // the frame that triggers the top-up notification path once per demo loop.
+    //
+    // Second half (frames 10–27, auto-reload ON): balance drains slowly. Falls below
+    // the 125-credit recharge threshold around frame 19, showing amber (but never red)
+    // because auto-reload is active.
 
     private let codexBalance: [Int: Double] = {
         var map: [Int: Double] = [:]
-        // Cycles 1–2: healthy balance, slowly drawing down
-        for i in 0...16   { map[i] = 197.18 - Double(i) * 4 }   // 197 → 133
-        // Cycle 3: still normal but visibly dropping
-        for i in 17...20  { map[i] = 90 - Double(i - 17) * 18 } // 90 → 36
-        // Final approach: amber territory
-        map[21] = 18
-        map[22] = 11
-        // Last frames: red
-        map[23] = 6
-        map[24] = 3
-        map[25] = 1
-        map[26] = 0
-        map[27] = 0
+        // Frames 0–8: linear drain 197 → 8 (auto-reload OFF)
+        for i in 0...8 {
+            let frac = Double(i) / 8
+            map[i] = (197.18 * (1 - frac) + 8 * frac).rounded()
+        }
+        // Frame 9: auto-reload fires — balance jumps to 250
+        map[9] = 250
+        // Frames 10–27: drain 250 → 40 (auto-reload ON; amber below 125 around frame 19)
+        for i in 10...27 {
+            let frac = Double(i - 10) / 17
+            map[i] = max(40, (250 * (1 - frac) + 40 * frac).rounded())
+        }
+        return map
+    }()
+
+    // MARK: - Codex auto-reload progression
+    //
+    // Frames 0–8: no auto-reload — absolute thresholds apply (red < 5, amber < 20).
+    // Frame 9+: auto-reload ON (threshold 125, target 250) — warning softens; amber
+    // below threshold, primary above, never red.
+
+    private let codexAutoReloadFrames: [Int: CodexAutoReload] = {
+        var map: [Int: CodexAutoReload] = [:]
+        let reload = CodexAutoReload(isEnabled: true, rechargeThreshold: 125, rechargeTarget: 250)
+        for i in 9...27 { map[i] = reload }
         return map
     }()
 
@@ -272,9 +291,26 @@ final class DemoDriver {
             fetchedAt:               now
         )
 
-        target.applyDemoFrame(claude: target.claudeUsage, codex: codex,
-                              claudeLoading: target.isClaudeLoading,
-                              codexLoading: false)
+        let frameAutoReload = codexAutoReloadFrames[codexIndex - 1]
+        target.applyDemoFrame(
+            claude: target.claudeUsage, codex: codex,
+            claudeLoading: target.isClaudeLoading,
+            codexLoading: false,
+            codexAutoReload: frameAutoReload
+        )
+
+        // Mirror the production refresh path: evaluate top-up after each balance update
+        // so the demo fires a notification when the balance jumps at frame 9 (8 → 250).
+        let prefs = target.settings.notifications
+        if let balance = codex.creditBalance {
+            Task {
+                await NotificationManager.shared.evaluateCodexTopUp(
+                    currentBalance: balance,
+                    autoReload: frameAutoReload,
+                    prefs: prefs
+                )
+            }
+        }
 
         if codexIndex < codexFrames.count {
             scheduleNextCodex()
