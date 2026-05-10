@@ -231,6 +231,82 @@ In `AIQuota/Demo/DemoDriver.swift`:
   lets the demo loop showcase both paths.
 - Wire the new value through `applyDemoFrame` in `QuotaViewModel`, mirroring how
   `claude` and `codex` are passed today.
+- Within the same demo loop, include at least one frame where the Codex balance
+  *jumps up* (e.g., 8 → 250) so the top-up notification path (next section)
+  fires once per cycle. The notification permission prompt won't appear in
+  Demo builds; the notification itself will be visible if granted.
+
+### 8. Codex top-up notifications
+
+When a user's Codex `creditBalance` refills (auto-reload, manual purchase —
+anything that adds credit), fire a native macOS notification so the user knows
+it happened without opening the popover.
+
+**Detection — balance-jump diffing:**
+
+- Persist `lastCodexBalance: Double?` in `UserDefaults` via `AppSettings` (or
+  wherever Codex-side persisted state already lives; pattern-match the existing
+  setup rather than inventing a new key system).
+- After every successful Codex usage refresh in `QuotaViewModel`:
+  1. Read prior `lastCodexBalance`
+  2. Compare to `currentBalance = codexUsage.creditBalance`
+  3. If `lastCodexBalance != nil && currentBalance > lastCodexBalance + 50`,
+     it's a top-up event — fire the notification (see below). The `+ 50`
+     is a noise floor; daily consumption is in 100–300 credit territory, and
+     real refills are typically `recharge_target − recharge_threshold` in
+     size (often ≥ 125), so 50 is comfortably above noise without missing
+     real top-ups. Make this a named constant for future tuning.
+  4. **Always** update `lastCodexBalance = currentBalance` afterward — both
+     when a top-up fires and when it doesn't.
+- On first launch (no stored value), store and do not fire.
+- The diff must run on the same code path as the success branch of `fetchUsage()`
+  in the view model, *before* any subsequent refresh begins, so we don't miss a
+  quick refill-then-consume sequence.
+
+**Firing — use the existing `NotificationManager`:**
+
+The project already has a `NotificationManager` (`AIQuota/...`, find via grep)
+that handles the existing "threshold reached" and "window reset" notifications.
+Add a third notification type alongside the existing ones, following the same
+pattern (it likely uses `UNUserNotificationCenter` directly).
+
+Copy (caption2-equivalent restraint, no exclamation marks):
+
+- If `codexAutoReload?.isEnabled == true` at the time of the refill:
+  - Title: "Codex credits topped up"
+  - Body: "Auto-reload added credits. New balance: {N}."
+- Otherwise (manual purchase, or auto-reload state unknown):
+  - Title: "Codex credits added"
+  - Body: "New balance: {N}."
+
+Use `Int(currentBalance)` for the displayed number (no decimals; consistent
+with the popover's `Credits: N` row).
+
+**Settings — opt-out toggle:**
+
+Add a new toggle in `SettingsView` for "Top-up events" alongside the existing
+per-service notification toggles ("Threshold alerts", "Reset events" or
+whatever the existing ones are named — pattern-match). Persist in `AppSettings`
+with the existing notification toggles. Default **ON** (top-ups are positive,
+low-frequency, low-spam — opt-out rather than opt-in is correct).
+
+Codex-only for now: do not add a Claude version. Claude's auto-reload doesn't
+refill a balance (see conceptual model section), so there's nothing to notify
+on. If we ever capture Claude's separate "Current balance" pool (visible in
+the UI but not in the endpoint we've reverse-engineered), we'll revisit.
+
+**Edge cases:**
+
+- *App launched after a top-up that happened while offline:* detection fires
+  on first refresh after launch. The notification is slightly stale but
+  still useful ("you got topped up while away"). Don't suppress.
+- *Multiple refills in a session:* each fires its own notification. Refills
+  are rare; this is fine.
+- *Notifications permission denied:* `NotificationManager` should already
+  short-circuit. Don't reinvent.
+- *Demo build:* the notification path runs the same way as production. The
+  demo cycle should include a balance jump that fires it (see the demo
+  driver section above).
 
 ---
 
@@ -239,12 +315,28 @@ In `AIQuota/Demo/DemoDriver.swift`:
 The PR should:
 
 - [ ] Build cleanly with `xcodebuild -scheme AIQuota` and `xcodebuild -scheme AIQuota-Demo -configuration Demo`
+
+**Auto-reload-aware warnings:**
+
 - [ ] When auto-reload is **off** and balance is low, show red/amber as before (no regression)
 - [ ] When auto-reload is **on**, never show red on the credits row — cap at amber below the user's `recharge_threshold`, primary color above it
 - [ ] When auto-reload is **on**, show a `· auto-reload` tertiary hint after the credit number
 - [ ] If the auto-reload endpoint fails or hasn't loaded yet, treat as `nil` and fall back to absolute-threshold behavior (no crash, no missing tint)
-- [ ] Demo cycle exercises both auto-reload states so both code paths are visible without needing real API calls
 - [ ] No changes to Claude's strip behavior (the existing logic is correct)
+
+**Top-up notifications:**
+
+- [ ] When `creditBalance` increases by > 50 credits between refreshes, a notification fires
+- [ ] Notification copy varies based on `codexAutoReload?.isEnabled` at the time of the refill
+- [ ] First-launch refresh stores the balance without firing a notification
+- [ ] `lastCodexBalance` is updated after every refresh, regardless of whether a notification fired
+- [ ] New "Top-up events" toggle in Settings (default ON) gates the notification — if off, no notification fires even on a real top-up
+- [ ] No top-up notification path for Claude (no equivalent concept)
+
+**Demo:**
+
+- [ ] Demo cycle exercises both auto-reload states so both code paths are visible without needing real API calls
+- [ ] At least one frame in the demo cycle includes a Codex balance jump that fires the top-up notification (with notifications permission granted)
 
 ## Open the PR with a clear summary
 
@@ -252,16 +344,17 @@ Final commit + PR should describe:
 1. The asymmetry between Codex and Claude auto-reload semantics (so future readers don't try to "fix" the asymmetry)
 2. Why the absolute `<$5` / `<$20` thresholds are kept in the auto-reload-off path despite credits not being dollars (out of scope, follow-up)
 3. The fail-open behavior on auto-reload fetch errors
+4. The top-up notification logic — what it detects, the noise-floor constant, the auto-reload-aware copy, and why it's Codex-only
 
 ## Branch context
 
-You're branching off `claude/naughty-dewdney-23fc4a`, which already contains:
+You're branching off `main`, which already contains:
 
 - `BudgetStripView` for Claude extra usage (`AIQuota/Views/BudgetStripView.swift`)
 - The `creditTint` helper for Codex credits (in `PopoverView.swift`)
 - Demo driver scaffolding for both signals (`DemoDriver.swift`)
 - A public `init` on `ClaudeUsage.ExtraUsage` (`Packages/AIQuotaKit/.../ClaudeUsage.swift`)
+- The networking polish: `OpenAIClient` and `ClaudeClient` now use `OSLog.Logger`
+  — use that pattern, not `print()`, for any new logging you add.
 
-The networking polish that this branch builds on (recently merged on `main`):
-`OpenAIClient` and `ClaudeClient` now use `OSLog.Logger` — use that pattern, not
-`print()`, in any new logging you add.
+There is no special prereq branch — just check out `main` and start from there.
