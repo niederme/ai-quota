@@ -131,8 +131,9 @@ final class DemoDriver {
 
     // MARK: - Codex balance progression
     //
-    // Drains gradually so the demo also showcases the credits row's
-    // amber (< $20) and red (< $5) treatment alongside the Claude strip.
+    // First half: auto-reload off — drains into red so the absolute-threshold
+    // tint is visible. Second half: auto-reload on — balance jumps on reload,
+    // stays softened to amber below the threshold, never red.
 
     private let codexBalance: [Int: Double] = {
         var map: [Int: Double] = [:]
@@ -140,15 +141,32 @@ final class DemoDriver {
         for i in 0...16   { map[i] = 197.18 - Double(i) * 4 }   // 197 → 133
         // Cycle 3: still normal but visibly dropping
         for i in 17...20  { map[i] = 90 - Double(i - 17) * 18 } // 90 → 36
-        // Final approach: amber territory
+        // Final approach (auto-reload off): amber territory
         map[21] = 18
         map[22] = 11
-        // Last frames: red
+        // Frames 23–24: red territory (auto-reload still off)
         map[23] = 6
         map[24] = 3
-        map[25] = 1
-        map[26] = 0
-        map[27] = 0
+        // Frame 25: auto-reload kicks in — balance jumps from 3 → 250.
+        // This triggers the top-up notification (delta = 247 >> noise floor 50).
+        map[25] = 250
+        // Frames 26–27: healthy balance, auto-reload on, warning softened
+        map[26] = 200
+        map[27] = 185
+        return map
+    }()
+
+    // MARK: - Codex auto-reload progression
+    //
+    // Frames 0–24: auto-reload off — absolute red/amber thresholds apply (showcases
+    // the urgency treatment users see before opting into auto-reload).
+    // Frames 25–27: auto-reload on — warning softens, · auto-reload hint appears,
+    // and the balance jump at frame 25 fires the top-up notification.
+
+    private let codexAutoReloadFrames: [Int: CodexAutoReload] = {
+        var map: [Int: CodexAutoReload] = [:]
+        let on = CodexAutoReload(isEnabled: true, rechargeThreshold: 125, rechargeTarget: 250)
+        for i in 25...27 { map[i] = on }
         return map
     }()
 
@@ -255,6 +273,8 @@ final class DemoDriver {
         codexIndex += 1
 
         let now = Date.now
+        let autoReload = codexAutoReloadFrames[codexIndex - 1]
+        let balance    = codexBalance[codexIndex - 1] ?? 197.18
         let codex = CodexUsage(
             weeklyUsedPercent:       Int(f.sevenD.rounded()),
             weeklyResetAt:           now.addingTimeInterval(TimeInterval(f.weeklyResetDays * 86400)),
@@ -266,7 +286,7 @@ final class DemoDriver {
             limitReached:            f.fiveH >= 100,
             allowed:                 f.fiveH < 100,
             planType:                "plus",
-            creditBalance:           codexBalance[codexIndex - 1] ?? 197.18,
+            creditBalance:           balance,
             approxLocalMessages:     nil,
             approxCloudMessages:     nil,
             fetchedAt:               now
@@ -274,7 +294,17 @@ final class DemoDriver {
 
         target.applyDemoFrame(claude: target.claudeUsage, codex: codex,
                               claudeLoading: target.isClaudeLoading,
-                              codexLoading: false)
+                              codexLoading: false,
+                              codexAutoReload: autoReload)
+
+        // Mirror production: evaluate top-up notification for each simulated refresh
+        Task {
+            await NotificationManager.shared.evaluateTopUp(
+                currentBalance: balance,
+                autoReload: autoReload,
+                prefs: target.settings.notifications
+            )
+        }
 
         if codexIndex < codexFrames.count {
             scheduleNextCodex()
