@@ -279,18 +279,33 @@ struct PopoverView: View {
     @ViewBuilder
     private var codexSecondaryStats: some View {
         if let usage = viewModel.codexUsage {
+            let autoReload = viewModel.codexAutoReload
             VStack(alignment: .leading, spacing: 5) {
                 if let balance = usage.creditBalance {
-                    compactRow("Credits", "\(Int(balance))", valueTint: creditTint(balance))
+                    compactRow(
+                        "Credits", "\(Int(balance))",
+                        valueTint: creditTint(balance, autoReload: autoReload),
+                        suffix: autoReload?.isEnabled == true ? "· auto-reload" : nil
+                    )
                 }
                 compactRow("Plan", usage.planType.capitalized)
             }
         }
     }
 
-    /// Mirrors the Claude strip's escalation in a balance-based world:
-    /// red below $5 (critical), amber below $20 (running low), normal otherwise.
-    private func creditTint(_ balance: Double) -> Color {
+    /// Returns a tint color for the credits balance row.
+    ///
+    /// Auto-reload on: cap at amber when below the user's own recharge threshold
+    /// (a refill is imminent), never red. Primary above the threshold.
+    ///
+    /// Auto-reload off: existing absolute thresholds — red below 5, amber below 20.
+    /// These thresholds were calibrated for dollar amounts and are acknowledged as
+    /// imprecise for credit units; recalibration is deferred to a follow-up.
+    private func creditTint(_ balance: Double, autoReload: CodexAutoReload?) -> Color {
+        if autoReload?.isEnabled == true {
+            if balance <= autoReload!.rechargeThreshold { return .orange }
+            return .primary
+        }
         if balance < 5 { return .red }
         if balance < 20 { return .orange }
         return .primary
@@ -312,11 +327,14 @@ struct PopoverView: View {
         }
     }
 
-    private func compactRow(_ label: String, _ value: String, valueTint: Color = .primary) -> some View {
+    private func compactRow(_ label: String, _ value: String, valueTint: Color = .primary, suffix: String? = nil) -> some View {
         HStack(spacing: 5) {
             Text(label + ":").font(.caption2).foregroundStyle(.secondary)
             Text(value).font(.caption2.monospacedDigit().bold())
                 .foregroundStyle(valueTint)
+            if let suffix {
+                Text(suffix).font(.caption2).foregroundStyle(.tertiary)
+            }
         }
     }
 

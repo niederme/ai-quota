@@ -18,6 +18,8 @@ public actor NotificationManager {
         // Codex — weekly window
         static let codexThresholds  = "notificationThresholds"
         static let codexLastResetAt = "notificationLastResetAt"
+        // Codex — credit top-up diffing
+        static let codexLastBalance = "codexLastBalance"
         // Claude 5h window
         static let claudeThresholds  = "claudeNotificationThresholds"
         static let claudeLastResetAt = "claudeNotificationLastResetAt"
@@ -138,6 +140,44 @@ public actor NotificationManager {
                 body: "You've used most of your Codex 7-day window. Resets in \(timeString(current.weeklyResetAfterSeconds))."
             )
         }
+    }
+
+    // MARK: - Codex top-up detection
+
+    /// Noise floor for top-up detection. Daily consumption commonly reaches
+    /// 100–300 credits; real refills are typically ≥ 125 (recharge_target − recharge_threshold).
+    /// 50 is well above normal variance without missing genuine top-ups.
+    private let topUpNoiseFloor: Double = 50
+
+    /// Called after every successful Codex usage fetch. Compares the current balance
+    /// against the previously stored value; fires a notification when a top-up is
+    /// detected (balance increased by more than the noise floor).
+    ///
+    /// Always updates the stored balance regardless of whether a notification fires —
+    /// including on first launch (where it stores and returns without firing).
+    public func evaluateTopUp(currentBalance: Double, autoReload: CodexAutoReload?, prefs: NotificationPreferences) async {
+        let lastBalance = defaults.object(forKey: Key.codexLastBalance) as? Double
+        defaults.set(currentBalance, forKey: Key.codexLastBalance)
+
+        guard let lastBalance else { return }  // first launch — stored, don't fire
+        guard currentBalance > lastBalance + topUpNoiseFloor else { return }
+
+        // Real top-up detected; fire if permitted
+        guard prefs.enabled, prefs.codexTopUp else { return }
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        guard settings.authorizationStatus == .authorized else { return }
+
+        let title: String
+        let body: String
+        if autoReload?.isEnabled == true {
+            title = "Codex credits topped up"
+            body  = "Auto-reload added credits. New balance: \(Int(currentBalance))."
+        } else {
+            title = "Codex credits added"
+            body  = "New balance: \(Int(currentBalance))."
+        }
+        await send(id: "codexTopUp", title: title, body: body)
     }
 
     // MARK: - Claude evaluation

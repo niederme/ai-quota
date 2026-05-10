@@ -9,6 +9,7 @@ public actor OpenAIClient {
     private let baseURL = URL(string: "https://chatgpt.com")!
     // Confirmed endpoint from network inspection of chatgpt.com/codex/settings/usage
     private let usagePath = "/backend-api/wham/usage"
+    private let autoTopUpPath = "/backend-api/subscriptions/auto_top_up/settings"
 
     public init(coordinator: CodexAuthCoordinator) {
         self.coordinator = coordinator
@@ -57,4 +58,56 @@ public actor OpenAIClient {
             throw NetworkError.decodingError(underlying: error)
         }
     }
+
+    public func fetchAutoReload() async throws -> CodexAutoReload {
+        let token = try await coordinator.accessToken()
+
+        var req = URLRequest(url: baseURL.appendingPathComponent(autoTopUpPath))
+        req.httpMethod = "GET"
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        req.setValue("https://chatgpt.com/codex/settings/usage", forHTTPHeaderField: "Referer")
+        req.setValue("same-origin", forHTTPHeaderField: "Sec-Fetch-Site")
+        req.setValue("cors", forHTTPHeaderField: "Sec-Fetch-Mode")
+        req.setValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
+
+        let (data, response) = try await session.data(for: req)
+
+        guard let http = response as? HTTPURLResponse else {
+            throw NetworkError.networkUnavailable
+        }
+
+        switch http.statusCode {
+        case 200...299:
+            break
+        case 401:
+            throw NetworkError.tokenExpired
+        case 429:
+            throw NetworkError.rateLimited
+        default:
+            throw NetworkError.httpError(statusCode: http.statusCode)
+        }
+
+        let raw: AutoTopUpSettingsResponse
+        do {
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            raw = try decoder.decode(AutoTopUpSettingsResponse.self, from: data)
+        } catch {
+            let preview = String(data: data.prefix(2000), encoding: .utf8) ?? "<non-UTF8>"
+            logger.error("[OpenAIClient] fetchAutoReload decodingError: \(error) | body: \(preview)")
+            throw NetworkError.decodingError(underlying: error)
+        }
+
+        guard let threshold = Double(raw.rechargeThreshold),
+              let target    = Double(raw.rechargeTarget) else {
+            logger.error("[OpenAIClient] fetchAutoReload: unparseable strings threshold=\(raw.rechargeThreshold) target=\(raw.rechargeTarget)")
+            throw NetworkError.decodingError(underlying: AutoReloadParseError.stringToDouble)
+        }
+        return CodexAutoReload(isEnabled: raw.isEnabled, rechargeThreshold: threshold, rechargeTarget: target)
+    }
+}
+
+private enum AutoReloadParseError: Error {
+    case stringToDouble
 }

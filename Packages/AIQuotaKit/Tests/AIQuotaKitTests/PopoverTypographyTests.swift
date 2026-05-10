@@ -40,9 +40,11 @@ struct PopoverTypographyTests {
     func secondaryStatRowsOmitIcons() throws {
         let popoverSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/PopoverView.swift"), encoding: .utf8)
 
-        #expect(popoverSource.contains(#"compactRow("Credits", "\(Int(balance))")"#))
+        // Credits row uses compactRow helper (not a custom icon row)
+        #expect(popoverSource.contains(#""Credits", "\(Int(balance))""#))
         #expect(popoverSource.contains(#"compactRow("Extra", "\(Int(extra.usedCredits))/\(extra.monthlyLimit)")"#))
-        #expect(popoverSource.contains(#"private func compactRow(_ label: String, _ value: String) -> some View"#))
+        // compactRow signature now supports optional suffix for the · auto-reload hint
+        #expect(popoverSource.contains(#"private func compactRow(_ label: String, _ value: String, valueTint: Color = .primary, suffix: String? = nil) -> some View"#))
         #expect(!popoverSource.contains(#"Image(systemName: icon)"#))
         #expect(!popoverSource.contains(#"compactRow("Credits", "\(Int(balance))", "creditcard.fill")"#))
         #expect(!popoverSource.contains(#"compactRow("Extra", "\(Int(extra.usedCredits))/\(extra.monthlyLimit)", "plus.circle.fill")"#))

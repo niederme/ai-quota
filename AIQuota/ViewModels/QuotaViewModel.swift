@@ -15,6 +15,7 @@ final class QuotaViewModel {
     // MARK: - Codex (OpenAI)
 
     var codexUsage: CodexUsage?
+    var codexAutoReload: CodexAutoReload?
     var isCodexLoading = false
     var codexError: NetworkError?
 
@@ -143,8 +144,9 @@ final class QuotaViewModel {
         }
 
         // Step 3: product state reset (only after auth reset completes)
-        claudeUsage = nil
-        codexUsage  = nil
+        claudeUsage     = nil
+        codexUsage      = nil
+        codexAutoReload = nil
         SharedDefaults.clearUsage()
         SharedDefaults.clearClaudeUsage()
         settings = .default
@@ -253,7 +255,8 @@ final class QuotaViewModel {
                         self.startAutoRefresh()
                     }
                     if state == .unauthenticated || state == .signedOutByUser {
-                        self.codexUsage = nil
+                        self.codexUsage      = nil
+                        self.codexAutoReload = nil
                         SharedDefaults.clearUsage()
                         WidgetCenter.shared.reloadAllTimelines()
                     }
@@ -423,11 +426,30 @@ final class QuotaViewModel {
         defer { if codexRefreshGeneration == gen { isCodexLoading = false } }
 
         do {
-            let result = try await codexClient.fetchUsage()
+            async let usageResult      = codexClient.fetchUsage()
+            async let autoReloadResult = codexClient.fetchAutoReload()
+
+            let result = try await usageResult
+
+            // Auto-reload fetch: fail-open — errors leave codexAutoReload at its previous value
+            // so the credit-warning treatment never regresses due to an auxiliary endpoint hiccup.
+            if let reloadData = try? await autoReloadResult {
+                codexAutoReload = reloadData
+            } else {
+                logger.info("[CodexRefresh] auto-reload fetch failed — leaving codexAutoReload unchanged")
+            }
+
             codexUsage = result
             lastRefreshedAt = .now
             SharedDefaults.saveUsage(result)
             await NotificationManager.shared.evaluate(current: result, prefs: settings.notifications)
+            if let balance = result.creditBalance {
+                await NotificationManager.shared.evaluateTopUp(
+                    currentBalance: balance,
+                    autoReload: codexAutoReload,
+                    prefs: settings.notifications
+                )
+            }
         } catch let e as NetworkError {
             if e.isAuthError {
                 codexUsage = nil
@@ -442,6 +464,13 @@ final class QuotaViewModel {
                     lastRefreshedAt = .now
                     SharedDefaults.saveUsage(result)
                     await NotificationManager.shared.evaluate(current: result, prefs: settings.notifications)
+                    if let balance = result.creditBalance {
+                        await NotificationManager.shared.evaluateTopUp(
+                            currentBalance: balance,
+                            autoReload: codexAutoReload,
+                            prefs: settings.notifications
+                        )
+                    }
                 } catch {
                     // Retry also failed — coordinator already transitioned to unauthenticated
                 }
@@ -792,13 +821,15 @@ extension QuotaViewModel {
         claude: ClaudeUsage?,
         codex: CodexUsage?,
         claudeLoading: Bool = false,
-        codexLoading: Bool = false
+        codexLoading: Bool = false,
+        codexAutoReload: CodexAutoReload? = nil
     ) {
-        claudeUsage     = claude
-        codexUsage      = codex
-        isClaudeLoading = claudeLoading
-        isCodexLoading  = codexLoading
-        lastRefreshedAt = claude != nil || codex != nil ? .now : nil
+        claudeUsage         = claude
+        codexUsage          = codex
+        isClaudeLoading     = claudeLoading
+        isCodexLoading      = codexLoading
+        lastRefreshedAt     = claude != nil || codex != nil ? .now : nil
+        self.codexAutoReload = codexAutoReload
     }
 }
 #endif
