@@ -452,10 +452,14 @@ final class QuotaViewModel {
                 logger.info("[CodexRefresh] suppressing networkUnavailable: pathMonitor not ready yet")
                 return
             } else if case .decodingError = e {
-                // Transient decode failure (e.g. server returned an error page during
-                // post-reboot network init). Let the next auto-refresh recover silently.
-                logger.info("[CodexRefresh] suppressing decodingError — will retry on next cycle")
-                return
+                // Suppress only when we already have usage data — treats it as a transient
+                // blip (e.g. server returned an error page during post-reboot network init).
+                // If codexUsage is still nil we've never loaded successfully, so surface the
+                // error rather than leaving the gauge stuck in a permanent loading state.
+                if codexUsage != nil {
+                    logger.info("[CodexRefresh] suppressing decodingError — will retry on next cycle")
+                    return
+                }
             }
             codexError = e
         } catch is CancellationError {
@@ -513,10 +517,14 @@ final class QuotaViewModel {
                 logger.info("[ClaudeRefresh] suppressing networkUnavailable: pathMonitor not ready yet")
                 return
             } else if case .decodingError = e {
-                // Transient decode failure (e.g. server returned an error page during
-                // post-reboot network init). Let the next auto-refresh recover silently.
-                logger.info("[ClaudeRefresh] suppressing decodingError — will retry on next cycle")
-                return
+                // Suppress only when we already have usage data — treats it as a transient
+                // blip (e.g. server returned an error page during post-reboot network init).
+                // If claudeUsage is still nil we've never loaded successfully, so surface the
+                // error rather than leaving the gauge stuck in a permanent loading state.
+                if claudeUsage != nil {
+                    logger.info("[ClaudeRefresh] suppressing decodingError — will retry on next cycle")
+                    return
+                }
             }
             claudeError = e
         } catch is CancellationError {

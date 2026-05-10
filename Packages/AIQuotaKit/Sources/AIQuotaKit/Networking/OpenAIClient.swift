@@ -1,6 +1,8 @@
 import Foundation
+import OSLog
 
 public actor OpenAIClient {
+    private let logger = Logger(subsystem: "app.aiquota", category: "OpenAIClient")
     private let coordinator: CodexAuthCoordinator
     private let session: URLSession
 
@@ -50,6 +52,8 @@ public actor OpenAIClient {
             let raw = try decoder.decode(WhamUsageResponse.self, from: data)
             return CodexUsage(from: raw)
         } catch {
+            let preview = String(data: data.prefix(2000), encoding: .utf8) ?? "<non-UTF8>"
+            logger.error("[OpenAIClient] decodingError: \(error) | body: \(preview)")
             throw NetworkError.decodingError(underlying: error)
         }
     }
