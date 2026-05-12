@@ -36,9 +36,16 @@ struct CircularGaugeView: View {
 
     private static let amber = Color(red: 1.0, green: 0.65, blue: 0.0)
 
+    /// Mirrors the gauge's overall `statusColor` (worst-of primary & secondary) so the
+    /// primary caption never reads as "calm" when the gauge itself is in caution or
+    /// danger. Previously this used only the primary metric's own state, which made
+    /// the 5h reset caption stay purple while the arcs and 7d caption went red.
     private var primaryCaptionStyle: AnyShapeStyle {
-        if primaryLimitReached || primaryPercent >= 95 { return AnyShapeStyle(.red.opacity(0.8)) }
-        if primaryPercent >= 85 { return AnyShapeStyle(Self.amber) }
+        let worst = max(primaryPercent, secondaryPercent)
+        if primaryLimitReached || secondaryLimitReached || worst >= 95 {
+            return AnyShapeStyle(.red.opacity(0.8))
+        }
+        if worst >= 85 { return AnyShapeStyle(Self.amber) }
         return AnyShapeStyle(Self.accent.opacity(0.85))
     }
 
