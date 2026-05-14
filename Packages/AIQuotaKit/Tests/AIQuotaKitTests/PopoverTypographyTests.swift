@@ -14,7 +14,7 @@ struct PopoverTypographyTests {
         #expect(!popoverSource.contains(#"secondaryLabel: "7-day""#))
 
         #expect(popoverSource.contains(#".font(.system(size: 13, weight: .medium))"#))
-        #expect(popoverSource.contains(#"Text(label + ":").font(.caption2).foregroundStyle(.secondary)"#))
+        #expect(popoverSource.contains(#"Text(label + ":").font(.caption2).foregroundStyle(labelTint)"#))
         #expect(popoverSource.contains(#"Text(value).font(.caption2.monospacedDigit().bold())"#))
         #expect(!popoverSource.contains(#".font(.system(size: 13, weight: .bold).monospacedDigit())"#))
 
@@ -43,7 +43,8 @@ struct PopoverTypographyTests {
         // Credits row uses a dedicated text-first component, not a custom icon row.
         #expect(popoverSource.contains("CodexCreditsRow(balance: balance, autoReload: autoReload)"))
         #expect(popoverSource.contains("compactRow("))
-        #expect(popoverSource.contains(#"private func compactRow(_ label: String, _ value: String, valueTint: Color = .primary, suffix: String? = nil) -> some View"#))
+        #expect(popoverSource.contains(#"labelTint: Color = .secondary"#))
+        #expect(popoverSource.contains(#"valueTint: Color = .primary"#))
         #expect(!popoverSource.contains(#"Image(systemName: icon)"#))
         #expect(!popoverSource.contains(#"compactRow("Credits", "\(Int(balance))", "creditcard.fill")"#))
         #expect(!popoverSource.contains(#"compactRow("Extra", "\(Int(extra.usedCredits))/\(extra.monthlyLimit)", "plus.circle.fill")"#))

@@ -26,10 +26,16 @@ Current rules:
 
 | Monthly extra utilization | Treatment |
 |---|---|
-| `< 85%` | `Extra` text in primary |
-| `85%...94%` | `Extra` text in amber |
-| `95%...99%` | `Extra` text in red |
+| `< 85%` | `Extra` row in primary / secondary |
+| `85%...99%` | `Extra` label and value both in amber |
 | `>= 100%` | `BudgetStripView` |
+
+There is intentionally no red text tier between amber and the bar. The bar is
+the cliff signal; pairing it with a red text tier just below it would mean two
+"imminent" indicators back-to-back, which overstates the urgency and makes the
+popover feel noisier than the situation actually is. At 95% utilization the
+user still has real headroom — amber is the right "heads up" level until the
+bar actually appears.
 
 Important: this tinting is based only on the monthly extra cap. It should not
 inherit the 5-hour or 7-day gauge state. For example, if the Claude 5-hour ring

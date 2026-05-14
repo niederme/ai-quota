@@ -300,6 +300,7 @@ struct PopoverView: View {
                         compactRow(
                             "Extra",
                             "\(Int(extra.usedCredits))/\(extra.monthlyLimit)",
+                            labelTint: extraUsageTint(extra.utilization),
                             valueTint: extraUsageTint(extra.utilization)
                         )
                     }
@@ -309,15 +310,24 @@ struct PopoverView: View {
         }
     }
 
+    /// Amber from 85% all the way to 99%. We do NOT have a red text tier between
+    /// amber and the bar — the bar itself is the cliff signal. Two "imminent" tiers
+    /// (red text then red bar) is redundant noise and overstates the urgency, since
+    /// the user has real headroom until they actually hit the cap.
     private func extraUsageTint(_ utilization: Double) -> Color {
-        if utilization >= 95 { return .red }
         if utilization >= 85 { return Color(red: 1.0, green: 0.65, blue: 0.0) }
         return .primary
     }
 
-    private func compactRow(_ label: String, _ value: String, valueTint: Color = .primary, suffix: String? = nil) -> some View {
+    private func compactRow(
+        _ label: String,
+        _ value: String,
+        labelTint: Color = .secondary,
+        valueTint: Color = .primary,
+        suffix: String? = nil
+    ) -> some View {
         HStack(spacing: 5) {
-            Text(label + ":").font(.caption2).foregroundStyle(.secondary)
+            Text(label + ":").font(.caption2).foregroundStyle(labelTint)
             Text(value).font(.caption2.monospacedDigit().bold())
                 .foregroundStyle(valueTint)
             if let suffix {
