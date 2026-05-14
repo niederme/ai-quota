@@ -341,7 +341,7 @@ struct PopoverView: View {
     ) -> some View {
         HStack(spacing: 5) {
             Text(label + ":").font(.caption2).foregroundStyle(labelTint)
-            Text(value).font(.caption2.monospacedDigit().bold())
+            Text(value).font(.caption2.monospacedDigit())
                 .foregroundStyle(valueTint)
             if let suffix {
                 Text(suffix).font(.caption2).foregroundStyle(.tertiary)
@@ -585,7 +585,7 @@ private struct CodexCreditsRow: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 Text("\(Int(balance))")
-                    .font(.caption2.monospacedDigit().bold())
+                    .font(.caption2.monospacedDigit())
                     .foregroundStyle(valueTint)
                 Spacer(minLength: 4)
                 if let statusText {

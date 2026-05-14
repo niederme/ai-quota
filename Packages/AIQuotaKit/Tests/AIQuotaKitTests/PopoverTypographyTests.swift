@@ -15,7 +15,10 @@ struct PopoverTypographyTests {
 
         #expect(popoverSource.contains(#".font(.system(size: 13, weight: .medium))"#))
         #expect(popoverSource.contains(#"Text(label + ":").font(.caption2).foregroundStyle(labelTint)"#))
-        #expect(popoverSource.contains(#"Text(value).font(.caption2.monospacedDigit().bold())"#))
+        // Stats row values are intentionally NOT bold — the reset captions with their
+        // urgency color carry the real signal, and bolding metadata inverted the hierarchy.
+        #expect(popoverSource.contains(#"Text(value).font(.caption2.monospacedDigit())"#))
+        #expect(!popoverSource.contains(#"Text(value).font(.caption2.monospacedDigit().bold())"#))
         #expect(!popoverSource.contains(#".font(.system(size: 13, weight: .bold).monospacedDigit())"#))
 
         #expect(gaugeSource.contains(#".font(.system(size: 13, weight: .medium))"#))
