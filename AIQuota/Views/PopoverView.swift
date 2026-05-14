@@ -296,12 +296,17 @@ struct PopoverView: View {
                 if let extra = usage.extraUsage, extra.isEnabled {
                     if extra.utilization >= BudgetStripView.showThreshold {
                         BudgetStripView(extra: extra)
-                    } else {
+                    } else if let tint = extraUsageTint(extra, usage: usage) {
                         compactRow(
                             "Extra",
                             "\(Int(extra.usedCredits))/\(extra.monthlyLimit)",
-                            labelTint: extraUsageTint(extra.utilization),
-                            valueTint: extraUsageTint(extra.utilization)
+                            labelTint: tint,
+                            valueTint: tint
+                        )
+                    } else {
+                        compactRow(
+                            "Extra",
+                            "\(Int(extra.usedCredits))/\(extra.monthlyLimit)"
                         )
                     }
                 }
@@ -310,13 +315,21 @@ struct PopoverView: View {
         }
     }
 
-    /// Amber from 85% all the way to 99%. We do NOT have a red text tier between
-    /// amber and the bar — the bar itself is the cliff signal. Two "imminent" tiers
-    /// (red text then red bar) is redundant noise and overstates the urgency, since
-    /// the user has real headroom until they actually hit the cap.
-    private func extraUsageTint(_ utilization: Double) -> Color {
-        if utilization >= 85 { return Color(red: 1.0, green: 0.65, blue: 0.0) }
-        return .primary
+    /// Amber color for the Extra row, but only when there's an *active spending
+    /// pressure* signal from the gauges. If the 5h and 7d windows are both calm
+    /// (< 85%), monthly extra utilization at 85-99% isn't actionable in the
+    /// moment — the user isn't burning through anything right now, so the row
+    /// stays in default colors. Once a gauge hits amber, we know more usage is
+    /// imminent and the monthly headroom suddenly matters.
+    ///
+    /// Returns nil to mean "no tint" so the call site can fall back to compactRow's
+    /// default label-secondary / value-primary styling rather than overriding both
+    /// to the same color.
+    private func extraUsageTint(_ extra: ClaudeUsage.ExtraUsage, usage: ClaudeUsage) -> Color? {
+        let extraInWarning = extra.utilization >= 85
+        let gaugePressure = max(usage.fiveHourUtilization, usage.sevenDayUtilization) >= 85
+        guard extraInWarning, gaugePressure else { return nil }
+        return Color(red: 1.0, green: 0.65, blue: 0.0)
     }
 
     private func compactRow(

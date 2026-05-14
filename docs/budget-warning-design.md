@@ -24,11 +24,12 @@ monthly extra cap has been reached.
 
 Current rules:
 
-| Monthly extra utilization | Treatment |
-|---|---|
-| `< 85%` | `Extra` row in primary / secondary |
-| `85%...99%` | `Extra` label and value both in amber |
-| `>= 100%` | `BudgetStripView` |
+| Monthly extra utilization | 5h or 7d gauge state | Treatment |
+|---|---|---|
+| `< 85%` | any | `Extra` row in default (secondary label / primary value) |
+| `85%...99%` | both gauges `< 85%` | `Extra` row in default — no active pressure |
+| `85%...99%` | either gauge `>= 85%` | `Extra` label and value both in amber |
+| `>= 100%` | any | `BudgetStripView` (bar is a cap-hit fact, not gated on gauges) |
 
 There is intentionally no red text tier between amber and the bar. The bar is
 the cliff signal; pairing it with a red text tier just below it would mean two
@@ -37,9 +38,17 @@ popover feel noisier than the situation actually is. At 95% utilization the
 user still has real headroom — amber is the right "heads up" level until the
 bar actually appears.
 
-Important: this tinting is based only on the monthly extra cap. It should not
-inherit the 5-hour or 7-day gauge state. For example, if the Claude 5-hour ring
-is amber at 93% but monthly extra is 79%, `Extra` should remain primary.
+The gauge-pressure gate matters because monthly extra at, say, 92% utilization
+isn't an immediate problem if the user isn't actively burning through any
+short-term windows. They could comfortably wait out the month. Coloring the
+Extra row in that calm-gauges case is premature warning: it implies action is
+needed when nothing is happening. The amber treatment earns its weight only
+when both signals point at the same problem — high monthly extra **and**
+active spending pressure converging.
+
+The bar at `>= 100%` is exempt from this gate: it reports a state ("cap hit"),
+not a prediction. The user is past the line regardless of momentary gauge
+activity, so the bar appears as soon as the line is crossed.
 
 ## Codex credits
 
