@@ -14,7 +14,7 @@ options:
 # CURRENT_PROJECT_VERSION = Sparkle / bundle build number — bump for every release.
 settings:
   base:
-    MARKETING_VERSION: "1.9.16"
+    MARKETING_VERSION: "1.9.17"
     CURRENT_PROJECT_VERSION: "372"
 
 packages:
