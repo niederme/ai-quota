@@ -1,50 +1,75 @@
 import Foundation
 
-// MARK: - Display model
-
-/// Quota / rate-limit data for a Claude account.
-///
-/// Populated from GET /api/organizations/{org_uuid}/usage on claude.ai.
-/// The API returns utilization percentages (0–100), not message counts.
-/// There are two independent rolling windows:
-///   • **five_hour** — the primary short-term rate-limit gate (≈ 5 hours)
-///   • **seven_day** — a secondary longer-term gate (7 days)
-///
-/// Max-plan accounts also receive an `extra_usage` bucket showing monthly
-/// credit consumption for overflow / API-based usage.
 public struct ClaudeUsage: Codable, Sendable, Equatable {
-
-    // MARK: - Five-hour window (primary rate-limit)
-
-    /// Percentage of the 5-hour rolling window consumed, 0–100.
-    public let fiveHourUtilization: Double
-    /// When the 5-hour window resets.
-    public let fiveHourResetsAt: Date
-
-    // MARK: - Seven-day window (secondary gate)
-
-    /// Percentage of the 7-day rolling window consumed, 0–100.
-    public let sevenDayUtilization: Double
-    /// When the 7-day window resets.
-    public let sevenDayResetsAt: Date
-
-    // MARK: - Extra usage / credits (Max plans)
-
-    /// Overflow credit usage, present and enabled on Max plans.
+    public let fiveHourUtilization: Double?
+    public let fiveHourResetsAt: Date?
+    public let sevenDayUtilization: Double?
+    public let sevenDayResetsAt: Date?
     public let extraUsage: ExtraUsage?
-
+    public let spendLimit: SpendLimit?
+    public let planLabel: PlanLabel
+    public let primaryMetric: Metric
+    public let source: Source
     public let fetchedAt: Date
 
-    // MARK: - Nested types
+    public enum DisplayKind: String, Codable, Sendable, Equatable {
+        case fiveHour
+        case sevenDay
+        case spendLimit
+        case unknown
+
+        public var displayLabel: String {
+            switch self {
+            case .fiveHour: "5h"
+            case .sevenDay: "7d"
+            case .spendLimit: "Spend"
+            case .unknown: "Usage"
+            }
+        }
+    }
+
+    public enum PlanLabel: String, Codable, Sendable, Equatable {
+        case pro
+        case max
+        case team
+        case enterprise
+        case unknown
+
+        public var displayName: String {
+            switch self {
+            case .pro: "Pro"
+            case .max: "Max"
+            case .team: "Team"
+            case .enterprise: "Enterprise"
+            case .unknown: "Unknown"
+            }
+        }
+    }
+
+    public enum Source: String, Codable, Sendable, Equatable {
+        case web
+        case oauth
+        case unknown
+    }
+
+    public struct Metric: Codable, Sendable, Equatable {
+        public let kind: DisplayKind
+        public let utilization: Double?
+        public let resetAt: Date?
+
+        public init(kind: DisplayKind, utilization: Double?, resetAt: Date?) {
+            self.kind = kind
+            self.utilization = utilization
+            self.resetAt = resetAt
+        }
+
+        public var displayLabel: String { kind.displayLabel }
+    }
 
     public struct ExtraUsage: Codable, Sendable, Equatable {
-        /// Whether the extra-usage credits bucket is active for this account.
         public let isEnabled: Bool
-        /// Monthly credit ceiling (e.g. 2000).
         public let monthlyLimit: Int
-        /// Credits consumed so far this month.
         public let usedCredits: Double
-        /// Percentage of monthly credits consumed, 0–100.
         public let utilization: Double
 
         public init(isEnabled: Bool, monthlyLimit: Int, usedCredits: Double, utilization: Double) {
@@ -55,55 +80,94 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
         }
     }
 
-    // MARK: - Computed (gauge / notification compatibility)
+    public struct SpendLimit: Codable, Sendable, Equatable {
+        public let used: Double
+        public let limit: Double
+        public let utilization: Double
+        public let currencyCode: String?
 
-    /// Primary gauge value: 5-hour utilization rounded to an integer, 0–100.
-    public var usedPercent: Int { Int(fiveHourUtilization.rounded()) }
-
-    /// `true` when the 5-hour window is fully exhausted (≥ 100%).
-    public var limitReached: Bool { fiveHourUtilization >= 100 }
-
-    /// Fraction 0–1 for use in SwiftUI `Gauge` views.
-    public var percentFraction: Double { (fiveHourUtilization / 100.0).clamped(to: 0...1) }
-
-    /// Percentage of the 5-hour window's capacity still available.
-    public var remainingPercent: Int { max(0, 100 - usedPercent) }
-
-    /// Alias for callers that reference `resetAt` (e.g. NotificationManager).
-    public var resetAt: Date { fiveHourResetsAt }
-
-    /// Seconds until the 5-hour window resets, clamped to ≥ 0.
-    public var resetAfterSeconds: Int { max(0, Int(fiveHourResetsAt.timeIntervalSinceNow)) }
-
-    /// Seconds until the 7-day window resets, clamped to ≥ 0.
-    public var sevenDayResetAfterSeconds: Int { max(0, Int(sevenDayResetsAt.timeIntervalSinceNow)) }
-
-    /// Human-readable plan label inferred from response fields.
-    /// The /usage endpoint does not return a plan name; we infer from
-    /// the presence of `extra_usage` (a Max-plan feature) vs. absence (Pro).
-    public var planDisplayName: String {
-        extraUsage?.isEnabled == true ? "Max" : "Pro"
+        public init(used: Double, limit: Double, utilization: Double, currencyCode: String? = nil) {
+            self.used = used
+            self.limit = limit
+            self.utilization = utilization
+            self.currencyCode = currencyCode
+        }
     }
 
-    // MARK: - Init
+    public var usedPercent: Int { Int((primaryMetric.utilization ?? 0).rounded()) }
+    public var limitReached: Bool { (primaryMetric.utilization ?? 0) >= 100 }
+    public var percentFraction: Double { ((primaryMetric.utilization ?? 0) / 100.0).clamped(to: 0...1) }
+    public var remainingPercent: Int { max(0, 100 - usedPercent) }
+    public var resetAt: Date? { primaryMetric.resetAt }
+    public var resetAfterSeconds: Int? { primaryMetric.resetAt.map { max(0, Int($0.timeIntervalSinceNow)) } }
+    public var sevenDayResetAfterSeconds: Int? { sevenDayResetsAt.map { max(0, Int($0.timeIntervalSinceNow)) } }
+    public var planDisplayName: String { planLabel.displayName }
+    public var hasFiveHourWindow: Bool { fiveHourUtilization != nil && fiveHourResetsAt != nil }
+    public var hasSevenDayWindow: Bool { sevenDayUtilization != nil && sevenDayResetsAt != nil }
+    public var primaryMetricLabel: String { primaryMetric.displayLabel }
 
     public init(
-        fiveHourUtilization: Double,
-        fiveHourResetsAt: Date,
-        sevenDayUtilization: Double,
-        sevenDayResetsAt: Date,
+        fiveHourUtilization: Double?,
+        fiveHourResetsAt: Date?,
+        sevenDayUtilization: Double?,
+        sevenDayResetsAt: Date?,
         extraUsage: ExtraUsage?,
+        spendLimit: SpendLimit? = nil,
+        planLabel: PlanLabel? = nil,
+        source: Source = .unknown,
         fetchedAt: Date
     ) {
         self.fiveHourUtilization = fiveHourUtilization
-        self.fiveHourResetsAt    = fiveHourResetsAt
+        self.fiveHourResetsAt = fiveHourResetsAt
         self.sevenDayUtilization = sevenDayUtilization
-        self.sevenDayResetsAt    = sevenDayResetsAt
-        self.extraUsage          = extraUsage
-        self.fetchedAt           = fetchedAt
+        self.sevenDayResetsAt = sevenDayResetsAt
+        self.extraUsage = extraUsage
+        self.spendLimit = spendLimit
+        self.planLabel = planLabel ?? Self.inferPlanLabel(
+            extraUsage: extraUsage,
+            spendLimit: spendLimit,
+            hasWindowUsage: fiveHourUtilization != nil || sevenDayUtilization != nil
+        )
+        self.primaryMetric = Self.makePrimaryMetric(
+            fiveHourUtilization: fiveHourUtilization,
+            fiveHourResetsAt: fiveHourResetsAt,
+            sevenDayUtilization: sevenDayUtilization,
+            sevenDayResetsAt: sevenDayResetsAt,
+            spendLimit: spendLimit
+        )
+        self.source = source
+        self.fetchedAt = fetchedAt
     }
 
-    // MARK: - Placeholder / preview
+    public static func makePrimaryMetric(
+        fiveHourUtilization: Double?,
+        fiveHourResetsAt: Date?,
+        sevenDayUtilization: Double?,
+        sevenDayResetsAt: Date?,
+        spendLimit: SpendLimit?
+    ) -> Metric {
+        if let fiveHourUtilization {
+            return Metric(kind: .fiveHour, utilization: fiveHourUtilization, resetAt: fiveHourResetsAt)
+        }
+        if let sevenDayUtilization {
+            return Metric(kind: .sevenDay, utilization: sevenDayUtilization, resetAt: sevenDayResetsAt)
+        }
+        if let spendLimit {
+            return Metric(kind: .spendLimit, utilization: spendLimit.utilization, resetAt: nil)
+        }
+        return Metric(kind: .unknown, utilization: nil, resetAt: nil)
+    }
+
+    public static func inferPlanLabel(
+        extraUsage: ExtraUsage?,
+        spendLimit: SpendLimit?,
+        hasWindowUsage: Bool = true
+    ) -> PlanLabel {
+        if spendLimit != nil { return .enterprise }
+        if extraUsage?.isEnabled == true { return .max }
+        if !hasWindowUsage { return .unknown }
+        return .pro
+    }
 
     public static let placeholder = ClaudeUsage(
         fiveHourUtilization: 34,
@@ -111,9 +175,12 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
         sevenDayUtilization: 30,
         sevenDayResetsAt: Date.now.addingTimeInterval(86_400 * 5),
         extraUsage: ExtraUsage(
-            isEnabled: true, monthlyLimit: 2000,
-            usedCredits: 1609, utilization: 80.45
+            isEnabled: true,
+            monthlyLimit: 2000,
+            usedCredits: 1609,
+            utilization: 80.45
         ),
+        planLabel: .max,
         fetchedAt: .now
     )
 
@@ -123,11 +190,46 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
         sevenDayUtilization: 75,
         sevenDayResetsAt: Date.now.addingTimeInterval(86_400 * 2),
         extraUsage: nil,
+        planLabel: .pro,
         fetchedAt: .now
     )
-}
 
-// MARK: - Helpers
+    enum CodingKeys: String, CodingKey {
+        case fiveHourUtilization
+        case fiveHourResetsAt
+        case sevenDayUtilization
+        case sevenDayResetsAt
+        case extraUsage
+        case spendLimit
+        case planLabel
+        case source
+        case fetchedAt
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let fiveHourUtilization = try container.decodeIfPresent(Double.self, forKey: .fiveHourUtilization)
+        let fiveHourResetsAt = try container.decodeIfPresent(Date.self, forKey: .fiveHourResetsAt)
+        let sevenDayUtilization = try container.decodeIfPresent(Double.self, forKey: .sevenDayUtilization)
+        let sevenDayResetsAt = try container.decodeIfPresent(Date.self, forKey: .sevenDayResetsAt)
+        let extraUsage = try container.decodeIfPresent(ExtraUsage.self, forKey: .extraUsage)
+        let spendLimit = try container.decodeIfPresent(SpendLimit.self, forKey: .spendLimit)
+        let planLabel = try container.decodeIfPresent(PlanLabel.self, forKey: .planLabel)
+        let source = try container.decodeIfPresent(Source.self, forKey: .source) ?? .unknown
+        let fetchedAt = try container.decode(Date.self, forKey: .fetchedAt)
+        self.init(
+            fiveHourUtilization: fiveHourUtilization,
+            fiveHourResetsAt: fiveHourResetsAt,
+            sevenDayUtilization: sevenDayUtilization,
+            sevenDayResetsAt: sevenDayResetsAt,
+            extraUsage: extraUsage,
+            spendLimit: spendLimit,
+            planLabel: planLabel,
+            source: source,
+            fetchedAt: fetchedAt
+        )
+    }
+}
 
 private extension Comparable {
     func clamped(to range: ClosedRange<Self>) -> Self {

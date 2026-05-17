@@ -13,14 +13,14 @@ struct WidgetSmallView: View {
                     WidgetGaugeView(
                         primaryPercent: u.usedPercent,
                         primaryLimitReached: u.limitReached,
-                        secondaryPercent: Int(u.sevenDayUtilization.rounded()),
+                        secondaryPercent: Int(u.sevenDayUtilization?.rounded() ?? 0),
                         icon: "logo-claude",
                         label: "Claude Code",
-                        primaryLabel: "5h",
+                        primaryLabel: u.primaryMetricLabel,
                         secondaryLabel: "7-day",
-                        resetSeconds: u.resetAfterSeconds,
-                        weeklyResetSeconds: u.sevenDayResetAfterSeconds,
-                        secondaryLimitReached: u.sevenDayUtilization >= 100,
+                        resetSeconds: u.resetAfterSeconds ?? 0,
+                        weeklyResetSeconds: u.sevenDayResetAfterSeconds ?? 0,
+                        secondaryLimitReached: (u.sevenDayUtilization ?? 0) >= 100,
                         size: 90
                     )
                 } else {

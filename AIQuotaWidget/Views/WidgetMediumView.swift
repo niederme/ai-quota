@@ -82,7 +82,7 @@ private extension QuotaEntry {
             var detailRows = [
                 WidgetDetailRowData(
                     label: "Remaining",
-                    value: "\(usage.remainingPercent)%",
+                    value: usage.primaryMetric.utilization == nil ? "--" : "\(usage.remainingPercent)%",
                     icon: "sparkles",
                     tint: usage.limitReached ? .red : widgetAccentColor
                 ),
@@ -108,12 +108,12 @@ private extension QuotaEntry {
                 icon: "logo-claude",
                 primaryPercent: usage.usedPercent,
                 primaryLimitReached: usage.limitReached,
-                secondaryPercent: Int(usage.sevenDayUtilization.rounded()),
-                resetSeconds: usage.resetAfterSeconds,
-                weeklyResetSeconds: usage.sevenDayResetAfterSeconds,
-                secondaryLimitReached: usage.sevenDayUtilization >= 100,
+                secondaryPercent: Int(usage.sevenDayUtilization?.rounded() ?? 0),
+                resetSeconds: usage.resetAfterSeconds ?? 0,
+                weeklyResetSeconds: usage.sevenDayResetAfterSeconds ?? 0,
+                secondaryLimitReached: (usage.sevenDayUtilization ?? 0) >= 100,
                 detailRows: detailRows,
-                detailFooter: widgetCountdownText(prefix: "7d resets", seconds: usage.sevenDayResetAfterSeconds),
+                detailFooter: usage.sevenDayResetAfterSeconds.map { widgetCountdownText(prefix: "7d resets", seconds: $0) } ?? "",
                 alertText: usage.limitReached ? "Limit reached" : nil
             )
         }
@@ -537,14 +537,14 @@ struct WidgetMediumView: View {
                 WidgetGaugeView(
                     primaryPercent: u.usedPercent,
                     primaryLimitReached: u.limitReached,
-                    secondaryPercent: Int(u.sevenDayUtilization.rounded()),
+                    secondaryPercent: Int(u.sevenDayUtilization?.rounded() ?? 0),
                     icon: "logo-claude",
                     label: "Claude Code",
-                    primaryLabel: "5h",
+                    primaryLabel: u.primaryMetricLabel,
                     secondaryLabel: "7-day",
-                    resetSeconds: u.resetAfterSeconds,
-                    weeklyResetSeconds: u.sevenDayResetAfterSeconds,
-                    secondaryLimitReached: u.sevenDayUtilization >= 100,
+                    resetSeconds: u.resetAfterSeconds ?? 0,
+                    weeklyResetSeconds: u.sevenDayResetAfterSeconds ?? 0,
+                    secondaryLimitReached: (u.sevenDayUtilization ?? 0) >= 100,
                     size: size
                 )
             } else {

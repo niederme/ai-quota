@@ -518,6 +518,7 @@ final class QuotaViewModel {
 
         do {
             let result = try await claudeClient.fetchUsage()
+            if shouldPreserveClaudeLastGood(result) { return }
             claudeUsage = result
             lastRefreshedAt = .now
             SharedDefaults.saveClaudeUsage(result)
@@ -532,6 +533,7 @@ final class QuotaViewModel {
                 guard await claudeCoordinator.revalidateSessionAfterAuthFailure() else { return }
                 do {
                     let result = try await claudeClient.fetchUsage()
+                    if self.shouldPreserveClaudeLastGood(result) { return }
                     claudeUsage = result
                     lastRefreshedAt = .now
                     SharedDefaults.saveClaudeUsage(result)
@@ -640,9 +642,17 @@ final class QuotaViewModel {
         guard let claudeUsage else { return false }
         return claudeUsage.limitReached
             || claudeUsage.usedPercent >= 85
-            || claudeUsage.sevenDayUtilization >= 85
-            || claudeUsage.resetAfterSeconds <= 900
-            || claudeUsage.sevenDayResetAfterSeconds <= 900
+            || (claudeUsage.sevenDayUtilization ?? 0) >= 85
+            || (claudeUsage.resetAfterSeconds.map { $0 <= 900 } ?? false)
+            || (claudeUsage.sevenDayResetAfterSeconds.map { $0 <= 900 } ?? false)
+    }
+
+    private func shouldPreserveClaudeLastGood(_ result: ClaudeUsage) -> Bool {
+        guard let existing = claudeUsage else { return false }
+        guard existing.planLabel == .pro || existing.planLabel == .max else { return false }
+        guard result.primaryMetric.kind == .unknown, result.spendLimit == nil else { return false }
+        logger.info("[ClaudeRefresh] preserving last-good Pro/Max usage after transient null-window response")
+        return true
     }
 
     /// User-initiated refresh. Cancels any in-flight auto-refresh and restarts

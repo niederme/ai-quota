@@ -190,63 +190,76 @@ public actor NotificationManager {
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized else { return }
 
-        let storedResetAt  = defaults.object(forKey: Key.claudeLastResetAt) as? Double
-        let currentResetAt = claude.resetAt.timeIntervalSince1970
+        if let fiveHourUsed = claude.fiveHourUtilization,
+           let fiveHourResetAt = claude.fiveHourResetsAt {
+            let storedResetAt  = defaults.object(forKey: Key.claudeLastResetAt) as? Double
+            let currentResetAt = fiveHourResetAt.timeIntervalSince1970
 
-        if let stored = storedResetAt {
-            let storedDate = Date(timeIntervalSince1970: stored)
-            // Use a time-has-passed check rather than timestamp equality.
-            // resetAt is a rolling server-computed value that drifts by seconds on
-            // every fetch, so != would fire on every refresh even with no real reset.
-            if storedDate < .now {
-                clearThresholds(key: Key.claudeThresholds)
-                defaults.set(currentResetAt, forKey: Key.claudeLastResetAt)
-                if prefs.claude5hReset {
-                    await send(
-                        id: "claudeReset",
-                        title: "Claude 5-hour window reset",
-                        body: "Your Claude 5-hour window has reset. You're back to full capacity."
-                    )
+            if let stored = storedResetAt {
+                let storedDate = Date(timeIntervalSince1970: stored)
+                if storedDate < .now {
+                    clearThresholds(key: Key.claudeThresholds)
+                    defaults.set(currentResetAt, forKey: Key.claudeLastResetAt)
+                    if prefs.claude5hReset {
+                        await send(
+                            id: "claudeReset",
+                            title: "Claude 5-hour window reset",
+                            body: "Your Claude 5-hour window has reset. You're back to full capacity."
+                        )
+                    }
+                    return
+                } else if stored != currentResetAt {
+                    defaults.set(currentResetAt, forKey: Key.claudeLastResetAt)
                 }
-                return
-            } else if stored != currentResetAt {
+            } else {
                 defaults.set(currentResetAt, forKey: Key.claudeLastResetAt)
+                return
+            }
+
+            let notified = loadThresholds(key: Key.claudeThresholds)
+            let used = Int(fiveHourUsed.rounded())
+            let remaining = max(0, 100 - used)
+            let resetSeconds = max(0, Int(fiveHourResetAt.timeIntervalSinceNow))
+
+            if fiveHourUsed >= 100 && !notified.contains("limitReached") && prefs.claude5hLimitReached {
+                markThreshold("limitReached", key: Key.claudeThresholds)
+                await send(
+                    id: "claudeLimitReached",
+                    title: "Claude 5-hour limit reached",
+                    body: "You've hit the limit for your Claude 5-hour window. Resets in \(timeString(resetSeconds))."
+                )
+            } else if remaining < 5 && !notified.contains("below5") && prefs.claude5hAt5 {
+                markThreshold("below5", key: Key.claudeThresholds)
+                await send(
+                    id: "claudeBelow5",
+                    title: "Claude 5-hour near limit",
+                    body: "You're almost at the limit for your Claude 5-hour window. Resets in \(timeString(resetSeconds))."
+                )
+            } else if remaining < 15 && !notified.contains("below15") && prefs.claude5hAt15 {
+                markThreshold("below15", key: Key.claudeThresholds)
+                await send(
+                    id: "claudeBelow15",
+                    title: "Claude 5-hour usage high",
+                    body: "You've used most of your Claude 5-hour window. Resets in \(timeString(resetSeconds))."
+                )
             }
         } else {
-            defaults.set(currentResetAt, forKey: Key.claudeLastResetAt)
-            return
-        }
-
-        let notified  = loadThresholds(key: Key.claudeThresholds)
-        let remaining = claude.remainingPercent
-
-        if claude.limitReached && !notified.contains("limitReached") && prefs.claude5hLimitReached {
-            markThreshold("limitReached", key: Key.claudeThresholds)
-            await send(
-                id: "claudeLimitReached",
-                title: "Claude 5-hour limit reached",
-                body: "You've hit the limit for your Claude 5-hour window. Resets in \(timeString(claude.resetAfterSeconds))."
-            )
-        } else if remaining < 5 && !notified.contains("below5") && prefs.claude5hAt5 {
-            markThreshold("below5", key: Key.claudeThresholds)
-            await send(
-                id: "claudeBelow5",
-                title: "Claude 5-hour near limit",
-                body: "You're almost at the limit for your Claude 5-hour window. Resets in \(timeString(claude.resetAfterSeconds))."
-            )
-        } else if remaining < 15 && !notified.contains("below15") && prefs.claude5hAt15 {
-            markThreshold("below15", key: Key.claudeThresholds)
-            await send(
-                id: "claudeBelow15",
-                title: "Claude 5-hour usage high",
-                body: "You've used most of your Claude 5-hour window. Resets in \(timeString(claude.resetAfterSeconds))."
-            )
+            clearThresholds(key: Key.claudeThresholds)
+            defaults.removeObject(forKey: Key.claudeLastResetAt)
         }
 
         // ── 7-day threshold notifications ──────────────────────────────────
-        let sevenDayUsed     = Int(claude.sevenDayUtilization.rounded())
+        guard let sevenDayUtilization = claude.sevenDayUtilization,
+              let sevenDayResetsAt = claude.sevenDayResetsAt
+        else {
+            clearThresholds(key: Key.claudeSevenDayThresholds)
+            defaults.removeObject(forKey: Key.claudeSevenDayLastResetAt)
+            return
+        }
+        let sevenDayUsed     = Int(sevenDayUtilization.rounded())
         let sevenDayNotified = loadThresholds(key: Key.claudeSevenDayThresholds)
-        let sevenDayResetAt  = claude.sevenDayResetsAt.timeIntervalSince1970
+        let sevenDayResetAt  = sevenDayResetsAt.timeIntervalSince1970
+        let sevenDayResetSeconds = max(0, Int(sevenDayResetsAt.timeIntervalSinceNow))
         let storedSevenDay   = defaults.object(forKey: Key.claudeSevenDayLastResetAt) as? Double
 
         if let stored = storedSevenDay {
@@ -270,21 +283,21 @@ public actor NotificationManager {
                     await send(
                         id: "claudeSevenDayLimit",
                         title: "Claude 7-day limit reached",
-                        body: "You've hit the limit for your Claude 7-day window. Resets in \(timeString(claude.sevenDayResetAfterSeconds))."
+                        body: "You've hit the limit for your Claude 7-day window. Resets in \(timeString(sevenDayResetSeconds))."
                     )
                 } else if sevenDayUsed >= 95 && !sevenDayNotified.contains("above95") && prefs.claude7dAt95 {
                     markThreshold("above95", key: Key.claudeSevenDayThresholds)
                     await send(
                         id: "claudeSevenDay95",
                         title: "Claude 7-day near limit",
-                        body: "You're almost at the limit for your Claude 7-day window. Resets in \(timeString(claude.sevenDayResetAfterSeconds))."
+                        body: "You're almost at the limit for your Claude 7-day window. Resets in \(timeString(sevenDayResetSeconds))."
                     )
                 } else if sevenDayUsed >= 80 && !sevenDayNotified.contains("above80") && prefs.claude7dAt80 {
                     markThreshold("above80", key: Key.claudeSevenDayThresholds)
                     await send(
                         id: "claudeSevenDay80",
                         title: "Claude 7-day usage high",
-                        body: "You've used most of your Claude 7-day window. Resets in \(timeString(claude.sevenDayResetAfterSeconds))."
+                        body: "You've used most of your Claude 7-day window. Resets in \(timeString(sevenDayResetSeconds))."
                     )
                 }
             }

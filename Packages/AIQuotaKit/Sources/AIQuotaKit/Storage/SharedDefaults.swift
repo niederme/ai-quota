@@ -4,7 +4,11 @@ public enum SharedDefaults {
     private static let suite = "group.com.niederme.AIQuota"
     private static let codexUsageKey   = "cachedCodexUsage"
     private static let claudeUsageKey  = "cachedClaudeUsage"
+    private static let claudeUsageSchemaVersionKey = "cachedClaudeUsageSchemaVersion"
+    private static let currentClaudeUsageSchemaVersion = 2
+    private static let claudeSourceAttemptsKey = "claudeSourceAttempts"
     private static let settingsKey     = "appSettings"
+    private static let maxClaudeSourceAttempts = 10
 
     private static var defaults: UserDefaults {
         if let d = UserDefaults(suiteName: suite) { return d }
@@ -41,16 +45,45 @@ public enum SharedDefaults {
     public static func saveClaudeUsage(_ usage: ClaudeUsage) {
         guard let data = try? JSONEncoder().encode(usage) else { return }
         defaults.set(data, forKey: claudeUsageKey)
+        defaults.set(currentClaudeUsageSchemaVersion, forKey: claudeUsageSchemaVersionKey)
         persistChanges()
     }
 
     public static func loadCachedClaudeUsage() -> ClaudeUsage? {
+        guard defaults.integer(forKey: claudeUsageSchemaVersionKey) >= currentClaudeUsageSchemaVersion else {
+            clearClaudeUsage()
+            return nil
+        }
         guard let data = defaults.data(forKey: claudeUsageKey) else { return nil }
         return try? JSONDecoder().decode(ClaudeUsage.self, from: data)
     }
 
     public static func clearClaudeUsage() {
         defaults.removeObject(forKey: claudeUsageKey)
+        defaults.removeObject(forKey: claudeUsageSchemaVersionKey)
+        persistChanges()
+    }
+
+    public static func appendClaudeSourceAttempt(_ attempt: ClaudeSourceAttempt) {
+        var attempts = loadClaudeSourceAttempts()
+        attempts.append(attempt)
+        if attempts.count > maxClaudeSourceAttempts {
+            attempts.removeFirst(attempts.count - maxClaudeSourceAttempts)
+        }
+        guard let data = try? JSONEncoder().encode(attempts) else { return }
+        defaults.set(data, forKey: claudeSourceAttemptsKey)
+        persistChanges()
+    }
+
+    public static func loadClaudeSourceAttempts() -> [ClaudeSourceAttempt] {
+        guard let data = defaults.data(forKey: claudeSourceAttemptsKey),
+              let attempts = try? JSONDecoder().decode([ClaudeSourceAttempt].self, from: data)
+        else { return [] }
+        return attempts
+    }
+
+    public static func clearClaudeSourceAttempts() {
+        defaults.removeObject(forKey: claudeSourceAttemptsKey)
         persistChanges()
     }
 

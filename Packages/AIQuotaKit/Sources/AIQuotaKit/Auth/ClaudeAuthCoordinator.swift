@@ -106,6 +106,8 @@ public actor ClaudeAuthCoordinator {
         case .notFound, .none:
             if restoreFromSharedAuthContext() {
                 transition(to: .authenticated)
+            } else if ClaudeOAuthCredentialsStore.hasUsableCredentials() {
+                transition(to: .authenticated)
             } else {
                 SharedAuthContextStore.clearClaude()
                 transition(to: .unauthenticated)
@@ -145,6 +147,12 @@ public actor ClaudeAuthCoordinator {
         }
 
         transition(to: .signingIn)
+
+        if ClaudeOAuthCredentialsStore.hasUsableCredentials() {
+            UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+            transition(to: .authenticated)
+            return
+        }
 
         // Clear stale WKWebView cookies before the login window opens.
         await clearWKCookies()

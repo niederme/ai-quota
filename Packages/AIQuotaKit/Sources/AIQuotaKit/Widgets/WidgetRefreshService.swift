@@ -208,21 +208,18 @@ public actor WidgetRefreshService {
 
         do {
             let raw = try Self.claudeDecoder.decode(ClaudeWidgetUsageResponse.self, from: data)
-            let extra = raw.extraUsage.map {
-                ClaudeUsage.ExtraUsage(
-                    isEnabled: $0.isEnabled,
-                    monthlyLimit: $0.monthlyLimit,
-                    usedCredits: $0.usedCredits,
-                    utilization: $0.utilization
-                )
-            }
+            let hasNormalWindow = raw.fiveHour?.utilization != nil || raw.sevenDay?.utilization != nil
+            let spendLimit = Self.claudeSpendLimit(from: raw.extraUsage, hasNormalWindow: hasNormalWindow)
+            let extra = spendLimit == nil ? Self.claudeExtraUsage(from: raw.extraUsage) : nil
 
             return ClaudeUsage(
-                fiveHourUtilization: raw.fiveHour?.utilization ?? 0,
-                fiveHourResetsAt: raw.fiveHour?.resetsAt ?? now.addingTimeInterval(18_000),
-                sevenDayUtilization: raw.sevenDay?.utilization ?? 0,
-                sevenDayResetsAt: raw.sevenDay?.resetsAt ?? now.addingTimeInterval(604_800),
+                fiveHourUtilization: raw.fiveHour?.utilization,
+                fiveHourResetsAt: raw.fiveHour?.resetsAt,
+                sevenDayUtilization: raw.sevenDay?.utilization,
+                sevenDayResetsAt: raw.sevenDay?.resetsAt,
                 extraUsage: extra,
+                spendLimit: spendLimit,
+                source: .web,
                 fetchedAt: now
             )
         } catch {
@@ -232,6 +229,32 @@ public actor WidgetRefreshService {
 
     private func cookie(named name: String, in cookies: [HTTPCookie]) -> String? {
         cookies.first { $0.name == name && $0.domain.contains("claude.ai") }?.value
+    }
+
+    private static func claudeExtraUsage(from raw: ClaudeExtraUsageBucket?) -> ClaudeUsage.ExtraUsage? {
+        guard let raw,
+              let monthlyLimit = raw.monthlyLimit,
+              let usedCredits = raw.usedCredits
+        else { return nil }
+        let utilization = raw.utilization ?? (monthlyLimit > 0 ? (usedCredits / Double(monthlyLimit)) * 100 : 0)
+        return ClaudeUsage.ExtraUsage(
+            isEnabled: raw.isEnabled ?? false,
+            monthlyLimit: Int(monthlyLimit.rounded()),
+            usedCredits: usedCredits,
+            utilization: utilization
+        )
+    }
+
+    private static func claudeSpendLimit(from raw: ClaudeExtraUsageBucket?, hasNormalWindow: Bool) -> ClaudeUsage.SpendLimit? {
+        guard !hasNormalWindow,
+              let raw,
+              let monthlyLimit = raw.monthlyLimit,
+              let usedCredits = raw.usedCredits
+        else { return nil }
+        let used = usedCredits / 100.0
+        let limit = monthlyLimit / 100.0
+        let utilization = raw.utilization ?? (limit > 0 ? (used / limit) * 100 : 0)
+        return ClaudeUsage.SpendLimit(used: used, limit: limit, utilization: utilization, currencyCode: raw.currency)
     }
 
     private nonisolated(unsafe) static let claudeISO8601Formatter: ISO8601DateFormatter = {
@@ -270,8 +293,9 @@ private struct ClaudeWindowBucket: Decodable {
 }
 
 private struct ClaudeExtraUsageBucket: Decodable {
-    let isEnabled: Bool
-    let monthlyLimit: Int
-    let usedCredits: Double
-    let utilization: Double
+    let isEnabled: Bool?
+    let monthlyLimit: Double?
+    let usedCredits: Double?
+    let utilization: Double?
+    let currency: String?
 }

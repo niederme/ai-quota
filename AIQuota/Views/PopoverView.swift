@@ -126,14 +126,14 @@ struct PopoverView: View {
                 CircularGaugeView(
                     primaryPercent: u.usedPercent,
                     primaryLimitReached: u.limitReached,
-                    secondaryPercent: Int(u.sevenDayUtilization.rounded()),
-                    secondaryLimitReached: u.sevenDayUtilization >= 100,
+                    secondaryPercent: Int(u.sevenDayUtilization?.rounded() ?? 0),
+                    secondaryLimitReached: (u.sevenDayUtilization ?? 0) >= 100,
                     isLoading: false,
                     icon: "logo-claude",
                     label: "Claude Code",
-                    primaryLabel: "5h",
+                    primaryLabel: u.primaryMetricLabel,
                     secondaryLabel: "7d",
-                    resetAt: u.fiveHourResetsAt,
+                    resetAt: u.resetAt,
                     weeklyResetAt: u.sevenDayResetsAt,
                     isRefreshing: viewModel.isClaudeLoading,
                     onRefresh: { viewModel.manualRefresh() }
@@ -221,11 +221,16 @@ struct PopoverView: View {
 
     private func claudeTooltip(_ u: ClaudeUsage) -> String {
         var lines = [
-            "5h window: \(u.usedPercent)% used",
-            "7-day window: \(Int(u.sevenDayUtilization.rounded()))% used",
+            "\(u.primaryMetricLabel) usage: \(u.primaryMetric.utilization.map { "\(Int($0.rounded()))% used" } ?? "unknown")",
         ]
+        if let sevenDay = u.sevenDayUtilization {
+            lines.append("7-day window: \(Int(sevenDay.rounded()))% used")
+        }
         if let extra = u.extraUsage, extra.isEnabled {
             lines.append("Extra credits: \(Int(extra.usedCredits)) / \(extra.monthlyLimit)")
+        }
+        if let spend = u.spendLimit {
+            lines.append("Spend limit: \(Int(spend.used)) / \(Int(spend.limit))")
         }
         lines.append("Plan: \(u.planDisplayName)")
         return lines.joined(separator: "\n")
@@ -327,7 +332,7 @@ struct PopoverView: View {
     /// to the same color.
     private func extraUsageTint(_ extra: ClaudeUsage.ExtraUsage, usage: ClaudeUsage) -> Color? {
         let extraInWarning = extra.utilization >= 85
-        let gaugePressure = max(usage.fiveHourUtilization, usage.sevenDayUtilization) >= 85
+        let gaugePressure = max(usage.fiveHourUtilization ?? 0, usage.sevenDayUtilization ?? 0) >= 85
         guard extraInWarning, gaugePressure else { return nil }
         return Color(red: 1.0, green: 0.65, blue: 0.0)
     }

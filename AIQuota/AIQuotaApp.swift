@@ -118,7 +118,7 @@ struct AIQuotaApp: App {
     private var menuBarSecondaryPercent: Int {
         switch resolvedMenuBarService {
         case .codex:  return viewModel.codexUsage?.weeklyUsedPercent ?? 0
-        case .claude: return Int(viewModel.claudeUsage?.sevenDayUtilization.rounded() ?? 0)
+        case .claude: return Int(viewModel.claudeUsage?.sevenDayUtilization?.rounded() ?? 0)
         }
     }
 
@@ -133,8 +133,8 @@ struct AIQuotaApp: App {
             )
         case .claude:
             return max(
-                Int(viewModel.claudeUsage?.fiveHourUtilization.rounded() ?? 0),
-                Int(viewModel.claudeUsage?.sevenDayUtilization.rounded() ?? 0)
+                viewModel.claudeUsage?.usedPercent ?? 0,
+                Int(viewModel.claudeUsage?.sevenDayUtilization?.rounded() ?? 0)
             )
         }
     }

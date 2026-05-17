@@ -61,8 +61,9 @@ struct PopoverTypographyTests {
 
         #expect(budgetStripSource.contains("static let showThreshold: Double = 100"))
         #expect(popoverSource.contains("if extra.utilization >= BudgetStripView.showThreshold"))
-        #expect(popoverSource.contains("if utilization >= 95 { return .red }"))
-        #expect(popoverSource.contains("if utilization >= 85 { return Color(red: 1.0, green: 0.65, blue: 0.0) }"))
+        #expect(budgetStripSource.contains("extra.utilization >= 85 ? .red : .orange"))
+        #expect(popoverSource.contains("let extraInWarning = extra.utilization >= 85"))
+        #expect(popoverSource.contains("let gaugePressure = max(usage.fiveHourUtilization ?? 0, usage.sevenDayUtilization ?? 0) >= 85"))
         #expect(!popoverSource.contains("if utilization >= 70"))
         #expect(popoverSource.contains("isExhaustedWithoutReload && autoReload != nil"))
         #expect(popoverSource.contains("if shouldShowExceptionBar, let autoReload"))
@@ -93,7 +94,7 @@ struct PopoverTypographyTests {
 
         // PopoverView: Claude passes real 7-day reset dates and exhaustion state
         #expect(popoverSource.contains("u.sevenDayResetsAt"))
-        #expect(popoverSource.contains("u.sevenDayUtilization >= 100"))
+        #expect(popoverSource.contains("(u.sevenDayUtilization ?? 0) >= 100"))
     }
 
     @Test("7d reset line uses the inner-ring color treatment")
