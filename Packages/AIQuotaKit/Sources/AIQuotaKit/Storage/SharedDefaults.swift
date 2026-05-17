@@ -7,8 +7,10 @@ public enum SharedDefaults {
     private static let claudeUsageSchemaVersionKey = "cachedClaudeUsageSchemaVersion"
     private static let currentClaudeUsageSchemaVersion = 2
     private static let claudeSourceAttemptsKey = "claudeSourceAttempts"
+    private static let codexSourceAttemptsKey = "codexSourceAttempts"
     private static let settingsKey     = "appSettings"
     private static let maxClaudeSourceAttempts = 10
+    private static let maxCodexSourceAttempts = 10
 
     private static var defaults: UserDefaults {
         if let d = UserDefaults(suiteName: suite) { return d }
@@ -84,6 +86,29 @@ public enum SharedDefaults {
 
     public static func clearClaudeSourceAttempts() {
         defaults.removeObject(forKey: claudeSourceAttemptsKey)
+        persistChanges()
+    }
+
+    public static func appendCodexSourceAttempt(_ attempt: CodexSourceAttempt) {
+        var attempts = loadCodexSourceAttempts()
+        attempts.append(attempt)
+        if attempts.count > maxCodexSourceAttempts {
+            attempts.removeFirst(attempts.count - maxCodexSourceAttempts)
+        }
+        guard let data = try? JSONEncoder().encode(attempts) else { return }
+        defaults.set(data, forKey: codexSourceAttemptsKey)
+        persistChanges()
+    }
+
+    public static func loadCodexSourceAttempts() -> [CodexSourceAttempt] {
+        guard let data = defaults.data(forKey: codexSourceAttemptsKey),
+              let attempts = try? JSONDecoder().decode([CodexSourceAttempt].self, from: data)
+        else { return [] }
+        return attempts
+    }
+
+    public static func clearCodexSourceAttempts() {
+        defaults.removeObject(forKey: codexSourceAttemptsKey)
         persistChanges()
     }
 

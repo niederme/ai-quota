@@ -10,9 +10,10 @@ public enum CodexProbeResult: Sendable {
     case notFound
 }
 
-public enum CodexAuthSource: Sendable, Equatable {
+public enum CodexAuthSource: String, Codable, Sendable, Equatable {
     case codexOAuth
     case webSession
+    case unknown
 }
 
 public struct CodexAccessContext: Sendable, Equatable {

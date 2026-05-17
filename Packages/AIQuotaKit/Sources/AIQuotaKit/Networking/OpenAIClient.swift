@@ -19,7 +19,20 @@ public actor OpenAIClient {
     }
 
     public func fetchUsage() async throws -> CodexUsage {
-        let context = try await coordinator.accessContext()
+        let context: CodexAccessContext
+        do {
+            context = try await coordinator.accessContext()
+        } catch let error as NetworkError {
+            recordAttempt(
+                source: .unknown,
+                httpStatus: error.httpStatus,
+                category: Self.errorCategory(for: error)
+            )
+            throw error
+        } catch {
+            recordAttempt(source: .unknown, httpStatus: nil, category: .network)
+            throw error
+        }
 
         var req = URLRequest(url: baseURL.appendingPathComponent(usagePath))
         req.httpMethod = "GET"
@@ -33,9 +46,16 @@ public actor OpenAIClient {
             req.setValue(accountID, forHTTPHeaderField: "ChatGPT-Account-Id")
         }
 
-        let (data, response) = try await session.data(for: req)
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await session.data(for: req)
+        } catch {
+            recordAttempt(source: context.source, httpStatus: nil, category: .network)
+            throw error
+        }
 
         guard let http = response as? HTTPURLResponse else {
+            recordAttempt(source: context.source, httpStatus: nil, category: .network)
             throw NetworkError.networkUnavailable
         }
 
@@ -46,10 +66,17 @@ public actor OpenAIClient {
             if context.source == .codexOAuth {
                 await coordinator.disableOAuthForSession()
             }
+            recordAttempt(source: context.source, httpStatus: http.statusCode, category: .authFailed)
             throw NetworkError.tokenExpired
         case 429:
+            recordAttempt(source: context.source, httpStatus: http.statusCode, category: .rateLimited)
             throw NetworkError.rateLimited
         default:
+            recordAttempt(
+                source: context.source,
+                httpStatus: http.statusCode,
+                category: (500...599).contains(http.statusCode) ? .serverError : .invalidResponse
+            )
             throw NetworkError.httpError(statusCode: http.statusCode)
         }
 
@@ -57,8 +84,10 @@ public actor OpenAIClient {
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             let raw = try decoder.decode(WhamUsageResponse.self, from: data)
+            recordAttempt(source: context.source, httpStatus: http.statusCode, category: .success)
             return CodexUsage(from: raw)
         } catch {
+            recordAttempt(source: context.source, httpStatus: http.statusCode, category: .invalidResponse)
             let preview = String(data: data.prefix(2000), encoding: .utf8) ?? "<non-UTF8>"
             logger.error("[OpenAIClient] decodingError: \(error) | body: \(preview)")
             throw NetworkError.decodingError(underlying: error)
@@ -118,8 +147,52 @@ public actor OpenAIClient {
         }
         return CodexAutoReload(isEnabled: raw.isEnabled, rechargeThreshold: threshold, rechargeTarget: target)
     }
+
+    private func recordAttempt(
+        source: CodexAuthSource,
+        httpStatus: Int?,
+        category: CodexSourceAttempt.ErrorCategory
+    ) {
+        SharedDefaults.appendCodexSourceAttempt(.init(
+            source: source,
+            httpStatus: httpStatus,
+            errorCategory: category
+        ))
+    }
+
+    private static func errorCategory(for error: NetworkError) -> CodexSourceAttempt.ErrorCategory {
+        switch error {
+        case .notAuthenticated, .tokenExpired, .refreshFailed:
+            .authFailed
+        case .rateLimited:
+            .rateLimited
+        case .decodingError:
+            .invalidResponse
+        case .networkUnavailable:
+            .network
+        case .httpError(let statusCode):
+            (500...599).contains(statusCode) ? .serverError : .invalidResponse
+        case .unknownEndpoint:
+            .invalidResponse
+        }
+    }
 }
 
 private enum AutoReloadParseError: Error {
     case stringToDouble
+}
+
+private extension NetworkError {
+    var httpStatus: Int? {
+        switch self {
+        case .notAuthenticated:
+            401
+        case .rateLimited:
+            429
+        case .httpError(let statusCode):
+            statusCode
+        default:
+            nil
+        }
+    }
 }

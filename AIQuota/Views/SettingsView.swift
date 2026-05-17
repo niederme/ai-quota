@@ -80,6 +80,11 @@ struct SettingsView: View {
                 }
             }
 
+            // MARK: Diagnostics
+            Section("Diagnostics") {
+                AuthDiagnosticsRows()
+            }
+
             // MARK: Notifications — master toggle
             Section("Notifications") {
                 Toggle("Enable notifications", isOn: $vm.settings.notifications.enabled)
@@ -274,6 +279,152 @@ struct SettingsView: View {
 
     private func refreshLabel(for minutes: Int) -> String {
         minutes == AppSettings.autoRefreshIntervalMinutes ? "Auto" : "\(minutes)"
+    }
+}
+
+// MARK: - Auth Diagnostics
+
+private struct AuthDiagnosticsRows: View {
+    @State private var codexAttempts: [CodexSourceAttempt] = []
+    @State private var claudeAttempts: [ClaudeSourceAttempt] = []
+
+    var body: some View {
+        DiagnosticsSummaryRow(
+            label: "Codex",
+            summary: summary(for: codexAttempts.last),
+            isSuccess: codexAttempts.last?.errorCategory == .success
+        )
+        DiagnosticsSummaryRow(
+            label: "Claude",
+            summary: summary(for: claudeAttempts.last),
+            isSuccess: claudeAttempts.last?.errorCategory == .success
+        )
+
+        HStack {
+            Button("Refresh") { reload() }
+            Button("Copy Diagnostics") { copyDiagnostics() }
+            Spacer()
+        }
+
+        Text("Copies only auth source, HTTP status, error category, and timestamp. Tokens, headers, cookies, and response bodies are not included.")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .task { reload() }
+    }
+
+    private func reload() {
+        codexAttempts = SharedDefaults.loadCodexSourceAttempts()
+        claudeAttempts = SharedDefaults.loadClaudeSourceAttempts()
+    }
+
+    private func summary(for attempt: CodexSourceAttempt?) -> String {
+        guard let attempt else { return "No recent attempts" }
+        return [
+            sourceName(attempt.source),
+            categoryName(attempt.errorCategory.rawValue),
+            httpStatus(attempt.httpStatus),
+            relativeTime(attempt.timestamp)
+        ].joined(separator: " · ")
+    }
+
+    private func summary(for attempt: ClaudeSourceAttempt?) -> String {
+        guard let attempt else { return "No recent attempts" }
+        return [
+            sourceName(attempt.source),
+            categoryName(attempt.errorCategory.rawValue),
+            httpStatus(attempt.httpStatus),
+            relativeTime(attempt.timestamp)
+        ].joined(separator: " · ")
+    }
+
+    private func copyDiagnostics() {
+        reload()
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(diagnosticsReport(), forType: .string)
+    }
+
+    private func diagnosticsReport() -> String {
+        var lines: [String] = [
+            "AIQuota auth diagnostics",
+            "Generated: \(Self.timestampFormatter.string(from: .now))",
+            "",
+            "Codex attempts:"
+        ]
+        lines.append(contentsOf: codexAttempts.map(codexLine))
+        if codexAttempts.isEmpty { lines.append("- none") }
+
+        lines.append("")
+        lines.append("Claude attempts:")
+        lines.append(contentsOf: claudeAttempts.map(claudeLine))
+        if claudeAttempts.isEmpty { lines.append("- none") }
+        return lines.joined(separator: "\n")
+    }
+
+    private func codexLine(_ attempt: CodexSourceAttempt) -> String {
+        "- \(Self.timestampFormatter.string(from: attempt.timestamp)) source=\(attempt.source.rawValue) category=\(attempt.errorCategory.rawValue) httpStatus=\(attempt.httpStatus.map(String.init) ?? "none")"
+    }
+
+    private func claudeLine(_ attempt: ClaudeSourceAttempt) -> String {
+        "- \(Self.timestampFormatter.string(from: attempt.timestamp)) source=\(attempt.source.rawValue) category=\(attempt.errorCategory.rawValue) httpStatus=\(attempt.httpStatus.map(String.init) ?? "none")"
+    }
+
+    private func sourceName(_ source: CodexAuthSource) -> String {
+        switch source {
+        case .codexOAuth: "CLI OAuth"
+        case .webSession: "Web"
+        case .unknown: "Unknown"
+        }
+    }
+
+    private func sourceName(_ source: ClaudeUsage.Source) -> String {
+        switch source {
+        case .oauth: "Claude Code"
+        case .web: "Web"
+        case .unknown: "Unknown"
+        }
+    }
+
+    private func categoryName(_ rawValue: String) -> String {
+        rawValue
+            .replacingOccurrences(
+                of: "([a-z])([A-Z])",
+                with: "$1 $2",
+                options: .regularExpression
+            )
+            .capitalized
+    }
+
+    private func httpStatus(_ status: Int?) -> String {
+        status.map { "HTTP \($0)" } ?? "No HTTP"
+    }
+
+    private func relativeTime(_ date: Date) -> String {
+        Self.relativeFormatter.localizedString(for: date, relativeTo: .now)
+    }
+
+    private static let relativeFormatter: RelativeDateTimeFormatter = {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter
+    }()
+
+    private static let timestampFormatter = ISO8601DateFormatter()
+}
+
+private struct DiagnosticsSummaryRow: View {
+    let label: String
+    let summary: String
+    let isSuccess: Bool
+
+    var body: some View {
+        LabeledContent(label) {
+            Text(summary)
+                .font(.caption)
+                .foregroundStyle(isSuccess ? .green : .secondary)
+                .multilineTextAlignment(.trailing)
+        }
     }
 }
 

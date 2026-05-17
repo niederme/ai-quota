@@ -43,6 +43,26 @@ struct SharedDefaultsPersistenceTests {
         #expect(attempts.last?.httpStatus == 411)
     }
 
+    @Test("Codex source diagnostics retain only a redacted ring buffer")
+    func codexSourceDiagnosticsUseRingBuffer() {
+        SharedDefaults.clearCodexSourceAttempts()
+        defer { SharedDefaults.clearCodexSourceAttempts() }
+
+        for index in 0..<12 {
+            SharedDefaults.appendCodexSourceAttempt(.init(
+                source: .codexOAuth,
+                httpStatus: 500 + index,
+                errorCategory: .serverError,
+                timestamp: Date(timeIntervalSince1970: Double(index))
+            ))
+        }
+
+        let attempts = SharedDefaults.loadCodexSourceAttempts()
+        #expect(attempts.count == 10)
+        #expect(attempts.first?.httpStatus == 502)
+        #expect(attempts.last?.httpStatus == 511)
+    }
+
     private var repoRoot: URL {
         URL(filePath: #filePath)
             .deletingLastPathComponent()

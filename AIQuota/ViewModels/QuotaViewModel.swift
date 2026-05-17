@@ -149,6 +149,8 @@ final class QuotaViewModel {
         codexAutoReload = nil
         SharedDefaults.clearUsage()
         SharedDefaults.clearClaudeUsage()
+        SharedDefaults.clearCodexSourceAttempts()
+        SharedDefaults.clearClaudeSourceAttempts()
         settings = .default
         // Persist settings directly — calling saveSettings() would invoke startAutoRefresh(),
         // which must not fire while the auth coordinators are still in the resetting state.
