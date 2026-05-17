@@ -44,19 +44,80 @@ public enum ClaudeOAuthCredentialsError: LocalizedError, Sendable {
     }
 }
 
+public struct ClaudeOAuthKeychainReader: Sendable {
+    public static let claudeCodeSecurityCLI = ClaudeOAuthKeychainReader {
+        try readClaudeCodeSecurityCLI()
+    }
+
+    private static let serviceName = "Claude Code-credentials"
+    private static let timeout: DispatchTimeInterval = .milliseconds(1500)
+
+    private let read: @Sendable () throws -> Data?
+
+    public init(read: @escaping @Sendable () throws -> Data?) {
+        self.read = read
+    }
+
+    func readCredentialsData() throws -> Data? {
+        try read()
+    }
+
+    private static func readClaudeCodeSecurityCLI() throws -> Data? {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
+        process.arguments = [
+            "find-generic-password",
+            "-s", serviceName,
+            "-w"
+        ]
+
+        let output = Pipe()
+        process.standardOutput = output
+        process.standardError = Pipe()
+
+        try process.run()
+
+        let group = DispatchGroup()
+        group.enter()
+        DispatchQueue.global(qos: .utility).async {
+            process.waitUntilExit()
+            group.leave()
+        }
+
+        guard group.wait(timeout: .now() + timeout) == .success else {
+            process.terminate()
+            return nil
+        }
+
+        guard process.terminationStatus == 0 else {
+            return nil
+        }
+
+        let data = output.fileHandleForReading.readDataToEndOfFile()
+        let text = String(data: data, encoding: .utf8)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !text.isEmpty else {
+            return nil
+        }
+        return Data(text.utf8)
+    }
+}
+
 public enum ClaudeOAuthCredentialsStore {
     public static func hasUsableCredentials(
         env: [String: String] = ProcessInfo.processInfo.environment,
-        fileManager: FileManager = .default
+        fileManager: FileManager = .default,
+        keychainReader: ClaudeOAuthKeychainReader? = .claudeCodeSecurityCLI
     ) -> Bool {
-        (try? loadUsable(env: env, fileManager: fileManager)) != nil
+        (try? loadUsable(env: env, fileManager: fileManager, keychainReader: keychainReader)) != nil
     }
 
     public static func loadUsable(
         env: [String: String] = ProcessInfo.processInfo.environment,
-        fileManager: FileManager = .default
+        fileManager: FileManager = .default,
+        keychainReader: ClaudeOAuthKeychainReader? = .claudeCodeSecurityCLI
     ) throws -> ClaudeOAuthCredentials {
-        let credentials = try load(env: env, fileManager: fileManager)
+        let credentials = try load(env: env, fileManager: fileManager, keychainReader: keychainReader)
         guard !credentials.isExpired else { throw ClaudeOAuthCredentialsError.expired }
         guard credentials.hasRequiredScope else { throw ClaudeOAuthCredentialsError.missingScope }
         return credentials
@@ -64,14 +125,20 @@ public enum ClaudeOAuthCredentialsStore {
 
     public static func load(
         env: [String: String] = ProcessInfo.processInfo.environment,
-        fileManager: FileManager = .default
+        fileManager: FileManager = .default,
+        keychainReader: ClaudeOAuthKeychainReader? = .claudeCodeSecurityCLI
     ) throws -> ClaudeOAuthCredentials {
         let url = credentialsURL(env: env, fileManager: fileManager)
-        guard fileManager.fileExists(atPath: url.path) else {
-            throw ClaudeOAuthCredentialsError.notFound
+        if fileManager.fileExists(atPath: url.path) {
+            let data = try Data(contentsOf: url)
+            return try parse(data: data)
         }
-        let data = try Data(contentsOf: url)
-        return try parse(data: data)
+
+        if let keychainReader, let data = try? keychainReader.readCredentialsData() {
+            return try parse(data: data)
+        }
+
+        throw ClaudeOAuthCredentialsError.notFound
     }
 
     public static func parse(data: Data) throws -> ClaudeOAuthCredentials {

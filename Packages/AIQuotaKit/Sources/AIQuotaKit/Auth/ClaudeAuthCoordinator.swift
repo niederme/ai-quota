@@ -47,10 +47,18 @@ public actor ClaudeAuthCoordinator {
 
     /// Real probe reads WKWebsiteDataStore.default(). Tests inject a mock.
     public typealias SessionProbe = @Sendable () async -> ClaudeProbeResult
+    public typealias OAuthCredentialsProbe = @Sendable () -> Bool
     private let probe: SessionProbe
+    private let hasOAuthCredentials: OAuthCredentialsProbe
 
-    public init(probe: SessionProbe? = nil) {
+    public init(
+        probe: SessionProbe? = nil,
+        hasOAuthCredentials: OAuthCredentialsProbe? = nil
+    ) {
         self.probe = probe ?? ClaudeAuthCoordinator.wkProbe
+        self.hasOAuthCredentials = hasOAuthCredentials ?? {
+            ClaudeOAuthCredentialsStore.hasUsableCredentials()
+        }
     }
 
     // MARK: - State stream
@@ -106,7 +114,7 @@ public actor ClaudeAuthCoordinator {
         case .notFound, .none:
             if restoreFromSharedAuthContext() {
                 transition(to: .authenticated)
-            } else if ClaudeOAuthCredentialsStore.hasUsableCredentials() {
+            } else if hasOAuthCredentials() {
                 transition(to: .authenticated)
             } else {
                 SharedAuthContextStore.clearClaude()
@@ -148,7 +156,7 @@ public actor ClaudeAuthCoordinator {
 
         transition(to: .signingIn)
 
-        if ClaudeOAuthCredentialsStore.hasUsableCredentials() {
+        if hasOAuthCredentials() {
             UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
             transition(to: .authenticated)
             return

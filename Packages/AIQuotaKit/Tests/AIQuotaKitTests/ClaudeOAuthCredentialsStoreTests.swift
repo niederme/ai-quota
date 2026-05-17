@@ -64,6 +64,66 @@ struct ClaudeOAuthCredentialsStoreTests {
         }
     }
 
+    @Test("falls back to Claude Code Keychain credentials when file is missing")
+    func fallsBackToKeychainCredentials() throws {
+        let root = temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let keychainReader = ClaudeOAuthKeychainReader {
+            Data("""
+            {
+              "claudeAiOauth": {
+                "accessToken": "keychain-token",
+                "expiresAt": \(Int(Date().addingTimeInterval(3_600).timeIntervalSince1970 * 1000)),
+                "scopes": ["user:profile"]
+              }
+            }
+            """.utf8)
+        }
+
+        let credentials = try ClaudeOAuthCredentialsStore.loadUsable(
+            env: ["HOME": root.path],
+            keychainReader: keychainReader
+        )
+
+        #expect(credentials.accessToken == "keychain-token")
+    }
+
+    @Test("file credentials win over Claude Code Keychain credentials")
+    func fileCredentialsWinOverKeychainCredentials() throws {
+        let root = temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root.appending(path: ".claude"), withIntermediateDirectories: true)
+
+        try Data("""
+        {
+          "claudeAiOauth": {
+            "accessToken": "file-token",
+            "expiresAt": \(Int(Date().addingTimeInterval(3_600).timeIntervalSince1970 * 1000)),
+            "scopes": ["user:profile"]
+          }
+        }
+        """.utf8).write(to: root.appending(path: ".claude/.credentials.json"))
+
+        let keychainReader = ClaudeOAuthKeychainReader {
+            Data("""
+            {
+              "claudeAiOauth": {
+                "accessToken": "keychain-token",
+                "expiresAt": \(Int(Date().addingTimeInterval(3_600).timeIntervalSince1970 * 1000)),
+                "scopes": ["user:profile"]
+              }
+            }
+            """.utf8)
+        }
+
+        let credentials = try ClaudeOAuthCredentialsStore.loadUsable(
+            env: ["HOME": root.path],
+            keychainReader: keychainReader
+        )
+
+        #expect(credentials.accessToken == "file-token")
+    }
+
     @Test("CLAUDE_CONFIG_DIR wins over home credentials path")
     func claudeConfigDirWins() throws {
         let root = temporaryDirectory()

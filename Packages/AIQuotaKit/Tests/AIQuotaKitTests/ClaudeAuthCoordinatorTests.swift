@@ -16,11 +16,15 @@ struct ClaudeAuthCoordinatorTests {
         SharedAuthContextStore.clearClaude()
     }
 
+    private func makeSUT(probe: @escaping ClaudeAuthCoordinator.SessionProbe) -> ClaudeAuthCoordinator {
+        ClaudeAuthCoordinator(probe: probe, hasOAuthCredentials: { false })
+    }
+
     // MARK: - Bootstrap
 
     @Test("bootstrap with valid session → authenticated")
     func bootstrapFound() async throws {
-        let sut = ClaudeAuthCoordinator(probe: { .found(orgId: "org-1", cookies: []) })
+        let sut = makeSUT(probe: { .found(orgId: "org-1", cookies: []) })
         await sut.bootstrap()
         let state = await sut.state
         #expect(state == .authenticated)
@@ -28,7 +32,7 @@ struct ClaudeAuthCoordinatorTests {
 
     @Test("bootstrap with no session → unauthenticated")
     func bootstrapNotFound() async throws {
-        let sut = ClaudeAuthCoordinator(probe: { .notFound })
+        let sut = makeSUT(probe: { .notFound })
         await sut.bootstrap()
         let state = await sut.state
         #expect(state == .unauthenticated)
@@ -39,7 +43,7 @@ struct ClaudeAuthCoordinatorTests {
         UserDefaults.standard.set(true, forKey: Self.signedOutKey)
         defer { UserDefaults.standard.removeObject(forKey: Self.signedOutKey) }
 
-        let sut = ClaudeAuthCoordinator(probe: { .found(orgId: "org-1", cookies: []) })
+        let sut = makeSUT(probe: { .found(orgId: "org-1", cookies: []) })
         await sut.bootstrap()
         let state = await sut.state
         #expect(state == .signedOutByUser)
@@ -48,7 +52,7 @@ struct ClaudeAuthCoordinatorTests {
     @Test("bootstrap is idempotent after first call")
     func bootstrapIdempotent() async throws {
         let callCount = LockIsolated(0)
-        let sut = ClaudeAuthCoordinator(probe: {
+        let sut = makeSUT(probe: {
             callCount.withLock { $0 += 1 }
             return .notFound
         })
@@ -69,7 +73,7 @@ struct ClaudeAuthCoordinatorTests {
             UserDefaults.standard.removeObject(forKey: "app.installedAt.v2")
         }
 
-        let sut = ClaudeAuthCoordinator(probe: { .notFound })
+        let sut = makeSUT(probe: { .notFound })
         await sut.bootstrap()
 
         #expect(SharedDefaults.loadCachedClaudeUsage() != nil)
@@ -92,7 +96,7 @@ struct ClaudeAuthCoordinatorTests {
         UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
         defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
 
-        let sut = ClaudeAuthCoordinator(probe: { .notFound })
+        let sut = makeSUT(probe: { .notFound })
         await sut.bootstrap()
 
         #expect(await sut.state == .authenticated)
@@ -104,7 +108,7 @@ struct ClaudeAuthCoordinatorTests {
 
     @Test("signIn from authenticated throws invalidTransition")
     func signInIllegalFromAuthenticated() async throws {
-        let sut = ClaudeAuthCoordinator(probe: { .found(orgId: "x", cookies: []) })
+        let sut = makeSUT(probe: { .found(orgId: "x", cookies: []) })
         await sut.bootstrap()  // → authenticated
         await #expect(throws: AuthCoordinatorError.self) {
             try await sut.signIn()
@@ -116,7 +120,7 @@ struct ClaudeAuthCoordinatorTests {
     @Test("signOut from authenticated transitions to signedOutByUser")
     func signOutFromAuthenticated() async throws {
         UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
-        let sut = ClaudeAuthCoordinator(probe: { .found(orgId: "org-1", cookies: []) })
+        let sut = makeSUT(probe: { .found(orgId: "org-1", cookies: []) })
         await sut.bootstrap()
         #expect(await sut.state == .authenticated)
         try await sut.signOut()
@@ -129,7 +133,7 @@ struct ClaudeAuthCoordinatorTests {
 
     @Test("signOut from unknown throws invalidTransition")
     func signOutFromUnknownThrows() async throws {
-        let sut = ClaudeAuthCoordinator(probe: { .notFound })
+        let sut = makeSUT(probe: { .notFound })
         // Do NOT call bootstrap — coordinator is in .unknown
         await #expect(throws: AuthCoordinatorError.self) {
             try await sut.signOut()
@@ -138,7 +142,7 @@ struct ClaudeAuthCoordinatorTests {
 
     @Test("signOut from unauthenticated is a no-op")
     func signOutNoOpFromUnauthenticated() async throws {
-        let sut = ClaudeAuthCoordinator(probe: { .notFound })
+        let sut = makeSUT(probe: { .notFound })
         await sut.bootstrap()
         try await sut.signOut()
         let state = await sut.state
@@ -149,7 +153,7 @@ struct ClaudeAuthCoordinatorTests {
     func signOutNoOpFromSignedOutByUser() async throws {
         UserDefaults.standard.set(true, forKey: Self.signedOutKey)
         defer { UserDefaults.standard.removeObject(forKey: Self.signedOutKey) }
-        let sut = ClaudeAuthCoordinator(probe: { .notFound })
+        let sut = makeSUT(probe: { .notFound })
         await sut.bootstrap()
         try await sut.signOut()
         let state = await sut.state
@@ -160,7 +164,7 @@ struct ClaudeAuthCoordinatorTests {
 
     @Test("revalidate from unauthenticated returns false without transition")
     func revalidateFromWrongState() async throws {
-        let sut = ClaudeAuthCoordinator(probe: { .notFound })
+        let sut = makeSUT(probe: { .notFound })
         await sut.bootstrap()
         let result = await sut.revalidateSessionAfterAuthFailure()
         #expect(result == false)
@@ -171,7 +175,7 @@ struct ClaudeAuthCoordinatorTests {
     @Test("revalidate from authenticated with no session → unauthenticated, returns false")
     func revalidateFailure() async throws {
         let callCount = LockIsolated(0)
-        let sut = ClaudeAuthCoordinator(probe: {
+        let sut = makeSUT(probe: {
             let count = callCount.withLock { (n: inout Int) -> Int in
                 n += 1
                 return n
@@ -189,7 +193,7 @@ struct ClaudeAuthCoordinatorTests {
 
     @Test("revalidate from authenticated with valid session stays authenticated, returns true")
     func revalidateSuccess() async throws {
-        let sut = ClaudeAuthCoordinator(probe: { .found(orgId: "x", cookies: []) })
+        let sut = makeSUT(probe: { .found(orgId: "x", cookies: []) })
         await sut.bootstrap()
         let result = await sut.revalidateSessionAfterAuthFailure()
         #expect(result == true)
@@ -200,7 +204,7 @@ struct ClaudeAuthCoordinatorTests {
 
     @Test("requestContext throws when not authenticated")
     func requestContextUnauthenticated() async throws {
-        let sut = ClaudeAuthCoordinator(probe: { .notFound })
+        let sut = makeSUT(probe: { .notFound })
         await sut.bootstrap()
         await #expect(throws: NetworkError.self) {
             _ = try await sut.requestContext()
@@ -209,7 +213,7 @@ struct ClaudeAuthCoordinatorTests {
 
     @Test("requestContext returns orgId when authenticated")
     func requestContextAuthenticated() async throws {
-        let sut = ClaudeAuthCoordinator(probe: { .found(orgId: "org-42", cookies: []) })
+        let sut = makeSUT(probe: { .found(orgId: "org-42", cookies: []) })
         await sut.bootstrap()
         let ctx = try await sut.requestContext()
         #expect(ctx.orgId == "org-42")
