@@ -19,16 +19,19 @@ public actor OpenAIClient {
     }
 
     public func fetchUsage() async throws -> CodexUsage {
-        let token = try await coordinator.accessToken()
+        let context = try await coordinator.accessContext()
 
         var req = URLRequest(url: baseURL.appendingPathComponent(usagePath))
         req.httpMethod = "GET"
-        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        req.setValue("Bearer \(context.accessToken)", forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue("https://chatgpt.com/codex/settings/usage", forHTTPHeaderField: "Referer")
         req.setValue("same-origin", forHTTPHeaderField: "Sec-Fetch-Site")
         req.setValue("cors", forHTTPHeaderField: "Sec-Fetch-Mode")
         req.setValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
+        if let accountID = context.accountID {
+            req.setValue(accountID, forHTTPHeaderField: "ChatGPT-Account-Id")
+        }
 
         let (data, response) = try await session.data(for: req)
 
@@ -40,6 +43,9 @@ public actor OpenAIClient {
         case 200...299:
             break
         case 401:
+            if context.source == .codexOAuth {
+                await coordinator.disableOAuthForSession()
+            }
             throw NetworkError.tokenExpired
         case 429:
             throw NetworkError.rateLimited
@@ -60,16 +66,19 @@ public actor OpenAIClient {
     }
 
     public func fetchAutoReload() async throws -> CodexAutoReload {
-        let token = try await coordinator.accessToken()
+        let context = try await coordinator.accessContext()
 
         var req = URLRequest(url: baseURL.appendingPathComponent(autoTopUpPath))
         req.httpMethod = "GET"
-        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        req.setValue("Bearer \(context.accessToken)", forHTTPHeaderField: "Authorization")
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue("https://chatgpt.com/codex/settings/usage", forHTTPHeaderField: "Referer")
         req.setValue("same-origin", forHTTPHeaderField: "Sec-Fetch-Site")
         req.setValue("cors", forHTTPHeaderField: "Sec-Fetch-Mode")
         req.setValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
+        if let accountID = context.accountID {
+            req.setValue(accountID, forHTTPHeaderField: "ChatGPT-Account-Id")
+        }
 
         let (data, response) = try await session.data(for: req)
 
@@ -81,6 +90,9 @@ public actor OpenAIClient {
         case 200...299:
             break
         case 401:
+            if context.source == .codexOAuth {
+                await coordinator.disableOAuthForSession()
+            }
             throw NetworkError.tokenExpired
         case 429:
             throw NetworkError.rateLimited

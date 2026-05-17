@@ -10,6 +10,23 @@ public enum CodexProbeResult: Sendable {
     case notFound
 }
 
+public enum CodexAuthSource: Sendable, Equatable {
+    case codexOAuth
+    case webSession
+}
+
+public struct CodexAccessContext: Sendable, Equatable {
+    public let accessToken: String
+    public let accountID: String?
+    public let source: CodexAuthSource
+
+    public init(accessToken: String, accountID: String?, source: CodexAuthSource) {
+        self.accessToken = accessToken
+        self.accountID = accountID
+        self.source = source
+    }
+}
+
 // MARK: - CodexAuthCoordinator
 
 public actor CodexAuthCoordinator {
@@ -24,21 +41,30 @@ public actor CodexAuthCoordinator {
     // JWT cache — owned entirely by the coordinator
     private var cachedAccessToken: String?
     private var tokenExpiresAt: Date?
+    private var accountID: String?
+    private var authSource: CodexAuthSource?
+    private var oauthDisabledForSession = false
     private let sessionEndpoint = URL(string: "https://chatgpt.com/api/auth/session")!
 
     private let logger = Logger(subsystem: "ai.quota", category: "codex-coord")
 
     public typealias SessionProbe = @Sendable () async -> CodexProbeResult
     public typealias AccessTokenRefresher = @Sendable (_ sessionToken: String) async throws -> (token: String, expiresAt: Date?)
+    public typealias OAuthCredentialsLoader = @Sendable () throws -> CodexOAuthCredentials
     private let probe: SessionProbe
     private let tokenRefresher: AccessTokenRefresher
+    private let oauthCredentialsLoader: OAuthCredentialsLoader
 
     public init(
         probe: SessionProbe? = nil,
-        tokenRefresher: AccessTokenRefresher? = nil
+        tokenRefresher: AccessTokenRefresher? = nil,
+        oauthCredentialsLoader: OAuthCredentialsLoader? = nil
     ) {
         self.probe = probe ?? CodexAuthCoordinator.wkProbe
         self.tokenRefresher = tokenRefresher ?? CodexAuthCoordinator.defaultTokenRefresher
+        self.oauthCredentialsLoader = oauthCredentialsLoader ?? {
+            try CodexOAuthCredentialsStore.loadUsable()
+        }
     }
 
     // MARK: - State stream
@@ -77,6 +103,11 @@ public actor CodexAuthCoordinator {
         }
 
         transition(to: .restoringSession)
+        if restoreFromOAuthCredentials() {
+            transition(to: .authenticated)
+            return
+        }
+
         let result = await withProbeTimeout(probe)
         switch result {
         case .found(let token):
@@ -106,6 +137,12 @@ public actor CodexAuthCoordinator {
 
         transition(to: .signingIn)
 
+        if restoreFromOAuthCredentials() {
+            UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+            transition(to: .authenticated)
+            return
+        }
+
         do {
             let result = try await runLoginWindow()
             if !result.sessionToken.isEmpty {
@@ -114,6 +151,8 @@ public actor CodexAuthCoordinator {
             // Cache the access token returned directly from the WKWebView — no extra URLSession call needed.
             cachedAccessToken = result.accessToken
             tokenExpiresAt = result.expiresAt ?? Date.now.addingTimeInterval(86400)
+            accountID = nil
+            authSource = .webSession
             persistSharedAuthContext(sessionToken: result.sessionToken)
             UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
             transition(to: .authenticated)
@@ -152,6 +191,10 @@ public actor CodexAuthCoordinator {
     @discardableResult
     public func revalidateSessionAfterAuthFailure() async -> Bool {
         guard state == .authenticated else { return false }
+
+        if restoreFromOAuthCredentials() {
+            return true
+        }
 
         let result = await withProbeTimeout(probe)
 
@@ -209,11 +252,30 @@ public actor CodexAuthCoordinator {
     // MARK: - accessToken() (for OpenAIClient)
 
     public func accessToken() async throws -> String {
+        let context = try await accessContext()
+        return context.accessToken
+    }
+
+    public func accessContext() async throws -> CodexAccessContext {
         guard state == .authenticated else { throw NetworkError.notAuthenticated }
-        if let token = cachedAccessToken, let exp = tokenExpiresAt, exp.addingTimeInterval(-60) > .now {
-            return token
+
+        if restoreFromOAuthCredentials() {
+            guard let token = cachedAccessToken else { throw NetworkError.notAuthenticated }
+            return CodexAccessContext(accessToken: token, accountID: accountID, source: .codexOAuth)
         }
-        return try await refreshAccessToken()
+
+        if let token = cachedAccessToken, let exp = tokenExpiresAt, exp.addingTimeInterval(-60) > .now {
+            return CodexAccessContext(accessToken: token, accountID: accountID, source: authSource ?? .webSession)
+        }
+        let token = try await refreshAccessToken()
+        return CodexAccessContext(accessToken: token, accountID: accountID, source: .webSession)
+    }
+
+    public func disableOAuthForSession() {
+        oauthDisabledForSession = true
+        if authSource == .codexOAuth {
+            clearTokenCache()
+        }
     }
 
     // MARK: - Private
@@ -221,17 +283,35 @@ public actor CodexAuthCoordinator {
     private func clearTokenCache() {
         cachedAccessToken = nil
         tokenExpiresAt = nil
+        accountID = nil
+        authSource = nil
+    }
+
+    private func restoreFromOAuthCredentials() -> Bool {
+        guard !oauthDisabledForSession else { return false }
+        guard let credentials = try? oauthCredentialsLoader() else { return false }
+        cachedAccessToken = credentials.accessToken
+        tokenExpiresAt = credentials.expiresAt ?? Date.now.addingTimeInterval(3600)
+        accountID = credentials.accountID
+        authSource = .codexOAuth
+        persistSharedAuthContext(sessionToken: "")
+        return true
     }
 
     private func restoreFromSharedAuthContext() async -> Bool {
         guard let context = SharedAuthContextStore.loadCodex() else { return false }
         if context.hasUsableAccessToken(), let accessToken = context.accessToken {
-            KeychainStore.save(context.sessionToken, forKey: "sessionToken")
+            if !context.sessionToken.isEmpty {
+                KeychainStore.save(context.sessionToken, forKey: "sessionToken")
+            }
             cachedAccessToken = accessToken
             tokenExpiresAt = context.accessTokenExpiresAt
+            accountID = context.accountID
+            authSource = context.sessionToken.isEmpty ? .codexOAuth : .webSession
             persistSharedAuthContext(sessionToken: context.sessionToken)
             return true
         }
+        guard !context.sessionToken.isEmpty else { return false }
         return await restoreFromSessionToken(context.sessionToken)
     }
 
@@ -243,6 +323,8 @@ public actor CodexAuthCoordinator {
             KeychainStore.save(sessionToken, forKey: "sessionToken")
             cachedAccessToken = refreshed.token
             tokenExpiresAt = refreshed.expiresAt ?? Date.now.addingTimeInterval(86400)
+            accountID = nil
+            authSource = .webSession
             persistSharedAuthContext(sessionToken: sessionToken)
             return true
         } catch {
@@ -257,7 +339,8 @@ public actor CodexAuthCoordinator {
             SharedCodexAuthContext(
                 sessionToken: effectiveSessionToken,
                 accessToken: cachedAccessToken,
-                accessTokenExpiresAt: tokenExpiresAt
+                accessTokenExpiresAt: tokenExpiresAt,
+                accountID: accountID
             )
         )
     }
@@ -316,6 +399,8 @@ public actor CodexAuthCoordinator {
         let session = try decoder.decode(SessionResponse.self, from: data)
         cachedAccessToken = session.accessToken
         tokenExpiresAt = parseExpiry(session.expires) ?? Date.now.addingTimeInterval(86400)
+        accountID = nil
+        authSource = .webSession
         persistSharedAuthContext()
         return session.accessToken
     }

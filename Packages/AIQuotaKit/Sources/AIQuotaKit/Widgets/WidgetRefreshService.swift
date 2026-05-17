@@ -67,12 +67,13 @@ public actor WidgetRefreshService {
                 context = SharedCodexAuthContext(
                     sessionToken: context.sessionToken,
                     accessToken: accessToken,
-                    accessTokenExpiresAt: now.addingTimeInterval(3600)
+                    accessTokenExpiresAt: now.addingTimeInterval(3600),
+                    accountID: context.accountID
                 )
                 SharedAuthContextStore.saveCodex(context)
             }
 
-            let usage = try await fetchCodexUsage(accessToken: accessToken)
+            let usage = try await fetchCodexUsage(accessToken: accessToken, accountID: context.accountID)
             SharedDefaults.saveUsage(usage)
             return usage
         } catch let error as NetworkError {
@@ -128,7 +129,7 @@ public actor WidgetRefreshService {
         return try decoder.decode(SessionResponse.self, from: data).accessToken
     }
 
-    private func fetchCodexUsage(accessToken: String) async throws -> CodexUsage {
+    private func fetchCodexUsage(accessToken: String, accountID: String?) async throws -> CodexUsage {
         var request = URLRequest(url: URL(string: "https://chatgpt.com/backend-api/wham/usage")!)
         request.httpMethod = "GET"
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
@@ -137,6 +138,9 @@ public actor WidgetRefreshService {
         request.setValue("same-origin", forHTTPHeaderField: "Sec-Fetch-Site")
         request.setValue("cors", forHTTPHeaderField: "Sec-Fetch-Mode")
         request.setValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
+        if let accountID {
+            request.setValue(accountID, forHTTPHeaderField: "ChatGPT-Account-Id")
+        }
 
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else {

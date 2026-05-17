@@ -58,7 +58,8 @@ final class SharedAuthContextTests: XCTestCase {
         let source = SharedCodexAuthContext(
             sessionToken: "session-token",
             accessToken: "access-token",
-            accessTokenExpiresAt: Date(timeIntervalSince1970: 1_743_200_000)
+            accessTokenExpiresAt: Date(timeIntervalSince1970: 1_743_200_000),
+            accountID: "account-123"
         )
 
         SharedAuthContextStore.saveCodex(source)

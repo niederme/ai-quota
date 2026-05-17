@@ -13,9 +13,21 @@ struct CodexAuthCoordinatorTests {
         SharedAuthContextStore.clearCodex()
     }
 
+    private func makeSUT(
+        probe: @escaping CodexAuthCoordinator.SessionProbe,
+        tokenRefresher: CodexAuthCoordinator.AccessTokenRefresher? = nil,
+        oauthCredentialsLoader: CodexAuthCoordinator.OAuthCredentialsLoader? = nil
+    ) -> CodexAuthCoordinator {
+        CodexAuthCoordinator(
+            probe: probe,
+            tokenRefresher: tokenRefresher,
+            oauthCredentialsLoader: oauthCredentialsLoader ?? { throw CodexOAuthCredentialsError.notFound }
+        )
+    }
+
     @Test("bootstrap with valid session → authenticated")
     func bootstrapFound() async throws {
-        let sut = CodexAuthCoordinator(probe: { .found(sessionToken: "tok-1") })
+        let sut = makeSUT(probe: { .found(sessionToken: "tok-1") })
         // Note: bootstrap calls refreshAccessToken() which hits the network.
         // In unit tests we only verify that the probe result drives state;
         // full bootstrap (with JWT refresh) is covered by integration testing.
@@ -32,7 +44,7 @@ struct CodexAuthCoordinatorTests {
     func bootstrapNotFound() async throws {
         UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
         defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
-        let sut = CodexAuthCoordinator(probe: { .notFound })
+        let sut = makeSUT(probe: { .notFound })
         await sut.bootstrap()
         #expect(await sut.state == .unauthenticated)
     }
@@ -43,7 +55,7 @@ struct CodexAuthCoordinatorTests {
         defer { UserDefaults.standard.removeObject(forKey: "codex.signedOutByUser") }
         UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
         defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
-        let sut = CodexAuthCoordinator(probe: { .found(sessionToken: "tok") })
+        let sut = makeSUT(probe: { .found(sessionToken: "tok") })
         await sut.bootstrap()
         #expect(await sut.state == .signedOutByUser)
     }
@@ -55,7 +67,7 @@ struct CodexAuthCoordinatorTests {
         defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
 
         let callCount = LockIsolated(0)
-        let sut = CodexAuthCoordinator(probe: {
+        let sut = makeSUT(probe: {
             callCount.withLock { $0 += 1 }
             return .notFound
         })
@@ -76,7 +88,7 @@ struct CodexAuthCoordinatorTests {
             UserDefaults.standard.removeObject(forKey: "app.installedAt.v2")
         }
 
-        let sut = CodexAuthCoordinator(probe: { .notFound })
+        let sut = makeSUT(probe: { .notFound })
         await sut.bootstrap()
 
         #expect(SharedDefaults.loadCachedUsage() != nil)
@@ -97,12 +109,81 @@ struct CodexAuthCoordinatorTests {
         UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
         defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
 
-        let sut = CodexAuthCoordinator(probe: { .notFound })
+        let sut = makeSUT(probe: { .notFound })
         await sut.bootstrap()
 
         #expect(await sut.state == .authenticated)
         let token = try await sut.accessToken()
         #expect(token == "access-from-shared-context")
+    }
+
+    @Test("bootstrap prefers Codex CLI OAuth before WebKit probe")
+    func bootstrapPrefersOAuth() async throws {
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
+        let callCount = LockIsolated(0)
+        let sut = makeSUT(
+            probe: {
+                callCount.withLock { $0 += 1 }
+                return .found(sessionToken: "web-token")
+            },
+            oauthCredentialsLoader: {
+                Self.oauthCredentials(accessToken: "oauth-token", accountID: "account-123")
+            }
+        )
+
+        await sut.bootstrap()
+
+        #expect(await sut.state == .authenticated)
+        #expect(callCount.value == 0)
+        let context = try await sut.accessContext()
+        #expect(context.accessToken == "oauth-token")
+        #expect(context.accountID == "account-123")
+        #expect(context.source == .codexOAuth)
+    }
+
+    @Test("signedOutByUser blocks silent OAuth bootstrap")
+    func signedOutBlocksOAuthBootstrap() async throws {
+        UserDefaults.standard.set(true, forKey: "codex.signedOutByUser")
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        defer {
+            UserDefaults.standard.removeObject(forKey: "codex.signedOutByUser")
+            UserDefaults.standard.removeObject(forKey: "app.installedAt.v2")
+        }
+        let sut = makeSUT(
+            probe: { .notFound },
+            oauthCredentialsLoader: {
+                Self.oauthCredentials(accessToken: "oauth-token", accountID: "account-123")
+            }
+        )
+
+        await sut.bootstrap()
+
+        #expect(await sut.state == .signedOutByUser)
+    }
+
+    @Test("explicit signIn imports OAuth after prior sign-out")
+    func signInImportsOAuthAfterPriorSignOut() async throws {
+        UserDefaults.standard.set(true, forKey: "codex.signedOutByUser")
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        defer {
+            UserDefaults.standard.removeObject(forKey: "codex.signedOutByUser")
+            UserDefaults.standard.removeObject(forKey: "app.installedAt.v2")
+        }
+        let sut = makeSUT(
+            probe: { .notFound },
+            oauthCredentialsLoader: {
+                Self.oauthCredentials(accessToken: "oauth-token", accountID: "account-123")
+            }
+        )
+        await sut.bootstrap()
+
+        try await sut.signIn()
+
+        #expect(await sut.state == .authenticated)
+        #expect(UserDefaults.standard.bool(forKey: "codex.signedOutByUser") == false)
+        let context = try await sut.accessContext()
+        #expect(context.source == .codexOAuth)
     }
 
     @Test("bootstrap refreshes access token from shared session token when cached token is stale")
@@ -119,7 +200,7 @@ struct CodexAuthCoordinatorTests {
         UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
         defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
 
-        let sut = CodexAuthCoordinator(
+        let sut = makeSUT(
             probe: { .notFound },
             tokenRefresher: { sessionToken in
                 #expect(sessionToken == "session-from-shared-context")
@@ -135,7 +216,7 @@ struct CodexAuthCoordinatorTests {
 
     @Test("signIn from unknown throws invalidTransition")
     func signInIllegalFromUnknown() async throws {
-        let sut = CodexAuthCoordinator(probe: { .notFound })
+        let sut = makeSUT(probe: { .notFound })
         // Do NOT bootstrap — state is .unknown, which hits the default: throw branch
         await #expect(throws: AuthCoordinatorError.self) {
             try await sut.signIn()
@@ -146,7 +227,7 @@ struct CodexAuthCoordinatorTests {
     func signOutNoOpFromUnauthenticated() async throws {
         UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
         defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
-        let sut = CodexAuthCoordinator(probe: { .notFound })
+        let sut = makeSUT(probe: { .notFound })
         await sut.bootstrap()
         try await sut.signOut()
         #expect(await sut.state == .unauthenticated)
@@ -158,7 +239,7 @@ struct CodexAuthCoordinatorTests {
         defer { UserDefaults.standard.removeObject(forKey: "codex.signedOutByUser") }
         UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
         defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
-        let sut = CodexAuthCoordinator(probe: { .notFound })
+        let sut = makeSUT(probe: { .notFound })
         await sut.bootstrap()
         try await sut.signOut()
         #expect(await sut.state == .signedOutByUser)
@@ -166,7 +247,7 @@ struct CodexAuthCoordinatorTests {
 
     @Test("signOut from unknown throws invalidTransition")
     func signOutFromUnknownThrows() async throws {
-        let sut = CodexAuthCoordinator(probe: { .notFound })
+        let sut = makeSUT(probe: { .notFound })
         // Do NOT bootstrap — state is .unknown
         await #expect(throws: AuthCoordinatorError.self) {
             try await sut.signOut()
@@ -177,7 +258,7 @@ struct CodexAuthCoordinatorTests {
     func revalidateFromWrongState() async throws {
         UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
         defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
-        let sut = CodexAuthCoordinator(probe: { .notFound })
+        let sut = makeSUT(probe: { .notFound })
         await sut.bootstrap()
         let result = await sut.revalidateSessionAfterAuthFailure()
         #expect(result == false)
@@ -188,7 +269,7 @@ struct CodexAuthCoordinatorTests {
     func accessTokenUnauthenticated() async throws {
         UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
         defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
-        let sut = CodexAuthCoordinator(probe: { .notFound })
+        let sut = makeSUT(probe: { .notFound })
         await sut.bootstrap()
         await #expect(throws: NetworkError.self) {
             _ = try await sut.accessToken()
@@ -198,5 +279,16 @@ struct CodexAuthCoordinatorTests {
     @Test("Codex login starts on explicit ChatGPT login route")
     func loginStartsOnExplicitRoute() {
         #expect(CodexAuthCoordinator.loginURL == URL(string: "https://chatgpt.com/auth/login")!)
+    }
+
+    private static func oauthCredentials(accessToken: String, accountID: String?) -> CodexOAuthCredentials {
+        CodexOAuthCredentials(
+            accessToken: accessToken,
+            refreshToken: "refresh-token",
+            idToken: "id-token",
+            accountID: accountID,
+            lastRefresh: Date(),
+            expiresAt: Date().addingTimeInterval(3_600)
+        )
     }
 }

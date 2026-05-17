@@ -38,11 +38,13 @@ public struct SharedCodexAuthContext: Codable, Sendable, Equatable {
     public let sessionToken: String
     public let accessToken: String?
     public let accessTokenExpiresAt: Date?
+    public let accountID: String?
 
-    public init(sessionToken: String, accessToken: String?, accessTokenExpiresAt: Date?) {
+    public init(sessionToken: String, accessToken: String?, accessTokenExpiresAt: Date?, accountID: String? = nil) {
         self.sessionToken = sessionToken
         self.accessToken = accessToken
         self.accessTokenExpiresAt = accessTokenExpiresAt
+        self.accountID = accountID
     }
 
     public func hasUsableAccessToken(at date: Date = .now) -> Bool {

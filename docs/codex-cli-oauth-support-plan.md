@@ -42,12 +42,11 @@ workspace accounts via `ChatGPT-Account-Id`.
 ## Token Refresh Policy
 
 - Re-read `auth.json` before each OAuth refresh attempt.
-- Refresh OAuth tokens only when clearly stale or rejected.
-- Save refreshed OAuth tokens back to `auth.json` atomically, preserving unrelated
-  fields.
-- If refresh fails with token reuse, revocation, or expiry, re-read `auth.json`
-  once in case the Codex CLI refreshed it concurrently. If still invalid, fall
-  back to WebKit auth or show "Run `codex` to sign in again."
+- Do not refresh or write OAuth tokens in v1. Re-read `auth.json` before OAuth
+  use; if the access token is expired or rejected, fall back to WebKit auth and
+  let Codex CLI remain the token writer.
+- If OAuth is rejected during a refresh, disable the OAuth source for the current
+  app session and retry through the existing WebKit session path.
 - Do not treat `OPENAI_API_KEY` in `auth.json` as sufficient for subscription
   quota unless verified separately; this feature is for Codex CLI OAuth tokens.
 
@@ -61,14 +60,14 @@ workspace accounts via `ChatGPT-Account-Id`.
 - Explicit connect can import OAuth after prior sign-out.
 - Web-session refresh attaches the stored session token.
 - Widget refresh works from copied shared OAuth context.
-- Refresh-token failure falls back cleanly and does not delete the user's Codex
-  CLI auth file.
+- Rejected OAuth falls back cleanly and does not delete or rewrite the user's
+  Codex CLI auth file.
 
 ## Assumptions
 
 - AIQuota remains simple: no source picker in v1.
 - Browser ChatGPT login remains supported.
-- AIQuota may write refreshed OAuth tokens back to `auth.json`, matching the
-  working CodexBar approach.
+- AIQuota does not write to `auth.json` in v1. Codex CLI remains the active
+  writer for CLI OAuth credentials.
 - The Codex CLI OAuth path is less policy-fragile than Claude OAuth because it
   targets OpenAI/Codex quota data and mirrors the Codex CLI credential model.
