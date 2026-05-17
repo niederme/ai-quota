@@ -88,14 +88,19 @@ final class SharedAuthContextTests: XCTestCase {
         XCTAssertEqual(restored.cookies.first?.value, "cookie-value")
     }
 
-    func testKeychainReadsDoNotPresentAuthenticationUI() throws {
+    func testKeychainOperationsDoNotPresentAuthenticationUI() throws {
         let source = try String(
             contentsOf: repoRoot.appending(path: "Packages/AIQuotaKit/Sources/AIQuotaKit/Storage/KeychainStore.swift"),
             encoding: .utf8
         )
 
+        XCTAssertTrue(source.contains("deletePrimary(forKey: key)"))
+        XCTAssertFalse(source.contains("public static func save(_ data: Data, forKey key: String) {\n        delete(forKey: key)"))
+        XCTAssertTrue(source.contains("private static func nonInteractiveAuthContext() -> LAContext"))
         XCTAssertTrue(source.contains("authContext.interactionNotAllowed = true"))
         XCTAssertTrue(source.contains("kSecUseAuthenticationContext: authContext"))
+        XCTAssertTrue(source.contains("primary[kSecUseAuthenticationContext] = authContext"))
+        XCTAssertTrue(source.contains("fallback[kSecUseAuthenticationContext] = authContext"))
     }
 
     private var repoRoot: URL {

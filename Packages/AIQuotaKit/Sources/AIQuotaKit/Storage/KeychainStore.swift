@@ -35,7 +35,7 @@ public enum KeychainStore {
     }
 
     public static func save(_ data: Data, forKey key: String) {
-        delete(forKey: key)
+        deletePrimary(forKey: key)
 
         var attributes = primaryQuery(forKey: key)
         attributes.merge([
@@ -46,6 +46,7 @@ public enum KeychainStore {
         let status = SecItemAdd(attributes as CFDictionary, nil)
         guard shouldFallback(from: status) else { return }
 
+        deleteFallback(forKey: key)
         var fallbackAttributes = fallbackQuery(forKey: key)
         fallbackAttributes.merge([
             kSecClass: kSecClassGenericPassword,
@@ -61,8 +62,7 @@ public enum KeychainStore {
     }
 
     public static func loadData(forKey key: String) -> Data? {
-        let authContext = LAContext()
-        authContext.interactionNotAllowed = true
+        let authContext = nonInteractiveAuthContext()
 
         var query = primaryQuery(forKey: key)
         query.merge([
@@ -89,8 +89,22 @@ public enum KeychainStore {
     }
 
     public static func delete(forKey key: String) {
-        SecItemDelete(primaryQuery(forKey: key) as CFDictionary)
-        SecItemDelete(fallbackQuery(forKey: key) as CFDictionary)
+        deletePrimary(forKey: key)
+        deleteFallback(forKey: key)
+    }
+
+    private static func deletePrimary(forKey key: String) {
+        let authContext = nonInteractiveAuthContext()
+        var primary = primaryQuery(forKey: key)
+        primary[kSecUseAuthenticationContext] = authContext
+        SecItemDelete(primary as CFDictionary)
+    }
+
+    private static func deleteFallback(forKey key: String) {
+        let authContext = nonInteractiveAuthContext()
+        var fallback = fallbackQuery(forKey: key)
+        fallback[kSecUseAuthenticationContext] = authContext
+        SecItemDelete(fallback as CFDictionary)
     }
 
     public static func save<T: Encodable>(_ value: T, forKey key: String, encoder: JSONEncoder = JSONEncoder()) {
@@ -126,6 +140,12 @@ public enum KeychainStore {
 
     private static func shouldFallback(from status: OSStatus) -> Bool {
         status == errSecMissingEntitlement || status == errSecParam
+    }
+
+    private static func nonInteractiveAuthContext() -> LAContext {
+        let authContext = LAContext()
+        authContext.interactionNotAllowed = true
+        return authContext
     }
 
     public static func deleteAll() {
