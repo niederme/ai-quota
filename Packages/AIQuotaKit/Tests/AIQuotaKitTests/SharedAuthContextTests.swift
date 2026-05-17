@@ -87,4 +87,23 @@ final class SharedAuthContextTests: XCTestCase {
         XCTAssertEqual(restored.cookies.first?.name, "sessionKey")
         XCTAssertEqual(restored.cookies.first?.value, "cookie-value")
     }
+
+    func testKeychainReadsDoNotPresentAuthenticationUI() throws {
+        let source = try String(
+            contentsOf: repoRoot.appending(path: "Packages/AIQuotaKit/Sources/AIQuotaKit/Storage/KeychainStore.swift"),
+            encoding: .utf8
+        )
+
+        XCTAssertTrue(source.contains("authContext.interactionNotAllowed = true"))
+        XCTAssertTrue(source.contains("kSecUseAuthenticationContext: authContext"))
+    }
+
+    private var repoRoot: URL {
+        URL(filePath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+    }
 }

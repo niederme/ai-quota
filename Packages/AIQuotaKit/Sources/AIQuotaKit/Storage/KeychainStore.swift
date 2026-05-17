@@ -1,4 +1,5 @@
 import Foundation
+import LocalAuthentication
 import Security
 
 public enum KeychainStore {
@@ -60,10 +61,14 @@ public enum KeychainStore {
     }
 
     public static func loadData(forKey key: String) -> Data? {
+        let authContext = LAContext()
+        authContext.interactionNotAllowed = true
+
         var query = primaryQuery(forKey: key)
         query.merge([
             kSecReturnData: true,
             kSecMatchLimit: kSecMatchLimitOne,
+            kSecUseAuthenticationContext: authContext,
         ]) { _, new in new }
 
         var result: AnyObject?
@@ -73,6 +78,7 @@ public enum KeychainStore {
             fallback.merge([
                 kSecReturnData: true,
                 kSecMatchLimit: kSecMatchLimitOne,
+                kSecUseAuthenticationContext: authContext,
             ]) { _, new in new }
             let fallbackStatus = SecItemCopyMatching(fallback as CFDictionary, &result)
             guard fallbackStatus == errSecSuccess else { return nil }
