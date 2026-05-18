@@ -96,6 +96,8 @@ final class SharedAuthContextTests: XCTestCase {
 
         XCTAssertTrue(source.contains("deletePrimary(forKey: key)"))
         XCTAssertFalse(source.contains("public static func save(_ data: Data, forKey key: String) {\n        delete(forKey: key)"))
+        XCTAssertTrue(source.contains("guard shouldUseLegacyFallback else { return nil }"))
+        XCTAssertTrue(source.contains("Never touch legacy login-keychain items in production"))
         XCTAssertTrue(source.contains("private static func nonInteractiveAuthContext() -> LAContext"))
         XCTAssertTrue(source.contains("authContext.interactionNotAllowed = true"))
         XCTAssertTrue(source.contains("kSecUseAuthenticationContext: authContext"))

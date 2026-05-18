@@ -45,6 +45,7 @@ public enum KeychainStore {
         ]) { _, new in new }
         let status = SecItemAdd(attributes as CFDictionary, nil)
         guard shouldFallback(from: status) else { return }
+        guard shouldUseLegacyFallback else { return }
 
         deleteFallback(forKey: key)
         var fallbackAttributes = fallbackQuery(forKey: key)
@@ -74,6 +75,7 @@ public enum KeychainStore {
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         if status != errSecSuccess {
+            guard shouldUseLegacyFallback else { return nil }
             var fallback = fallbackQuery(forKey: key)
             fallback.merge([
                 kSecReturnData: true,
@@ -90,7 +92,9 @@ public enum KeychainStore {
 
     public static func delete(forKey key: String) {
         deletePrimary(forKey: key)
-        deleteFallback(forKey: key)
+        if shouldUseLegacyFallback {
+            deleteFallback(forKey: key)
+        }
     }
 
     private static func deletePrimary(forKey key: String) {
@@ -140,6 +144,13 @@ public enum KeychainStore {
 
     private static func shouldFallback(from status: OSStatus) -> Bool {
         status == errSecMissingEntitlement || status == errSecParam
+    }
+
+    private static var shouldUseLegacyFallback: Bool {
+        // Never touch legacy login-keychain items in production. Those items are
+        // ACL-bound to a specific code signature and can prompt for the login
+        // keychain password on launch after an app update or local Xcode build.
+        isRunningTests
     }
 
     private static func nonInteractiveAuthContext() -> LAContext {
