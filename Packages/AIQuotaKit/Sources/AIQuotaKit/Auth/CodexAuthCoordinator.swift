@@ -488,15 +488,8 @@ public actor CodexAuthCoordinator {
         KeychainStore.delete(forKey: "sessionToken")
         SharedDefaults.clearUsage()
         SharedDefaults.clearClaudeUsage()
-        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-            Task { @MainActor in
-                let store = WKWebsiteDataStore.default()
-                let types = WKWebsiteDataStore.allWebsiteDataTypes()
-                store.removeData(ofTypes: types, modifiedSince: Date(timeIntervalSince1970: 0)) {
-                    cont.resume()
-                }
-            }
-        }
+        // Do not clear WebKit cookies here. A misclassified update/archive build
+        // can otherwise destroy valid provider sessions before probes can use them.
         UserDefaults.standard.set(true, forKey: sentinel)
     }
 

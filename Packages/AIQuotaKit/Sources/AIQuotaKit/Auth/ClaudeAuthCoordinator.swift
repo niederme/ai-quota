@@ -132,15 +132,8 @@ public actor ClaudeAuthCoordinator {
         }
         SharedDefaults.clearUsage()
         SharedDefaults.clearClaudeUsage()
-        await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-            Task { @MainActor in
-                let store = WKWebsiteDataStore.default()
-                let types = WKWebsiteDataStore.allWebsiteDataTypes()
-                store.removeData(ofTypes: types, modifiedSince: Date(timeIntervalSince1970: 0)) {
-                    cont.resume()
-                }
-            }
-        }
+        // Do not clear WebKit cookies here. A misclassified update/archive build
+        // can otherwise destroy a valid Claude session before the probe can use it.
         UserDefaults.standard.set(true, forKey: sentinel)
     }
 
@@ -162,8 +155,15 @@ public actor ClaudeAuthCoordinator {
             return
         }
 
-        // Clear stale WKWebView cookies before the login window opens.
-        await clearWKCookies()
+        if case .found(let orgId, let cookies) = await withProbeTimeout(probe) {
+            capturedOrgId = orgId
+            capturedCookies = cookies
+            injectCookies(cookies)
+            persistSharedAuthContext()
+            UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+            transition(to: .authenticated)
+            return
+        }
 
         do {
             let (orgId, cookies) = try await runLoginWindow()
@@ -380,18 +380,65 @@ public actor ClaudeAuthCoordinator {
                 Task { @MainActor in
                     WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
                         let claudeCookies = cookies.filter { $0.domain.contains("claude.ai") }
-                        let loginCookies = ["lastActiveOrg", "sessionKey", "routingHint"]
-                        guard claudeCookies.contains(where: { loginCookies.contains($0.name) }),
-                              let orgId = claudeCookies.first(where: { $0.name == "lastActiveOrg" })?.value
-                        else {
-                            cont.resume(returning: .notFound)
-                            return
+                        Task {
+                            guard let orgId = await ClaudeAuthCoordinator.resolveOrgId(from: claudeCookies) else {
+                                cont.resume(returning: .notFound)
+                                return
+                            }
+                            cont.resume(returning: .found(orgId: orgId, cookies: claudeCookies))
                         }
-                        cont.resume(returning: .found(orgId: orgId, cookies: claudeCookies))
                     }
                 }
             }
         }
+    }
+
+    fileprivate static func resolveOrgId(from cookies: [HTTPCookie]) async -> String? {
+        if let orgId = cookies.first(where: { $0.name == "lastActiveOrg" })?.value,
+           !orgId.isEmpty {
+            return orgId
+        }
+        guard let sessionKey = cookies.first(where: { $0.name == "sessionKey" })?.value,
+              !sessionKey.isEmpty
+        else { return nil }
+        return await fetchOrgId(sessionKey: sessionKey)
+    }
+
+    private static func fetchOrgId(sessionKey: String) async -> String? {
+        guard let url = URL(string: "https://claude.ai/api/organizations") else { return nil }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 10
+        request.setValue("sessionKey=\(sessionKey)", forHTTPHeaderField: "Cookie")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard (response as? HTTPURLResponse)?.statusCode == 200,
+                  let organizations = try? JSONDecoder().decode([ClaudeWebOrganization].self, from: data)
+            else { return nil }
+            return organizations.first(where: { $0.hasChatCapability })?.uuid
+                ?? organizations.first(where: { !$0.isAPIOnly })?.uuid
+                ?? organizations.first?.uuid
+        } catch {
+            return nil
+        }
+    }
+}
+
+private struct ClaudeWebOrganization: Decodable {
+    let uuid: String
+    let capabilities: [String]?
+
+    var normalizedCapabilities: Set<String> {
+        Set((capabilities ?? []).map { $0.lowercased() })
+    }
+
+    var hasChatCapability: Bool {
+        normalizedCapabilities.contains("chat")
+    }
+
+    var isAPIOnly: Bool {
+        !normalizedCapabilities.isEmpty && normalizedCapabilities == ["api"]
     }
 }
 
@@ -408,7 +455,6 @@ private final class CoordLoginWindowController: NSObject {
     private var hasCompleted = false
     private var selfRetain: CoordLoginWindowController?  // keeps self alive until continuation resumes
     private let onComplete: (Result<(orgId: String, cookies: [HTTPCookie]), Error>) -> Void
-    private static let loginCookies = ["lastActiveOrg", "sessionKey", "routingHint"]
     private let logger = Logger(subsystem: "ai.quota", category: "claude-login")
 
     init(onComplete: @escaping (Result<(orgId: String, cookies: [HTTPCookie]), Error>) -> Void) {
@@ -458,10 +504,12 @@ private final class CoordLoginWindowController: NSObject {
         wv.configuration.websiteDataStore.httpCookieStore.getAllCookies { [weak self] cookies in
             guard let self, !self.hasCompleted else { return }
             let claudeCookies = cookies.filter { $0.domain.contains("claude.ai") }
-            guard claudeCookies.contains(where: { Self.loginCookies.contains($0.name) }),
-                  let orgId = claudeCookies.first(where: { $0.name == "lastActiveOrg" })?.value
-            else { return }
-            Task { @MainActor [weak self] in self?.complete(orgId: orgId, cookies: claudeCookies) }
+            Task { [weak self] in
+                guard let orgId = await ClaudeAuthCoordinator.resolveOrgId(from: claudeCookies) else { return }
+                await MainActor.run { [weak self] in
+                    self?.complete(orgId: orgId, cookies: claudeCookies)
+                }
+            }
         }
     }
 
@@ -545,20 +593,20 @@ extension CoordLoginWindowController: NSWindowDelegate {
 private final class CoordCookieObserver: NSObject, WKHTTPCookieStoreObserver, @unchecked Sendable {
     private var hasFound = false
     private let onFound: @MainActor @Sendable (String, [HTTPCookie]) -> Void
-    private static let loginCookies = ["lastActiveOrg", "sessionKey", "routingHint"]
 
     init(onFound: @MainActor @Sendable @escaping (String, [HTTPCookie]) -> Void) { self.onFound = onFound }
 
     func cookiesDidChange(in store: WKHTTPCookieStore) {
         store.getAllCookies { [weak self] cookies in
-            Task { @MainActor [weak self] in
+            Task { [weak self] in
                 guard let self, !self.hasFound else { return }
                 let claude = cookies.filter { $0.domain.contains("claude.ai") }
-                guard claude.contains(where: { Self.loginCookies.contains($0.name) }),
-                      let orgId = claude.first(where: { $0.name == "lastActiveOrg" })?.value
-                else { return }
-                self.hasFound = true
-                self.onFound(orgId, claude)
+                guard let orgId = await ClaudeAuthCoordinator.resolveOrgId(from: claude) else { return }
+                await MainActor.run {
+                    guard !self.hasFound else { return }
+                    self.hasFound = true
+                    self.onFound(orgId, claude)
+                }
             }
         }
     }

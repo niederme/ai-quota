@@ -22,4 +22,23 @@ struct AuthInstallStateTests {
     func freshInstallWithoutState() {
         #expect(!AuthInstallState.isExistingInstall(hasWebsiteData: false))
     }
+
+    @Test("fresh install cleanup does not clear provider WebKit sessions")
+    func freshInstallCleanupDoesNotClearWebKitSessions() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let claude = try String(
+            contentsOf: root.appendingPathComponent("Sources/AIQuotaKit/Auth/ClaudeAuthCoordinator.swift"),
+            encoding: .utf8
+        )
+        let codex = try String(
+            contentsOf: root.appendingPathComponent("Sources/AIQuotaKit/Auth/CodexAuthCoordinator.swift"),
+            encoding: .utf8
+        )
+
+        #expect(claude.contains("Do not clear WebKit cookies here"))
+        #expect(codex.contains("Do not clear WebKit cookies here"))
+    }
 }
