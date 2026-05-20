@@ -102,9 +102,9 @@ public actor ClaudeClient {
             switch http.statusCode {
             case 200...299:
                 let raw = try Self.decoder.decode(ClaudeOAuthUsageResponse.self, from: data)
-                return buildUsage(
+                return Self.buildUsage(
                     from: raw,
-                    planLabel: Self.planLabel(
+                    planLabel: ClaudePlan.label(
                         subscriptionType: credentials.subscriptionType,
                         rateLimitTier: credentials.rateLimitTier
                     ),
@@ -156,7 +156,7 @@ public actor ClaudeClient {
 
         do {
             let raw = try Self.decoder.decode(ClaudeUsageResponse.self, from: data)
-            return buildUsage(from: raw, planLabel: nil, source: .web)
+            return Self.buildUsage(from: raw, planLabel: nil, source: .web)
         } catch {
             let preview = String(data: data.prefix(2000), encoding: .utf8) ?? "<non-utf8>"
             logger.error("[ClaudeClient] decodingError: \(error) | body: \(preview)")
@@ -239,20 +239,36 @@ public actor ClaudeClient {
 
     // MARK: - Response → model
 
-    private func buildUsage(from raw: ClaudeUsageResponse, planLabel: ClaudeUsage.PlanLabel?, source: ClaudeUsage.Source) -> ClaudeUsage {
-        let hasNormalWindow = raw.fiveHour?.utilization != nil || raw.sevenDay?.utilization != nil
+    nonisolated static func _decodeUsageForTesting(
+        _ data: Data,
+        planLabel: ClaudeUsage.PlanLabel? = nil,
+        source: ClaudeUsage.Source = .unknown,
+        fetchedAt: Date
+    ) throws -> ClaudeUsage {
+        let raw = try decoder.decode(ClaudeUsageResponse.self, from: data)
+        return buildUsage(from: raw, planLabel: planLabel, source: source, fetchedAt: fetchedAt)
+    }
+
+    private nonisolated static func buildUsage(
+        from raw: ClaudeUsageResponse,
+        planLabel: ClaudeUsage.PlanLabel?,
+        source: ClaudeUsage.Source,
+        fetchedAt: Date = .now
+    ) -> ClaudeUsage {
+        let sevenDay = raw.preferredSevenDayWindow
+        let hasNormalWindow = raw.fiveHour?.utilization != nil || sevenDay?.utilization != nil
         let spendLimit = Self.spendLimit(from: raw.extraUsage, source: source, planLabel: planLabel, hasNormalWindow: hasNormalWindow)
         let extra: ClaudeUsage.ExtraUsage? = spendLimit == nil ? Self.extraUsage(from: raw.extraUsage) : nil
         return ClaudeUsage(
             fiveHourUtilization: raw.fiveHour?.utilization,
             fiveHourResetsAt: raw.fiveHour?.resetsAt,
-            sevenDayUtilization: raw.sevenDay?.utilization,
-            sevenDayResetsAt: raw.sevenDay?.resetsAt,
+            sevenDayUtilization: sevenDay?.utilization,
+            sevenDayResetsAt: sevenDay?.resetsAt,
             extraUsage: extra,
             spendLimit: spendLimit,
             planLabel: planLabel,
             source: source,
-            fetchedAt: .now
+            fetchedAt: fetchedAt
         )
     }
 
@@ -286,19 +302,6 @@ public actor ClaudeClient {
         let limit = monthlyLimit / divisor
         let utilization = raw.utilization ?? (limit > 0 ? (used / limit) * 100 : 0)
         return ClaudeUsage.SpendLimit(used: used, limit: limit, utilization: utilization, currencyCode: raw.currency)
-    }
-
-    private static func planLabel(subscriptionType: String?, rateLimitTier: String?) -> ClaudeUsage.PlanLabel? {
-        let values = [subscriptionType, rateLimitTier]
-            .compactMap { $0?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }
-            .filter { !$0.isEmpty }
-        for value in values {
-            if value.contains("enterprise") { return .enterprise }
-            if value.contains("team") { return .team }
-            if value.contains("max") { return .max }
-            if value.contains("pro") { return .pro }
-        }
-        return nil
     }
 
     private func recordAttempt(
@@ -365,15 +368,25 @@ private struct ClaudeUsageResponse: Decodable {
     let sevenDay:  WindowBucket?
     let extraUsage: ExtraUsageBucket?
 
-    /// Nullable per-model buckets (seven_day_opus, seven_day_sonnet, etc.)
-    /// Declared so the decoder doesn't fail on unknown keys; values are unused.
+    /// Nullable per-model buckets. Some Team/Max responses omit `seven_day`
+    /// but still expose a model-specific weekly window we can display.
     let sevenDayOauthApps: WindowBucket?
     let sevenDayOpus:      WindowBucket?
     let sevenDaySonnet:    WindowBucket?
     let sevenDayCowork:    WindowBucket?
 
+    var preferredSevenDayWindow: WindowBucket? {
+        [
+            sevenDay,
+            sevenDayOauthApps,
+            sevenDaySonnet,
+            sevenDayOpus,
+            sevenDayCowork
+        ].compactMap { $0 }.first { $0.utilization != nil }
+    }
+
     struct WindowBucket: Decodable {
-        let utilization: Double
+        let utilization: Double?
         let resetsAt: Date?
     }
 

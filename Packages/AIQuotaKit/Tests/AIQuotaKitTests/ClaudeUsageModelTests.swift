@@ -85,4 +85,65 @@ struct ClaudeUsageModelTests {
         #expect(usage.resetAt == nil)
         #expect(usage.planLabel == .unknown)
     }
+
+    @Test("Claude usage decoder tolerates nullable buckets and uses model weekly fallbacks")
+    func decoderUsesModelSpecificWeeklyFallbacks() throws {
+        let json = """
+        {
+          "five_hour": { "utilization": null, "resets_at": null },
+          "seven_day": null,
+          "seven_day_sonnet": {
+            "utilization": 37,
+            "resets_at": "2026-05-21T10:00:00.000Z"
+          },
+          "extra_usage": {
+            "is_enabled": true,
+            "monthly_limit": 2000,
+            "used_credits": 741,
+            "utilization": 37.05
+          }
+        }
+        """
+
+        let usage = try ClaudeClient._decodeUsageForTesting(
+            Data(json.utf8),
+            planLabel: .max,
+            source: .oauth,
+            fetchedAt: Date(timeIntervalSince1970: 0)
+        )
+
+        #expect(usage.primaryMetric.kind == .sevenDay)
+        #expect(usage.sevenDayUtilization == 37)
+        #expect(usage.extraUsage?.monthlyLimit == 2000)
+        #expect(usage.extraUsage?.usedCredits == 741)
+        #expect(usage.planLabel == .max)
+    }
+
+    @Test("Claude Enterprise extra usage spend decodes cents as dollars")
+    func enterpriseSpendLimitDecodesCentsAsDollars() throws {
+        let json = """
+        {
+          "five_hour": null,
+          "seven_day": null,
+          "extra_usage": {
+            "monthly_limit": 100000,
+            "used_credits": 4132,
+            "currency": "USD"
+          }
+        }
+        """
+
+        let usage = try ClaudeClient._decodeUsageForTesting(
+            Data(json.utf8),
+            planLabel: .enterprise,
+            source: .web,
+            fetchedAt: Date(timeIntervalSince1970: 0)
+        )
+
+        #expect(usage.primaryMetric.kind == .spendLimit)
+        #expect(usage.spendLimit?.used == 41.32)
+        #expect(usage.spendLimit?.limit == 1000)
+        #expect(usage.spendLimit?.currencyCode == "USD")
+        #expect(usage.extraUsage == nil)
+    }
 }

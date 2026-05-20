@@ -212,15 +212,16 @@ public actor WidgetRefreshService {
 
         do {
             let raw = try Self.claudeDecoder.decode(ClaudeWidgetUsageResponse.self, from: data)
-            let hasNormalWindow = raw.fiveHour?.utilization != nil || raw.sevenDay?.utilization != nil
+            let sevenDay = raw.preferredSevenDayWindow
+            let hasNormalWindow = raw.fiveHour?.utilization != nil || sevenDay?.utilization != nil
             let spendLimit = Self.claudeSpendLimit(from: raw.extraUsage, hasNormalWindow: hasNormalWindow)
             let extra = spendLimit == nil ? Self.claudeExtraUsage(from: raw.extraUsage) : nil
 
             return ClaudeUsage(
                 fiveHourUtilization: raw.fiveHour?.utilization,
                 fiveHourResetsAt: raw.fiveHour?.resetsAt,
-                sevenDayUtilization: raw.sevenDay?.utilization,
-                sevenDayResetsAt: raw.sevenDay?.resetsAt,
+                sevenDayUtilization: sevenDay?.utilization,
+                sevenDayResetsAt: sevenDay?.resetsAt,
                 extraUsage: extra,
                 spendLimit: spendLimit,
                 source: .web,
@@ -289,10 +290,24 @@ private struct ClaudeWidgetUsageResponse: Decodable {
     let fiveHour: ClaudeWindowBucket?
     let sevenDay: ClaudeWindowBucket?
     let extraUsage: ClaudeExtraUsageBucket?
+    let sevenDayOauthApps: ClaudeWindowBucket?
+    let sevenDayOpus: ClaudeWindowBucket?
+    let sevenDaySonnet: ClaudeWindowBucket?
+    let sevenDayCowork: ClaudeWindowBucket?
+
+    var preferredSevenDayWindow: ClaudeWindowBucket? {
+        [
+            sevenDay,
+            sevenDayOauthApps,
+            sevenDaySonnet,
+            sevenDayOpus,
+            sevenDayCowork
+        ].compactMap { $0 }.first { $0.utilization != nil }
+    }
 }
 
 private struct ClaudeWindowBucket: Decodable {
-    let utilization: Double
+    let utilization: Double?
     let resetsAt: Date?
 }
 

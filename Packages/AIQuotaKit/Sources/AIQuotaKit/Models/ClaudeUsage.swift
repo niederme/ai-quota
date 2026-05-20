@@ -33,6 +33,7 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
         case max
         case team
         case enterprise
+        case ultra
         case unknown
 
         public var displayName: String {
@@ -41,6 +42,7 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
             case .max: "Max"
             case .team: "Team"
             case .enterprise: "Enterprise"
+            case .ultra: "Ultra"
             case .unknown: "Unknown"
             }
         }
