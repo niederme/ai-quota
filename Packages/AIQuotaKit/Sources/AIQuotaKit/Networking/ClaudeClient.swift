@@ -24,8 +24,8 @@ public actor ClaudeClient {
 
     public func fetchUsage() async throws -> ClaudeUsage {
         if !oauthDisabledForSession {
-            switch Result(catching: { try ClaudeOAuthCredentialsStore.loadUsable() }) {
-            case .success(let oauth):
+            do {
+                let oauth = try await coordinator.loadOAuthCredentials(allowKeychain: false)
                 do {
                     let usage = try await fetchOAuthUsage(credentials: oauth)
                     oauthPolicyFailures = 0
@@ -34,6 +34,7 @@ public actor ClaudeClient {
                 } catch let error as ClaudeOAuthFetchError {
                     switch error {
                     case .unauthorized(let status, let policyBlocked):
+                        await coordinator.invalidateCachedOAuthCredentials()
                         if policyBlocked {
                             oauthDisabledForSession = true
                         } else if status == 403 {
@@ -61,9 +62,9 @@ public actor ClaudeClient {
                         throw underlying
                     }
                 }
-            case .failure(let error as ClaudeOAuthCredentialsError):
+            } catch let error as ClaudeOAuthCredentialsError {
                 recordAttempt(source: .oauth, httpStatus: nil, category: Self.errorCategory(for: error))
-            case .failure:
+            } catch {
                 recordAttempt(source: .oauth, httpStatus: nil, category: .malformedCredentials)
             }
         }

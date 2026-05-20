@@ -104,7 +104,7 @@ public struct ClaudeOAuthKeychainReader: Sendable {
 }
 
 public enum ClaudeOAuthCredentialsStore {
-    public static func hasUsableCredentials(
+    static func hasUsableCredentials(
         env: [String: String] = ProcessInfo.processInfo.environment,
         fileManager: FileManager = .default,
         keychainReader: ClaudeOAuthKeychainReader? = .claudeCodeSecurityCLI
@@ -112,7 +112,7 @@ public enum ClaudeOAuthCredentialsStore {
         (try? loadUsable(env: env, fileManager: fileManager, keychainReader: keychainReader)) != nil
     }
 
-    public static func loadUsable(
+    static func loadUsable(
         env: [String: String] = ProcessInfo.processInfo.environment,
         fileManager: FileManager = .default,
         keychainReader: ClaudeOAuthKeychainReader? = .claudeCodeSecurityCLI
@@ -123,7 +123,7 @@ public enum ClaudeOAuthCredentialsStore {
         return credentials
     }
 
-    public static func load(
+    static func load(
         env: [String: String] = ProcessInfo.processInfo.environment,
         fileManager: FileManager = .default,
         keychainReader: ClaudeOAuthKeychainReader? = .claudeCodeSecurityCLI
@@ -141,7 +141,7 @@ public enum ClaudeOAuthCredentialsStore {
         throw ClaudeOAuthCredentialsError.notFound
     }
 
-    public static func parse(data: Data) throws -> ClaudeOAuthCredentials {
+    static func parse(data: Data) throws -> ClaudeOAuthCredentials {
         let decoder = JSONDecoder()
         guard let root = try? decoder.decode(Root.self, from: data) else {
             throw ClaudeOAuthCredentialsError.decodeFailed
@@ -164,7 +164,7 @@ public enum ClaudeOAuthCredentialsStore {
         )
     }
 
-    public static func credentialsURL(
+    static func credentialsURL(
         env: [String: String] = ProcessInfo.processInfo.environment,
         fileManager: FileManager = .default
     ) -> URL {

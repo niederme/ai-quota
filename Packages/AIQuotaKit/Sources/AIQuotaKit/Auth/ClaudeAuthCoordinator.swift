@@ -38,6 +38,7 @@ public actor ClaudeAuthCoordinator {
 
     private var capturedOrgId: String?
     private var capturedCookies: [HTTPCookie] = []
+    private var cachedOAuthCredentials: ClaudeOAuthCredentials?
 
     // MARK: Logger
 
@@ -47,17 +48,19 @@ public actor ClaudeAuthCoordinator {
 
     /// Real probe reads WKWebsiteDataStore.default(). Tests inject a mock.
     public typealias SessionProbe = @Sendable () async -> ClaudeProbeResult
-    public typealias OAuthCredentialsProbe = @Sendable () -> Bool
+    public typealias OAuthCredentialsLoader = @Sendable (_ allowKeychain: Bool) throws -> ClaudeOAuthCredentials
     private let probe: SessionProbe
-    private let hasOAuthCredentials: OAuthCredentialsProbe
+    private let oauthCredentialsLoader: OAuthCredentialsLoader
 
     public init(
         probe: SessionProbe? = nil,
-        hasOAuthCredentials: OAuthCredentialsProbe? = nil
+        oauthCredentialsLoader: OAuthCredentialsLoader? = nil
     ) {
         self.probe = probe ?? ClaudeAuthCoordinator.wkProbe
-        self.hasOAuthCredentials = hasOAuthCredentials ?? {
-            ClaudeOAuthCredentialsStore.hasUsableCredentials()
+        self.oauthCredentialsLoader = oauthCredentialsLoader ?? { allowKeychain in
+            try ClaudeOAuthCredentialsStore.loadUsable(
+                keychainReader: allowKeychain ? .claudeCodeSecurityCLI : nil
+            )
         }
     }
 
@@ -106,6 +109,7 @@ public actor ClaudeAuthCoordinator {
         let result = await withProbeTimeout(probe)
         switch result {
         case .found(let orgId, let cookies):
+            cachedOAuthCredentials = nil
             capturedOrgId = orgId
             capturedCookies = cookies
             injectCookies(cookies)
@@ -114,7 +118,7 @@ public actor ClaudeAuthCoordinator {
         case .notFound, .none:
             if restoreFromSharedAuthContext() {
                 transition(to: .authenticated)
-            } else if hasOAuthCredentials() {
+            } else if restoreFromOAuthCredentials(allowKeychain: false) {
                 transition(to: .authenticated)
             } else {
                 SharedAuthContextStore.clearClaude()
@@ -149,13 +153,14 @@ public actor ClaudeAuthCoordinator {
 
         transition(to: .signingIn)
 
-        if hasOAuthCredentials() {
+        if restoreFromOAuthCredentials(allowKeychain: true) {
             UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
             transition(to: .authenticated)
             return
         }
 
         if case .found(let orgId, let cookies) = await withProbeTimeout(probe) {
+            cachedOAuthCredentials = nil
             capturedOrgId = orgId
             capturedCookies = cookies
             injectCookies(cookies)
@@ -167,6 +172,7 @@ public actor ClaudeAuthCoordinator {
 
         do {
             let (orgId, cookies) = try await runLoginWindow()
+            cachedOAuthCredentials = nil
             capturedOrgId = orgId
             capturedCookies = cookies
             injectCookies(cookies)
@@ -210,6 +216,10 @@ public actor ClaudeAuthCoordinator {
     public func revalidateSessionAfterAuthFailure() async -> Bool {
         guard state == .authenticated else { return false }
 
+        if restoreFromOAuthCredentials(allowKeychain: false) {
+            return true
+        }
+
         let result = await withProbeTimeout(probe)
 
         // Re-check: another transition (e.g. signOut) may have run while probe was in flight.
@@ -217,6 +227,7 @@ public actor ClaudeAuthCoordinator {
 
         switch result {
         case .found(let orgId, let cookies):
+            cachedOAuthCredentials = nil
             capturedOrgId = orgId
             capturedCookies = cookies
             injectCookies(cookies)
@@ -273,9 +284,39 @@ public actor ClaudeAuthCoordinator {
         return ClaudeRequestContext(orgId: orgId)
     }
 
+    public func loadOAuthCredentials(allowKeychain: Bool) throws -> ClaudeOAuthCredentials {
+        let fileError: Error?
+        do {
+            let credentials = try oauthCredentialsLoader(false)
+            cachedOAuthCredentials = nil
+            return credentials
+        } catch {
+            fileError = error
+        }
+
+        if let cachedOAuthCredentials,
+           !cachedOAuthCredentials.isExpired,
+           cachedOAuthCredentials.hasRequiredScope {
+            return cachedOAuthCredentials
+        }
+
+        guard allowKeychain else {
+            throw fileError ?? ClaudeOAuthCredentialsError.notFound
+        }
+
+        let credentials = try oauthCredentialsLoader(true)
+        cachedOAuthCredentials = credentials
+        return credentials
+    }
+
+    public func invalidateCachedOAuthCredentials() {
+        cachedOAuthCredentials = nil
+    }
+
     // MARK: - Private helpers
 
     private func clearAuthContext() {
+        cachedOAuthCredentials = nil
         capturedOrgId = nil
         capturedCookies = []
         SharedAuthContextStore.clearClaude()
@@ -292,10 +333,21 @@ public actor ClaudeAuthCoordinator {
 
     private func restoreFromSharedAuthContext() -> Bool {
         guard let context = SharedAuthContextStore.loadClaude() else { return false }
+        cachedOAuthCredentials = nil
         capturedOrgId = context.orgId
         capturedCookies = context.httpCookies
         injectCookies(capturedCookies)
         return !context.orgId.isEmpty
+    }
+
+    private func restoreFromOAuthCredentials(allowKeychain: Bool) -> Bool {
+        guard (try? loadOAuthCredentials(allowKeychain: allowKeychain)) != nil else {
+            return false
+        }
+        capturedOrgId = nil
+        capturedCookies = []
+        SharedAuthContextStore.clearClaude()
+        return true
     }
 
     private func injectCookies(_ cookies: [HTTPCookie]) {

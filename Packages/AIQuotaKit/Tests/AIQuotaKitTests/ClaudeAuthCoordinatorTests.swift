@@ -16,8 +16,14 @@ struct ClaudeAuthCoordinatorTests {
         SharedAuthContextStore.clearClaude()
     }
 
-    private func makeSUT(probe: @escaping ClaudeAuthCoordinator.SessionProbe) -> ClaudeAuthCoordinator {
-        ClaudeAuthCoordinator(probe: probe, hasOAuthCredentials: { false })
+    private func makeSUT(
+        probe: @escaping ClaudeAuthCoordinator.SessionProbe,
+        oauthCredentialsLoader: ClaudeAuthCoordinator.OAuthCredentialsLoader? = nil
+    ) -> ClaudeAuthCoordinator {
+        ClaudeAuthCoordinator(
+            probe: probe,
+            oauthCredentialsLoader: oauthCredentialsLoader ?? { _ in throw ClaudeOAuthCredentialsError.notFound }
+        )
     }
 
     // MARK: - Bootstrap
@@ -36,6 +42,27 @@ struct ClaudeAuthCoordinatorTests {
         await sut.bootstrap()
         let state = await sut.state
         #expect(state == .unauthenticated)
+    }
+
+    @Test("bootstrap restores OAuth credentials without allowing Keychain")
+    func bootstrapOAuthFileOnly() async throws {
+        let allowedKeychainValues = LockIsolated<[Bool]>([])
+        let sut = makeSUT(
+            probe: { .notFound },
+            oauthCredentialsLoader: { allowKeychain in
+                allowedKeychainValues.withLock { $0.append(allowKeychain) }
+                #expect(allowKeychain == false)
+                return Self.oauthCredentials(accessToken: "file-token")
+            }
+        )
+
+        await sut.bootstrap()
+
+        #expect(await sut.state == .authenticated)
+        #expect(allowedKeychainValues.value == [false])
+        await #expect(throws: NetworkError.self) {
+            _ = try await sut.requestContext()
+        }
     }
 
     @Test("bootstrap skipped when signedOutByUser persisted")
@@ -113,6 +140,30 @@ struct ClaudeAuthCoordinatorTests {
         await #expect(throws: AuthCoordinatorError.self) {
             try await sut.signIn()
         }
+    }
+
+    @Test("signIn allows Keychain OAuth and caches it for refresh")
+    func signInAllowsKeychainOAuthAndCachesForRefresh() async throws {
+        let keychainCalls = LockIsolated(0)
+        let sut = makeSUT(
+            probe: { .notFound },
+            oauthCredentialsLoader: { allowKeychain in
+                guard allowKeychain else { throw ClaudeOAuthCredentialsError.notFound }
+                keychainCalls.withLock { $0 += 1 }
+                return Self.oauthCredentials(accessToken: "keychain-token")
+            }
+        )
+
+        await sut.bootstrap()
+        #expect(await sut.state == .unauthenticated)
+
+        try await sut.signIn()
+        #expect(await sut.state == .authenticated)
+        #expect(keychainCalls.value == 1)
+
+        let credentials = try await sut.loadOAuthCredentials(allowKeychain: false)
+        #expect(credentials.accessToken == "keychain-token")
+        #expect(keychainCalls.value == 1)
     }
 
     // MARK: - signOut
@@ -217,5 +268,16 @@ struct ClaudeAuthCoordinatorTests {
         await sut.bootstrap()
         let ctx = try await sut.requestContext()
         #expect(ctx.orgId == "org-42")
+    }
+
+    private static func oauthCredentials(accessToken: String) -> ClaudeOAuthCredentials {
+        ClaudeOAuthCredentials(
+            accessToken: accessToken,
+            refreshToken: nil,
+            expiresAt: Date().addingTimeInterval(3_600),
+            scopes: ["user:profile"],
+            rateLimitTier: nil,
+            subscriptionType: nil
+        )
     }
 }
