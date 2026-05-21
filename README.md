@@ -170,6 +170,12 @@ If you are iterating on widgets, launching the built app once after install help
 
 ---
 
+## Manual Test Handoffs
+
+- [Claude Team plan test](docs/jason-team-plan-test-instructions.md) — verifies that AIQuota can reuse an existing Claude Code OAuth login for Team accounts before falling back to the embedded Claude web login.
+
+---
+
 ## Project Structure
 
 ```
