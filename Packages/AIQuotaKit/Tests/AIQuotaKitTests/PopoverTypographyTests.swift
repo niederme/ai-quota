@@ -73,6 +73,17 @@ struct PopoverTypographyTests {
         #expect(demoSource.contains("usedCredits: 2060, utilization: 103"))
     }
 
+    @Test("duplicate network errors collapse into one banner")
+    func duplicateNetworkErrorsCollapseIntoOneBanner() throws {
+        let popoverSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/PopoverView.swift"), encoding: .utf8)
+
+        #expect(popoverSource.contains(#"id: "network""#))
+        #expect(popoverSource.contains(#"message: "No network connection. Showing cached data.""#))
+        #expect(popoverSource.contains("viewModel.codexError?.isNetworkUnavailable == true"))
+        #expect(popoverSource.contains("viewModel.claudeError?.isNetworkUnavailable == true"))
+        #expect(popoverSource.contains(#"message: "\(serviceName): \(banner.message)""#))
+    }
+
     @Test("reset lines use compact local-time captions")
     func resetLinesUseCompactCaptions() throws {
         let gaugeSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/CircularGaugeView.swift"), encoding: .utf8)

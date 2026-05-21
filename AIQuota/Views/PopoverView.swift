@@ -58,16 +58,8 @@ struct PopoverView: View {
         VStack(spacing: 0) {
             header
 
-            if viewModel.isCodexEnrolled, let error = viewModel.codexError {
-                errorBanner(error,
-                    dismiss: { viewModel.codexError = nil },
-                    signIn: error.isAuthError ? { Task { await viewModel.signIn() } } : nil)
-                Divider()
-            }
-            if viewModel.isClaudeEnrolled, let error = viewModel.claudeError {
-                errorBanner(error,
-                    dismiss: { viewModel.claudeError = nil },
-                    signIn: error.isAuthError ? { Task { await viewModel.signInClaude() } } : nil)
+            ForEach(errorBanners) { banner in
+                errorBanner(banner)
                 Divider()
             }
 
@@ -489,28 +481,90 @@ struct PopoverView: View {
 
     // MARK: - Error Banner
 
-    private func errorBanner(_ error: NetworkError, dismiss: @escaping () -> Void, signIn: (() -> Void)? = nil) -> some View {
+    private struct ErrorBanner: Identifiable {
+        let id: String
+        let message: String
+        let dismiss: () -> Void
+        let retry: (() -> Void)?
+        let signIn: (() -> Void)?
+    }
+
+    private var errorBanners: [ErrorBanner] {
+        var banners: [ErrorBanner] = []
+
+        if viewModel.isCodexEnrolled, let error = viewModel.codexError {
+            banners.append(ErrorBanner(
+                id: "codex",
+                message: error.localizedDescription,
+                dismiss: { viewModel.codexError = nil },
+                retry: { viewModel.manualRefresh() },
+                signIn: error.isAuthError ? { Task { await viewModel.signIn() } } : nil
+            ))
+        }
+
+        if viewModel.isClaudeEnrolled, let error = viewModel.claudeError {
+            banners.append(ErrorBanner(
+                id: "claude",
+                message: error.localizedDescription,
+                dismiss: { viewModel.claudeError = nil },
+                retry: { viewModel.manualRefresh() },
+                signIn: error.isAuthError ? { Task { await viewModel.signInClaude() } } : nil
+            ))
+        }
+
+        if viewModel.codexError?.isNetworkUnavailable == true,
+           viewModel.claudeError?.isNetworkUnavailable == true,
+           viewModel.isCodexEnrolled,
+           viewModel.isClaudeEnrolled {
+            return [
+                ErrorBanner(
+                    id: "network",
+                    message: "No network connection. Showing cached data.",
+                    dismiss: {
+                        viewModel.codexError = nil
+                        viewModel.claudeError = nil
+                    },
+                    retry: { viewModel.manualRefresh() },
+                    signIn: nil
+                )
+            ]
+        }
+
+        guard banners.count > 1 else { return banners }
+
+        return banners.map { banner in
+            let serviceName = banner.id == "codex" ? "Codex" : "Claude Code"
+            return ErrorBanner(
+                id: banner.id,
+                message: "\(serviceName): \(banner.message)",
+                dismiss: banner.dismiss,
+                retry: banner.retry,
+                signIn: banner.signIn
+            )
+        }
+    }
+
+    private func errorBanner(_ banner: ErrorBanner) -> some View {
         HStack(spacing: 6) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(.orange).font(.footnote)
-            Text(error.localizedDescription)
+            Text(banner.message)
                 .font(.footnote).foregroundStyle(.secondary).lineLimit(2)
             Spacer()
-            if let signIn {
+            if let signIn = banner.signIn {
                 Button("Sign In", action: signIn)
                     .buttonStyle(.borderless)
                     .font(.footnote.bold())
                     .foregroundStyle(.orange)
-            } else {
+            } else if let retry = banner.retry {
                 Button {
-                    dismiss()
-                    viewModel.manualRefresh()
+                    retry()
                 } label: {
                     Image(systemName: "arrow.clockwise").font(.caption)
                 }
                 .buttonStyle(.borderless)
             }
-            Button(action: dismiss) {
+            Button(action: banner.dismiss) {
                 Image(systemName: "xmark").font(.caption)
             }
             .buttonStyle(.borderless)
@@ -524,6 +578,13 @@ struct PopoverView: View {
     private func formatWindowDuration(_ seconds: Int) -> String {
         let hours = seconds / 3600
         return hours > 0 ? "\(hours)h" : "\(seconds / 60)m"
+    }
+}
+
+private extension NetworkError {
+    var isNetworkUnavailable: Bool {
+        if case .networkUnavailable = self { return true }
+        return false
     }
 }
 
