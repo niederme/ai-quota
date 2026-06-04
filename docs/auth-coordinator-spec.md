@@ -1,5 +1,12 @@
 # Auth Coordinator Spec
 
+> **Scope:** This spec defines the architectural intent for the per-service
+> `AuthCoordinator` actors that own all WebKit/Keychain/UserDefaults
+> interaction. It predates Claude Code / Codex CLI OAuth credential discovery.
+> For OAuth-credential behavior layered on top of these coordinators, see
+> [`claude-enterprise-support-plan.md`](claude-enterprise-support-plan.md) and
+> [`codex-cli-oauth-support-plan.md`](codex-cli-oauth-support-plan.md).
+
 ## Motivation
 
 The current auth implementation spreads state across WebKit cookies, URLSession cookies,

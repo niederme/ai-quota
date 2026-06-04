@@ -1,4 +1,20 @@
-# AIQuota Auth — Current Implementation
+# AIQuota Auth — Pre-Coordinator Implementation (Historical)
+
+> **Note:** This document describes the auth architecture as it existed before
+> the `ClaudeAuthCoordinator` / `CodexAuthCoordinator` actors and before OAuth
+> credential discovery via `ClaudeOAuthCredentialsStore` /
+> `CodexOAuthCredentialsStore`. Kept for historical context.
+>
+> For the current implementation, see:
+>
+> - [`claude-enterprise-support-plan.md`](claude-enterprise-support-plan.md) —
+>   spec the current Claude OAuth + parsing work was built to.
+> - [`codex-cli-oauth-support-plan.md`](codex-cli-oauth-support-plan.md) — spec
+>   for Codex CLI OAuth import.
+> - [`claude-enterprise-main-review.md`](claude-enterprise-main-review.md) —
+>   review of what landed on `main`, with verified vs. hypothesized findings.
+> - [`auth-coordinator-spec.md`](auth-coordinator-spec.md) — architectural
+>   intent for the Coordinator actors.
 
 ## Storage layer
 
