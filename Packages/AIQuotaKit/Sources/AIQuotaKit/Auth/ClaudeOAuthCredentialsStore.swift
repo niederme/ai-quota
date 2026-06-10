@@ -1,4 +1,6 @@
 import Foundation
+import LocalAuthentication
+import Security
 
 public struct ClaudeOAuthCredentials: Sendable, Equatable {
     public let accessToken: String
@@ -45,6 +47,10 @@ public enum ClaudeOAuthCredentialsError: LocalizedError, Sendable {
 }
 
 public struct ClaudeOAuthKeychainReader: Sendable {
+    public static let claudeCodeInteractive = ClaudeOAuthKeychainReader {
+        try readClaudeCodeSecurityFramework()
+    }
+
     public static let claudeCodeSecurityCLI = ClaudeOAuthKeychainReader {
         try readClaudeCodeSecurityCLI()
     }
@@ -60,6 +66,88 @@ public struct ClaudeOAuthKeychainReader: Sendable {
 
     func readCredentialsData() throws -> Data? {
         try read()
+    }
+
+    private static func readClaudeCodeSecurityFramework() throws -> Data? {
+        if let persistentRef = try newestClaudeCodePersistentRef() {
+            return try readData(persistentRef: persistentRef)
+        }
+        return try readData(service: serviceName)
+    }
+
+    private static func newestClaudeCodePersistentRef() throws -> Data? {
+        let authContext = LAContext()
+        authContext.interactionNotAllowed = true
+        let query: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: serviceName,
+            kSecMatchLimit: kSecMatchLimitAll,
+            kSecReturnAttributes: true,
+            kSecReturnPersistentRef: true,
+            kSecUseAuthenticationContext: authContext,
+        ]
+
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        switch status {
+        case errSecSuccess:
+            break
+        case errSecItemNotFound, errSecInteractionNotAllowed:
+            return nil
+        default:
+            throw ClaudeOAuthKeychainError(status: status)
+        }
+
+        guard let rows = result as? [[String: Any]] else { return nil }
+        return newestPersistentRef(in: rows)
+    }
+
+    static func newestPersistentRef(in rows: [[String: Any]]) -> Data? {
+        return rows
+            .compactMap { row -> (persistentRef: Data, date: Date)? in
+                guard let persistentRef = row[kSecValuePersistentRef as String] as? Data else {
+                    return nil
+                }
+                let date = (row[kSecAttrModificationDate as String] as? Date)
+                    ?? (row[kSecAttrCreationDate as String] as? Date)
+                    ?? .distantPast
+                return (persistentRef, date)
+            }
+            .max { $0.date < $1.date }?
+            .persistentRef
+    }
+
+    private static func readData(persistentRef: Data) throws -> Data? {
+        let query: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecValuePersistentRef: persistentRef,
+            kSecMatchLimit: kSecMatchLimitOne,
+            kSecReturnData: true,
+        ]
+        return try copyData(query: query)
+    }
+
+    private static func readData(service: String) throws -> Data? {
+        let query: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrService: service,
+            kSecMatchLimit: kSecMatchLimitOne,
+            kSecReturnData: true,
+        ]
+        return try copyData(query: query)
+    }
+
+    private static func copyData(query: [CFString: Any]) throws -> Data? {
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        switch status {
+        case errSecSuccess:
+            return result as? Data
+        case errSecItemNotFound, errSecUserCanceled, errSecAuthFailed, errSecInteractionNotAllowed:
+            return nil
+        default:
+            throw ClaudeOAuthKeychainError(status: status)
+        }
     }
 
     private static func readClaudeCodeSecurityCLI() throws -> Data? {
@@ -100,6 +188,15 @@ public struct ClaudeOAuthKeychainReader: Sendable {
             return nil
         }
         return Data(text.utf8)
+    }
+}
+
+private struct ClaudeOAuthKeychainError: LocalizedError {
+    let status: OSStatus
+
+    var errorDescription: String? {
+        SecCopyErrorMessageString(status, nil) as String?
+            ?? "Claude Code Keychain lookup failed with status \(status)."
     }
 }
 

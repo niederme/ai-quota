@@ -152,7 +152,7 @@ public actor CodexAuthCoordinator {
             // Cache the access token returned directly from the WKWebView — no extra URLSession call needed.
             cachedAccessToken = result.accessToken
             tokenExpiresAt = result.expiresAt ?? Date.now.addingTimeInterval(86400)
-            accountID = nil
+            accountID = CodexOAuthCredentialsStore.jwtAccountID(result.accessToken)
             authSource = .webSession
             persistSharedAuthContext(sessionToken: result.sessionToken)
             UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
@@ -324,7 +324,7 @@ public actor CodexAuthCoordinator {
             KeychainStore.save(sessionToken, forKey: "sessionToken")
             cachedAccessToken = refreshed.token
             tokenExpiresAt = refreshed.expiresAt ?? Date.now.addingTimeInterval(86400)
-            accountID = nil
+            accountID = CodexOAuthCredentialsStore.jwtAccountID(refreshed.token)
             authSource = .webSession
             persistSharedAuthContext(sessionToken: sessionToken)
             return true
@@ -400,7 +400,7 @@ public actor CodexAuthCoordinator {
         let session = try decoder.decode(SessionResponse.self, from: data)
         cachedAccessToken = session.accessToken
         tokenExpiresAt = parseExpiry(session.expires) ?? Date.now.addingTimeInterval(86400)
-        accountID = nil
+        accountID = CodexOAuthCredentialsStore.jwtAccountID(session.accessToken)
         authSource = .webSession
         persistSharedAuthContext()
         return session.accessToken

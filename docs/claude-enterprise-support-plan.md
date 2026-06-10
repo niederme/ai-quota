@@ -1,5 +1,15 @@
 # Claude Enterprise Support Plan
 
+> **Implementation status (June 10, 2026):** The normalized usage model and
+> OAuth-first resolver described here are implemented, but Team and Enterprise
+> behavior is not yet field-verified. The implementation also evolved beyond
+> this plan: `ClaudeAuthCoordinator` now participates in OAuth credential
+> discovery so a user can become authenticated without first establishing a
+> WebKit session. The latest Team-connect patch is preserved on
+> `team-auth-field-retest` and awaiting Jason's retest. See
+> [`team-auth-field-test-handoff.md`](team-auth-field-test-handoff.md) for the
+> current continuation state.
+
 ## Summary
 
 Fix Claude Enterprise accounts by using the Claude Code OAuth usage path as the

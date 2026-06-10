@@ -15,6 +15,8 @@
 >   review of what landed on `main`, with verified vs. hypothesized findings.
 > - [`auth-coordinator-spec.md`](auth-coordinator-spec.md) — architectural
 >   intent for the Coordinator actors.
+> - [`team-auth-field-test-handoff.md`](team-auth-field-test-handoff.md) —
+>   current continuation state for the Claude / Codex Team auth retest branch.
 
 ## Storage layer
 

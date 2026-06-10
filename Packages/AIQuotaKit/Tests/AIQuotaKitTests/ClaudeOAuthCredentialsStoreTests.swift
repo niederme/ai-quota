@@ -1,4 +1,5 @@
 import Foundation
+import Security
 import Testing
 @testable import AIQuotaKit
 
@@ -122,6 +123,24 @@ struct ClaudeOAuthCredentialsStoreTests {
         )
 
         #expect(credentials.accessToken == "file-token")
+    }
+
+    @Test("interactive Keychain lookup prefers the newest Claude Code item")
+    func interactiveKeychainLookupPrefersNewestItem() {
+        let older = Data("older".utf8)
+        let newer = Data("newer".utf8)
+        let rows: [[String: Any]] = [
+            [
+                kSecValuePersistentRef as String: older,
+                kSecAttrModificationDate as String: Date(timeIntervalSince1970: 100),
+            ],
+            [
+                kSecValuePersistentRef as String: newer,
+                kSecAttrModificationDate as String: Date(timeIntervalSince1970: 200),
+            ],
+        ]
+
+        #expect(ClaudeOAuthKeychainReader.newestPersistentRef(in: rows) == newer)
     }
 
     @Test("CLAUDE_CONFIG_DIR wins over home credentials path")
