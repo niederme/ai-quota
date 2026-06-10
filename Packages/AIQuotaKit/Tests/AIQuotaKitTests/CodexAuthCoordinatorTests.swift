@@ -214,6 +214,44 @@ struct CodexAuthCoordinatorTests {
         #expect(token == "refreshed-access-token")
     }
 
+    @Test("web session derives Team workspace account ID from access token claims")
+    func webSessionDerivesAccountIDFromTokenClaims() async throws {
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
+
+        let accessToken = Self.jwt(payload: [
+            "exp": Int(Date.now.addingTimeInterval(3_600).timeIntervalSince1970),
+            "https://api.openai.com/auth": [
+                "chatgpt_account_id": "team-account-123",
+                "chatgpt_plan_type": "team",
+            ],
+        ])
+
+        let sut = makeSUT(
+            probe: { .found(sessionToken: "team-session") },
+            tokenRefresher: { _ in (accessToken, Date.now.addingTimeInterval(900)) }
+        )
+        await sut.bootstrap()
+
+        #expect(await sut.state == .authenticated)
+        let context = try await sut.accessContext()
+        #expect(context.source == .webSession)
+        #expect(context.accountID == "team-account-123")
+    }
+
+    private static func jwt(payload: [String: Any]) -> String {
+        let header = try! JSONSerialization.data(withJSONObject: ["alg": "none", "typ": "JWT"])
+        let body = try! JSONSerialization.data(withJSONObject: payload)
+        return "\(base64URL(header)).\(base64URL(body)).signature"
+    }
+
+    private static func base64URL(_ data: Data) -> String {
+        data.base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+
     @Test("signIn from unknown throws invalidTransition")
     func signInIllegalFromUnknown() async throws {
         let sut = makeSUT(probe: { .notFound })

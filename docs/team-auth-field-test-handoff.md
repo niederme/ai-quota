@@ -146,6 +146,22 @@ The latest patch:
 
 Expected retest behavior: Codex Team usage replaces the persistent spinner.
 
+**Update (June 10, 2026):** the claim-derivation above originally covered only
+the Codex CLI `auth.json` path. The web-session path (embedded ChatGPT login,
+session-token restore, and access-token refresh) hardcoded a nil account ID in
+`CodexAuthCoordinator`, so a Team user who signed in through the embedded
+ChatGPT window still sent usage requests without `ChatGPT-Account-Id`. That
+produces either a 401 or a personal-workspace response body that fails
+`WhamUsageResponse` decoding — which is the "Unexpected response format from
+server" banner plus persistent spinner Jason reported. All three web-session
+sites now derive the account ID from the access token's JWT claims via
+`CodexOAuthCredentialsStore.jwtAccountID`.
+
+Note the field evidence conflated two different requests: the 401 probe used
+the CLI token, while the in-app banner was a decode failure on a 2xx response.
+They share the same root cause (missing workspace ID) reached through two
+different token sources.
+
 ## Verification Already Run
 
 Passed:

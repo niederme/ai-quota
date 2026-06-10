@@ -127,7 +127,11 @@ public enum CodexOAuthCredentialsStore {
         return Date(timeIntervalSince1970: exp)
     }
 
-    private static func jwtAccountID(_ token: String?) -> String? {
+    /// Extracts the ChatGPT workspace account ID from a JWT's claims. Used for
+    /// both Codex CLI credentials and web-session access tokens — Team accounts
+    /// need this sent as `ChatGPT-Account-Id` or usage requests resolve against
+    /// the wrong (often Codex-less) default workspace.
+    static func jwtAccountID(_ token: String?) -> String? {
         guard let token, let json = jwtPayload(token) else { return nil }
         if let accountID = json["chatgpt_account_id"] as? String {
             return accountID
