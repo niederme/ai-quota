@@ -539,6 +539,7 @@ struct CodexLoginResult {
 private final class CodexLoginWindowController: NSObject {
     private var window: NSWindow?
     private var webView: WKWebView?
+    private var popupWindows: [NSWindow] = []
     private var cookieObserver: CodexCookieObserver?
     private var hasCompleted = false
     private var isFetchingSession = false
@@ -555,6 +556,7 @@ private final class CodexLoginWindowController: NSObject {
 
         let wv = WKWebView(frame: .init(x: 0, y: 0, width: 520, height: 680), configuration: config)
         wv.navigationDelegate = self
+        wv.uiDelegate = self
         self.webView = wv
 
         let observer = CodexCookieObserver { [weak self] in
@@ -640,6 +642,7 @@ private final class CodexLoginWindowController: NSObject {
     private func complete(_ result: CodexLoginResult) {
         guard !hasCompleted else { return }
         hasCompleted = true
+        closePopupWindows()
         window?.close()
         window = nil; webView = nil; cookieObserver = nil
         let callback = onComplete
@@ -650,11 +653,37 @@ private final class CodexLoginWindowController: NSObject {
     private func fail(with error: Error) {
         guard !hasCompleted else { return }
         hasCompleted = true
+        closePopupWindows()
         window?.close()
         window = nil; webView = nil; cookieObserver = nil
         let callback = onComplete
         selfRetain = nil
         callback(.failure(error))
+    }
+
+    fileprivate func closePopupWindows() {
+        for win in popupWindows { win.close() }
+        popupWindows.removeAll()
+    }
+
+    fileprivate func hostPopup(_ popup: WKWebView, title: String) {
+        let win = NSWindow(contentRect: popup.frame,
+                           styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        win.title = title
+        win.contentView = popup
+        win.isReleasedWhenClosed = false
+        win.level = .floating
+        win.center()
+        win.makeKeyAndOrderFront(nil)
+        popupWindows.append(win)
+    }
+
+    fileprivate func closePopupWindow(hosting webView: WKWebView) {
+        popupWindows.removeAll { win in
+            guard win.contentView === webView else { return false }
+            win.close()
+            return true
+        }
     }
 
     private func parseExpiry(_ string: String?) -> Date? {
@@ -684,8 +713,33 @@ extension CodexLoginWindowController: WKNavigationDelegate {
 }
 
 @MainActor
+extension CodexLoginWindowController: WKUIDelegate {
+    // Third-party sign-in providers (Google, Apple) run their OAuth flows in
+    // window.open() popups. Without hosting the popup the flow dies silently.
+    // The popup shares the login webview's WKWebsiteDataStore, so resulting
+    // session cookies reach the existing cookie observer.
+    func webView(_ webView: WKWebView,
+                 createWebViewWith configuration: WKWebViewConfiguration,
+                 for navigationAction: WKNavigationAction,
+                 windowFeatures: WKWindowFeatures) -> WKWebView? {
+        let popup = WKWebView(frame: .init(x: 0, y: 0, width: 480, height: 640), configuration: configuration)
+        popup.navigationDelegate = self
+        popup.uiDelegate = self
+        hostPopup(popup, title: "Sign in")
+        return popup
+    }
+
+    func webViewDidClose(_ webView: WKWebView) {
+        closePopupWindow(hosting: webView)
+    }
+}
+
+@MainActor
 extension CodexLoginWindowController: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
+        // Only the main login window cancels the flow; popup windows close
+        // as part of the OAuth handshake and must not abort it.
+        guard (notification.object as? NSWindow) === window else { return }
         guard !hasCompleted else { return }
         fail(with: NetworkError.notAuthenticated)
     }
