@@ -50,6 +50,28 @@ struct CodexOAuthCredentialsStoreTests {
         }
     }
 
+    @Test("derives Team workspace account ID from ID token claims")
+    func derivesTeamWorkspaceAccountIDFromIDToken() throws {
+        let accessToken = jwt(exp: Date().addingTimeInterval(3_600))
+        let idToken = jwt(payload: [
+            "https://api.openai.com/auth": [
+                "chatgpt_account_id": "team-account-123",
+                "chatgpt_plan_type": "team",
+            ],
+        ])
+
+        let credentials = try CodexOAuthCredentialsStore.parse(data: Data("""
+        {
+          "tokens": {
+            "access_token": "\(accessToken)",
+            "id_token": "\(idToken)"
+          }
+        }
+        """.utf8))
+
+        #expect(credentials.accountID == "team-account-123")
+    }
+
     @Test("CODEX_HOME wins over home auth path")
     func codexHomeWins() throws {
         let root = temporaryDirectory()
@@ -69,13 +91,21 @@ struct CodexOAuthCredentialsStoreTests {
     }
 
     private func jwt(exp: Date) -> String {
-        let header = #"{"alg":"none","typ":"JWT"}"#
-        let payload = #"{"exp":\#(Int(exp.timeIntervalSince1970))}"#
+        jwt(payload: ["exp": Int(exp.timeIntervalSince1970)])
+    }
+
+    private func jwt(payload: [String: Any]) -> String {
+        let header = try! JSONSerialization.data(withJSONObject: ["alg": "none", "typ": "JWT"])
+        let payload = try! JSONSerialization.data(withJSONObject: payload)
         return "\(base64URL(header)).\(base64URL(payload)).signature"
     }
 
     private func base64URL(_ string: String) -> String {
-        Data(string.utf8)
+        base64URL(Data(string.utf8))
+    }
+
+    private func base64URL(_ data: Data) -> String {
+        data
             .base64EncodedString()
             .replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_")

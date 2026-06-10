@@ -1,5 +1,12 @@
 # Codex CLI OAuth Support Plan
 
+> **Implementation status (June 10, 2026):** Codex CLI OAuth import is
+> implemented. Jason's first Team-account test appeared signed in but remained
+> on a spinner, and a separate probe returned HTTP 401. The latest patch on
+> `team-auth-field-retest` derives a missing Team workspace account ID from token claims so
+> `ChatGPT-Account-Id` can be sent. It is awaiting field validation. See
+> [`team-auth-field-test-handoff.md`](team-auth-field-test-handoff.md).
+
 ## Summary
 
 Add Codex CLI OAuth as the preferred Codex auth source. If the user already has

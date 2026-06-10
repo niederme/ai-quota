@@ -8,6 +8,17 @@ AIQuota previously opened its embedded Claude login window for some users even w
 
 The build under test includes the auth coordinator change from commit `520734c` or later.
 
+## Latest Retest Scope
+
+The latest build adds two Team-account fixes:
+
+- **Claude:** pressing `Connect` now reads the Claude Code Keychain item directly through macOS Security.framework. This allows macOS to show an AIQuota Keychain approval prompt instead of timing out and silently falling through to the embedded Claude web login.
+- **Codex:** if Codex CLI credentials omit the Team workspace account ID at the top level, AIQuota now derives it from the token claims and sends it with usage requests.
+
+For Claude, approve an AIQuota Keychain prompt if one appears. The embedded Claude web login should not open afterward.
+
+For Codex, signing in should be followed by visible usage rather than a persistent spinner. Report any remaining banner text exactly as shown.
+
 ## What Changed
 
 Previous builds could fall into AIQuota's embedded Claude web login even when Claude Code was already signed in. That was a problem for Team and Max accounts because the embedded login can fail or never complete for some account types.
@@ -35,6 +46,8 @@ This test does not prove Enterprise spend-limit behavior. Enterprise still needs
 ## Before Testing
 
 1. Install the test build of AIQuota.
+   - Unzip the package and move `AIQuota.app` to Applications.
+   - This test build is Apple Development-signed, not notarized. If macOS blocks the first launch, Control-click `AIQuota.app`, choose **Open**, then confirm **Open**.
 2. Make sure Claude Code is signed in with the same Claude Team account you want AIQuota to monitor:
 
    ```sh

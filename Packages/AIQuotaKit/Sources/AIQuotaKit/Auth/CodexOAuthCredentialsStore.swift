@@ -80,11 +80,19 @@ public enum CodexOAuthCredentialsStore {
         guard !accessToken.isEmpty else {
             throw CodexOAuthCredentialsError.missingAccessToken
         }
-        let accountID = tokens.accountID ?? tokens.accountId ?? tokens.account_id ?? root.accountID ?? root.accountId ?? root.account_id
+        let idToken = tokens.idToken ?? tokens.id_token
+        let accountID = tokens.accountID
+            ?? tokens.accountId
+            ?? tokens.account_id
+            ?? root.accountID
+            ?? root.accountId
+            ?? root.account_id
+            ?? Self.jwtAccountID(idToken)
+            ?? Self.jwtAccountID(accessToken)
         return CodexOAuthCredentials(
             accessToken: accessToken,
             refreshToken: tokens.refreshToken ?? tokens.refresh_token,
-            idToken: tokens.idToken ?? tokens.id_token,
+            idToken: idToken,
             accountID: accountID?.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty,
             lastRefresh: Self.parseDate(root.lastRefresh ?? root.last_refresh),
             expiresAt: Self.jwtExpiry(accessToken)
@@ -113,6 +121,25 @@ public enum CodexOAuthCredentialsStore {
     }
 
     private static func jwtExpiry(_ token: String) -> Date? {
+        guard let json = jwtPayload(token),
+              let exp = json["exp"] as? TimeInterval
+        else { return nil }
+        return Date(timeIntervalSince1970: exp)
+    }
+
+    private static func jwtAccountID(_ token: String?) -> String? {
+        guard let token, let json = jwtPayload(token) else { return nil }
+        if let accountID = json["chatgpt_account_id"] as? String {
+            return accountID
+        }
+        guard let auth = json["https://api.openai.com/auth"] as? [String: Any] else {
+            return nil
+        }
+        return (auth["chatgpt_account_id"] as? String)
+            ?? (auth["account_id"] as? String)
+    }
+
+    private static func jwtPayload(_ token: String) -> [String: Any]? {
         let parts = token.split(separator: ".")
         guard parts.count >= 2 else { return nil }
         var payload = String(parts[1]).replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
@@ -120,10 +147,9 @@ public enum CodexOAuthCredentialsStore {
             payload.append("=")
         }
         guard let data = Data(base64Encoded: payload),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let exp = json["exp"] as? TimeInterval
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else { return nil }
-        return Date(timeIntervalSince1970: exp)
+        return json
     }
 
     private struct Root: Decodable {

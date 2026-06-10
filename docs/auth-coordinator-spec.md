@@ -5,7 +5,9 @@
 > interaction. It predates Claude Code / Codex CLI OAuth credential discovery.
 > For OAuth-credential behavior layered on top of these coordinators, see
 > [`claude-enterprise-support-plan.md`](claude-enterprise-support-plan.md) and
-> [`codex-cli-oauth-support-plan.md`](codex-cli-oauth-support-plan.md).
+> [`codex-cli-oauth-support-plan.md`](codex-cli-oauth-support-plan.md). The
+> latest Team-auth retest branch and continuation state are documented in
+> [`team-auth-field-test-handoff.md`](team-auth-field-test-handoff.md).
 
 ## Motivation
 

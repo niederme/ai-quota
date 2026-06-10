@@ -5,6 +5,15 @@ coordinator-level OAuth fix. Issue 0 was addressed by `520734c` ("Route Claude
 OAuth through auth coordinator"). The remaining issues and hypotheses are
 preserved as follow-up context.
 
+Current continuation note (June 10, 2026): Jason's first Team retest still
+failed before usage loading. Claude fell through to the embedded WebKit login,
+and Codex appeared signed in but remained on a spinner with a separate probe
+returning HTTP 401. A newer Security.framework Claude Keychain reader and Codex
+Team workspace-ID fallback are preserved on `team-auth-field-retest` and are
+waiting on Jason's next retest. See
+[`team-auth-field-test-handoff.md`](team-auth-field-test-handoff.md) before
+continuing this work.
+
 Handoff for the agent continuing this work. Findings are tagged with confidence
 so you can tell what's grounded in the code from what's a hypothesis worth
 checking.

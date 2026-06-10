@@ -59,7 +59,7 @@ public actor ClaudeAuthCoordinator {
         self.probe = probe ?? ClaudeAuthCoordinator.wkProbe
         self.oauthCredentialsLoader = oauthCredentialsLoader ?? { allowKeychain in
             try ClaudeOAuthCredentialsStore.loadUsable(
-                keychainReader: allowKeychain ? .claudeCodeSecurityCLI : nil
+                keychainReader: allowKeychain ? .claudeCodeInteractive : nil
             )
         }
     }
