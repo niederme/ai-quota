@@ -72,6 +72,32 @@ Max recovery path. They do **not** yet prove that Claude Team usage parsing or
 Enterprise spend-limit parsing is wrong, because those accounts did not reach a
 successful usage fetch.
 
+## Root Cause Found (June 10, 2026): Dropped OAuth Popups
+
+The embedded Claude login failure was reproduced locally with a standalone
+WKWebView harness and is **not plan-specific**:
+
+- claude.ai's "Continue with Google" runs its OAuth flow in a `window.open()`
+  popup (Google Identity Services, `display=popup`).
+- AIQuota's login webviews set a `navigationDelegate` but no `WKUIDelegate`,
+  so the popup request returned nil and was silently dropped.
+- Google's SDK then reports failure and Anthropic shows the generic
+  "There was an error logging you in" banner — exactly what Jason (Team) and
+  Khoi (individual Max) saw. Email / magic-link logins never hit this because
+  they navigate in the same window.
+- With popup hosting added in the harness, a full Google sign-in (password,
+  2FA, consent) completed inside the embedded webview; Google did not block
+  the webview user agent.
+
+Both login controllers now implement `WKUIDelegate` and host OAuth popups in
+floating child windows. The popup shares the login webview's
+`WKWebsiteDataStore`, so session cookies still reach the existing cookie
+observers. Closing a popup does not cancel the sign-in flow; only closing the
+main login window does.
+
+This fix was also cherry-picked to `main` independently of the Team-account
+work on this branch.
+
 ## Latest Retest Patch
 
 ### Claude Team / Max Connect

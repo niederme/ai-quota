@@ -19,6 +19,8 @@ For Claude, approve an AIQuota Keychain prompt if one appears. The embedded Clau
 
 For Codex, signing in should be followed by visible usage rather than a persistent spinner. Report any remaining banner text exactly as shown.
 
+If you do end up in the embedded web login and use **Continue with Google**, a separate small sign-in popup window now opens — that is expected. Complete the Google login there; the popup closes itself when finished.
+
 ## What Changed
 
 Previous builds could fall into AIQuota's embedded Claude web login even when Claude Code was already signed in. That was a problem for Team and Max accounts because the embedded login can fail or never complete for some account types.
