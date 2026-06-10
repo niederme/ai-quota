@@ -22,7 +22,7 @@ The marketing site in `docs/` follows the shared Codex web preview convention us
 - **Adaptive refresh controls** — choose `Auto` to refresh every minute when the app is active or quota is near a threshold, then back off automatically when idle, offline, or on low power
 - **Guided onboarding** — first launch walks through connecting services, refresh preferences, notifications, and widget setup; if both services are connected, onboarding also asks which one should drive the menu bar icon
 - **Single-service adaptation** — when only one service is enrolled, the app and widgets avoid dead space instead of pretending there should be a second column
-- **ChatGPT and Claude sign-in** — reuses an existing Claude Code or Codex CLI login when available, and falls back to a browser-backed session otherwise; secrets stay in Keychain and shared widget data is kept in the app group
+- **ChatGPT and Claude sign-in** — reuses an existing Claude Code or Codex CLI login when available, and falls back to a browser-backed session otherwise (including Google sign-in, which opens in its own popup window); secrets stay in Keychain and shared widget data is kept in the app group
 - **Notification controls** — per-service master switches plus consolidated threshold alerts (one toggle covers low quota, critical quota, and limit reached) plus reset events
 - **Recovery after updates** — widget timelines reload more aggressively on launch, and installed widgets recover more reliably after app replacements
 - **Auto-update** — Sparkle checks silently on launch and twice daily, with gentle reminders instead of intrusive prompts
@@ -219,6 +219,7 @@ See the pre-release checklist at the top of [`scripts/release.sh`](scripts/relea
 - [x] Marketing website — `aiquota.app` is live with download, releases, and policy pages plus automated deploys from `main`
 - [x] Visualize 7-day quota reset timing — the app now surfaces 7-day reset timing when the weekly window enters the warning range
 - [x] Settings restructured — Accounts section promoted to the top; notification sections named per service with threshold alerts consolidated into a single toggle per window
+- [x] Google sign-in in the embedded login — OAuth popups (`window.open`) are now hosted in a child window, fixing the generic "There was an error logging you in" failure for Google-SSO accounts on both Claude and ChatGPT logins
 - [x] Auth and widget recovery after updates — widgets recover more reliably after app replacements, refresh more aggressively, and valid Claude/Codex sessions now restore automatically instead of showing stale Connect states
 - [x] Widget variations — configurable single-service medium widget plus a large two-service overview
 - [x] Menu bar preference fully respected — the menu bar icon now follows the selected service for both gauge values and warning colour
