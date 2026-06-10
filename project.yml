@@ -15,7 +15,7 @@ options:
 settings:
   base:
     MARKETING_VERSION: "1.9.17"
-    CURRENT_PROJECT_VERSION: "372"
+    CURRENT_PROJECT_VERSION: "373"
 
 packages:
   AIQuotaKit:
