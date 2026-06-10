@@ -502,6 +502,7 @@ private struct ClaudeWebOrganization: Decodable {
 private final class CoordLoginWindowController: NSObject {
     private var window: NSWindow?
     private var webView: WKWebView?
+    private var popupWindows: [NSWindow] = []
     private var cookieObserver: CoordCookieObserver?
     private var pollTimer: Timer?
     private var hasCompleted = false
@@ -518,6 +519,7 @@ private final class CoordLoginWindowController: NSObject {
         config.websiteDataStore = .default()
         let webView = WKWebView(frame: .init(x: 0, y: 0, width: 520, height: 680), configuration: config)
         webView.navigationDelegate = self
+        webView.uiDelegate = self
         self.webView = webView
 
         let observer = CoordCookieObserver { [weak self] orgId, cookies in
@@ -569,6 +571,7 @@ private final class CoordLoginWindowController: NSObject {
         guard !hasCompleted else { return }
         hasCompleted = true
         stopPolling()
+        closePopupWindows()
         window?.close()
         window = nil; webView = nil; cookieObserver = nil
         let callback = onComplete
@@ -580,11 +583,37 @@ private final class CoordLoginWindowController: NSObject {
         guard !hasCompleted else { return }
         hasCompleted = true
         stopPolling()
+        closePopupWindows()
         window?.close()
         window = nil; webView = nil; cookieObserver = nil
         let callback = onComplete
         selfRetain = nil  // allow deallocation after continuation resumes
         callback(.failure(error))
+    }
+
+    fileprivate func closePopupWindows() {
+        for win in popupWindows { win.close() }
+        popupWindows.removeAll()
+    }
+
+    fileprivate func hostPopup(_ popup: WKWebView, title: String) {
+        let win = NSWindow(contentRect: popup.frame,
+                           styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        win.title = title
+        win.contentView = popup
+        win.isReleasedWhenClosed = false
+        win.level = .floating
+        win.center()
+        win.makeKeyAndOrderFront(nil)
+        popupWindows.append(win)
+    }
+
+    fileprivate func closePopupWindow(hosting webView: WKWebView) {
+        popupWindows.removeAll { win in
+            guard win.contentView === webView else { return false }
+            win.close()
+            return true
+        }
     }
 }
 
@@ -633,8 +662,34 @@ extension CoordLoginWindowController: WKNavigationDelegate {
 }
 
 @MainActor
+extension CoordLoginWindowController: WKUIDelegate {
+    // claude.ai's "Continue with Google" runs its OAuth flow in a window.open()
+    // popup (Google Identity Services, display=popup). Without hosting that
+    // popup the flow dies silently and Anthropic shows a generic login error.
+    // The popup shares the login webview's WKWebsiteDataStore, so the session
+    // cookies it produces are visible to the existing cookie observer/polling.
+    func webView(_ webView: WKWebView,
+                 createWebViewWith configuration: WKWebViewConfiguration,
+                 for navigationAction: WKNavigationAction,
+                 windowFeatures: WKWindowFeatures) -> WKWebView? {
+        let popup = WKWebView(frame: .init(x: 0, y: 0, width: 480, height: 640), configuration: configuration)
+        popup.navigationDelegate = self
+        popup.uiDelegate = self
+        hostPopup(popup, title: "Sign in")
+        return popup
+    }
+
+    func webViewDidClose(_ webView: WKWebView) {
+        closePopupWindow(hosting: webView)
+    }
+}
+
+@MainActor
 extension CoordLoginWindowController: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
+        // Only the main login window cancels the flow; popup windows close
+        // as part of the OAuth handshake and must not abort it.
+        guard (notification.object as? NSWindow) === window else { return }
         guard !hasCompleted else { return }
         fail(with: NetworkError.notAuthenticated)
     }
