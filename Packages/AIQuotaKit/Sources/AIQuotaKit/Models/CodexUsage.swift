@@ -3,35 +3,67 @@ import Foundation
 // MARK: - Raw API response from GET https://chatgpt.com/backend-api/wham/usage
 
 public struct WhamUsageResponse: Decodable, Sendable {
-    public let userId: String
-    public let accountId: String
+    public let userId: String?
+    public let accountId: String?
     public let email: String?
-    public let planType: String
-    public let rateLimit: RateLimitInfo
+    public let planType: String?
+    public let rateLimit: RateLimitInfo?
     public let codeReviewRateLimit: RateLimitInfo?
     public let credits: Credits?
 
     public struct RateLimitInfo: Decodable, Sendable {
-        public let allowed: Bool
-        public let limitReached: Bool
+        public let allowed: Bool?
+        public let limitReached: Bool?
         public let primaryWindow: Window?   // short window (~5h)
         public let secondaryWindow: Window? // weekly window (7 days)
 
         public struct Window: Decodable, Sendable {
-            public let usedPercent: Int
-            public let limitWindowSeconds: Int
-            public let resetAfterSeconds: Int
-            public let resetAt: Int // Unix timestamp
+            public let usedPercent: Int?
+            public let limitWindowSeconds: Int?
+            public let resetAfterSeconds: Int?
+            public let resetAt: Int? // Unix timestamp
+
+            private enum CodingKeys: String, CodingKey {
+                case usedPercent
+                case limitWindowSeconds
+                case resetAfterSeconds
+                case resetAt
+            }
+
+            public init(from decoder: Decoder) throws {
+                let container = try decoder.container(keyedBy: CodingKeys.self)
+                usedPercent = try container.decodeLossyIntIfPresent(forKey: .usedPercent)
+                limitWindowSeconds = try container.decodeLossyIntIfPresent(forKey: .limitWindowSeconds)
+                resetAfterSeconds = try container.decodeLossyIntIfPresent(forKey: .resetAfterSeconds)
+                resetAt = try container.decodeLossyIntIfPresent(forKey: .resetAt)
+            }
         }
     }
 
     public struct Credits: Decodable, Sendable {
         public let hasCredits: Bool
         public let unlimited: Bool
-        public let balance: String
+        public let balance: String?
         // [current, limit] — e.g. [49, 256] means 49 of 256 used
         public let approxLocalMessages: [Int]?
         public let approxCloudMessages: [Int]?
+
+        private enum CodingKeys: String, CodingKey {
+            case hasCredits
+            case unlimited
+            case balance
+            case approxLocalMessages
+            case approxCloudMessages
+        }
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            hasCredits = (try? container.decodeIfPresent(Bool.self, forKey: .hasCredits)) ?? false
+            unlimited = (try? container.decodeIfPresent(Bool.self, forKey: .unlimited)) ?? false
+            balance = try container.decodeLossyStringIfPresent(forKey: .balance)
+            approxLocalMessages = try? container.decodeIfPresent([Int].self, forKey: .approxLocalMessages)
+            approxCloudMessages = try? container.decodeIfPresent([Int].self, forKey: .approxCloudMessages)
+        }
     }
 }
 
@@ -76,23 +108,24 @@ public struct CodexUsage: Codable, Sendable, Equatable {
     // MARK: Init from API response
 
     public init(from response: WhamUsageResponse, fetchedAt: Date = .now) {
-        let weekly = response.rateLimit.secondaryWindow
-        let hourly = response.rateLimit.primaryWindow
+        let rateLimit = response.rateLimit
+        let weekly = rateLimit?.secondaryWindow
+        let hourly = rateLimit?.primaryWindow
 
         weeklyUsedPercent = weekly?.usedPercent ?? 0
-        weeklyResetAt = weekly.map { Date(timeIntervalSince1970: TimeInterval($0.resetAt)) } ?? .distantFuture
+        weeklyResetAt = weekly?.resetAt.map { Date(timeIntervalSince1970: TimeInterval($0)) } ?? .distantFuture
         weeklyResetAfterSeconds = weekly?.resetAfterSeconds ?? 0
 
         hourlyUsedPercent = hourly?.usedPercent ?? 0
-        hourlyResetAt = hourly.map { Date(timeIntervalSince1970: TimeInterval($0.resetAt)) } ?? .distantFuture
+        hourlyResetAt = hourly?.resetAt.map { Date(timeIntervalSince1970: TimeInterval($0)) } ?? .distantFuture
         hourlyResetAfterSeconds = hourly?.resetAfterSeconds ?? 0
         hourlyWindowSeconds = hourly?.limitWindowSeconds ?? 18000
 
-        limitReached = response.rateLimit.limitReached
-        allowed = response.rateLimit.allowed
-        planType = response.planType
+        limitReached = rateLimit?.limitReached ?? false
+        allowed = rateLimit?.allowed ?? true
+        planType = response.planType ?? "unknown"
 
-        creditBalance = response.credits.flatMap { Double($0.balance) }
+        creditBalance = response.credits?.balance.flatMap { Double($0) }
         approxLocalMessages = response.credits?.approxLocalMessages
         approxCloudMessages = response.credits?.approxCloudMessages
 
@@ -179,4 +212,33 @@ struct AutoTopUpSettingsResponse: Decodable, Sendable {
     let isEnabled: Bool
     let rechargeThreshold: String
     let rechargeTarget: String
+}
+
+private extension KeyedDecodingContainer {
+    func decodeLossyIntIfPresent(forKey key: Key) throws -> Int? {
+        if let value = try? decodeIfPresent(Int.self, forKey: key) {
+            return value
+        }
+        if let value = try? decodeIfPresent(Double.self, forKey: key) {
+            return Int(value.rounded())
+        }
+        if let value = try? decodeIfPresent(String.self, forKey: key),
+           let number = Double(value.trimmingCharacters(in: .whitespacesAndNewlines)) {
+            return Int(number.rounded())
+        }
+        return nil
+    }
+
+    func decodeLossyStringIfPresent(forKey key: Key) throws -> String? {
+        if let value = try? decodeIfPresent(String.self, forKey: key) {
+            return value
+        }
+        if let value = try? decodeIfPresent(Double.self, forKey: key) {
+            return String(value)
+        }
+        if let value = try? decodeIfPresent(Int.self, forKey: key) {
+            return String(value)
+        }
+        return nil
+    }
 }
