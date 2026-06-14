@@ -71,12 +71,16 @@ done
 
 css_cache_bust="$(shasum -a 256 "$STAGING_DIR/site.css" | awk '{print substr($1, 1, 12)}')"
 js_cache_bust="$(shasum -a 256 "$STAGING_DIR/site.js" | awk '{print substr($1, 1, 12)}')"
+poster_cache_bust="$(shasum -a 256 "$STAGING_DIR/assets/aiquota-video-poster.png" | awk '{print substr($1, 1, 12)}')"
+video_cache_bust="$(shasum -a 256 "$STAGING_DIR/assets/aiquota-demo-inline.mp4" | awk '{print substr($1, 1, 12)}')"
 
 find "$STAGING_DIR" -name '*.html' -print0 | xargs -0 perl -0pi -e \
   "s#href=\"((?:\\.\\./)*/?site\\.css)(?:\\?v=[^\"]+)?\"#href=\"\$1?v=${css_cache_bust}\"#g;
-   s#src=\"((?:\\.\\./)*/?site\\.js)(?:\\?v=[^\"]+)?\"#src=\"\$1?v=${js_cache_bust}\"#g"
+   s#src=\"((?:\\.\\./)*/?site\\.js)(?:\\?v=[^\"]+)?\"#src=\"\$1?v=${js_cache_bust}\"#g;
+   s#(aiquota-video-poster\\.png)(?:\\?v=[^\"]+)?#\$1?v=${poster_cache_bust}#g;
+   s#(aiquota-demo-inline\\.mp4)(?:\\?v=[^\"]+)?#\$1?v=${video_cache_bust}#g"
 
-echo "Deploying ${SITE_URL} with cache-busted assets: site.css?v=${css_cache_bust}, site.js?v=${js_cache_bust}"
+echo "Deploying ${SITE_URL} with cache-busted assets: site.css?v=${css_cache_bust}, site.js?v=${js_cache_bust}, aiquota-video-poster.png?v=${poster_cache_bust}, aiquota-demo-inline.mp4?v=${video_cache_bust}"
 
 REMOTE="${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH%/}/"
 SSH_CMD=(

@@ -125,6 +125,12 @@ check_status "/sitemap.xml"
 check_status "/assets/aiquota-demo-inline.mp4"
 check_status "/assets/aiquota-video-poster.png"
 
+video_size="$(wc -c < "$SITE_DIR/assets/aiquota-demo-inline.mp4" | tr -d '[:space:]')"
+if (( video_size > 1048576 )); then
+  echo "Expected optimized demo video to stay under 1 MiB, got ${video_size} bytes"
+  exit 1
+fi
+
 check_contains "/robots.txt" "Sitemap: https://aiquota.app/sitemap.xml"
 check_contains "/sitemap.xml" "<loc>https://aiquota.app/</loc>"
 check_contains "/sitemap.xml" "<loc>https://aiquota.app/releases/</loc>"
