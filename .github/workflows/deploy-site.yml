@@ -33,7 +33,7 @@ jobs:
           install -m 700 -d ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -p 22 ssh.suckahs.org >> ~/.ssh/known_hosts
+          install -m 600 .github/ssh_known_hosts ~/.ssh/known_hosts
           cat >> ~/.ssh/config <<'EOF'
           Host ssh.suckahs.org
             IdentityFile ~/.ssh/deploy_key
