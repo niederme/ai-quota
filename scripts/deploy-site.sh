@@ -43,6 +43,9 @@ cp docs/site.css "$STAGING_DIR/"
 cp docs/site.js "$STAGING_DIR/"
 cp -R docs/assets "$STAGING_DIR/"
 
+# Apache canonical-host and HTTPS rules
+[[ -f docs/.htaccess ]] && cp docs/.htaccess "$STAGING_DIR/"
+
 # Search engine discovery files
 for f in docs/robots.txt docs/sitemap.xml; do
   [[ -f "$f" ]] && cp "$f" "$STAGING_DIR/"
