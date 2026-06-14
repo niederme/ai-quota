@@ -58,34 +58,44 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "SoftwareApplication",
-        "name": "AIQuota",
-        "url": "https://aiquota.app/",
-        "description": "Track Claude Code and OpenAI Codex usage, quota windows, reset times, and alerts from your macOS menu bar and desktop widgets with AIQuota.",
-        "applicationCategory": "DeveloperApplication",
-        "applicationSubCategory": "Developer Tools",
-        "operatingSystem": "macOS 15 or later",
-        "softwareVersion": "1.9.16",
-        "downloadUrl": "https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip",
-        "image": "https://aiquota.app/assets/aiquota-social-card.png",
-        "screenshot": "https://aiquota.app/assets/aiquota-video-poster.png",
-        "featureList": [
-          "Codex and Claude Code quota tracking",
-          "Menu Bar gauges for 5-hour and 7-day usage windows",
-          "Desktop widgets",
-          "Reset timers, plan details, and warning states"
-        ],
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "USD"
-        },
-        "author": {
-          "@type": "Person",
-          "name": "John Niedermeyer",
-          "url": "https://nieder.me/"
-        },
-        "sameAs": "https://github.com/niederme/ai-quota"
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://aiquota.app/#software",
+            "name": "AIQuota",
+            "url": "https://aiquota.app/",
+            "description": "Track Claude Code and OpenAI Codex usage, quota windows, reset times, and alerts from your macOS menu bar and desktop widgets with AIQuota.",
+            "applicationCategory": "DeveloperApplication",
+            "applicationSubCategory": "Developer Tools",
+            "operatingSystem": "macOS 15 or later",
+            "softwareVersion": "1.9.16",
+            "downloadUrl": "https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip",
+            "image": "https://aiquota.app/assets/aiquota-social-card.png",
+            "screenshot": "https://aiquota.app/assets/aiquota-video-poster.png",
+            "featureList": [
+              "Codex and Claude Code quota tracking",
+              "Menu Bar gauges for 5-hour and 7-day usage windows",
+              "Desktop widgets",
+              "Reset timers, plan details, and warning states"
+            ],
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "author": {
+              "@id": "https://nieder.me/#person"
+            },
+            "sameAs": "https://github.com/niederme/ai-quota"
+          },
+          {
+            "@type": "Person",
+            "@id": "https://nieder.me/#person",
+            "name": "John Niedermeyer",
+            "url": "https://nieder.me/",
+            "sameAs": "https://github.com/niederme"
+          }
+        ]
       }
     </script>
     <script>
