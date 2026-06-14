@@ -118,8 +118,17 @@ check_release_page_matches_github
 
 check_status "/site.css"
 check_status "/site.js"
+check_status "/robots.txt"
+check_status "/sitemap.xml"
 check_status "/assets/aiquota-demo-inline.mp4"
 check_status "/assets/aiquota-video-poster.png"
+
+check_contains "/robots.txt" "Sitemap: https://aiquota.app/sitemap.xml"
+check_contains "/sitemap.xml" "<loc>https://aiquota.app/</loc>"
+check_contains "/sitemap.xml" "<loc>https://aiquota.app/releases/</loc>"
+check_contains "/sitemap.xml" "<loc>https://aiquota.app/privacy/</loc>"
+check_contains "/sitemap.xml" "<loc>https://aiquota.app/terms/</loc>"
+check_contains "/sitemap.xml" "<loc>https://aiquota.app/accessibility/</loc>"
 
 check_contains "/" "hero-demo-media"
 check_contains "/" "faq-panel"
