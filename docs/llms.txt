@@ -1,0 +1,27 @@
+# AIQuota
+
+> AIQuota is a native macOS menu bar app for monitoring OpenAI Codex and Claude Code usage quotas.
+
+AIQuota shows 5-hour and 7-day usage windows, reset timers, plan details, credits, and warning states. It supports single-service or dual-service setups and includes macOS desktop widgets and notifications.
+
+AIQuota requires macOS 15 or later. It is available as a direct download from GitHub.
+
+## Key Pages
+
+- [Homepage](https://aiquota.app/): Product overview, features, download, and FAQ
+- [Releases](https://aiquota.app/releases/): Current and recent release information
+- [Privacy Policy](https://aiquota.app/privacy/): Data access, storage, analytics, and privacy details
+- [Terms of Service](https://aiquota.app/terms/): Terms for using AIQuota
+- [Accessibility](https://aiquota.app/accessibility/): Website and app accessibility statement
+- [GitHub Repository](https://github.com/niederme/ai-quota): Source code, documentation, issues, and releases
+- [Latest Download](https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip): Latest macOS build
+
+## Product Facts
+
+- Platform: macOS 15 or later
+- Providers monitored: OpenAI Codex and Claude Code
+- Interfaces: Menu Bar gauges, popover details, desktop widgets, and notifications
+- Usage windows: 5-hour and 7-day
+- Data handling: Auth material is stored locally in Keychain; prompts and code are not read
+- Analytics: Optional anonymous usage analytics are disabled by default
+- Support: help@aiquota.app

@@ -47,7 +47,7 @@ cp -R docs/assets "$STAGING_DIR/"
 [[ -f docs/.htaccess ]] && cp docs/.htaccess "$STAGING_DIR/"
 
 # Search engine discovery files
-for f in docs/robots.txt docs/sitemap.xml; do
+for f in docs/llms.txt docs/robots.txt docs/sitemap.xml; do
   [[ -f "$f" ]] && cp "$f" "$STAGING_DIR/"
 done
 
