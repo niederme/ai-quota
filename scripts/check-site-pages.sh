@@ -109,6 +109,9 @@ check_contains "/" "AIQuota gives you clear visibility into Codex and Claude Cod
 check_contains "/" "gauges, desktop widgets, reset timers, and warning states."
 check_contains "/" "<title>Claude Code &amp; Codex Usage Tracker for macOS | AIQuota</title>"
 check_contains "/" "Track Claude Code and OpenAI Codex usage, quota windows, reset times, and alerts"
+check_contains "/" "\"@type\": \"SoftwareApplication\""
+check_contains "/" "\"operatingSystem\": \"macOS 15 or later\""
+check_contains "/" "\"downloadUrl\": \"https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip\""
 check_contains "/" "Single or dual Menu Bar gauges across 5-hour and 7-day windows"
 check_contains "/" "Desktop widgets for background visibility"
 check_contains "/" "Reset timers, plan details, and warning states"
@@ -120,6 +123,7 @@ check_release_page_matches_github
 
 check_status "/site.css"
 check_status "/site.js"
+check_status "/llms.txt"
 check_status "/robots.txt"
 check_status "/sitemap.xml"
 check_status "/assets/aiquota-demo-inline.mp4"
@@ -132,6 +136,9 @@ if (( video_size > 1048576 )); then
 fi
 
 check_contains "/robots.txt" "Sitemap: https://aiquota.app/sitemap.xml"
+check_contains "/llms.txt" "# AIQuota"
+check_contains "/llms.txt" "AIQuota is a native macOS menu bar app for monitoring OpenAI Codex and Claude Code usage quotas."
+check_contains "/llms.txt" "[Latest Download](https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip)"
 check_contains "/sitemap.xml" "<loc>https://aiquota.app/</loc>"
 check_contains "/sitemap.xml" "<loc>https://aiquota.app/releases/</loc>"
 check_contains "/sitemap.xml" "<loc>https://aiquota.app/privacy/</loc>"
