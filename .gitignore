@@ -27,7 +27,7 @@ DerivedData/
 .claire/
 .playwright-cli/
 .superpowers/brainstorm/
-output/playwright/
+output/
 
 # Xcode scheme management (machine-specific)
 **/xcschememanagement.plist
