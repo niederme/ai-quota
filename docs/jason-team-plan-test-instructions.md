@@ -2,6 +2,14 @@
 
 This build is testing whether AIQuota can use an existing Claude Code login before falling back to the embedded Claude web login.
 
+> Status update: Jason's first test did not validate this path because he does
+> not currently use Claude Code. He uses Claude in the browser and uses an API
+> key in Cursor/other tools. In that setup, AIQuota has no Claude Code OAuth
+> credential to import, so falling back to the embedded WebKit login is expected.
+> The screenshot showing Anthropic's "There was an error logging you in" message
+> is still the known embedded-login failure, not evidence that Claude Code OAuth
+> import failed.
+
 ## Context
 
 AIQuota previously opened its embedded Claude login window for some users even when they were already signed in to Claude elsewhere. That path is fragile for Claude Team and Max accounts, especially when the account uses Google login or organization-managed auth.
@@ -45,20 +53,28 @@ This test is successful if AIQuota can connect Claude through Claude Code OAuth 
 
 This test does not prove Enterprise spend-limit behavior. Enterprise still needs a separate account-specific test.
 
+This test also does not cover browser-only Team users or users who only have a
+standard Anthropic API key. Standard API keys are not equivalent to a Claude
+subscription session and do not unlock the current Claude Code OAuth path.
+
 ## Before Testing
 
 1. Install the test build of AIQuota.
    - Unzip the package and move `AIQuota.app` to Applications.
    - This test build is Apple Development-signed, not notarized. If macOS blocks the first launch, Control-click `AIQuota.app`, choose **Open**, then confirm **Open**.
-2. Make sure Claude Code is signed in with the same Claude Team account you want AIQuota to monitor:
+2. Make sure Claude Code is installed and signed in with the same Claude Team account you want AIQuota to monitor:
 
    ```sh
    claude
    ```
 
 3. If the account uses Google login, complete that login through Claude Code.
-4. You do not need to log out of Claude in your browser.
-5. You do not need to reset AIQuota settings unless asked.
+4. If the tester only uses Claude in a browser, ask them to install/sign into
+   Claude Code before running this OAuth handoff test.
+5. A normal Anthropic API key, including one used by Cursor.app, is not enough
+   for this test.
+6. You do not need to log out of Claude in your browser.
+7. You do not need to reset AIQuota settings unless asked.
 
 ## Test Steps
 
@@ -113,3 +129,7 @@ If AIQuota connects without opening the embedded Claude web login, the auth hand
 If a Keychain prompt appears only after pressing `Connect`, that is acceptable for this test. It means macOS required approval to let AIQuota read Claude Code's saved credential.
 
 If the embedded Claude web login opens immediately after pressing `Connect`, AIQuota did not find or could not use Claude Code's credential. Send the result back as a failure with screenshots.
+
+If the tester has not signed into Claude Code, the embedded Claude web login is
+expected to open. Treat that as "test not applicable yet" rather than a failure
+of the Claude Code OAuth handoff.

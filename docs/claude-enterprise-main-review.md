@@ -43,6 +43,14 @@ sign-in, not usage parsing. The Enterprise null-window parsing work is
 necessary but does not, by itself, unblock these users — none of the parser
 changes ship value until they can authenticate.
 
+Update after `520734c`: Jason's follow-up test did not exercise the Claude Code
+OAuth path because he does not use Claude Code. He uses Claude in the browser
+and a standard Anthropic API key in Cursor/other tools. That means AIQuota had
+no Claude Code OAuth credentials to import and correctly fell back to the
+embedded WebKit login, where it hit the known Anthropic "There was an error
+logging you in" failure. Treat browser-only/API-key-only reports as a separate
+support gap, not as a regression in the coordinator-level OAuth fix.
+
 ## What's on `main` (relevant commits, newest first)
 
 ```
