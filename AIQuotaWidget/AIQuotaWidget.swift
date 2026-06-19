@@ -40,6 +40,7 @@ struct AIQuotaSmallWidget: Widget {
             // Keep medium support on the original kind so pre-split installed widgets
             // continue rendering after updates instead of going blank.
             ConfigurableQuotaWidgetView(entry: entry)
+                .environment(\.colorScheme, .dark)
                 .containerBackground(Color(white: 0.1), for: .widget)
         }
         .configurationDisplayName("AI Quota")
@@ -57,6 +58,7 @@ struct AIQuotaMediumWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: StaticQuotaTimelineProvider()) { entry in
             StaticQuotaWidgetView(entry: entry)
+                .environment(\.colorScheme, .dark)
                 .containerBackground(Color(white: 0.1), for: .widget)
         }
         .configurationDisplayName("AI Quota")

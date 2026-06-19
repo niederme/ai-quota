@@ -82,6 +82,24 @@ struct PopoverTypographyTests {
         #expect(popoverSource.contains("viewModel.codexError?.isNetworkUnavailable == true"))
         #expect(popoverSource.contains("viewModel.claudeError?.isNetworkUnavailable == true"))
         #expect(popoverSource.contains(#"message: "\(serviceName): \(banner.message)""#))
+        #expect(popoverSource.contains("let shouldPrefixService = viewModel.isCodexEnrolled && viewModel.isClaudeEnrolled"))
+    }
+
+    @Test("Sequoia popover uses a controlled adaptive surface")
+    func sequoiaPopoverUsesControlledSurface() throws {
+        let popoverSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/PopoverView.swift"), encoding: .utf8)
+
+        #expect(popoverSource.contains("if #available(macOS 26.0, *)"))
+        #expect(popoverSource.contains("Color.black.opacity(0.18)"))
+        #expect(popoverSource.contains("Color(nsColor: .windowBackgroundColor).opacity(0.92)"))
+    }
+
+    @Test("dark widget surface uses dark semantic foregrounds")
+    func darkWidgetSurfaceUsesDarkSemanticForegrounds() throws {
+        let widgetSource = try String(contentsOf: repoRoot.appending(path: "AIQuotaWidget/AIQuotaWidget.swift"), encoding: .utf8)
+
+        #expect(widgetSource.components(separatedBy: #".environment(\.colorScheme, .dark)"#).count == 3)
+        #expect(widgetSource.components(separatedBy: #"containerBackground(Color(white: 0.1), for: .widget)"#).count == 3)
     }
 
     @Test("reset lines use compact local-time captions")
