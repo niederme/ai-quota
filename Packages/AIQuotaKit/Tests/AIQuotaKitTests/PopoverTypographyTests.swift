@@ -94,6 +94,20 @@ struct PopoverTypographyTests {
         #expect(popoverSource.contains("Color(nsColor: .windowBackgroundColor).opacity(0.92)"))
     }
 
+    @Test("onboarding reinforces material only before Tahoe")
+    func onboardingMatchesPopoverSurface() throws {
+        let onboardingSource = try String(
+            contentsOf: repoRoot.appending(path: "AIQuota/Views/Onboarding/OnboardingView.swift"),
+            encoding: .utf8
+        )
+
+        #expect(onboardingSource.contains("Rectangle()"))
+        #expect(onboardingSource.contains(".fill(.regularMaterial)"))
+        #expect(onboardingSource.contains("if #available(macOS 26.0, *)"))
+        #expect(onboardingSource.contains("Color(nsColor: .windowBackgroundColor).opacity(0.92)"))
+        #expect(!onboardingSource.contains("Color.black.opacity(0.18)"))
+    }
+
     @Test("dark widget surface uses dark semantic foregrounds")
     func darkWidgetSurfaceUsesDarkSemanticForegrounds() throws {
         let widgetSource = try String(contentsOf: repoRoot.appending(path: "AIQuotaWidget/AIQuotaWidget.swift"), encoding: .utf8)
