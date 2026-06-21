@@ -105,7 +105,7 @@ private struct RefreshPreferencePicker: View {
             .pickerStyle(.segmented)
             .labelsHidden()
 
-            Text("Auto refreshes every 1 min when the app is active or usage is near a threshold, then slows down when idle.")
+            Text("Auto refreshes every 5 min, speeds up to 1 min when usage is changing or near a threshold, and slows down when your Mac is idle.")
                 .font(.footnote)
                 .foregroundStyle(.tertiary)
                 .fixedSize(horizontal: false, vertical: true)

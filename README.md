@@ -19,7 +19,7 @@ The marketing site in `docs/` follows the shared Codex web preview convention us
 - **Service details that matter** — reset timers, plan info, credits or extra usage, and clear warning states are visible at a glance
 - **Desktop widgets** — polished widget variants for single-service and dual-service monitoring, including configurable small and medium widgets plus a large two-service layout
 - **Graceful empty and loading states** — widgets and the popover keep a stable layout when a service is disconnected, restoring, or waiting on fresh data
-- **Adaptive refresh controls** — choose `Auto` to refresh every minute when the app is active or quota is near a threshold, then back off automatically when idle, offline, or on low power
+- **Adaptive refresh controls** — choose `Auto` for a five-minute baseline that speeds up to every minute while usage is changing or near a threshold, then backs off when the Mac is idle, offline, or on low power
 - **Guided onboarding** — first launch walks through connecting services, refresh preferences, notifications, and widget setup; if both services are connected, onboarding also asks which one should drive the menu bar icon
 - **Single-service adaptation** — when only one service is enrolled, the app and widgets avoid dead space instead of pretending there should be a second column
 - **ChatGPT and Claude sign-in** — reuses an existing Claude Code or Codex CLI login when available, and falls back to a browser-backed session otherwise (including Google sign-in, which opens in its own popup window); app authentication comes only from live OAuth or WebKit sessions, while widget credentials are stored separately for background refresh

@@ -192,10 +192,11 @@ final class QuotaViewModel {
     private var pathMonitorReady = false
     private let pathMonitor = NWPathMonitor()
     private let pathMonitorQueue = DispatchQueue(label: "ai.quota.pathmonitor")
-    private var appIsActive = false
     private var appLifecycleObservers: [NSObjectProtocol] = []
     private var workspaceLifecycleObservers: [NSObjectProtocol] = []
     private let popoverOpenRefreshMinimumInterval: TimeInterval = 30
+    private let recentServiceActivityDuration: TimeInterval = 10 * 60
+    private var lastServiceActivityAt: Date?
 
     // MARK: - Init
 
@@ -319,8 +320,6 @@ final class QuotaViewModel {
     }
 
     private func startLifecycleObservers() {
-        appIsActive = NSApplication.shared.isActive
-
         let notificationCenter = NotificationCenter.default
         appLifecycleObservers.append(
             notificationCenter.addObserver(
@@ -330,7 +329,6 @@ final class QuotaViewModel {
             ) { [weak self] _ in
                 Task { @MainActor [weak self] in
                     guard let self else { return }
-                    self.appIsActive = true
                     self.restartAutoRefresh(immediateRefresh: true)
                 }
             }
@@ -343,7 +341,6 @@ final class QuotaViewModel {
             ) { [weak self] _ in
                 Task { @MainActor [weak self] in
                     guard let self else { return }
-                    self.appIsActive = false
                     self.restartAutoRefresh(immediateRefresh: false)
                 }
             }
@@ -441,6 +438,7 @@ final class QuotaViewModel {
                 logger.info("[CodexRefresh] auto-reload fetch failed — leaving codexAutoReload unchanged")
             }
 
+            recordServiceActivityIfNeeded(from: codexUsage, to: result)
             codexUsage = result
             lastRefreshedAt = .now
             SharedDefaults.saveUsage(result)
@@ -462,6 +460,7 @@ final class QuotaViewModel {
                 // Retry once after successful revalidation
                 do {
                     let result = try await codexClient.fetchUsage()
+                    recordServiceActivityIfNeeded(from: codexUsage, to: result)
                     codexUsage = result
                     lastRefreshedAt = .now
                     SharedDefaults.saveUsage(result)
@@ -521,6 +520,7 @@ final class QuotaViewModel {
         do {
             let result = try await claudeClient.fetchUsage()
             if shouldPreserveClaudeLastGood(result) { return }
+            recordServiceActivityIfNeeded(from: claudeUsage, to: result)
             claudeUsage = result
             lastRefreshedAt = .now
             SharedDefaults.saveClaudeUsage(result)
@@ -536,6 +536,7 @@ final class QuotaViewModel {
                 do {
                     let result = try await claudeClient.fetchUsage()
                     if self.shouldPreserveClaudeLastGood(result) { return }
+                    recordServiceActivityIfNeeded(from: claudeUsage, to: result)
                     claudeUsage = result
                     lastRefreshedAt = .now
                     SharedDefaults.saveClaudeUsage(result)
@@ -618,17 +619,33 @@ final class QuotaViewModel {
 
     private func autoRefreshContext() -> AutoRefreshContext {
         AutoRefreshContext(
-            appIsActive: appIsActive,
             lowPowerModeEnabled: ProcessInfo.processInfo.isLowPowerModeEnabled,
             networkAvailable: !pathMonitorReady || pathMonitor.currentPath.status == .satisfied,
             machineIdleSeconds: CGEventSource.secondsSinceLastEventType(
                 .combinedSessionState,
                 eventType: .null
             ),
-            hasCachedUsageData: codexUsage != nil || claudeUsage != nil,
+            serviceRecentlyActive: serviceWasRecentlyActive,
             codexNearThreshold: isCodexNearThreshold,
             claudeNearThreshold: isClaudeNearThreshold
         )
+    }
+
+    private var serviceWasRecentlyActive: Bool {
+        guard let lastServiceActivityAt else { return false }
+        return Date.now.timeIntervalSince(lastServiceActivityAt) < recentServiceActivityDuration
+    }
+
+    private func recordServiceActivityIfNeeded(from previous: CodexUsage?, to current: CodexUsage) {
+        if AutoRefreshActivity.changed(from: previous, to: current) {
+            lastServiceActivityAt = .now
+        }
+    }
+
+    private func recordServiceActivityIfNeeded(from previous: ClaudeUsage?, to current: ClaudeUsage) {
+        if AutoRefreshActivity.changed(from: previous, to: current) {
+            lastServiceActivityAt = .now
+        }
     }
 
     private var isCodexNearThreshold: Bool {

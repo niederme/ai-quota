@@ -63,8 +63,8 @@ struct RefreshSettingsTests {
             encoding: .utf8
         )
 
-        #expect(settingsSource.contains("Auto refreshes every 1 min when the app is active or usage is near a threshold, then slows down when idle."))
+        #expect(settingsSource.contains("Auto refreshes every 5 min, speeds up to 1 min when usage is changing or near a threshold, and slows down when your Mac is idle."))
         #expect(servicesSource.contains("How often should AIQuota refresh?"))
-        #expect(servicesSource.contains("Auto refreshes every 1 min when the app is active or usage is near a threshold, then slows down when idle."))
+        #expect(servicesSource.contains("Auto refreshes every 5 min, speeds up to 1 min when usage is changing or near a threshold, and slows down when your Mac is idle."))
     }
 }
