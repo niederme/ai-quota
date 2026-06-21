@@ -50,11 +50,25 @@ struct OnboardingView: View {
         }
         .frame(width: Self.width, height: Self.height)
         .ignoresSafeArea()
-        .background(.regularMaterial)
+        .background { onboardingSurface }
         .onAppear {
             // Window is reused by SwiftUI — always restart from the beginning
             step = .welcome
             direction = 1
+        }
+    }
+
+    @ViewBuilder
+    private var onboardingSurface: some View {
+        if #available(macOS 26.0, *) {
+            Rectangle()
+                .fill(.regularMaterial)
+        } else {
+            Rectangle()
+                .fill(.regularMaterial)
+                .overlay {
+                    Color(nsColor: .windowBackgroundColor).opacity(0.92)
+                }
         }
     }
 

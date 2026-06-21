@@ -24,12 +24,24 @@ struct PopoverView: View {
             }
         }
         .frame(width: popoverWidth)
-        .background(Color.black.opacity(0.18))
+        .background { popoverSurface }
         .background(WindowCapture { menuBarWindow = $0 })
         .background {
             Button("") { viewModel.manualRefresh() }
                 .keyboardShortcut("r", modifiers: .command)
                 .hidden()
+        }
+    }
+
+    @ViewBuilder
+    private var popoverSurface: some View {
+        if #available(macOS 26.0, *) {
+            Color.black.opacity(0.18)
+        } else {
+            // Sequoia's MenuBarExtra material is substantially more transparent
+            // than Tahoe's glass treatment. Stabilize contrast while retaining a
+            // small amount of desktop color.
+            Color(nsColor: .windowBackgroundColor).opacity(0.92)
         }
     }
 
@@ -530,7 +542,8 @@ struct PopoverView: View {
             ]
         }
 
-        guard banners.count > 1 else { return banners }
+        let shouldPrefixService = viewModel.isCodexEnrolled && viewModel.isClaudeEnrolled
+        guard shouldPrefixService else { return banners }
 
         return banners.map { banner in
             let serviceName = banner.id == "codex" ? "Codex" : "Claude Code"
