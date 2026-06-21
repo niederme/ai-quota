@@ -118,7 +118,7 @@ if [ -f "${SCREENSHOT_SRC:-}" ]; then
     SCREENSHOT_SRC="$SCREENSHOT_UPLOAD_PATH"
     RELEASE_NOTES="${RELEASE_NOTES}
 
-![Screenshot](${SCREENSHOT_URL})"
+<img src=\"${SCREENSHOT_URL}\" alt=\"AIQuota ${VERSION}\" width=\"600\">"
 fi
 
 # ── Build ZIP ─────────────────────────────────────────────────────────────────
@@ -206,6 +206,13 @@ cat > "$APPCAST" <<EOF
   }
   li strong {
     color: #ffffff;
+  }
+  img {
+    display: block;
+    width: 600px;
+    max-width: 100%;
+    height: auto;
+    margin-top: 14px;
   }
 </style>
 </head>

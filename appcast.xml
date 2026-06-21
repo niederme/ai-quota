@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.9.16</title>
+            <title>Version 1.9.17</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -37,20 +37,27 @@
   li strong {
     color: #ffffff;
   }
+  img {
+    display: block;
+    width: 600px;
+    max-width: 100%;
+    height: auto;
+    margin-top: 14px;
+  }
 </style>
 </head>
 <body>
-<h2>What's New in 1.9.16</h2>  <ul><li><strong>Clearer reset timing in the menu bar popover</strong> — 5-hour and 7-day reset times are easier to scan, with cleaner captions and better spacing for both Codex and Claude Code.</li> <li><strong>Better readability on light backgrounds</strong> — The popover keeps its material look, but now holds up better over bright pages and windows.</li> <li><strong>Smoother refresh behavior</strong> — Gauges no longer jump to a misleading halfway state while data is updating. If previous data exists, it stays visible until fresh data arrives.</li> <li><strong>Launch at login in onboarding</strong> — First-run setup now includes launch-at-login, so it is easier to keep AIQuota available from the menu bar.</li>  ![Screenshot](https://github.com/niederme/ai-quota/releases/download/v1.9.16/AIQuota-1.9.16.png) 
+<h2>What's New in 1.9.17</h2>  <ul><li><strong>Smarter Auto refresh</strong> — AIQuota now refreshes every five minutes by default, speeds up to every minute while usage is changing or nearing a limit, and backs off when your Mac is idle, offline, or in Low Power Mode.</li> <li><strong>Clearer budget awareness</strong> — New budget summaries make Codex credits and Claude extra usage easier to understand, with more focused warning states and notifications when Codex credits are replenished.</li> <li><strong>More reliable sign-in</strong> — AIQuota can reuse existing Codex CLI and Claude Code sessions, preserves valid provider sessions across updates, and now correctly hosts Google sign-in popups in its embedded login windows.</li> <li><strong>More resilient usage tracking</strong> — Expanded response handling keeps useful Codex and Claude data visible when providers return newer, partial, or temporarily incomplete usage details.</li> <li><strong>Better on Sequoia</strong> — Popovers, widgets, and onboarding now maintain stronger contrast and more consistent backgrounds on macOS 15, while retaining the native appearance of macOS 26.</li></ul> <img src="https://github.com/niederme/ai-quota/releases/download/v1.9.17/AIQuota-1.9.17.png" alt="AIQuota 1.9.17">
 </body>
 </html>
 ]]></description>
-            <sparkle:version>372</sparkle:version>
-            <sparkle:shortVersionString>1.9.16</sparkle:shortVersionString>
+            <sparkle:version>374</sparkle:version>
+            <sparkle:shortVersionString>1.9.17</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.9.16/AIQuota.zip"
-                sparkle:edSignature="aHhTR6uWsnTZI9vUNUZp4uhBBCHu6E5t7qo/y6NAVHULWPzegoB+sePUQ308HK1Uw4c4DF+7OIx4saGZMLN6Cw=="
-                length="6083109"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.9.17/AIQuota.zip"
+                sparkle:edSignature="koNhvplyubzC0vuByFnRo/odWHYcLWSxYDFPpZxEMviED846O9wGZeTPBDPs+X9JbH5Ot/Pw7mPrPj9PlyxsAQ=="
+                length="6476288"
                 type="application/zip"/>
         </item>
     </channel>
