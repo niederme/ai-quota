@@ -22,7 +22,7 @@ The marketing site in `docs/` follows the shared Codex web preview convention us
 - **Adaptive refresh controls** — choose `Auto` to refresh every minute when the app is active or quota is near a threshold, then back off automatically when idle, offline, or on low power
 - **Guided onboarding** — first launch walks through connecting services, refresh preferences, notifications, and widget setup; if both services are connected, onboarding also asks which one should drive the menu bar icon
 - **Single-service adaptation** — when only one service is enrolled, the app and widgets avoid dead space instead of pretending there should be a second column
-- **ChatGPT and Claude sign-in** — reuses an existing Claude Code or Codex CLI login when available, and falls back to a browser-backed session otherwise (including Google sign-in, which opens in its own popup window); secrets stay in Keychain and shared widget data is kept in the app group; Team-account auth improvements are currently awaiting field validation
+- **ChatGPT and Claude sign-in** — reuses an existing Claude Code or Codex CLI login when available, and falls back to a browser-backed session otherwise (including Google sign-in, which opens in its own popup window); app authentication comes only from live OAuth or WebKit sessions, while widget credentials are stored separately for background refresh
 - **Notification controls** — per-service master switches plus consolidated threshold alerts (one toggle covers low quota, critical quota, and limit reached) plus reset events
 - **Recovery after updates** — widget timelines reload more aggressively on launch, and installed widgets recover more reliably after app replacements
 - **Auto-update** — Sparkle checks silently on launch and twice daily, with gentle reminders instead of intrusive prompts
@@ -44,7 +44,8 @@ Widgets refresh automatically from cached data, app-driven reloads, and backgrou
 
 - macOS 15 (Sequoia) or later
 - An OpenAI account with Codex access (Plus, Pro, or Team plan)
-- A Claude.ai account (Pro, Max, Team, or Enterprise plan) for Claude Code quota
+- A Claude.ai Pro or Max account for verified Claude Code quota support
+- Team and Enterprise parsing/auth paths are implemented but remain field-unverified
 
 ---
 
@@ -172,8 +173,8 @@ If you are iterating on widgets, launching the built app once after install help
 
 ## Manual Test Handoffs
 
-- [Current Team auth field-test handoff](docs/team-auth-field-test-handoff.md) — continuation state, dedicated retest branch, verified tests, and pending Jason retest.
-- [Claude Team plan test](docs/jason-team-plan-test-instructions.md) — verifies that AIQuota can reuse an existing Claude Code OAuth login for Team accounts before falling back to the embedded Claude web login.
+- [Team auth field-test history](docs/team-auth-field-test-handoff.md) — failed attempts, fixes retained on `main`, and the remaining unverified account paths.
+- [Claude Team test instructions](docs/jason-team-plan-test-instructions.md) — archived test procedure for a future tester with an accessible Team account.
 
 ---
 
@@ -232,7 +233,7 @@ See the pre-release checklist at the top of [`scripts/release.sh`](scripts/relea
 - [x] Dual-arc gauge — concentric rings for 5h and 7-day windows; color-coded purple → amber → red; both percentages labelled in the centre
 - [x] Widget redesign — dual-arc gauges, single-service and dual-service widget variants, improved placeholder states, and more resilient rendering after updates
 - [x] Network recovery — NWPathMonitor detects coming back online and refreshes immediately
-- [ ] Field-verify Claude Team and Enterprise support — OAuth-first sign-in, Team usage, and Enterprise spend-limit parsing are implemented; the latest Team auth patch is awaiting field validation and Enterprise still requires a real-account fixture
+- [ ] Field-verify Claude Team and Enterprise support — OAuth-first sign-in, Team usage, and Enterprise spend-limit parsing are implemented; Jason's machine is now corporate-locked, so validation requires a different real Team/Enterprise tester
 - [x] Claude Code support — 5h and 7-day windows, Max plan credits, reset timers
 - [x] Harmonized window display — both Codex and Claude lead with the 5-hour rate-limit window, with 7-day usage always shown as a secondary row
 - [x] Widget service picker — choose Codex or Claude Code per widget instance

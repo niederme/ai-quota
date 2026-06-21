@@ -106,6 +106,11 @@ public actor ClaudeAuthCoordinator {
         }
 
         transition(to: .restoringSession)
+        if restoreFromOAuthCredentials(allowKeychain: false) {
+            transition(to: .authenticated)
+            return
+        }
+
         let result = await withProbeTimeout(probe)
         switch result {
         case .found(let orgId, let cookies):
@@ -116,14 +121,7 @@ public actor ClaudeAuthCoordinator {
             persistSharedAuthContext()
             transition(to: .authenticated)
         case .notFound, .none:
-            if restoreFromSharedAuthContext() {
-                transition(to: .authenticated)
-            } else if restoreFromOAuthCredentials(allowKeychain: false) {
-                transition(to: .authenticated)
-            } else {
-                SharedAuthContextStore.clearClaude()
-                transition(to: .unauthenticated)
-            }
+            transition(to: .unauthenticated)
         }
     }
 
@@ -329,15 +327,6 @@ public actor ClaudeAuthCoordinator {
     private func persistSharedAuthContext() {
         guard let capturedOrgId else { return }
         SharedAuthContextStore.saveClaude(orgId: capturedOrgId, cookies: capturedCookies)
-    }
-
-    private func restoreFromSharedAuthContext() -> Bool {
-        guard let context = SharedAuthContextStore.loadClaude() else { return false }
-        cachedOAuthCredentials = nil
-        capturedOrgId = context.orgId
-        capturedCookies = context.httpCookies
-        injectCookies(capturedCookies)
-        return !context.orgId.isEmpty
     }
 
     private func restoreFromOAuthCredentials(allowKeychain: Bool) -> Bool {

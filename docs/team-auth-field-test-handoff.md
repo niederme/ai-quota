@@ -1,19 +1,18 @@
 # Handoff: Team Auth Field Test Continuation
 
-Last updated: June 10, 2026
+Last updated: June 21, 2026
 
 ## Read This First
 
-The latest Jason retest code is preserved on a dedicated branch:
+This is now a historical field-test record, not an active branch handoff.
 
-- Checkout: `/Users/niederme/~Repos/ai-quota`
-- Branch: `team-auth-field-retest`
-- Base commit: `4ec4724`
-- Remote branch: `origin/team-auth-field-retest`
-
-A new clone or agent should check out `origin/team-auth-field-retest`. The
-changes are intentionally not merged into `main` while Jason's field validation
-is pending.
+- The Claude Security.framework Keychain reader is on `main`.
+- Google OAuth popup hosting is on `main`.
+- Codex workspace account-ID extraction is on `main`.
+- Khoi's individual Max account now connects and refreshes successfully.
+- Jason's Team account remains unverified. His Mac is now corporate-locked, so
+  the planned retest cannot continue on that machine.
+- Do not describe Team or Enterprise as field-verified.
 
 Source and test patch:
 
@@ -38,17 +37,12 @@ docs/jason-team-plan-test-instructions.md
 docs/team-auth-field-test-handoff.md
 ```
 
-A fresh agent running in this workspace can continue directly from the checkout
-above. In another clone or worktree:
-
-```sh
-git fetch origin
-git switch --track origin/team-auth-field-retest
-```
+Future work should start from `main`. The old `team-auth-field-retest` branch is
+useful only for historical comparison.
 
 ## Current Field Status
 
-The latest patch is waiting on Jason's Team-plan retest.
+The Team-plan retest is blocked indefinitely on Jason's machine.
 
 Earlier Team-plan test results from Jason:
 
@@ -102,11 +96,12 @@ work on this branch.
 
 ### Claude Team / Max Connect
 
-Previous explicit `Connect` behavior asked `ClaudeAuthCoordinator` to discover
-Claude Code credentials through `/usr/bin/security` with a short timeout. On a
-machine where the Claude Code Keychain item requires approval, that lookup can
-time out or fail before the user can authorize it. AIQuota then silently falls
-through to the embedded WebKit login.
+An abandoned explicit `Connect` implementation asked `ClaudeAuthCoordinator`
+to discover Claude Code credentials through `/usr/bin/security` with a short
+timeout. On a machine where the Claude Code Keychain item required approval,
+that lookup could time out or fail before the user could authorize it. AIQuota
+then silently fell through to the embedded WebKit login. That subprocess path
+has now been removed.
 
 The latest patch:
 
@@ -117,8 +112,7 @@ The latest patch:
 - Allows the actual credential read to display macOS's Keychain approval UI,
   but only after the user explicitly presses `Connect`.
 - Keeps bootstrap and background refresh non-interactive.
-- Changes `ClaudeAuthCoordinator` explicit Connect from
-  `.claudeCodeSecurityCLI` to `.claudeCodeInteractive`.
+- Uses `.claudeCodeInteractive` only for an explicit Connect action.
 
 Expected retest behavior:
 
@@ -173,20 +167,9 @@ xcodebuild -project AIQuota.xcodeproj -scheme AIQuota -configuration Debug -dest
 git diff --check
 ```
 
-Known unrelated failure:
-
-```text
-swift test --filter ClaudeAuthCoordinatorTests
-```
-
-The existing failing test is:
-
-```text
-bootstrap falls back to shared auth context when probe misses the live session
-```
-
-Do not attribute that pre-existing failure to the latest Jason patch without
-reproducing and tracing it.
+The old shared-auth-context bootstrap test has since been removed with the
+speculative app-auth fallback it described. Current coordinator tests require
+live OAuth or WebKit auth and treat shared credentials as widget-only state.
 
 ## Retest Package
 
@@ -201,8 +184,7 @@ The intended package name is:
 AIQuota-Jason-Team-Test-2026-06-08.zip
 ```
 
-If rebuilding the package, build from `team-auth-field-retest` so the latest
-patch is included.
+If rebuilding a future package, build from current `main`.
 
 ## Decisions and Boundaries
 
@@ -221,9 +203,9 @@ patch is included.
 
 ## What To Do Next
 
-1. Continue from `team-auth-field-retest`; do not merge it into `main` before
-   field results are understood.
-2. Wait for Jason's latest Team retest, or reproduce with another Team account.
+1. Reproduce with another accessible Team account; do not wait on Jason's
+   corporate-managed machine.
+2. Start from current `main`.
 3. Record separately whether:
    - a Keychain prompt appears after Claude `Connect`;
    - the embedded Claude login opens;
@@ -234,8 +216,8 @@ patch is included.
    status and Claude Code Keychain item shape before changing usage parsing.
 5. If Codex still returns 401, capture whether the parsed account ID is present
    and whether `ChatGPT-Account-Id` is sent, without logging tokens.
-6. Once the field result is understood, revise with a focused regression test
-   if needed, then merge the branch only after review.
+6. Once the field result is understood, add a focused regression fixture and
+   update the support claims.
 
 ## Related Docs
 

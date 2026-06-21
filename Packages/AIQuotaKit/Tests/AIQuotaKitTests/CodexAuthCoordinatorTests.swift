@@ -95,8 +95,8 @@ struct CodexAuthCoordinatorTests {
         #expect(UserDefaults.standard.object(forKey: "app.installedAt.v2") != nil)
     }
 
-    @Test("bootstrap falls back to shared auth context when probe misses the live session")
-    func bootstrapFallsBackToSharedAuthContext() async throws {
+    @Test("bootstrap does not revive widget-only shared auth context")
+    func bootstrapIgnoresSharedAuthContext() async throws {
         SharedAuthContextStore.saveCodex(
             SharedCodexAuthContext(
                 sessionToken: "session-from-shared-context",
@@ -112,9 +112,10 @@ struct CodexAuthCoordinatorTests {
         let sut = makeSUT(probe: { .notFound })
         await sut.bootstrap()
 
-        #expect(await sut.state == .authenticated)
-        let token = try await sut.accessToken()
-        #expect(token == "access-from-shared-context")
+        #expect(await sut.state == .unauthenticated)
+        await #expect(throws: NetworkError.self) {
+            _ = try await sut.accessToken()
+        }
     }
 
     @Test("bootstrap prefers Codex CLI OAuth before WebKit probe")
@@ -184,34 +185,6 @@ struct CodexAuthCoordinatorTests {
         #expect(UserDefaults.standard.bool(forKey: "codex.signedOutByUser") == false)
         let context = try await sut.accessContext()
         #expect(context.source == .codexOAuth)
-    }
-
-    @Test("bootstrap refreshes access token from shared session token when cached token is stale")
-    func bootstrapRefreshesAccessTokenFromSharedSessionToken() async throws {
-        SharedAuthContextStore.saveCodex(
-            SharedCodexAuthContext(
-                sessionToken: "session-from-shared-context",
-                accessToken: "expired-access-token",
-                accessTokenExpiresAt: Date.now.addingTimeInterval(-300)
-            )
-        )
-        defer { SharedAuthContextStore.clearCodex() }
-
-        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
-        defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
-
-        let sut = makeSUT(
-            probe: { .notFound },
-            tokenRefresher: { sessionToken in
-                #expect(sessionToken == "session-from-shared-context")
-                return ("refreshed-access-token", Date.now.addingTimeInterval(900))
-            }
-        )
-        await sut.bootstrap()
-
-        #expect(await sut.state == .authenticated)
-        let token = try await sut.accessToken()
-        #expect(token == "refreshed-access-token")
     }
 
     @Test("web session derives Team workspace account ID from access token claims")

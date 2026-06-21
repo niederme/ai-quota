@@ -105,6 +105,7 @@ struct PopoverTypographyTests {
         #expect(onboardingSource.contains(".fill(.regularMaterial)"))
         #expect(onboardingSource.contains("if #available(macOS 26.0, *)"))
         #expect(onboardingSource.contains("Color(nsColor: .windowBackgroundColor).opacity(0.92)"))
+        #expect(onboardingSource.contains("onboardingSurface\n                .ignoresSafeArea()"))
         #expect(!onboardingSource.contains("Color.black.opacity(0.18)"))
     }
 

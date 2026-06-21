@@ -51,12 +51,7 @@ public struct ClaudeOAuthKeychainReader: Sendable {
         try readClaudeCodeSecurityFramework()
     }
 
-    public static let claudeCodeSecurityCLI = ClaudeOAuthKeychainReader {
-        try readClaudeCodeSecurityCLI()
-    }
-
     private static let serviceName = "Claude Code-credentials"
-    private static let timeout: DispatchTimeInterval = .milliseconds(1500)
 
     private let read: @Sendable () throws -> Data?
 
@@ -150,45 +145,6 @@ public struct ClaudeOAuthKeychainReader: Sendable {
         }
     }
 
-    private static func readClaudeCodeSecurityCLI() throws -> Data? {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
-        process.arguments = [
-            "find-generic-password",
-            "-s", serviceName,
-            "-w"
-        ]
-
-        let output = Pipe()
-        process.standardOutput = output
-        process.standardError = Pipe()
-
-        try process.run()
-
-        let group = DispatchGroup()
-        group.enter()
-        DispatchQueue.global(qos: .utility).async {
-            process.waitUntilExit()
-            group.leave()
-        }
-
-        guard group.wait(timeout: .now() + timeout) == .success else {
-            process.terminate()
-            return nil
-        }
-
-        guard process.terminationStatus == 0 else {
-            return nil
-        }
-
-        let data = output.fileHandleForReading.readDataToEndOfFile()
-        let text = String(data: data, encoding: .utf8)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        guard !text.isEmpty else {
-            return nil
-        }
-        return Data(text.utf8)
-    }
 }
 
 private struct ClaudeOAuthKeychainError: LocalizedError {
@@ -204,7 +160,7 @@ public enum ClaudeOAuthCredentialsStore {
     static func hasUsableCredentials(
         env: [String: String] = ProcessInfo.processInfo.environment,
         fileManager: FileManager = .default,
-        keychainReader: ClaudeOAuthKeychainReader? = .claudeCodeSecurityCLI
+        keychainReader: ClaudeOAuthKeychainReader? = nil
     ) -> Bool {
         (try? loadUsable(env: env, fileManager: fileManager, keychainReader: keychainReader)) != nil
     }
@@ -212,7 +168,7 @@ public enum ClaudeOAuthCredentialsStore {
     static func loadUsable(
         env: [String: String] = ProcessInfo.processInfo.environment,
         fileManager: FileManager = .default,
-        keychainReader: ClaudeOAuthKeychainReader? = .claudeCodeSecurityCLI
+        keychainReader: ClaudeOAuthKeychainReader? = nil
     ) throws -> ClaudeOAuthCredentials {
         let credentials = try load(env: env, fileManager: fileManager, keychainReader: keychainReader)
         guard !credentials.isExpired else { throw ClaudeOAuthCredentialsError.expired }
@@ -223,7 +179,7 @@ public enum ClaudeOAuthCredentialsStore {
     static func load(
         env: [String: String] = ProcessInfo.processInfo.environment,
         fileManager: FileManager = .default,
-        keychainReader: ClaudeOAuthKeychainReader? = .claudeCodeSecurityCLI
+        keychainReader: ClaudeOAuthKeychainReader? = nil
     ) throws -> ClaudeOAuthCredentials {
         let url = credentialsURL(env: env, fileManager: fileManager)
         if fileManager.fileExists(atPath: url.path) {

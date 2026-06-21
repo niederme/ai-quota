@@ -2,6 +2,10 @@
 
 This build is testing whether AIQuota can use an existing Claude Code login before falling back to the embedded Claude web login.
 
+> **Archived June 21, 2026:** Jason's Mac is now locked down by corporate IT,
+> so this procedure cannot be completed on his machine. Keep it as a test script
+> for a future Team-account tester. The relevant code is now on `main`.
+>
 > Status update: Jason's first test did not validate this path because he does
 > not currently use Claude Code. He uses Claude in the browser and uses an API
 > key in Cursor/other tools. In that setup, AIQuota has no Claude Code OAuth

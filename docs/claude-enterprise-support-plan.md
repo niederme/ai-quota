@@ -1,14 +1,14 @@
 # Claude Enterprise Support Plan
 
-> **Implementation status (June 10, 2026):** The normalized usage model and
+> **Implementation status (June 21, 2026):** The normalized usage model and
 > OAuth-first resolver described here are implemented, but Team and Enterprise
 > behavior is not yet field-verified. The implementation also evolved beyond
 > this plan: `ClaudeAuthCoordinator` now participates in OAuth credential
 > discovery so a user can become authenticated without first establishing a
-> WebKit session. The latest Team-connect patch is preserved on
-> `team-auth-field-retest` and awaiting Jason's retest. See
+> WebKit session. The Team-connect and Codex workspace-ID patches are now on
+> `main`; Jason can no longer test because his machine is corporate-locked. See
 > [`team-auth-field-test-handoff.md`](team-auth-field-test-handoff.md) for the
-> current continuation state.
+> field history and remaining validation work.
 
 ## Summary
 
@@ -90,8 +90,12 @@ extra-usage heuristic before showing `Unknown`.
 
 ## Implementation Shape
 
-- Keep `ClaudeAuthCoordinator` as the browser sign-in owner; OAuth credential
-  discovery belongs to the usage fetcher/resolver, not the coordinator.
+- Keep `ClaudeAuthCoordinator` as the owner of app authentication. Bootstrap
+  checks noninteractive Claude Code OAuth first, then probes the live WebKit
+  session. Explicit `Connect` may perform an interactive Claude Code Keychain
+  read before opening the embedded web login.
+- `SharedAuthContextStore` is a downstream widget-refresh snapshot only. It
+  must never authenticate the app or revive a stale app session.
 - Add a small Claude source resolver:
   - Try OAuth first when usable Claude Code credentials exist.
   - Fall back to web cookies when OAuth is missing, expired, lacks scope, or has a

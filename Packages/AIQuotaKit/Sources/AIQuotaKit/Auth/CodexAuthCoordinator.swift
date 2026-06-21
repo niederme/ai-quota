@@ -119,12 +119,7 @@ public actor CodexAuthCoordinator {
                 transition(to: .unauthenticated)
             }
         case .notFound, .none:
-            if await restoreFromSharedAuthContext() {
-                transition(to: .authenticated)
-            } else {
-                clearPersistedSharedAuthContext()
-                transition(to: .unauthenticated)
-            }
+            transition(to: .unauthenticated)
         }
     }
 
@@ -297,23 +292,6 @@ public actor CodexAuthCoordinator {
         authSource = .codexOAuth
         persistSharedAuthContext(sessionToken: "")
         return true
-    }
-
-    private func restoreFromSharedAuthContext() async -> Bool {
-        guard let context = SharedAuthContextStore.loadCodex() else { return false }
-        if context.hasUsableAccessToken(), let accessToken = context.accessToken {
-            if !context.sessionToken.isEmpty {
-                KeychainStore.save(context.sessionToken, forKey: "sessionToken")
-            }
-            cachedAccessToken = accessToken
-            tokenExpiresAt = context.accessTokenExpiresAt
-            accountID = context.accountID
-            authSource = context.sessionToken.isEmpty ? .codexOAuth : .webSession
-            persistSharedAuthContext(sessionToken: context.sessionToken)
-            return true
-        }
-        guard !context.sessionToken.isEmpty else { return false }
-        return await restoreFromSessionToken(context.sessionToken)
     }
 
     private func restoreFromSessionToken(_ sessionToken: String) async -> Bool {

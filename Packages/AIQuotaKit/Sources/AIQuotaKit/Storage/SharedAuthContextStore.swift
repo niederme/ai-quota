@@ -69,6 +69,9 @@ public struct SharedClaudeAuthContext: Codable, Sendable, Equatable {
     }
 }
 
+/// Credential snapshots used by the widget extension for best-effort background
+/// refresh. The app's auth coordinators must not treat these snapshots as a
+/// login source; app authentication comes from live OAuth credentials or WebKit.
 public enum SharedAuthContextStore {
     private static let codexKey = "sharedCodexAuthContext"
     private static let claudeKey = "sharedClaudeAuthContext"

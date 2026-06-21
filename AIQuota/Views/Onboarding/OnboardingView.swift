@@ -50,7 +50,10 @@ struct OnboardingView: View {
         }
         .frame(width: Self.width, height: Self.height)
         .ignoresSafeArea()
-        .background { onboardingSurface }
+        .background {
+            onboardingSurface
+                .ignoresSafeArea()
+        }
         .onAppear {
             // Window is reused by SwiftUI — always restart from the beginning
             step = .welcome

@@ -1,79 +1,63 @@
-# AIQuota Team Auth Field-Retest Handoff
+# AIQuota Team Auth Handoff
 
-Continue from the dedicated remote branch:
+Last updated: June 21, 2026
 
-```sh
-git fetch origin
-git switch --track origin/team-auth-field-retest
-```
+## Status
 
-- Branch: `team-auth-field-retest`
-- Starting commit: `bd7b2d17db4aeea4405523c1f60658561a8e3b51`
-- Detailed context: `docs/team-auth-field-test-handoff.md`
-- Status: waiting for Jason's Team-account retest
-- Do not merge into `main` until the field results are understood
+Continue from `main`. The former `team-auth-field-retest` branch has been
+merged and is retained only as history.
 
-## Previous Field Results
+Implemented on `main`:
 
-Jason's Claude and Codex Team-account test showed:
+- Claude Code OAuth file discovery.
+- Explicit `Connect` support for the Claude Code Keychain item.
+- Embedded Google OAuth popup hosting for Claude and ChatGPT.
+- Codex CLI OAuth discovery and Team workspace-ID extraction.
+- Team/Enterprise plan parsing and Enterprise spend-limit model support.
+- Redacted auth-source diagnostics.
 
-- Claude fell through to AIQuota's embedded WebKit login.
-- Anthropic Google login failed with a generic login error.
-- Claude remained disconnected.
-- Codex appeared signed in but remained on a spinner.
-- A separate Codex usage probe returned HTTP 401.
+Verified:
 
-Khoi's individual Claude Max account also failed through the embedded login.
+- Claude Pro works.
+- Khoi's individual Claude Max account connects and refreshes.
+- Codex works on the maintainer's account.
+- Sequoia and macOS 26 popovers, widgets, and onboarding render correctly.
 
-## Changes On This Branch
+Not verified:
 
-### Claude Team / Max Connect
+- Claude Team usage.
+- Claude Enterprise OAuth usage and spend-limit currency units.
+- Browser-only Team accounts without Claude Code credentials.
 
-Explicit Claude `Connect` now reads Claude Code's existing Keychain credential
-through Security.framework.
+Jason's Team retest cannot continue because his Mac is now locked down by
+corporate IT.
 
-Expected behavior:
+## Auth Boundary
 
-1. The user signs into Claude Code.
-2. The user presses Claude `Connect` in AIQuota.
-3. macOS may show an AIQuota Keychain approval prompt.
-4. After approval, the embedded Claude web login should not open.
-5. Claude Team usage should load.
+App authentication is decided only by live sources:
 
-Launch and background refresh remain non-interactive.
+1. Noninteractive CLI OAuth credentials during bootstrap.
+2. Live WebKit session.
+3. Explicit `Connect`, which may perform an interactive Claude Code Keychain
+   read before opening WebKit.
 
-### Codex Team Spinner / 401
+`SharedAuthContextStore` is only a credential snapshot for widget background
+refresh. It must not authenticate the app or revive a stale session.
 
-When Codex CLI credentials omit a top-level Team workspace ID, AIQuota now
-derives `chatgpt_account_id` from ID-token or access-token claims.
+The abandoned `/usr/bin/security` subprocess reader has been removed. Bootstrap
+never reads Claude Code's Keychain item, and explicit `Connect` uses
+Security.framework directly.
 
-Expected behavior: AIQuota sends `ChatGPT-Account-Id`, and Codex Team usage
-replaces the persistent spinner.
+## Next Work
 
-## Verification Completed
+1. Find a new Team tester with Claude Code access.
+2. Capture redacted diagnostics and a response-shape fixture.
+3. Find an Enterprise tester and confirm whether OAuth spend values are cents
+   or dollars.
+4. Add fixtures before changing parsing or claiming support.
 
-Passed:
+See:
 
-- `swift test --filter ClaudeOAuthCredentialsStoreTests` - 6 tests
-- `swift test --filter CodexOAuthCredentialsStoreTests` - 4 tests
-- Debug macOS Xcode build
-- `git diff --check`
-
-Known pre-existing failure:
-
-- `swift test --filter ClaudeAuthCoordinatorTests`
-- Failing test:
-  `bootstrap falls back to shared auth context when probe misses the live session`
-
-## Next Steps
-
-1. Read `docs/team-auth-field-test-handoff.md`.
-2. Review the branch independently.
-3. Wait for Jason's retest or reproduce with another Team account.
-4. If Claude still opens WebKit, inspect the Security.framework status and
-   Claude Code Keychain item shape.
-5. If Codex still returns HTTP 401, verify the parsed workspace account ID and
-   outgoing `ChatGPT-Account-Id` header without logging tokens.
-6. Enterprise spend-limit behavior still requires a real Enterprise-account
-   test.
-7. Merge only after the field results are understood.
+- [`team-auth-field-test-handoff.md`](team-auth-field-test-handoff.md)
+- [`claude-enterprise-main-review.md`](claude-enterprise-main-review.md)
+- [`claude-enterprise-support-plan.md`](claude-enterprise-support-plan.md)

@@ -5,14 +5,22 @@ coordinator-level OAuth fix. Issue 0 was addressed by `520734c` ("Route Claude
 OAuth through auth coordinator"). The remaining issues and hypotheses are
 preserved as follow-up context.
 
-Current continuation note (June 10, 2026): Jason's first Team retest still
-failed before usage loading. Claude fell through to the embedded WebKit login,
-and Codex appeared signed in but remained on a spinner with a separate probe
-returning HTTP 401. A newer Security.framework Claude Keychain reader and Codex
-Team workspace-ID fallback are preserved on `team-auth-field-retest` and are
-waiting on Jason's next retest. See
-[`team-auth-field-test-handoff.md`](team-auth-field-test-handoff.md) before
-continuing this work.
+Current continuation note (June 21, 2026): the Security.framework Claude
+Keychain reader, Google OAuth popup hosting, and Codex Team workspace-ID
+fallback are on `main`. Khoi's individual Max account now connects and refreshes
+successfully. Jason's Team account was never successfully validated, and his
+machine is now corporate-locked, so that test cannot continue. Team and
+Enterprise remain implemented but unverified.
+
+The release cleanup also removed two speculative recovery paths:
+
+- Persisted `SharedAuthContextStore` snapshots no longer authenticate the app.
+  Those credentials exist only so widgets can attempt background refresh.
+- The `/usr/bin/security` subprocess reader was removed. Bootstrap is
+  noninteractive; explicit Connect uses Security.framework directly.
+
+App bootstrap now trusts live OAuth credentials or a live WebKit session,
+preventing stale widget snapshots from reviving a dead session.
 
 Handoff for the agent continuing this work. Findings are tagged with confidence
 so you can tell what's grounded in the code from what's a hypothesis worth
@@ -211,12 +219,10 @@ does not switch sources; 429 does not switch sources.
 
 ## Hypotheses that should be checked, not shipped on
 
-- **Hypothesis: `security find-generic-password -w` prompts for Keychain
-  password on first run.** Three commits in this stack reference suppressing
-  Keychain prompts, which is strong indirect evidence the issue is real, but
-  the exact mechanism (prompt vs. silent failure vs. timeout) was not
-  verified. Test on a clean macOS user account before assuming current
-  mitigations are complete.
+- **Resolved cleanup: the `security find-generic-password -w` path is gone.**
+  Its exact prompt/failure behavior no longer matters to production. Explicit
+  Connect uses Security.framework, while launch and refresh never perform an
+  interactive Keychain read.
 - **Hypothesis: Anthropic's transient response for a Max user drops `fiveHour`
   while keeping `seven_day`.** See Issue 3. Capture real failure-mode data
   before tuning `shouldPreserveClaudeLastGood`.
@@ -246,21 +252,20 @@ does not switch sources; 429 does not switch sources.
 
 ## Recommended sequencing
 
-1. **Address Issue 0** — wire OAuth credentials into the coordinator's
-   sign-in / bootstrap path so users with Claude Code authenticated can
-   reach `.authenticated` without going through WebKit. This is what
-   actually unblocks the field bug. Everything else below assumes users can
-   sign in.
-2. **Address Issue 1** (policy matcher) — code-only fix, no external data
+1. **Find a new Team tester** whose machine permits installing/running the test
+   build and Claude Code. Jason is no longer available for this validation.
+2. **Capture a real Enterprise OAuth response** before claiming spend-limit
+   support or changing currency-unit assumptions.
+3. **Address Issue 1** (policy matcher) — code-only fix, no external data
    needed, removes a real footgun in the three-strikes safety net.
-3. **Capture a real Max-at-100% response and a real Enterprise OAuth
+4. **Capture a real Max-at-100% response and a real Enterprise OAuth
    response** to ground Issues 3 and 5. Without these, both items are
    speculation. Until they're captured, do not modify
    `shouldPreserveClaudeLastGood` or the cents-vs-dollars divisor.
-4. **Wire diagnostics consumer** (Issue 2) — needed for every subsequent
+5. **Wire diagnostics consumer** (Issue 2) — needed for every subsequent
    debugging cycle.
-5. **Add resolver tests** (Issue 6) and the OAuth → planLabel test (Issue 4).
-6. Re-evaluate `shouldPreserveClaudeLastGood` only after Step 3.
+6. **Add resolver tests** (Issue 6) and the OAuth → planLabel test (Issue 4).
+7. Re-evaluate `shouldPreserveClaudeLastGood` only after real fixtures exist.
 
 ## Reviewer caveats
 

@@ -47,8 +47,12 @@ struct ClaudeAuthCoordinatorTests {
     @Test("bootstrap restores OAuth credentials without allowing Keychain")
     func bootstrapOAuthFileOnly() async throws {
         let allowedKeychainValues = LockIsolated<[Bool]>([])
+        let probeCalls = LockIsolated(0)
         let sut = makeSUT(
-            probe: { .notFound },
+            probe: {
+                probeCalls.withLock { $0 += 1 }
+                return .notFound
+            },
             oauthCredentialsLoader: { allowKeychain in
                 allowedKeychainValues.withLock { $0.append(allowKeychain) }
                 #expect(allowKeychain == false)
@@ -60,6 +64,7 @@ struct ClaudeAuthCoordinatorTests {
 
         #expect(await sut.state == .authenticated)
         #expect(allowedKeychainValues.value == [false])
+        #expect(probeCalls.value == 0)
         await #expect(throws: NetworkError.self) {
             _ = try await sut.requestContext()
         }
@@ -107,17 +112,15 @@ struct ClaudeAuthCoordinatorTests {
         #expect(UserDefaults.standard.object(forKey: "app.installedAt.v2") != nil)
     }
 
-    @Test("bootstrap falls back to shared auth context when probe misses the live session")
-    func bootstrapFallsBackToSharedAuthContext() async throws {
-        let cookie = try #require(
-            HTTPCookie(properties: [
-                .domain: "claude.ai",
-                .path: "/",
-                .name: "sessionKey",
-                .value: "cookie-value",
-                .secure: true,
-            ])
-        )
+    @Test("bootstrap does not revive widget-only shared auth context")
+    func bootstrapIgnoresSharedAuthContext() async throws {
+        let cookie = try #require(HTTPCookie(properties: [
+            .domain: "claude.ai",
+            .path: "/",
+            .name: "sessionKey",
+            .value: "cookie-value",
+            .secure: true,
+        ]))
         SharedAuthContextStore.saveClaude(orgId: "org-shared", cookies: [cookie])
         defer { SharedAuthContextStore.clearClaude() }
         UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
@@ -126,9 +129,10 @@ struct ClaudeAuthCoordinatorTests {
         let sut = makeSUT(probe: { .notFound })
         await sut.bootstrap()
 
-        #expect(await sut.state == .authenticated)
-        let ctx = try await sut.requestContext()
-        #expect(ctx.orgId == "org-shared")
+        #expect(await sut.state == .unauthenticated)
+        await #expect(throws: NetworkError.self) {
+            _ = try await sut.requestContext()
+        }
     }
 
     // MARK: - signIn
