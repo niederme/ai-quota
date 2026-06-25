@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AIQuota — Usage Value Prototype</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="stage">
+    <section class="prototype-notes" aria-labelledby="study-title">
+      <p class="overline">AIQuota concept study</p>
+      <h1 id="study-title">What should “cost” mean?</h1>
+      <p class="intro">
+        Same usage, three interpretations. Change the framing and see which one
+        earns a place in the menu bar.
+      </p>
+
+      <fieldset class="language-picker">
+        <legend>Framing</legend>
+        <label>
+          <input type="radio" name="framing" value="cost">
+          <span>
+            <strong>Cost</strong>
+            <small>Direct, but sounds like a bill.</small>
+          </span>
+        </label>
+        <label>
+          <input type="radio" name="framing" value="value" checked>
+          <span>
+            <strong>Usage value</strong>
+            <small>API-equivalent, with honest caveats.</small>
+          </span>
+        </label>
+        <label>
+          <input type="radio" name="framing" value="subscription">
+          <span>
+            <strong>Subscription value</strong>
+            <small>Answers “am I getting my money’s worth?”</small>
+          </span>
+        </label>
+      </fieldset>
+
+      <div class="price-control">
+        <label for="price">Monthly subscription</label>
+        <output id="price-output" for="price">$100</output>
+        <input id="price" type="range" min="20" max="200" step="10" value="100">
+        <div class="range-labels" aria-hidden="true">
+          <span>$20</span>
+          <span>$200</span>
+        </div>
+      </div>
+
+      <p class="study-note" id="study-note">
+        This is the strongest default: it makes tokens legible without implying
+        that Claude charged another $7.71.
+      </p>
+    </section>
+
+    <section class="desktop" aria-label="Interactive macOS popover prototype">
+      <div class="menu-bar" aria-hidden="true">
+        <span class="menu-mark">✦</span>
+        <span>☁ 68°F</span>
+        <span class="menu-spacer"></span>
+        <span>•••</span>
+        <span>Mon Jun 22&nbsp;&nbsp;9:41 AM</span>
+      </div>
+
+      <article class="popover">
+        <header class="popover-header">
+          <button class="back-button" type="button" aria-label="Back">‹</button>
+          <h2 id="panel-title">Usage value</h2>
+          <div class="mode-switch" role="group" aria-label="Metric">
+            <button class="mode-button is-selected" type="button" data-mode="value">Value</button>
+            <button class="mode-button" type="button" data-mode="tokens">Tokens</button>
+          </div>
+        </header>
+
+        <section class="metric-section">
+          <p class="hero-metric" id="hero-metric">~$7.71</p>
+          <p class="metric-caption" id="metric-caption">API-equivalent value · last 30 days</p>
+
+          <div class="chart-wrap">
+            <div class="axis-label axis-top" id="axis-top">$3.20</div>
+            <div class="axis-label axis-mid" id="axis-mid">$1.60</div>
+            <div class="axis-label axis-zero">$0</div>
+            <div class="grid-line grid-top"></div>
+            <div class="grid-line grid-mid"></div>
+            <div class="chart" id="chart" aria-label="Daily usage chart"></div>
+            <div class="chart-dates" aria-hidden="true">
+              <span>30d ago</span>
+              <span>15d ago</span>
+              <span>Today</span>
+            </div>
+          </div>
+
+          <p class="comparison" id="comparison">
+            <span class="today-dot"></span>
+            <span>Today <strong>~$3.12</strong></span>
+            <span class="comparison-divider"></span>
+            <span>Typical day <strong class="cyan">~$0.26</strong></span>
+          </p>
+        </section>
+
+        <section class="subscription-section" id="subscription-section">
+          <h3>Subscription value</h3>
+          <dl class="value-list">
+            <div>
+              <dt>Claude Max</dt>
+              <dd id="plan-price">$100/mo</dd>
+            </div>
+            <div>
+              <dt>API-equivalent</dt>
+              <dd class="cyan">~$7.71</dd>
+            </div>
+            <div>
+              <dt>Break-even</dt>
+              <dd class="cyan" id="break-even">8%</dd>
+            </div>
+          </dl>
+          <div class="progress-track" aria-label="Subscription break-even progress">
+            <span id="progress-fill"></span>
+            <i id="progress-marker"></i>
+          </div>
+          <div class="progress-labels">
+            <span id="realized">8% of subscription value realized</span>
+            <span>100%</span>
+          </div>
+        </section>
+
+        <section class="models-section">
+          <h3>By model <span>(last 30 days)</span></h3>
+          <ul>
+            <li>
+              <span class="model-icon">✦</span>
+              <span>Opus 4.6</span>
+              <strong id="opus-value">$6.88</strong>
+            </li>
+            <li>
+              <span class="model-icon">✦</span>
+              <span>Sonnet 4.6</span>
+              <strong id="sonnet-value">$0.83</strong>
+            </li>
+          </ul>
+        </section>
+
+        <footer id="disclosure">
+          Estimated from local Claude logs at current API rates.<br>
+          Not an actual bill.
+        </footer>
+      </article>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
