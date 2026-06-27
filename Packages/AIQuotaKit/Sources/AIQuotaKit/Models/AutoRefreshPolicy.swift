@@ -53,6 +53,7 @@ public enum AutoRefreshActivity {
             || previous.limitReached != current.limitReached
             || previous.allowed != current.allowed
             || previous.creditBalance != current.creditBalance
+            || previous.bonusCreditsSpentThisMonth != current.bonusCreditsSpentThisMonth
             || previous.approxLocalMessages != current.approxLocalMessages
             || previous.approxCloudMessages != current.approxCloudMessages
     }
@@ -64,6 +65,7 @@ public enum AutoRefreshActivity {
             || previous.extraUsage?.usedCredits != current.extraUsage?.usedCredits
             || previous.extraUsage?.monthlyLimit != current.extraUsage?.monthlyLimit
             || previous.extraUsage?.isEnabled != current.extraUsage?.isEnabled
+            || previous.bonusUsage != current.bonusUsage
             || previous.spendLimit?.used != current.spendLimit?.used
             || previous.spendLimit?.limit != current.spendLimit?.limit
     }

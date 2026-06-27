@@ -88,6 +88,7 @@ public struct CodexUsage: Codable, Sendable, Equatable {
 
     // Credits
     public let creditBalance: Double?
+    public let bonusCreditsSpentThisMonth: Double?
     public let approxLocalMessages: [Int]?  // [used, limit]
     public let approxCloudMessages: [Int]?  // [used, limit]
 
@@ -126,6 +127,7 @@ public struct CodexUsage: Codable, Sendable, Equatable {
         planType = response.planType ?? "unknown"
 
         creditBalance = response.credits?.balance.flatMap { Double($0) }
+        bonusCreditsSpentThisMonth = nil
         approxLocalMessages = response.credits?.approxLocalMessages
         approxCloudMessages = response.credits?.approxCloudMessages
 
@@ -144,6 +146,7 @@ public struct CodexUsage: Codable, Sendable, Equatable {
         hourlyWindowSeconds: 18000,
         limitReached: false, allowed: true, planType: "plus",
         creditBalance: 197.18,
+        bonusCreditsSpentThisMonth: 142.6,
         approxLocalMessages: [30, 256],
         approxCloudMessages: [5, 49],
         fetchedAt: .now
@@ -159,6 +162,7 @@ public struct CodexUsage: Codable, Sendable, Equatable {
         hourlyWindowSeconds: 18000,
         limitReached: true, allowed: false, planType: "plus",
         creditBalance: nil,
+        bonusCreditsSpentThisMonth: nil,
         approxLocalMessages: nil, approxCloudMessages: nil,
         fetchedAt: .now
     )
@@ -167,7 +171,8 @@ public struct CodexUsage: Codable, Sendable, Equatable {
         weeklyUsedPercent: Int, weeklyResetAt: Date, weeklyResetAfterSeconds: Int,
         hourlyUsedPercent: Int, hourlyResetAt: Date, hourlyResetAfterSeconds: Int,
         hourlyWindowSeconds: Int, limitReached: Bool, allowed: Bool, planType: String,
-        creditBalance: Double?, approxLocalMessages: [Int]?, approxCloudMessages: [Int]?,
+        creditBalance: Double?, bonusCreditsSpentThisMonth: Double? = nil,
+        approxLocalMessages: [Int]?, approxCloudMessages: [Int]?,
         fetchedAt: Date
     ) {
         self.weeklyUsedPercent = weeklyUsedPercent
@@ -181,9 +186,59 @@ public struct CodexUsage: Codable, Sendable, Equatable {
         self.allowed = allowed
         self.planType = planType
         self.creditBalance = creditBalance
+        self.bonusCreditsSpentThisMonth = bonusCreditsSpentThisMonth
         self.approxLocalMessages = approxLocalMessages
         self.approxCloudMessages = approxCloudMessages
         self.fetchedAt = fetchedAt
+    }
+
+    public func withBonusCreditsSpentThisMonth(_ spent: Double?) -> CodexUsage {
+        CodexUsage(
+            weeklyUsedPercent: weeklyUsedPercent,
+            weeklyResetAt: weeklyResetAt,
+            weeklyResetAfterSeconds: weeklyResetAfterSeconds,
+            hourlyUsedPercent: hourlyUsedPercent,
+            hourlyResetAt: hourlyResetAt,
+            hourlyResetAfterSeconds: hourlyResetAfterSeconds,
+            hourlyWindowSeconds: hourlyWindowSeconds,
+            limitReached: limitReached,
+            allowed: allowed,
+            planType: planType,
+            creditBalance: creditBalance,
+            bonusCreditsSpentThisMonth: spent,
+            approxLocalMessages: approxLocalMessages,
+            approxCloudMessages: approxCloudMessages,
+            fetchedAt: fetchedAt
+        )
+    }
+}
+
+public struct CodexCreditUsageEventsResponse: Decodable, Sendable, Equatable {
+    public let data: [Event]
+
+    public struct Event: Decodable, Sendable, Equatable {
+        public let date: String
+        public let productSurface: String?
+        public let creditAmount: Double
+    }
+
+    public func monthToDateTotal(asOf date: Date = .now, calendar: Calendar = .current) -> Double {
+        guard let monthInterval = calendar.dateInterval(of: .month, for: date) else {
+            return data.reduce(0) { $0 + $1.creditAmount }
+        }
+
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = "yyyy-MM-dd"
+
+        return data.reduce(0) { total, event in
+            guard let eventDate = formatter.date(from: event.date),
+                  monthInterval.contains(eventDate)
+            else { return total }
+            return total + event.creditAmount
+        }
     }
 }
 

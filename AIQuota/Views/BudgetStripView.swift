@@ -55,7 +55,7 @@ struct BudgetStripView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 4) {
-                Text("Extra:")
+                Text("Spent:")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 Text(usedText)

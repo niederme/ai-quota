@@ -2,12 +2,15 @@ import SwiftUI
 import AIQuotaKit
 
 private let widgetAccentColor = Color(red: 0.62, green: 0.22, blue: 0.93)
+private let widgetOverageColor = Color(red: 1.0, green: 0.65, blue: 0.0)
 
 private struct WidgetDetailRowData: Identifiable {
     let label: String
     let value: String
     let icon: String
     let tint: Color
+    var labelTint: Color = .secondary
+    var valueTint: Color = .primary
 
     var id: String { "\(label)-\(value)-\(icon)" }
 }
@@ -56,10 +59,22 @@ private extension QuotaEntry {
             if let balance = usage.creditBalance {
                 detailRows.append(
                     WidgetDetailRowData(
-                        label: "Credits",
-                        value: "\(Int(balance))",
+                        label: "Balance",
+                        value: widgetCodexDollarAmount(balance),
                         icon: "creditcard.fill",
                         tint: .secondary
+                    )
+                )
+            }
+            if let spent = usage.bonusCreditsSpentThisMonth {
+                detailRows.append(
+                    WidgetDetailRowData(
+                        label: "Spent",
+                        value: widgetCodexDollarAmount(spent),
+                        icon: "plus.circle.fill",
+                        tint: widgetOverageColor,
+                        labelTint: widgetOverageColor,
+                        valueTint: widgetOverageColor
                     )
                 )
             }
@@ -93,13 +108,26 @@ private extension QuotaEntry {
                     tint: .secondary
                 ),
             ]
-            if let extra = usage.extraUsage, extra.isEnabled {
+            if let bonus = usage.bonusUsage {
                 detailRows.append(
                     WidgetDetailRowData(
-                        label: "Extra",
+                        label: "Spent",
+                        value: widgetBonusSpend(bonus),
+                        icon: "plus.circle.fill",
+                        tint: widgetOverageColor,
+                        labelTint: widgetOverageColor,
+                        valueTint: widgetOverageColor
+                    )
+                )
+            } else if let extra = usage.extraUsage, extra.isEnabled {
+                detailRows.append(
+                    WidgetDetailRowData(
+                        label: "Spent",
                         value: "\(Int(extra.usedCredits))/\(extra.monthlyLimit)",
                         icon: "plus.circle.fill",
-                        tint: .secondary
+                        tint: widgetOverageColor,
+                        labelTint: widgetOverageColor,
+                        valueTint: widgetOverageColor
                     )
                 )
             }
@@ -127,6 +155,40 @@ private func widgetCountdownText(prefix: String, seconds: Int) -> String {
     if days > 0 { return "\(prefix) \(days)d \(hours)h" }
     if hours > 0 { return "\(prefix) \(hours)h \(minutes)m" }
     return "\(prefix) \(minutes)m"
+}
+
+private func widgetBonusSpend(_ bonus: ClaudeUsage.BonusUsage) -> String {
+    if let currencyCode = bonus.currencyCode {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = currencyCode
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        return formatter.string(from: NSNumber(value: bonus.spent)) ?? widgetCreditAmount(bonus.spent)
+    }
+    return widgetCreditAmount(bonus.spent)
+}
+
+private func widgetCodexDollarAmount(_ credits: Double) -> String {
+    let amount = credits / 25.0
+    let formatter = NumberFormatter()
+    formatter.numberStyle = .currency
+    formatter.currencyCode = "USD"
+    formatter.minimumFractionDigits = 2
+    formatter.maximumFractionDigits = 2
+    return formatter.string(from: NSNumber(value: amount)) ?? String(format: "$%.2f", amount)
+}
+
+private func widgetCreditAmount(_ amount: Double) -> String {
+    let absAmount = abs(amount)
+    if absAmount >= 1_000 {
+        return String(format: "%.1fk", amount / 1_000)
+    }
+    if absAmount >= 100 || amount.rounded() == amount {
+        return "\(Int(amount.rounded()))"
+    }
+    let formatted = String(format: "%.1f", amount)
+    return formatted.hasSuffix(".0") ? String(formatted.dropLast(2)) : formatted
 }
 
 private struct WidgetHeaderView: View {
@@ -185,10 +247,10 @@ private struct WidgetStatsColumn: View {
                             .frame(width: 13)
                         Text(row.label + ":")
                             .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(row.labelTint)
                         Text(row.value)
                             .font(.caption2.monospacedDigit().bold())
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(row.valueTint)
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
                     }
@@ -239,10 +301,10 @@ private struct WidgetMediumStatsColumn: View {
                             .frame(width: 13)
                         Text(row.label + ":")
                             .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(row.labelTint)
                         Text(row.value)
                             .font(.caption2.monospacedDigit().bold())
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(row.valueTint)
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
                     }
@@ -384,10 +446,10 @@ private struct WidgetServiceDetailPanel: View {
                             .frame(width: 14)
                         Text(row.label + ":")
                             .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(row.labelTint)
                         Text(row.value)
                             .font(.caption2.monospacedDigit().bold())
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(row.valueTint)
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
                     }

@@ -427,8 +427,9 @@ final class QuotaViewModel {
         do {
             async let usageResult      = codexClient.fetchUsage()
             async let autoReloadResult = codexClient.fetchAutoReload()
+            async let bonusSpendResult = codexClient.fetchBonusCreditsSpentThisMonth()
 
-            let result = try await usageResult
+            var result = try await usageResult
 
             // Auto-reload fetch: fail-open — errors leave codexAutoReload at its previous value
             // so the credit-warning treatment never regresses due to an auxiliary endpoint hiccup.
@@ -436,6 +437,12 @@ final class QuotaViewModel {
                 codexAutoReload = reloadData
             } else {
                 logger.info("[CodexRefresh] auto-reload fetch failed — leaving codexAutoReload unchanged")
+            }
+
+            if let spent = try? await bonusSpendResult {
+                result = result.withBonusCreditsSpentThisMonth(spent)
+            } else {
+                logger.info("[CodexRefresh] bonus spend fetch failed — leaving monthly spend hidden")
             }
 
             recordServiceActivityIfNeeded(from: codexUsage, to: result)
@@ -459,7 +466,12 @@ final class QuotaViewModel {
                 guard await codexCoordinator.revalidateSessionAfterAuthFailure() else { return }
                 // Retry once after successful revalidation
                 do {
-                    let result = try await codexClient.fetchUsage()
+                    async let usageResult      = codexClient.fetchUsage()
+                    async let bonusSpendResult = codexClient.fetchBonusCreditsSpentThisMonth()
+                    var result = try await usageResult
+                    if let spent = try? await bonusSpendResult {
+                        result = result.withBonusCreditsSpentThisMonth(spent)
+                    }
                     recordServiceActivityIfNeeded(from: codexUsage, to: result)
                     codexUsage = result
                     lastRefreshedAt = .now

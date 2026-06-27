@@ -123,4 +123,41 @@ struct CodexUsageModelTests {
         #expect(usage.hourlyWindowSeconds == 18000)
         #expect(usage.hourlyResetAfterSeconds == 1200)
     }
+
+    @Test("totals current-month Codex bonus credit events")
+    func totalsCurrentMonthBonusCreditEvents() throws {
+        let data = Data("""
+        {
+          "data": [
+            {
+              "date": "2026-06-26",
+              "product_surface": "desktop_app",
+              "credit_amount": 20.78305
+            },
+            {
+              "date": "2026-06-01",
+              "product_surface": "unknown",
+              "credit_amount": 4.21695
+            },
+            {
+              "date": "2026-05-31",
+              "product_surface": "desktop_app",
+              "credit_amount": 99
+            }
+          ]
+        }
+        """.utf8)
+
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let raw = try decoder.decode(CodexCreditUsageEventsResponse.self, from: data)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let total = raw.monthToDateTotal(
+            asOf: Date(timeIntervalSince1970: 1_781_899_200), // 2026-06-15 00:00:00 UTC
+            calendar: calendar
+        )
+
+        #expect(total == 25)
+    }
 }

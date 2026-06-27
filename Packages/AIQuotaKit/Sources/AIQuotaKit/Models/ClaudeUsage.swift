@@ -6,6 +6,7 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
     public let sevenDayUtilization: Double?
     public let sevenDayResetsAt: Date?
     public let extraUsage: ExtraUsage?
+    public let bonusUsage: BonusUsage?
     public let spendLimit: SpendLimit?
     public let planLabel: PlanLabel
     public let primaryMetric: Metric
@@ -82,6 +83,25 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
         }
     }
 
+    public struct BonusUsage: Codable, Sendable, Equatable {
+        public let spent: Double
+        public let monthlyLimit: Double?
+        public let utilization: Double?
+        public let currencyCode: String?
+
+        public init(
+            spent: Double,
+            monthlyLimit: Double? = nil,
+            utilization: Double? = nil,
+            currencyCode: String? = nil
+        ) {
+            self.spent = spent
+            self.monthlyLimit = monthlyLimit
+            self.utilization = utilization
+            self.currencyCode = currencyCode
+        }
+    }
+
     public struct SpendLimit: Codable, Sendable, Equatable {
         public let used: Double
         public let limit: Double
@@ -114,6 +134,7 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
         sevenDayUtilization: Double?,
         sevenDayResetsAt: Date?,
         extraUsage: ExtraUsage?,
+        bonusUsage: BonusUsage? = nil,
         spendLimit: SpendLimit? = nil,
         planLabel: PlanLabel? = nil,
         source: Source = .unknown,
@@ -124,6 +145,13 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
         self.sevenDayUtilization = sevenDayUtilization
         self.sevenDayResetsAt = sevenDayResetsAt
         self.extraUsage = extraUsage
+        self.bonusUsage = bonusUsage ?? extraUsage.map {
+            BonusUsage(
+                spent: $0.usedCredits,
+                monthlyLimit: Double($0.monthlyLimit),
+                utilization: $0.utilization
+            )
+        }
         self.spendLimit = spendLimit
         self.planLabel = planLabel ?? Self.inferPlanLabel(
             extraUsage: extraUsage,
@@ -202,6 +230,7 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
         case sevenDayUtilization
         case sevenDayResetsAt
         case extraUsage
+        case bonusUsage
         case spendLimit
         case planLabel
         case source
@@ -215,6 +244,7 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
         let sevenDayUtilization = try container.decodeIfPresent(Double.self, forKey: .sevenDayUtilization)
         let sevenDayResetsAt = try container.decodeIfPresent(Date.self, forKey: .sevenDayResetsAt)
         let extraUsage = try container.decodeIfPresent(ExtraUsage.self, forKey: .extraUsage)
+        let bonusUsage = try container.decodeIfPresent(BonusUsage.self, forKey: .bonusUsage)
         let spendLimit = try container.decodeIfPresent(SpendLimit.self, forKey: .spendLimit)
         let planLabel = try container.decodeIfPresent(PlanLabel.self, forKey: .planLabel)
         let source = try container.decodeIfPresent(Source.self, forKey: .source) ?? .unknown
@@ -225,6 +255,7 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
             sevenDayUtilization: sevenDayUtilization,
             sevenDayResetsAt: sevenDayResetsAt,
             extraUsage: extraUsage,
+            bonusUsage: bonusUsage,
             spendLimit: spendLimit,
             planLabel: planLabel,
             source: source,

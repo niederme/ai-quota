@@ -260,16 +260,41 @@ public actor ClaudeClient {
         let hasNormalWindow = raw.fiveHour?.utilization != nil || sevenDay?.utilization != nil
         let spendLimit = Self.spendLimit(from: raw.extraUsage, source: source, planLabel: planLabel, hasNormalWindow: hasNormalWindow)
         let extra: ClaudeUsage.ExtraUsage? = spendLimit == nil ? Self.extraUsage(from: raw.extraUsage) : nil
+        let bonusUsage: ClaudeUsage.BonusUsage? = spendLimit == nil
+            ? Self.bonusUsage(from: raw.extraUsage, source: source)
+            : nil
         return ClaudeUsage(
             fiveHourUtilization: raw.fiveHour?.utilization,
             fiveHourResetsAt: raw.fiveHour?.resetsAt,
             sevenDayUtilization: sevenDay?.utilization,
             sevenDayResetsAt: sevenDay?.resetsAt,
             extraUsage: extra,
+            bonusUsage: bonusUsage,
             spendLimit: spendLimit,
             planLabel: planLabel,
             source: source,
             fetchedAt: fetchedAt
+        )
+    }
+
+    private static func bonusUsage(
+        from raw: ClaudeUsageResponse.ExtraUsageBucket?,
+        source: ClaudeUsage.Source
+    ) -> ClaudeUsage.BonusUsage? {
+        guard let raw,
+              let usedCredits = raw.usedCredits
+        else { return nil }
+
+        let divisor = source == .web && raw.currency != nil ? 100.0 : 1.0
+        let spent = usedCredits / divisor
+        let limit = raw.monthlyLimit.map { $0 / divisor }
+        let utilization = raw.utilization ?? limit.map { $0 > 0 ? (spent / $0) * 100 : 0 }
+
+        return ClaudeUsage.BonusUsage(
+            spent: spent,
+            monthlyLimit: limit,
+            utilization: utilization,
+            currencyCode: raw.currency
         )
     }
 

@@ -212,7 +212,10 @@ struct PopoverView: View {
             "\(formatWindowDuration(u.hourlyWindowSeconds)) window: \(u.hourlyUsedPercent)% used",
             "7-day window: \(u.weeklyUsedPercent)% used",
         ]
-        if let balance = u.creditBalance { lines.append("Credits: \(Int(balance))") }
+        if let balance = u.creditBalance { lines.append("Credits balance: \(formatCodexDollarAmount(balance))") }
+        if let spent = u.bonusCreditsSpentThisMonth {
+            lines.append("Usage credits spent this month: \(formatCodexDollarAmount(spent))")
+        }
         if let local = u.approxLocalMessages, local.count == 2 {
             lines.append("Local messages: ~\(local[0]) / \(local[1])")
         }
@@ -230,8 +233,11 @@ struct PopoverView: View {
         if let sevenDay = u.sevenDayUtilization {
             lines.append("7-day window: \(Int(sevenDay.rounded()))% used")
         }
+        if let bonus = u.bonusUsage {
+            lines.append("Spent this month: \(formatBonusSpend(bonus))")
+        }
         if let extra = u.extraUsage, extra.isEnabled {
-            lines.append("Extra credits: \(Int(extra.usedCredits)) / \(extra.monthlyLimit)")
+            lines.append("Monthly limit: \(Int(extra.usedCredits)) / \(extra.monthlyLimit)")
         }
         if let spend = u.spendLimit {
             lines.append("Spend limit: \(Int(spend.used)) / \(Int(spend.limit))")
@@ -290,10 +296,19 @@ struct PopoverView: View {
         if let usage = viewModel.codexUsage {
             let autoReload = viewModel.codexAutoReload
             VStack(alignment: .leading, spacing: 5) {
+                compactRow("Plan", usage.planType.capitalized)
                 if let balance = usage.creditBalance {
                     CodexCreditsRow(balance: balance, autoReload: autoReload)
                 }
-                compactRow("Plan", usage.planType.capitalized)
+                if let spent = usage.bonusCreditsSpentThisMonth, spent > 0 {
+                    compactRow(
+                        "Spent",
+                        formatCodexDollarAmount(spent),
+                        labelTint: overageValueTint,
+                        valueTint: overageValueTint,
+                        infoHelp: codexSpentHelpText
+                    )
+                }
             }
         }
     }
@@ -302,43 +317,48 @@ struct PopoverView: View {
     private var claudeSecondaryStats: some View {
         if let usage = viewModel.claudeUsage {
             VStack(alignment: .leading, spacing: 6) {
+                compactRow("Plan", usage.planDisplayName)
                 if let extra = usage.extraUsage, extra.isEnabled {
                     if extra.utilization >= BudgetStripView.showThreshold {
                         BudgetStripView(extra: extra)
-                    } else if let tint = extraUsageTint(extra, usage: usage) {
+                    } else if let tint = extraUsageValueTint(extra) {
                         compactRow(
-                            "Extra",
-                            "\(Int(extra.usedCredits))/\(extra.monthlyLimit)",
+                            "Spent",
+                            formatBonusSpend(usage.bonusUsage, fallback: extra.usedCredits),
                             labelTint: tint,
-                            valueTint: tint
+                            valueTint: tint,
+                            infoHelp: claudeSpentHelpText
                         )
                     } else {
                         compactRow(
-                            "Extra",
-                            "\(Int(extra.usedCredits))/\(extra.monthlyLimit)"
+                            "Spent",
+                            formatBonusSpend(usage.bonusUsage, fallback: extra.usedCredits),
+                            labelTint: overageValueTint,
+                            valueTint: overageValueTint,
+                            infoHelp: claudeSpentHelpText
                         )
                     }
+                } else if let bonus = usage.bonusUsage, bonus.spent > 0 {
+                    compactRow(
+                        "Spent",
+                        formatBonusSpend(bonus),
+                        labelTint: overageValueTint,
+                        valueTint: overageValueTint,
+                        infoHelp: claudeSpentHelpText
+                    )
                 }
-                compactRow("Plan", usage.planDisplayName)
             }
         }
     }
 
-    /// Amber color for the Extra row, but only when there's an *active spending
-    /// pressure* signal from the gauges. If the 5h and 7d windows are both calm
-    /// (< 85%), monthly extra utilization at 85-99% isn't actionable in the
-    /// moment — the user isn't burning through anything right now, so the row
-    /// stays in default colors. Once a gauge hits amber, we know more usage is
-    /// imminent and the monthly headroom suddenly matters.
-    ///
-    /// Returns nil to mean "no tint" so the call site can fall back to compactRow's
-    /// default label-secondary / value-primary styling rather than overriding both
-    /// to the same color.
-    private func extraUsageTint(_ extra: ClaudeUsage.ExtraUsage, usage: ClaudeUsage) -> Color? {
-        let extraInWarning = extra.utilization >= 85
-        let gaugePressure = max(usage.fiveHourUtilization ?? 0, usage.sevenDayUtilization ?? 0) >= 85
-        guard extraInWarning, gaugePressure else { return nil }
-        return Color(red: 1.0, green: 0.65, blue: 0.0)
+    private var overageValueTint: Color {
+        Color(red: 1.0, green: 0.65, blue: 0.0)
+    }
+
+    /// Overage spend is amber. Red is reserved for the cap-hit strip.
+    private func extraUsageValueTint(_ extra: ClaudeUsage.ExtraUsage) -> Color? {
+        guard extra.utilization >= 85 else { return nil }
+        return overageValueTint
     }
 
     private func compactRow(
@@ -346,16 +366,68 @@ struct PopoverView: View {
         _ value: String,
         labelTint: Color = .secondary,
         valueTint: Color = .primary,
-        suffix: String? = nil
+        suffix: String? = nil,
+        infoHelp: String? = nil
     ) -> some View {
-        HStack(spacing: 5) {
-            Text(label + ":").font(.caption2).foregroundStyle(labelTint)
-            Text(value).font(.caption2.monospacedDigit())
-                .foregroundStyle(valueTint)
-            if let suffix {
-                Text(suffix).font(.caption2).foregroundStyle(.tertiary)
-            }
+        CompactStatRow(
+            label: label,
+            value: value,
+            labelTint: labelTint,
+            valueTint: valueTint,
+            suffix: suffix,
+            infoHelp: infoHelp
+        )
+    }
+
+    private var codexSpentHelpText: String {
+        "Codex usage-credit events summed for \(currentMonthName). Converted at 25 credits = $1."
+    }
+
+    private var claudeSpentHelpText: String {
+        "Claude reports this as monthly extra usage for \(currentMonthName). The response does not include an exact reset date."
+    }
+
+    private var currentMonthName: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM"
+        return formatter.string(from: .now)
+    }
+
+    private func formatBonusSpend(_ bonus: ClaudeUsage.BonusUsage?, fallback: Double) -> String {
+        guard let bonus else { return formatCreditAmount(fallback) }
+        return formatBonusSpend(bonus)
+    }
+
+    private func formatBonusSpend(_ bonus: ClaudeUsage.BonusUsage) -> String {
+        if let currencyCode = bonus.currencyCode {
+            return formatCurrencyAmount(bonus.spent, currencyCode: currencyCode)
         }
+        return formatCreditAmount(bonus.spent)
+    }
+
+    private func formatCurrencyAmount(_ amount: Double, currencyCode: String) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = currencyCode
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        return formatter.string(from: NSNumber(value: amount)) ?? "\(currencyCode) \(formatCreditAmount(amount))"
+    }
+
+    private func formatCodexDollarAmount(_ credits: Double) -> String {
+        formatCurrencyAmount(credits / 25.0, currencyCode: "USD")
+    }
+
+    private func formatCreditAmount(_ amount: Double) -> String {
+        let absAmount = abs(amount)
+        if absAmount >= 1_000 {
+            return String(format: "%.1fk", amount / 1_000)
+        }
+        if absAmount >= 100 || amount.rounded() == amount {
+            return "\(Int(amount.rounded()))"
+        }
+        let formatted = String(format: "%.1f", amount)
+        return formatted.hasSuffix(".0") ? String(formatted.dropLast(2)) : formatted
     }
 
     // MARK: - Header
@@ -601,6 +673,100 @@ private extension NetworkError {
     }
 }
 
+private struct CompactStatRow: View {
+    let label: String
+    let value: String
+    let labelTint: Color
+    let valueTint: Color
+    let suffix: String?
+    let infoHelp: String?
+
+    @State private var isShowingInfo = false
+    @State private var hoverDelayTask: Task<Void, Never>?
+
+    var body: some View {
+        if let infoHelp {
+            Button {
+                hoverDelayTask?.cancel()
+                isShowingInfo = true
+            } label: {
+                rowContent
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .onHover(perform: hoverChanged)
+            .accessibilityLabel("\(label): \(value). \(infoHelp)")
+            .onDisappear {
+                hoverDelayTask?.cancel()
+            }
+        } else {
+            rowContent
+        }
+    }
+
+    private var rowContent: some View {
+        HStack(alignment: .center, spacing: 5) {
+            Text(label + ":").font(.caption2).foregroundStyle(labelTint)
+            valueLabel
+            if let suffix {
+                Text(suffix).font(.caption2).foregroundStyle(.tertiary)
+            }
+            if infoHelp != nil {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(valueTint.opacity(0.75))
+                    .frame(width: 12, height: 12, alignment: .center)
+                    .offset(y: -0.5)
+                    .accessibilityHidden(true)
+                Spacer(minLength: 0)
+            }
+        }
+        .frame(maxWidth: infoHelp == nil ? nil : .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private var valueLabel: some View {
+        let text = Text(value).font(.caption2.monospacedDigit())
+            .foregroundStyle(valueTint)
+
+        if let infoHelp {
+            text.popover(isPresented: $isShowingInfo, arrowEdge: .top) {
+                infoPopover(infoHelp)
+            }
+        } else {
+            text
+        }
+    }
+
+    private func hoverChanged(_ isHovering: Bool) {
+        hoverDelayTask?.cancel()
+
+        guard isHovering else {
+            isShowingInfo = false
+            return
+        }
+
+        hoverDelayTask = Task {
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            guard !Task.isCancelled else { return }
+            await MainActor.run {
+                isShowingInfo = true
+            }
+        }
+    }
+
+    private func infoPopover(_ infoHelp: String) -> some View {
+        Text(infoHelp)
+            .font(.caption)
+            .foregroundStyle(.white)
+            .fixedSize(horizontal: false, vertical: true)
+        .padding(10)
+        .frame(width: 230, alignment: .leading)
+    }
+}
+
 private struct CodexCreditsRow: View {
     let balance: Double
     let autoReload: CodexAutoReload?
@@ -652,6 +818,20 @@ private struct CodexCreditsRow: View {
         return min(max(depleted, 0), 1)
     }
 
+    private var balanceText: String {
+        formatCodexDollarAmount(balance)
+    }
+
+    private func formatCodexDollarAmount(_ credits: Double) -> String {
+        let amount = credits / 25.0
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = "USD"
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        return formatter.string(from: NSNumber(value: amount)) ?? String(format: "$%.2f", amount)
+    }
+
     private var thresholdFraction: Double {
         guard let autoReload else { return 0 }
         return min(max(autoReload.rechargeThreshold / target, 0), 1)
@@ -660,10 +840,10 @@ private struct CodexCreditsRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 5) {
-                Text("Credits:")
+                Text("Balance:")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-                Text("\(Int(balance))")
+                Text(balanceText)
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(valueTint)
                 Spacer(minLength: 4)
@@ -692,7 +872,7 @@ private struct CodexCreditsRow: View {
                 }
                 .frame(height: 3)
 
-                Text("empty; reload target \(Int(autoReload.rechargeTarget))")
+                Text("empty; reload target \(formatCodexDollarAmount(autoReload.rechargeTarget))")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
@@ -703,12 +883,12 @@ private struct CodexCreditsRow: View {
 
     private var helpText: String {
         guard let autoReload else {
-            return "Codex credits: \(Int(balance))"
+            return "Codex credits: \(balanceText)"
         }
         if autoReload.isEnabled {
-            return "Codex credits: \(Int(balance))\nAuto-reload at \(Int(autoReload.rechargeThreshold)); target \(Int(autoReload.rechargeTarget))."
+            return "Codex credits: \(balanceText)\nAuto-reload at \(formatCodexDollarAmount(autoReload.rechargeThreshold)); target \(formatCodexDollarAmount(autoReload.rechargeTarget))."
         }
-        return "Codex credits: \(Int(balance))\nAuto-reload is off."
+        return "Codex credits: \(balanceText)\nAuto-reload is off."
     }
 }
 

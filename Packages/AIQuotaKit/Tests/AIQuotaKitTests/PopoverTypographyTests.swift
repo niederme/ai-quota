@@ -50,7 +50,7 @@ struct PopoverTypographyTests {
         #expect(popoverSource.contains(#"valueTint: Color = .primary"#))
         #expect(!popoverSource.contains(#"Image(systemName: icon)"#))
         #expect(!popoverSource.contains(#"compactRow("Credits", "\(Int(balance))", "creditcard.fill")"#))
-        #expect(!popoverSource.contains(#"compactRow("Extra", "\(Int(extra.usedCredits))/\(extra.monthlyLimit)", "plus.circle.fill")"#))
+        #expect(!popoverSource.contains(#"compactRow("Spent", "\(Int(extra.usedCredits))/\(extra.monthlyLimit)", "plus.circle.fill")"#))
     }
 
     @Test("budget strips appear only for exception states")
@@ -61,9 +61,11 @@ struct PopoverTypographyTests {
 
         #expect(budgetStripSource.contains("static let showThreshold: Double = 100"))
         #expect(popoverSource.contains("if extra.utilization >= BudgetStripView.showThreshold"))
+        #expect(budgetStripSource.contains(#"Text("Spent:")"#))
         #expect(budgetStripSource.contains("extra.utilization >= 85 ? .red : .orange"))
-        #expect(popoverSource.contains("let extraInWarning = extra.utilization >= 85"))
-        #expect(popoverSource.contains("let gaugePressure = max(usage.fiveHourUtilization ?? 0, usage.sevenDayUtilization ?? 0) >= 85"))
+        #expect(popoverSource.contains("private func extraUsageValueTint(_ extra: ClaudeUsage.ExtraUsage) -> Color?"))
+        #expect(popoverSource.contains("guard extra.utilization >= 85 else { return nil }"))
+        #expect(popoverSource.contains("valueTint: tint"))
         #expect(!popoverSource.contains("if utilization >= 70"))
         #expect(popoverSource.contains("isExhaustedWithoutReload && autoReload != nil"))
         #expect(popoverSource.contains("if shouldShowExceptionBar, let autoReload"))

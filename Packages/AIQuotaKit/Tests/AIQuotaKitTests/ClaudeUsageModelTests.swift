@@ -116,7 +116,42 @@ struct ClaudeUsageModelTests {
         #expect(usage.sevenDayUtilization == 37)
         #expect(usage.extraUsage?.monthlyLimit == 2000)
         #expect(usage.extraUsage?.usedCredits == 741)
+        #expect(usage.bonusUsage?.spent == 741)
         #expect(usage.planLabel == .max)
+    }
+
+    @Test("Claude bonus spend decodes when monthly limit is unlimited")
+    func bonusSpendDecodesWithoutMonthlyLimit() throws {
+        let json = """
+        {
+          "five_hour": {
+            "utilization": 100,
+            "resets_at": "2026-06-27T19:00:00.000Z"
+          },
+          "seven_day": {
+            "utilization": 38,
+            "resets_at": "2026-07-01T18:00:00.000Z"
+          },
+          "extra_usage": {
+            "is_enabled": true,
+            "monthly_limit": null,
+            "used_credits": 19164,
+            "currency": "USD"
+          }
+        }
+        """
+
+        let usage = try ClaudeClient._decodeUsageForTesting(
+            Data(json.utf8),
+            planLabel: .pro,
+            source: .web,
+            fetchedAt: Date(timeIntervalSince1970: 0)
+        )
+
+        #expect(usage.extraUsage == nil)
+        #expect(usage.bonusUsage?.spent == 191.64)
+        #expect(usage.bonusUsage?.monthlyLimit == nil)
+        #expect(usage.bonusUsage?.currencyCode == "USD")
     }
 
     @Test("Claude Enterprise extra usage spend decodes cents as dollars")
@@ -145,5 +180,6 @@ struct ClaudeUsageModelTests {
         #expect(usage.spendLimit?.limit == 1000)
         #expect(usage.spendLimit?.currencyCode == "USD")
         #expect(usage.extraUsage == nil)
+        #expect(usage.bonusUsage == nil)
     }
 }
