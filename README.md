@@ -16,7 +16,7 @@ The marketing site in `docs/` follows the shared Codex web preview convention us
 
 - **Menu bar gauge** — a compact, color-coded arc icon that tracks the selected service and shifts from purple to amber to red as you approach the limit
 - **Popover dashboard** — Codex and Claude Code both use the same dual-arc gauge language: the 5-hour window is the outer ring, the 7-day window is the inner ring
-- **Service details that matter** — reset timers, plan info, credits or extra usage, and clear warning states are visible at a glance
+- **Service details that matter** — reset timers, plan info, credit balances, monthly overage spend, and clear warning states are visible at a glance
 - **Desktop widgets** — polished widget variants for single-service and dual-service monitoring, including configurable small and medium widgets plus a large two-service layout
 - **Graceful empty and loading states** — widgets and the popover keep a stable layout when a service is disconnected, restoring, or waiting on fresh data
 - **Adaptive refresh controls** — choose `Auto` for a five-minute baseline that speeds up to every minute while usage is changing or near a threshold, then backs off when the Mac is idle, offline, or on low power
