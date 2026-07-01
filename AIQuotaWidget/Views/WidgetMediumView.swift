@@ -66,7 +66,7 @@ private extension QuotaEntry {
                     )
                 )
             }
-            if let spent = usage.bonusCreditsSpentThisMonth {
+            if let spent = usage.bonusCreditsSpentThisMonth, spent > 0 {
                 detailRows.append(
                     WidgetDetailRowData(
                         label: "Spent",
@@ -108,7 +108,7 @@ private extension QuotaEntry {
                     tint: .secondary
                 ),
             ]
-            if let bonus = usage.bonusUsage {
+            if let bonus = usage.bonusUsage, bonus.spent > 0 {
                 detailRows.append(
                     WidgetDetailRowData(
                         label: "Spent",
@@ -376,11 +376,11 @@ private struct WidgetEmptyGaugeView: View {
             ZStack {
                 Circle()
                     .trim(from: 0, to: 0.75)
-                    .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: size * 0.08, lineCap: .butt))
+                    .stroke(.fill.tertiary, style: StrokeStyle(lineWidth: size * 0.08, lineCap: .butt))
                     .rotationEffect(.degrees(135))
                 Circle()
                     .trim(from: 0, to: 0.75)
-                    .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: size * 0.08, lineCap: .butt))
+                    .stroke(.fill.tertiary, style: StrokeStyle(lineWidth: size * 0.08, lineCap: .butt))
                     .rotationEffect(.degrees(135))
                     .padding(size * 0.08)
                 VStack(spacing: 4) {

@@ -36,7 +36,7 @@ struct PopoverView: View {
     @ViewBuilder
     private var popoverSurface: some View {
         if #available(macOS 26.0, *) {
-            Color.black.opacity(0.18)
+            Color.black.opacity(0.26)
         } else {
             // Sequoia's MenuBarExtra material is substantially more transparent
             // than Tahoe's glass treatment. Stabilize contrast while retaining a

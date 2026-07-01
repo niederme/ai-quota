@@ -39,6 +39,7 @@ public actor ClaudeAuthCoordinator {
     private var capturedOrgId: String?
     private var capturedCookies: [HTTPCookie] = []
     private var cachedOAuthCredentials: ClaudeOAuthCredentials?
+    private var oauthDisabledForSession = false
 
     // MARK: Logger
 
@@ -283,6 +284,8 @@ public actor ClaudeAuthCoordinator {
     }
 
     public func loadOAuthCredentials(allowKeychain: Bool) throws -> ClaudeOAuthCredentials {
+        guard !oauthDisabledForSession else { throw ClaudeOAuthCredentialsError.notFound }
+
         let fileError: Error?
         do {
             let credentials = try oauthCredentialsLoader(false)
@@ -308,6 +311,11 @@ public actor ClaudeAuthCoordinator {
     }
 
     public func invalidateCachedOAuthCredentials() {
+        cachedOAuthCredentials = nil
+    }
+
+    public func disableOAuthForSession() {
+        oauthDisabledForSession = true
         cachedOAuthCredentials = nil
     }
 

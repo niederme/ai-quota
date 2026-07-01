@@ -52,7 +52,7 @@ struct WidgetGaugeView: View {
                 // ── Outer track ───────────────────────────────────────
                 Circle()
                     .trim(from: 0, to: 0.75)
-                    .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: outerLW, lineCap: .butt))
+                    .stroke(.fill.tertiary, style: StrokeStyle(lineWidth: outerLW, lineCap: .butt))
                     .rotationEffect(.degrees(135))
 
                 Circle()
@@ -63,7 +63,7 @@ struct WidgetGaugeView: View {
                 // ── Inner track (touching) ────────────────────────────
                 Circle()
                     .trim(from: 0, to: 0.75)
-                    .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: innerLW, lineCap: .butt))
+                    .stroke(.fill.tertiary, style: StrokeStyle(lineWidth: innerLW, lineCap: .butt))
                     .rotationEffect(.degrees(135))
                     .padding(innerPad)
 

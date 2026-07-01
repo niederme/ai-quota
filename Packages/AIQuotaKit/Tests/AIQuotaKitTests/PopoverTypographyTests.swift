@@ -92,7 +92,7 @@ struct PopoverTypographyTests {
         let popoverSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/PopoverView.swift"), encoding: .utf8)
 
         #expect(popoverSource.contains("if #available(macOS 26.0, *)"))
-        #expect(popoverSource.contains("Color.black.opacity(0.18)"))
+        #expect(popoverSource.contains("Color.black.opacity(0.26)"))
         #expect(popoverSource.contains("Color(nsColor: .windowBackgroundColor).opacity(0.92)"))
     }
 
