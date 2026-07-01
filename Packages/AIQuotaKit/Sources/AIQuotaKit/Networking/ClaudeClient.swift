@@ -37,11 +37,16 @@ public actor ClaudeClient {
                         await coordinator.invalidateCachedOAuthCredentials()
                         if policyBlocked {
                             oauthDisabledForSession = true
+                            await coordinator.disableOAuthForSession()
                         } else if status == 403 {
                             oauthPolicyFailures += 1
                             if oauthPolicyFailures >= 3 {
                                 oauthDisabledForSession = true
+                                await coordinator.disableOAuthForSession()
                             }
+                        } else if status == 401 {
+                            oauthDisabledForSession = true
+                            await coordinator.disableOAuthForSession()
                         }
                         recordAttempt(
                             source: .oauth,

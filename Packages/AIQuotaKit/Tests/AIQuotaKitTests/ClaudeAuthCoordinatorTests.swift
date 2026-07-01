@@ -170,6 +170,40 @@ struct ClaudeAuthCoordinatorTests {
         #expect(keychainCalls.value == 1)
     }
 
+    @Test("signIn skips OAuth credentials after OAuth is disabled for the session")
+    func signInSkipsOAuthAfterSessionDisable() async throws {
+        let oauthCalls = LockIsolated<[Bool]>([])
+        let probeCalls = LockIsolated(0)
+        let sut = makeSUT(
+            probe: {
+                let count = probeCalls.withLock { calls in
+                    calls += 1
+                    return calls
+                }
+                return count == 1 ? .notFound : .found(orgId: "web-org", cookies: [])
+            },
+            oauthCredentialsLoader: { allowKeychain in
+                oauthCalls.withLock { $0.append(allowKeychain) }
+                return Self.oauthCredentials(accessToken: "stale-oauth-token")
+            }
+        )
+
+        await sut.bootstrap()
+        #expect(await sut.state == .authenticated)
+        await sut.disableOAuthForSession()
+        let revalidated = await sut.revalidateSessionAfterAuthFailure()
+        #expect(revalidated == false)
+        #expect(await sut.state == .unauthenticated)
+
+        try await sut.signIn()
+
+        #expect(await sut.state == .authenticated)
+        let context = try await sut.requestContext()
+        #expect(context.orgId == "web-org")
+        #expect(oauthCalls.value == [false])
+        #expect(probeCalls.value == 2)
+    }
+
     // MARK: - signOut
 
     @Test("signOut from authenticated transitions to signedOutByUser")
