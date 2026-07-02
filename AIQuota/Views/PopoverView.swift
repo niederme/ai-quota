@@ -36,12 +36,17 @@ struct PopoverView: View {
     @ViewBuilder
     private var popoverSurface: some View {
         if #available(macOS 26.0, *) {
-            Color.black.opacity(0.26)
+            Rectangle()
+                .fill(.regularMaterial)
         } else {
             // Sequoia's MenuBarExtra material is substantially more transparent
             // than Tahoe's glass treatment. Stabilize contrast while retaining a
             // small amount of desktop color.
-            Color(nsColor: .windowBackgroundColor).opacity(0.92)
+            Rectangle()
+                .fill(.regularMaterial)
+                .overlay {
+                    Color(nsColor: .windowBackgroundColor).opacity(0.92)
+                }
         }
     }
 
@@ -251,11 +256,11 @@ struct PopoverView: View {
             ZStack {
                 Circle()
                     .trim(from: 0, to: 0.75)
-                    .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: 8, lineCap: .butt))
+                    .stroke(.fill.tertiary, style: StrokeStyle(lineWidth: 8, lineCap: .butt))
                     .rotationEffect(.degrees(135))
                 Circle()
                     .trim(from: 0, to: 0.75)
-                    .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: 8, lineCap: .butt))
+                    .stroke(.fill.tertiary, style: StrokeStyle(lineWidth: 8, lineCap: .butt))
                     .rotationEffect(.degrees(135))
                     .padding(8)
                 VStack(spacing: 2) {
@@ -352,7 +357,7 @@ struct PopoverView: View {
     }
 
     private var overageValueTint: Color {
-        Color(red: 1.0, green: 0.65, blue: 0.0)
+        .warningAmber
     }
 
     /// Overage spend is amber. Red is reserved for the cap-hit strip.
@@ -455,11 +460,9 @@ struct PopoverView: View {
             Circle()
                 .fill(CircularGaugeView.accent.opacity(opacity))
                 .frame(width: 6, height: 6)
-                .shadow(color: .black.opacity(0.3), radius: 1, y: 0.5)
             Text(label)
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(CircularGaugeView.accent.opacity(opacity))
-                .shadow(color: .black.opacity(0.3), radius: 1, y: 0.5)
         }
     }
 
@@ -550,7 +553,7 @@ struct PopoverView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             .frame(maxWidth: .infinity)
-            .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 8))
+            .background(.fill.quaternary, in: RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)
         .contentShape(RoundedRectangle(cornerRadius: 8))
@@ -632,7 +635,7 @@ struct PopoverView: View {
     private func errorBanner(_ banner: ErrorBanner) -> some View {
         HStack(spacing: 6) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(.orange).font(.footnote)
+                .foregroundStyle(Color.warningAmber).font(.footnote)
             Text(banner.message)
                 .font(.footnote).foregroundStyle(.secondary).lineLimit(2)
             Spacer()
@@ -640,7 +643,7 @@ struct PopoverView: View {
                 Button("Sign In", action: signIn)
                     .buttonStyle(.borderless)
                     .font(.footnote.bold())
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Color.warningAmber)
             } else if let retry = banner.retry {
                 Button {
                     retry()
@@ -655,7 +658,7 @@ struct PopoverView: View {
             .buttonStyle(.borderless)
         }
         .padding(.horizontal, 12).padding(.vertical, 6)
-        .background(.orange.opacity(0.1))
+        .background(Color.warningAmber.opacity(0.1))
     }
 
     // MARK: - Helpers
@@ -760,7 +763,7 @@ private struct CompactStatRow: View {
     private func infoPopover(_ infoHelp: String) -> some View {
         Text(infoHelp)
             .font(.caption)
-            .foregroundStyle(.white)
+            .foregroundStyle(.foreground)
             .fixedSize(horizontal: false, vertical: true)
         .padding(10)
         .frame(width: 230, alignment: .leading)
@@ -771,7 +774,7 @@ private struct CodexCreditsRow: View {
     let balance: Double
     let autoReload: CodexAutoReload?
 
-    private static let amber = Color(red: 1.0, green: 0.65, blue: 0.0)
+    private static let amber = Color.warningAmber
     private static let exhaustedThreshold: Double = 0
 
     private var isAutoReloadEnabled: Bool {
@@ -790,7 +793,7 @@ private struct CodexCreditsRow: View {
         if isAutoReloadEnabled, let autoReload {
             return balance <= autoReload.rechargeThreshold ? Self.amber : .primary
         }
-        if balance < 5 { return .red }
+        if balance < 5 { return .critical }
         if balance < 20 { return Self.amber }
         return .primary
     }
@@ -804,7 +807,7 @@ private struct CodexCreditsRow: View {
     }
 
     private var statusTint: Color {
-        if isExhaustedWithoutReload { return .red }
+        if isExhaustedWithoutReload { return .critical }
         return balance <= (autoReload?.rechargeThreshold ?? 0) ? Self.amber : .secondary.opacity(0.65)
     }
 
@@ -862,7 +865,7 @@ private struct CodexCreditsRow: View {
                         RoundedRectangle(cornerRadius: 1.5)
                             .fill(.fill.quaternary)
                         RoundedRectangle(cornerRadius: 1.5)
-                            .fill(.red)
+                            .fill(Color.critical)
                             .frame(width: geo.size.width * fillFraction)
                         Rectangle()
                             .fill(.primary.opacity(0.65))

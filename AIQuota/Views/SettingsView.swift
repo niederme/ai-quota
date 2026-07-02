@@ -39,24 +39,38 @@ struct SettingsView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                LabeledContent("Menu bar service") {
-                    EnrollmentSegmentedPicker(
-                        selection: $vm.settings.menuBarService,
+                LabeledContent("Menu bar display") {
+                    let selection = Binding<MenuBarDisplayOption>(
+                        get: {
+                            MenuBarDisplayOption.current(
+                                settings: vm.settings,
+                                enrolledServices: vm.enrolledServices
+                            )
+                        },
+                        set: { option in
+                            applyMenuBarDisplayOption(option, settings: &vm.settings)
+                            let enabled = vm.settings.analyticsEnabled
+                            let params = vm.analyticsContextParams.merging(
+                                [
+                                    "display": option.rawValue,
+                                    "service": vm.settings.menuBarService.rawValue
+                                ]
+                            ) { _, new in new }
+                            Task {
+                                await AnalyticsClient.shared.send(
+                                    "menubar_display_changed",
+                                    params: params,
+                                    enabled: enabled
+                                )
+                            }
+                        }
+                    )
+
+                    MenuBarDisplaySegmentedPicker(
+                        selection: selection,
                         enrolledServices: vm.enrolledServices
                     )
-                    .onChange(of: vm.settings.menuBarService) { _, newValue in
-                        let enabled = vm.settings.analyticsEnabled
-                        let params = vm.analyticsContextParams.merging(
-                            ["service": newValue.rawValue]
-                        ) { _, new in new }
-                        Task {
-                            await AnalyticsClient.shared.send(
-                                "menubar_service_changed",
-                                params: params,
-                                enabled: enabled
-                            )
-                        }
-                    }
+                    .frame(width: 260)
                 }
 
                 LaunchAtLoginToggle()
@@ -64,92 +78,56 @@ struct SettingsView: View {
 
             // MARK: Accounts
             Section("Accounts") {
-                LabeledContent("Codex") {
-                    if viewModel.isCodexAuthenticated {
-                        Button("Sign Out", role: .destructive) { viewModel.signOut() }
-                    } else {
-                        Button("Sign In") { Task { await viewModel.signIn() } }
-                    }
-                }
-                LabeledContent("Claude Code") {
-                    if viewModel.isClaudeAuthenticated {
-                        Button("Sign Out", role: .destructive) { viewModel.signOutClaude() }
-                    } else {
-                        Button("Sign In") { Task { await viewModel.signInClaude() } }
-                    }
-                }
+                AccountDiagnosticsRows()
             }
 
-            // MARK: Diagnostics
-            Section("Diagnostics") {
-                AuthDiagnosticsRows()
-            }
-
-            // MARK: Notifications — master toggle
+            // MARK: Notifications
             Section("Notifications") {
-                Toggle("Enable notifications", isOn: $vm.settings.notifications.enabled)
-                    .onChange(of: vm.settings.notifications.enabled) { _, enabled in
-                        if enabled {
-                            Task {
-                                await NotificationManager.shared.requestPermission()
-                                await checkNotifPermission()
-                            }
-                        } else {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                                notifPermissionGranted = false
+                VStack(alignment: .leading, spacing: 6) {
+                    Toggle("Enable notifications", isOn: $vm.settings.notifications.enabled)
+                        .onChange(of: vm.settings.notifications.enabled) { _, enabled in
+                            if enabled {
+                                Task {
+                                    await NotificationManager.shared.requestPermission()
+                                    await checkNotifPermission()
+                                }
+                            } else {
+                                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                    notifPermissionGranted = false
+                                }
                             }
                         }
+
+                    if viewModel.settings.notifications.enabled {
+                        NotificationStatusCaption()
                     }
+                }
+
                 if viewModel.settings.notifications.enabled {
-                    NotificationStatusRow()
-                }
-            }
-
-            // MARK: Notifications — Codex
-            if viewModel.isCodexEnrolled {
-                Section("Codex") {
-                    notifServiceRow(logo: "logo-openai",
-                                    isOn: notifSectionsEnabled ? $vm.settings.notifications.codexEnabled : .constant(false))
-                    if notifSectionsEnabled && vm.settings.notifications.codexEnabled {
-                        notifSubHeader("5-hour window")
-                        Toggle("Usage alerts", isOn: $vm.settings.notifications.codex5hThresholdAlerts)
-                        Toggle("Reset alert",  isOn: $vm.settings.notifications.codex5hReset)
-
-                        notifSubHeader("7-day window")
-                        Toggle("Usage alerts", isOn: $vm.settings.notifications.codexWeeklyThresholdAlerts)
-                        Toggle("Reset alert",  isOn: $vm.settings.notifications.codexReset)
-
-                        notifSubHeader("Credits")
-                        Toggle("Top-up events", isOn: $vm.settings.notifications.codexTopUp)
+                    if viewModel.isCodexEnrolled {
+                        NotificationServiceRow(
+                            service: .codex,
+                            logo: "logo-openai",
+                            isOn: $vm.settings.notifications.codexEnabled,
+                            isEnabled: notifSectionsEnabled,
+                            preferences: $vm.settings.notifications
+                        )
                     }
-                }
-                .disabled(!notifSectionsEnabled)
-                .opacity(notifSectionsEnabled ? 1 : 0.45)
-            }
 
-            // MARK: Notifications — Claude Code
-            if viewModel.isClaudeEnrolled {
-                Section("Claude Code") {
-                    notifServiceRow(logo: "logo-claude",
-                                    isOn: notifSectionsEnabled ? $vm.settings.notifications.claudeEnabled : .constant(false))
-                    if notifSectionsEnabled && vm.settings.notifications.claudeEnabled {
-                        notifSubHeader("5-hour window")
-                        Toggle("Usage alerts", isOn: $vm.settings.notifications.claude5hThresholdAlerts)
-                        Toggle("Reset alert",  isOn: $vm.settings.notifications.claude5hReset)
-
-                        notifSubHeader("7-day window")
-                        Toggle("Usage alerts", isOn: $vm.settings.notifications.claude7dThresholdAlerts)
-                        Toggle("Reset alert",  isOn: $vm.settings.notifications.claude7dReset)
+                    if viewModel.isClaudeEnrolled {
+                        NotificationServiceRow(
+                            service: .claude,
+                            logo: "logo-claude",
+                            isOn: $vm.settings.notifications.claudeEnabled,
+                            isEnabled: notifSectionsEnabled,
+                            preferences: $vm.settings.notifications
+                        )
                     }
-                }
-                .disabled(!notifSectionsEnabled)
-                .opacity(notifSectionsEnabled ? 1 : 0.45)
-            }
 
-            if viewModel.enrolledServices.isEmpty {
-                Section {
-                    Text("Sign in to a service to configure thresholds.")
-                        .foregroundStyle(.secondary)
+                    if viewModel.enrolledServices.isEmpty {
+                        Text("Sign in to a service to configure thresholds.")
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 
@@ -247,29 +225,6 @@ struct SettingsView: View {
 
     // MARK: - Notification helpers
 
-    /// Service row: logo on the left, enable/disable switch on the right.
-    /// The service name is provided by the enclosing Section title.
-    @ViewBuilder
-    private func notifServiceRow(logo: String, isOn: Binding<Bool>) -> some View {
-        HStack(spacing: 10) {
-            Image(logo)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 18, height: 18)
-            Toggle("", isOn: isOn)
-                .toggleStyle(.switch)
-                .labelsHidden()
-        }
-    }
-
-    @ViewBuilder
-    private func notifSubHeader(_ title: String) -> some View {
-        Text(title)
-            .font(.footnote.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .listRowBackground(Color.clear)
-    }
-
     private func checkNotifPermission() async {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
@@ -280,37 +235,205 @@ struct SettingsView: View {
     private func refreshLabel(for minutes: Int) -> String {
         minutes == AppSettings.autoRefreshIntervalMinutes ? "Auto" : "\(minutes)"
     }
+
+    private func applyMenuBarDisplayOption(_ option: MenuBarDisplayOption, settings: inout AppSettings) {
+        switch option {
+        case .codex:
+            settings.menuBarDisplayMode = .single
+            settings.menuBarService = .codex
+        case .claude:
+            settings.menuBarDisplayMode = .single
+            settings.menuBarService = .claude
+        case .both:
+            settings.menuBarDisplayMode = .both
+        }
+    }
 }
 
-// MARK: - Auth Diagnostics
+// MARK: - Notification Details
 
-private struct AuthDiagnosticsRows: View {
+private struct NotificationServiceRow: View {
+    let service: ServiceType
+    let logo: String
+    @Binding var isOn: Bool
+    let isEnabled: Bool
+    @Binding var preferences: NotificationPreferences
+
+    @State private var isExpanded = false
+    @State private var isHovering = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Button {
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.86)) {
+                        isExpanded.toggle()
+                    }
+                } label: {
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                        .frame(width: 12)
+                }
+                .buttonStyle(.plain)
+
+                HStack(spacing: 10) {
+                    Image(logo)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 18, height: 18)
+
+                    Text(service.displayName)
+                        .foregroundStyle(.primary)
+
+                    Spacer(minLength: 8)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.86)) {
+                        isExpanded.toggle()
+                    }
+                }
+
+                Toggle("", isOn: $isOn)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+                    .disabled(!isEnabled)
+            }
+            .onHover { isHovering = $0 }
+            .padding(.horizontal, 4)
+            .padding(.vertical, 3)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(isHovering ? Color.primary.opacity(0.06) : Color.clear)
+            )
+
+            if isExpanded {
+                NotificationInlineControls(service: service, preferences: $preferences)
+                    .padding(.leading, 50)
+                    .padding(.top, 2)
+                    .padding(.bottom, 4)
+                    .disabled(!isOn || !isEnabled)
+                    .opacity(isOn && isEnabled ? 1 : 0.45)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .opacity(isEnabled ? 1 : 0.55)
+        .animation(.easeInOut(duration: 0.12), value: isHovering)
+    }
+}
+
+private struct NotificationInlineControls: View {
+    let service: ServiceType
+    @Binding var preferences: NotificationPreferences
+
+    var body: some View {
+        switch service {
+        case .codex:
+            codexControls
+        case .claude:
+            claudeControls
+        }
+    }
+
+    @ViewBuilder
+    private var codexControls: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            notificationOptionGroup("5-hour window") {
+                notificationCheckbox("Usage alerts", isOn: $preferences.codex5hThresholdAlerts)
+                notificationCheckbox("Reset alert", isOn: $preferences.codex5hReset)
+            }
+
+            notificationOptionGroup("7-day window") {
+                notificationCheckbox("Usage alerts", isOn: $preferences.codexWeeklyThresholdAlerts)
+                notificationCheckbox("Reset alert", isOn: $preferences.codexReset)
+            }
+
+            notificationOptionGroup("Credits") {
+                notificationCheckbox("Top-up events", isOn: $preferences.codexTopUp)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var claudeControls: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            notificationOptionGroup("5-hour window") {
+                notificationCheckbox("Usage alerts", isOn: $preferences.claude5hThresholdAlerts)
+                notificationCheckbox("Reset alert", isOn: $preferences.claude5hReset)
+            }
+
+            notificationOptionGroup("7-day window") {
+                notificationCheckbox("Usage alerts", isOn: $preferences.claude7dThresholdAlerts)
+                notificationCheckbox("Reset alert", isOn: $preferences.claude7dReset)
+            }
+        }
+    }
+
+    private func notificationOptionGroup<Content: View>(
+        _ title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title.uppercased())
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 6) {
+                content()
+            }
+        }
+    }
+
+    private func notificationCheckbox(_ title: String, isOn: Binding<Bool>) -> some View {
+        Toggle(title, isOn: isOn)
+            .toggleStyle(.checkbox)
+    }
+}
+
+// MARK: - Accounts + Auth Diagnostics
+
+private struct AccountDiagnosticsRows: View {
+    @Environment(QuotaViewModel.self) private var viewModel
     @State private var codexAttempts: [CodexSourceAttempt] = []
     @State private var claudeAttempts: [ClaudeSourceAttempt] = []
 
     var body: some View {
-        DiagnosticsSummaryRow(
+        AccountServiceStatusRow(
             label: "Codex",
-            summary: summary(for: codexAttempts.last),
-            isSuccess: codexAttempts.last?.errorCategory == .success
-        )
-        DiagnosticsSummaryRow(
-            label: "Claude",
-            summary: summary(for: claudeAttempts.last),
-            isSuccess: claudeAttempts.last?.errorCategory == .success
+            logo: "logo-openai",
+            isAuthenticated: viewModel.isCodexAuthenticated,
+            statusDetail: statusDetail(isAuthenticated: viewModel.isCodexAuthenticated, attempt: codexAttempts.last),
+            statusColor: statusColor(isAuthenticated: viewModel.isCodexAuthenticated, attempt: codexAttempts.last),
+            signIn: { Task { await viewModel.signIn() } },
+            signOut: { viewModel.signOut() }
         )
 
-        HStack {
-            Button("Refresh") { reload() }
+        AccountServiceStatusRow(
+            label: "Claude Code",
+            logo: "logo-claude",
+            isAuthenticated: viewModel.isClaudeAuthenticated,
+            statusDetail: statusDetail(isAuthenticated: viewModel.isClaudeAuthenticated, attempt: claudeAttempts.last),
+            statusColor: statusColor(isAuthenticated: viewModel.isClaudeAuthenticated, attempt: claudeAttempts.last),
+            signIn: { Task { await viewModel.signInClaude() } },
+            signOut: { viewModel.signOutClaude() }
+        )
+
+        HStack(alignment: .firstTextBaseline) {
+            Button("Refresh Status") { reload() }
             Button("Copy Diagnostics") { copyDiagnostics() }
             Spacer()
         }
 
-        Text("Copies only auth source, HTTP status, error category, and timestamp. Tokens, headers, cookies, and response bodies are not included.")
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-            .task { reload() }
+        VStack(alignment: .leading, spacing: 2) {
+            Text("Copy Diagnostics includes both services: auth source, HTTP status, error category, and timestamp.")
+            Text("No tokens, headers, cookies, or response bodies are included.")
+        }
+        .font(.footnote)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+        .task { reload() }
     }
 
     private func reload() {
@@ -318,24 +441,46 @@ private struct AuthDiagnosticsRows: View {
         claudeAttempts = SharedDefaults.loadClaudeSourceAttempts()
     }
 
-    private func summary(for attempt: CodexSourceAttempt?) -> String {
-        guard let attempt else { return "No recent attempts" }
-        return [
-            sourceName(attempt.source),
-            categoryName(attempt.errorCategory.rawValue),
-            httpStatus(attempt.httpStatus),
-            relativeTime(attempt.timestamp)
-        ].joined(separator: " · ")
+    private func statusDetail(isAuthenticated: Bool, attempt: CodexSourceAttempt?) -> String {
+        guard isAuthenticated else { return "Not signed in" }
+        guard let attempt else { return "Not checked yet" }
+        if attempt.errorCategory == .success {
+            return "\(sourceName(attempt.source)) · checked \(relativeTime(attempt.timestamp))"
+        }
+        return "\(statusMessage(for: attempt.errorCategory)) · checked \(relativeTime(attempt.timestamp))"
     }
 
-    private func summary(for attempt: ClaudeSourceAttempt?) -> String {
-        guard let attempt else { return "No recent attempts" }
-        return [
-            sourceName(attempt.source),
-            categoryName(attempt.errorCategory.rawValue),
-            httpStatus(attempt.httpStatus),
-            relativeTime(attempt.timestamp)
-        ].joined(separator: " · ")
+    private func statusDetail(isAuthenticated: Bool, attempt: ClaudeSourceAttempt?) -> String {
+        guard isAuthenticated else { return "Not signed in" }
+        guard let attempt else { return "Not checked yet" }
+        if attempt.errorCategory == .success {
+            return "\(sourceName(attempt.source)) · checked \(relativeTime(attempt.timestamp))"
+        }
+        return "\(statusMessage(for: attempt.errorCategory)) · checked \(relativeTime(attempt.timestamp))"
+    }
+
+    private func statusColor(isAuthenticated: Bool, attempt: CodexSourceAttempt?) -> Color {
+        guard isAuthenticated, let attempt else { return .secondary }
+        switch attempt.errorCategory {
+        case .success:
+            return .green
+        case .authFailed:
+            return .red
+        case .rateLimited, .serverError, .network, .invalidResponse:
+            return .orange
+        }
+    }
+
+    private func statusColor(isAuthenticated: Bool, attempt: ClaudeSourceAttempt?) -> Color {
+        guard isAuthenticated, let attempt else { return .secondary }
+        switch attempt.errorCategory {
+        case .success:
+            return .green
+        case .missingCredentials, .expiredCredentials, .missingScope, .malformedCredentials, .authFailed, .policyBlocked:
+            return .red
+        case .rateLimited, .serverError, .network, .invalidResponse:
+            return .orange
+        }
     }
 
     private func copyDiagnostics() {
@@ -396,8 +541,48 @@ private struct AuthDiagnosticsRows: View {
             .capitalized
     }
 
-    private func httpStatus(_ status: Int?) -> String {
-        status.map { "HTTP \($0)" } ?? "No HTTP"
+    private func statusMessage(for category: CodexSourceAttempt.ErrorCategory) -> String {
+        switch category {
+        case .success:
+            "Working"
+        case .authFailed:
+            "Auth needs attention"
+        case .rateLimited:
+            "Rate limited"
+        case .serverError:
+            "Service issue"
+        case .network:
+            "Network issue"
+        case .invalidResponse:
+            "Unexpected response"
+        }
+    }
+
+    private func statusMessage(for category: ClaudeSourceAttempt.ErrorCategory) -> String {
+        switch category {
+        case .success:
+            "Working"
+        case .missingCredentials:
+            "Claude Code credentials not found"
+        case .expiredCredentials:
+            "Claude Code credentials expired"
+        case .missingScope:
+            "Claude Code permissions missing"
+        case .malformedCredentials:
+            "Claude Code credentials unreadable"
+        case .authFailed:
+            "Auth needs attention"
+        case .policyBlocked:
+            "Access blocked by policy"
+        case .rateLimited:
+            "Rate limited"
+        case .serverError:
+            "Service issue"
+        case .network:
+            "Network issue"
+        case .invalidResponse:
+            "Unexpected response"
+        }
     }
 
     private func relativeTime(_ date: Date) -> String {
@@ -413,17 +598,45 @@ private struct AuthDiagnosticsRows: View {
     private static let timestampFormatter = ISO8601DateFormatter()
 }
 
-private struct DiagnosticsSummaryRow: View {
+private struct AccountServiceStatusRow: View {
     let label: String
-    let summary: String
-    let isSuccess: Bool
+    let logo: String
+    let isAuthenticated: Bool
+    let statusDetail: String
+    let statusColor: Color
+    let signIn: () -> Void
+    let signOut: () -> Void
 
     var body: some View {
-        LabeledContent(label) {
-            Text(summary)
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Image(logo)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 18, height: 18)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .foregroundStyle(.primary)
+
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(statusColor)
+                        .frame(width: 6, height: 6)
+
+                    Text(statusDetail)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 .font(.caption)
-                .foregroundStyle(isSuccess ? .green : .secondary)
-                .multilineTextAlignment(.trailing)
+            }
+
+            Spacer(minLength: 12)
+
+            if isAuthenticated {
+                Button("Sign Out", role: .destructive, action: signOut)
+            } else {
+                Button("Sign In", action: signIn)
+            }
         }
     }
 }
@@ -456,15 +669,14 @@ private struct FloatingWindowElevator: NSViewRepresentable {
 
 // MARK: - Notification Status
 
-private struct NotificationStatusRow: View {
+private struct NotificationStatusCaption: View {
     @State private var status: UNAuthorizationStatus = .notDetermined
 
     var body: some View {
         HStack {
             switch status {
             case .authorized:
-                Label("Permission granted", systemImage: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
+                statusLabel("Permission granted", systemImage: "checkmark.circle.fill", iconColor: .green)
             case .denied:
                 Label("Permission denied", systemImage: "xmark.circle.fill")
                     .foregroundStyle(.red)
@@ -481,10 +693,19 @@ private struct NotificationStatusRow: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .font(.caption)
+        .font(.caption2.weight(.medium))
         .task {
             let settings = await UNUserNotificationCenter.current().notificationSettings()
             status = settings.authorizationStatus
+        }
+    }
+
+    private func statusLabel(_ title: String, systemImage: String, iconColor: Color) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: systemImage)
+                .foregroundStyle(iconColor)
+            Text(title)
+                .foregroundStyle(.secondary)
         }
     }
 }
@@ -507,53 +728,33 @@ struct LaunchAtLoginToggle: View {
     }
 }
 
-// MARK: - Enrollment-aware segmented picker
+// MARK: - Menu bar display picker
 
-/// A segmented-style service picker that visually deactivates unenrolled segments.
-private struct EnrollmentSegmentedPicker: View {
-    @Binding var selection: ServiceType
+/// Native segmented picker for mutually exclusive menu bar display options.
+private struct MenuBarDisplaySegmentedPicker: View {
+    @Binding var selection: MenuBarDisplayOption
     let enrolledServices: Set<ServiceType>
 
     var body: some View {
-        HStack(spacing: 1) {
-            ForEach(ServiceType.allCases, id: \.self) { service in
-                segmentButton(for: service)
+        Picker("Menu bar display", selection: $selection) {
+            ForEach(MenuBarDisplayOption.allCases, id: \.self) { option in
+                Text(option.displayName)
+                    .tag(option)
+                    .disabled(!isAvailable(option))
             }
         }
-        .background(Color(NSColor.controlBackgroundColor))
-        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .stroke(Color(NSColor.separatorColor), lineWidth: 0.5)
-        )
+        .pickerStyle(.segmented)
+        .labelsHidden()
     }
 
-    @ViewBuilder
-    private func segmentButton(for service: ServiceType) -> some View {
-        let enrolled = enrolledServices.contains(service)
-        let selected = selection == service
-
-        Button {
-            if enrolled { selection = service }
-        } label: {
-            Text(service.displayName)
-                .font(.system(size: 13))
-                .frame(minWidth: 70, maxWidth: .infinity)
-                .padding(.vertical, 4)
-                .background(
-                    selected && enrolled
-                        ? Color(NSColor.selectedControlColor)
-                        : Color.clear
-                )
-                .foregroundColor(
-                    selected && enrolled
-                        ? Color(NSColor.selectedControlTextColor)
-                        : enrolled
-                            ? Color(NSColor.controlTextColor)
-                            : Color(NSColor.disabledControlTextColor)
-                )
+    private func isAvailable(_ option: MenuBarDisplayOption) -> Bool {
+        switch option {
+        case .codex:
+            enrolledServices.contains(.codex)
+        case .claude:
+            enrolledServices.contains(.claude)
+        case .both:
+            enrolledServices.contains(.codex) && enrolledServices.contains(.claude)
         }
-        .buttonStyle(.plain)
-        .disabled(!enrolled)
     }
 }

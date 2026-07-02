@@ -8,6 +8,7 @@ struct RefreshSettingsTests {
     func defaultsToAuto() {
         #expect(AppSettings.default.refreshIntervalMinutes == AppSettings.autoRefreshIntervalMinutes)
         #expect(AppSettings.default.usesAdaptiveRefresh)
+        #expect(AppSettings.default.menuBarDisplayMode == .single)
     }
 
     @Test("legacy fixed refresh values normalize into the new supported set")
@@ -26,6 +27,7 @@ struct RefreshSettingsTests {
 
         #expect(settings.refreshIntervalMinutes == AppSettings.autoRefreshIntervalMinutes)
         #expect(settings.usesAdaptiveRefresh)
+        #expect(settings.menuBarDisplayMode == .single)
     }
 
     @Test("supported fixed refresh values still round-trip")
@@ -35,6 +37,7 @@ struct RefreshSettingsTests {
                 refreshIntervalMinutes: 10,
                 notifications: NotificationPreferences(),
                 menuBarService: .claude,
+                menuBarDisplayMode: .both,
                 analyticsEnabled: false
             )
         )
@@ -43,6 +46,8 @@ struct RefreshSettingsTests {
 
         #expect(decoded.refreshIntervalMinutes == 10)
         #expect(decoded.fixedRefreshInterval == 600)
+        #expect(decoded.menuBarService == .claude)
+        #expect(decoded.menuBarDisplayMode == .both)
     }
 
     @Test("settings and onboarding both expose the Auto refresh copy")
@@ -64,7 +69,9 @@ struct RefreshSettingsTests {
         )
 
         #expect(settingsSource.contains("Auto refreshes every 5 min, speeds up to 1 min when usage is changing or near a threshold, and slows down when your Mac is idle."))
+        #expect(settingsSource.contains("LabeledContent(\"Menu bar display\")"))
         #expect(servicesSource.contains("How often should AIQuota refresh?"))
+        #expect(servicesSource.contains("What should show in your menu bar?"))
         #expect(servicesSource.contains("Auto refreshes every 5 min, speeds up to 1 min when usage is changing or near a threshold, and slows down when your Mac is idle."))
     }
 }

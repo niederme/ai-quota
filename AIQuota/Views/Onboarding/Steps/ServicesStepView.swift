@@ -41,10 +41,13 @@ struct ServicesStepView: View {
             .padding(.horizontal, 32)
 
             if viewModel.isCodexAuthenticated && viewModel.isClaudeAuthenticated {
-                MenuBarDefaultPicker(
-                    selection: viewModel.settings.menuBarService,
-                    onSelect: { service in
-                        viewModel.settings.menuBarService = service
+                MenuBarDisplayPicker(
+                    selection: MenuBarDisplayOption.current(
+                        settings: viewModel.settings,
+                        enrolledServices: viewModel.enrolledServices
+                    ),
+                    onSelect: { option in
+                        applyMenuBarDisplayOption(option)
                         viewModel.saveSettings()
                     }
                 )
@@ -73,6 +76,19 @@ struct ServicesStepView: View {
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85),
                    value: viewModel.isCodexAuthenticated && viewModel.isClaudeAuthenticated)
+    }
+
+    private func applyMenuBarDisplayOption(_ option: MenuBarDisplayOption) {
+        switch option {
+        case .codex:
+            viewModel.settings.menuBarDisplayMode = .single
+            viewModel.settings.menuBarService = .codex
+        case .claude:
+            viewModel.settings.menuBarDisplayMode = .single
+            viewModel.settings.menuBarService = .claude
+        case .both:
+            viewModel.settings.menuBarDisplayMode = .both
+        }
     }
 }
 
@@ -195,23 +211,24 @@ private struct ServiceRow: View {
     }
 }
 
-// MARK: - Menu Bar Default Picker
+// MARK: - Menu Bar Display Picker
 
-private struct MenuBarDefaultPicker: View {
-    let selection: ServiceType
-    let onSelect: (ServiceType) -> Void
+private struct MenuBarDisplayPicker: View {
+    let selection: MenuBarDisplayOption
+    let onSelect: (MenuBarDisplayOption) -> Void
 
     var body: some View {
         VStack(spacing: 10) {
             Divider()
 
-            Text("Which should show in your menu bar?")
+            Text("What should show in your menu bar?")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 10) {
-                card(for: .codex,  logoName: "logo-openai")
-                card(for: .claude, logoName: "logo-claude")
+                card(for: .codex, logoNames: ["logo-openai"])
+                card(for: .claude, logoNames: ["logo-claude"])
+                card(for: .both, logoNames: ["logo-openai", "logo-claude"])
             }
         }
         .padding(.horizontal, 32)
@@ -219,30 +236,35 @@ private struct MenuBarDefaultPicker: View {
     }
 
     @ViewBuilder
-    private func card(for service: ServiceType, logoName: String) -> some View {
-        let isSelected = selection == service
-        Button { onSelect(service) } label: {
+    private func card(for option: MenuBarDisplayOption, logoNames: [String]) -> some View {
+        let isSelected = selection == option
+        Button { onSelect(option) } label: {
             VStack(spacing: 10) {
-                Image(logoName)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 36, height: 36)
-                    .padding(10)
-                    .background(
-                        Circle()
-                            .fill(isSelected
-                                  ? Color.brand.opacity(0.1)
-                                  : Color.secondary.opacity(0.08))
-                    )
-                    .overlay(
-                        Circle()
-                            .strokeBorder(
-                                isSelected ? Color.brand.opacity(0.3) : Color.clear,
-                                lineWidth: 1.5
+                HStack(spacing: -8) {
+                    ForEach(logoNames, id: \.self) { logoName in
+                        Image(logoName)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 28, height: 28)
+                            .padding(8)
+                            .background(
+                                Circle()
+                                    .fill(isSelected
+                                          ? Color.brand.opacity(0.1)
+                                          : Color.secondary.opacity(0.08))
                             )
-                    )
+                            .overlay(
+                                Circle()
+                                    .strokeBorder(
+                                        isSelected ? Color.brand.opacity(0.3) : Color.clear,
+                                        lineWidth: 1.5
+                                    )
+                            )
+                    }
+                }
+                .frame(height: 44)
 
-                Text(service.displayName)
+                Text(option.displayName)
                     .font(.callout).fontWeight(.semibold)
 
                 Circle()

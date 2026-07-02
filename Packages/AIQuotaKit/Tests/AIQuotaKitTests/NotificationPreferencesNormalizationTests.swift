@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import AIQuotaKit
 
@@ -110,5 +111,77 @@ struct NotificationPreferencesNormalizationTests {
         var prefs = NotificationPreferences()
         prefs.claude7dThresholdAlerts = false
         #expect(!prefs.claude7dAt80 && !prefs.claude7dAt95 && !prefs.claude7dLimitReached)
+    }
+
+    @Test("Settings keeps notifications in one group with inline service disclosure")
+    func settingsUsesSingleNotificationGroupWithInlineDisclosure() throws {
+        let settingsSource = try settingsViewSource()
+
+        #expect(settingsSource.occurrences(of: "Section(\"Notifications\")") == 1)
+        #expect(!settingsSource.contains("Section(\"Codex\")"))
+        #expect(!settingsSource.contains("Section(\"Claude Code\")"))
+        #expect(settingsSource.contains("NotificationServiceRow"))
+        #expect(settingsSource.contains("NotificationInlineControls"))
+        #expect(settingsSource.contains(".toggleStyle(.checkbox)"))
+        #expect(!settingsSource.contains("Tailor alerts"))
+        #expect(!settingsSource.contains("NotificationDetailSheet"))
+    }
+
+    @Test("Onboarding mirrors Settings notification hierarchy")
+    func onboardingMirrorsSettingsNotificationHierarchy() throws {
+        let onboardingSource = try String(
+            contentsOf: repoRoot().appending(path: "AIQuota/Views/Onboarding/Steps/NotificationsStepView.swift"),
+            encoding: .utf8
+        )
+
+        #expect(onboardingSource.occurrences(of: #"Toggle("Enable notifications""#) == 1)
+        #expect(!onboardingSource.contains(#"Section("Codex")"#))
+        #expect(!onboardingSource.contains(#"Section("Claude Code")"#))
+        #expect(onboardingSource.contains("OnboardingNotificationServiceRow"))
+        #expect(onboardingSource.contains("OnboardingNotificationInlineControls"))
+        #expect(onboardingSource.contains(".toggleStyle(.checkbox)"))
+        #expect(onboardingSource.contains(#"notificationOptionGroup("Credits")"#))
+        #expect(!onboardingSource.contains("Tailor alerts"))
+        #expect(!onboardingSource.contains("NotificationDetailSheet"))
+    }
+
+    @Test("Settings combines account actions and auth diagnostics")
+    func settingsCombinesAccountActionsAndAuthDiagnostics() throws {
+        let settingsSource = try settingsViewSource()
+
+        #expect(settingsSource.occurrences(of: "Section(\"Accounts\")") == 1)
+        #expect(!settingsSource.contains("Section(\"Diagnostics\")"))
+        #expect(settingsSource.contains("AccountDiagnosticsRows"))
+        #expect(settingsSource.contains("AccountServiceStatusRow"))
+        #expect(settingsSource.contains("Refresh Status"))
+        #expect(settingsSource.contains("Copy Diagnostics"))
+        #expect(settingsSource.contains("Copy Diagnostics includes both services"))
+        #expect(settingsSource.contains("No tokens, headers, cookies, or response bodies are included."))
+        #expect(settingsSource.contains("statusDetail: statusDetail"))
+        #expect(!settingsSource.contains("authDetail:"))
+    }
+
+    private func settingsViewSource() throws -> String {
+        return try String(
+            contentsOf: repoRoot().appending(path: "AIQuota/Views/SettingsView.swift"),
+            encoding: .utf8
+        )
+    }
+
+    private func repoRoot() -> URL {
+        let repoRoot = URL(filePath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+
+        return repoRoot
+    }
+}
+
+private extension String {
+    func occurrences(of needle: String) -> Int {
+        components(separatedBy: needle).count - 1
     }
 }

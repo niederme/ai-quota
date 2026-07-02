@@ -2,7 +2,7 @@
 
 A native macOS menu bar app for monitoring AI coding quota. Track [OpenAI Codex](https://openai.com/codex) and [Claude Code](https://claude.ai) from the menu bar and desktop widgets without living in a browser tab.
 
-The marketing site in `docs/` follows the shared Codex web preview convention using `/Users/niederme/.codex/bin/codex-preview-env`. The canonical global convention lives at `/Users/niederme/.codex/docs/web-preview-convention.md`.
+The marketing site in `docs/` follows the shared Codex web preview convention using `/Users/niederme/.codex/bin/codex-preview-env`. The canonical global convention lives at `/Users/niederme/~Repos/ai-dotfiles/codex/docs/web-preview-convention.md`.
 
 ![macOS 15+](https://img.shields.io/badge/macOS-15%2B-black?logo=apple)
 ![Swift 6](https://img.shields.io/badge/Swift-6.0-orange?logo=swift)
@@ -14,16 +14,17 @@ The marketing site in `docs/` follows the shared Codex web preview convention us
 
 ## Features
 
-- **Menu bar gauge** — a compact, color-coded arc icon that tracks the selected service and shifts from purple to amber to red as you approach the limit
+- **Menu bar gauge** — a compact, color-coded arc icon that can show Codex, Claude Code, or both services together when both are connected
 - **Popover dashboard** — Codex and Claude Code both use the same dual-arc gauge language: the 5-hour window is the outer ring, the 7-day window is the inner ring
 - **Service details that matter** — reset timers, plan info, credit balances, monthly overage spend, and clear warning states are visible at a glance
 - **Desktop widgets** — polished widget variants for single-service and dual-service monitoring, including configurable small and medium widgets plus a large two-service layout
 - **Graceful empty and loading states** — widgets and the popover keep a stable layout when a service is disconnected, restoring, or waiting on fresh data
 - **Adaptive refresh controls** — choose `Auto` for a five-minute baseline that speeds up to every minute while usage is changing or near a threshold, then backs off when the Mac is idle, offline, or on low power
-- **Guided onboarding** — first launch walks through connecting services, refresh preferences, notifications, and widget setup; if both services are connected, onboarding also asks which one should drive the menu bar icon
+- **Guided onboarding** — first launch walks through connecting services, menu bar display, refresh preferences, notifications, and widget setup
 - **Single-service adaptation** — when only one service is enrolled, the app and widgets avoid dead space instead of pretending there should be a second column
 - **ChatGPT and Claude sign-in** — reuses an existing Claude Code or Codex CLI login when available, and falls back to a browser-backed session otherwise (including Google sign-in, which opens in its own popup window); app authentication comes only from live OAuth or WebKit sessions, while widget credentials are stored separately for background refresh
-- **Notification controls** — per-service master switches plus consolidated threshold alerts (one toggle covers low quota, critical quota, and limit reached) plus reset events
+- **Notification controls** — a single notifications group with a master switch, per-service disclosure rows, and Mac-style checkbox controls for detailed alert choices
+- **Quiet account diagnostics** — Settings combines account status and redacted diagnostics so each service shows whether it is connected without duplicating developer-only HTTP details
 - **Recovery after updates** — widget timelines reload more aggressively on launch, and installed widgets recover more reliably after app replacements
 - **Auto-update** — Sparkle checks silently on launch and twice daily, with gentle reminders instead of intrusive prompts
 
@@ -173,6 +174,7 @@ If you are iterating on widgets, launching the built app once after install help
 
 ## Manual Test Handoffs
 
+- [Settings and onboarding UI handoff](docs/settings-onboarding-ui-handoff.md) — current hierarchy, menu bar display rules, popover material/color choices, and verification commands.
 - [Team auth field-test history](docs/team-auth-field-test-handoff.md) — failed attempts, fixes retained on `main`, and the remaining unverified account paths.
 - [Claude Team test instructions](docs/jason-team-plan-test-instructions.md) — archived test procedure for a future tester with an accessible Team account.
 
@@ -220,16 +222,16 @@ See the pre-release checklist at the top of [`scripts/release.sh`](scripts/relea
 - [ ] Menu bar icon monochrome mode — option to disable amber/red status colours for a cleaner, always-white icon
 - [x] Marketing website — `aiquota.app` is live with download, releases, and policy pages plus automated deploys from `main`
 - [x] Visualize 7-day quota reset timing — the app now surfaces 7-day reset timing when the weekly window enters the warning range
-- [x] Settings restructured — Accounts section promoted to the top; notification sections named per service with threshold alerts consolidated into a single toggle per window
+- [x] Settings restructured — Accounts and diagnostics are combined, notifications live in one master group, and service details expand inline with checkbox-level alert options
 - [x] Google sign-in in the embedded login — OAuth popups (`window.open`) are now hosted in a child window, fixing the generic "There was an error logging you in" failure for Google-SSO accounts on both Claude and ChatGPT logins
 - [x] Auth and widget recovery after updates — widgets recover more reliably after app replacements, refresh more aggressively, and valid Claude/Codex sessions now restore automatically instead of showing stale Connect states
 - [x] Widget variations — configurable single-service medium widget plus a large two-service overview
-- [x] Menu bar preference fully respected — the menu bar icon now follows the selected service for both gauge values and warning colour
+- [x] Menu bar display preference fully respected — the menu bar icon can show Codex, Claude Code, or a paired double gauge while remaining one clickable menu bar item
 - [x] Single-service layout — popover adapts width and layout when only one service is enrolled
-- [x] Menu bar preference in onboarding — when both services are connected, setup asks which to show in the menu bar
+- [x] Menu bar preference in onboarding — when both services are connected, setup asks whether to show Codex, Claude Code, or both in the menu bar
 - [x] Stable popover layout — Connect button sits inside the gauge arc when a service needs to reconnect; no layout shifts
 - [x] Guided onboarding — step-by-step setup wizard on first launch; replayable from Settings
-- [x] Per-service notification switches — master toggle per service; sub-thresholds collapse when disabled
+- [x] Per-service notification switches — master toggle per service; detailed alert options collapse inline and use checkbox controls for dense Mac settings
 - [x] Dual-arc gauge — concentric rings for 5h and 7-day windows; color-coded purple → amber → red; both percentages labelled in the centre
 - [x] Widget redesign — dual-arc gauges, single-service and dual-service widget variants, improved placeholder states, and more resilient rendering after updates
 - [x] Network recovery — NWPathMonitor detects coming back online and refreshes immediately

@@ -23,6 +23,7 @@ final class AnalyticsAppDelegate: NSObject, NSApplicationDelegate {
                     "services": services,
                     "service_count": String(enrolledServices.count),
                     "menu_bar_service": settings.menuBarService.rawValue,
+                    "menu_bar_display": settings.menuBarDisplayMode.rawValue,
                     "notifications_enabled": settings.notifications.enabled ? "true" : "false",
                     "onboarding_completed": onboardingCompleted ? "true" : "false"
                 ],

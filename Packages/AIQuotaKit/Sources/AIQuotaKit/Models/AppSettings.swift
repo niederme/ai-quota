@@ -22,6 +22,46 @@ public enum ServiceType: String, Codable, CaseIterable, Sendable {
     }
 }
 
+public enum MenuBarDisplayMode: String, Codable, CaseIterable, Sendable {
+    case single
+    case both
+}
+
+public enum MenuBarDisplayOption: String, CaseIterable, Sendable {
+    case codex
+    case claude
+    case both
+
+    public var displayName: String {
+        switch self {
+        case .codex: "Codex"
+        case .claude: "Claude Code"
+        case .both: "Both"
+        }
+    }
+
+    public var service: ServiceType? {
+        switch self {
+        case .codex: .codex
+        case .claude: .claude
+        case .both: nil
+        }
+    }
+
+    public static func current(settings: AppSettings, enrolledServices: Set<ServiceType>) -> MenuBarDisplayOption {
+        if settings.menuBarDisplayMode == .both,
+           enrolledServices.contains(.codex),
+           enrolledServices.contains(.claude) {
+            return .both
+        }
+
+        return switch settings.menuBarService {
+        case .codex: .codex
+        case .claude: .claude
+        }
+    }
+}
+
 // MARK: - NotificationPreferences
 
 public struct NotificationPreferences: Codable, Sendable, Equatable {
@@ -140,6 +180,8 @@ public struct AppSettings: Codable, Sendable, Equatable {
     public var notifications: NotificationPreferences
     /// Which service's gauge shows in the menu bar when multiple are signed in.
     public var menuBarService: ServiceType
+    /// Whether the menu bar shows one selected service or both services side by side.
+    public var menuBarDisplayMode: MenuBarDisplayMode
     /// Whether the user opted into anonymous usage analytics.
     public var analyticsEnabled: Bool
 
@@ -147,6 +189,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
         refreshIntervalMinutes: autoRefreshIntervalMinutes,
         notifications: NotificationPreferences(),
         menuBarService: .codex,
+        menuBarDisplayMode: .single,
         analyticsEnabled: false
     )
 
@@ -154,11 +197,13 @@ public struct AppSettings: Codable, Sendable, Equatable {
         refreshIntervalMinutes: Int,
         notifications: NotificationPreferences = NotificationPreferences(),
         menuBarService: ServiceType = .codex,
+        menuBarDisplayMode: MenuBarDisplayMode = .single,
         analyticsEnabled: Bool = false
     ) {
         self.refreshIntervalMinutes = Self.normalizeRefreshIntervalMinutes(refreshIntervalMinutes)
         self.notifications = notifications
         self.menuBarService = menuBarService
+        self.menuBarDisplayMode = menuBarDisplayMode
         self.analyticsEnabled = analyticsEnabled
     }
 
@@ -169,6 +214,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
             ?? Self.autoRefreshIntervalMinutes
         refreshIntervalMinutes = Self.normalizeRefreshIntervalMinutes(decodedRefreshInterval)
         menuBarService = try c.decodeIfPresent(ServiceType.self, forKey: .menuBarService) ?? .codex
+        menuBarDisplayMode = try c.decodeIfPresent(MenuBarDisplayMode.self, forKey: .menuBarDisplayMode) ?? .single
         notifications = try c.decodeIfPresent(NotificationPreferences.self, forKey: .notifications)
             ?? NotificationPreferences()
         analyticsEnabled = try c.decodeIfPresent(Bool.self, forKey: .analyticsEnabled) ?? false

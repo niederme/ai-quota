@@ -17,6 +17,7 @@
 		5D841348FB1352DB4D417246 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8C0ACC770721BA686B7B6401 /* Assets.xcassets */; };
 		64E9FF14FC1DB51A9FDD0DCB /* AnalyticsAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F97C407C158BC0A25FD792 /* AnalyticsAppDelegate.swift */; };
 		66BC2E8F33FD301642167B31 /* WidgetsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AEFC74142619076ED0AB5BA /* WidgetsStepView.swift */; };
+		67830F52D6898E3B97D79FBE /* AdaptiveColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3808CB512F68E5EF125F3BAB /* AdaptiveColors.swift */; };
 		6C522866B159D2A3FE422C0D /* UsageGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 521E05B6030711C7B85B8092 /* UsageGaugeView.swift */; };
 		72AE89A41BD0B809A9D6DAB9 /* AIQuotaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3E5BEBFAE5CBFD5ABBEB22 /* AIQuotaApp.swift */; };
 		72ED593D13B133B274DE2113 /* WelcomeStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 872D4B7AB7221C3A55960CE1 /* WelcomeStepView.swift */; };
@@ -77,6 +78,7 @@
 		16BD0A4CB52E425D9A5A6C34 /* AIQuotaKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = AIQuotaKit; path = Packages/AIQuotaKit; sourceTree = SOURCE_ROOT; };
 		1F1F18DB5A7FD4515D863D71 /* WidgetIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetIntent.swift; sourceTree = "<group>"; };
 		29F97C407C158BC0A25FD792 /* AnalyticsAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsAppDelegate.swift; sourceTree = "<group>"; };
+		3808CB512F68E5EF125F3BAB /* AdaptiveColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveColors.swift; sourceTree = "<group>"; };
 		384CCB3989C01F13B3E22D43 /* WidgetGaugeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetGaugeView.swift; sourceTree = "<group>"; };
 		3E3E5BEBFAE5CBFD5ABBEB22 /* AIQuotaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIQuotaApp.swift; sourceTree = "<group>"; };
 		3FC79333A7787720CC4F63B8 /* AIQuotaWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIQuotaWidget.swift; sourceTree = "<group>"; };
@@ -214,6 +216,7 @@
 		A8C3442C7767F3787BD134A1 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				3808CB512F68E5EF125F3BAB /* AdaptiveColors.swift */,
 				8078C57920AA96E74607EA71 /* BudgetStripView.swift */,
 				07B0B4CEC9ACF96AC981FA29 /* CircularGaugeView.swift */,
 				4D136AA90C5E64F0E69E5B51 /* CountdownView.swift */,
@@ -435,6 +438,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				72AE89A41BD0B809A9D6DAB9 /* AIQuotaApp.swift in Sources */,
+				67830F52D6898E3B97D79FBE /* AdaptiveColors.swift in Sources */,
 				64E9FF14FC1DB51A9FDD0DCB /* AnalyticsAppDelegate.swift in Sources */,
 				C85373188A0821406ACB6164 /* AnalyticsClient.swift in Sources */,
 				1575BAA1F4C10951443BA5C8 /* AnalyticsConsentStepView.swift in Sources */,
@@ -503,7 +507,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 376;
+				CURRENT_PROJECT_VERSION = 377;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -516,7 +520,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.9.19;
+				MARKETING_VERSION = 1.9.20;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -602,7 +606,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 376;
+				CURRENT_PROJECT_VERSION = 377;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -621,7 +625,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.9.19;
+				MARKETING_VERSION = 1.9.20;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -728,7 +732,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 376;
+				CURRENT_PROJECT_VERSION = 377;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -747,7 +751,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.9.19;
+				MARKETING_VERSION = 1.9.20;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

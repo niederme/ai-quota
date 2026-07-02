@@ -108,6 +108,7 @@ final class QuotaViewModel {
             "service_count": String(enrolledServices.count),
             "active_service": activeService.rawValue,
             "menu_bar_service": settings.menuBarService.rawValue,
+            "menu_bar_display": settings.menuBarDisplayMode.rawValue,
             "notifications_enabled": boolString(settings.notifications.enabled),
             "onboarding_completed": boolString(hasCompletedOnboarding)
         ]

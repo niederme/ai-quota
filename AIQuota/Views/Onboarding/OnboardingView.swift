@@ -2,12 +2,6 @@
 import SwiftUI
 import AIQuotaKit
 
-// MARK: - Brand color
-
-extension Color {
-    static let brand = Color(red: 0.62, green: 0.22, blue: 0.93)
-}
-
 // MARK: - Steps
 
 enum OnboardingStep: Int, CaseIterable, Hashable {

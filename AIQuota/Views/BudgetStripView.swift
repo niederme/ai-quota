@@ -7,7 +7,7 @@ struct BudgetStripView: View {
     static let showThreshold: Double = 100
 
     private var color: Color {
-        extra.utilization >= 85 ? .red : .orange
+        extra.utilization >= 85 ? .critical : .warningAmber
     }
 
     private var fraction: Double {
@@ -60,7 +60,7 @@ struct BudgetStripView: View {
                     .foregroundStyle(.secondary)
                 Text(usedText)
                     .font(.caption2.monospacedDigit().bold())
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.foreground)
                 Spacer(minLength: 4)
                 Text("\(Int(extra.utilization.rounded()))%")
                     .font(.caption2.monospacedDigit().bold())

@@ -8,8 +8,8 @@ import AIQuotaKit
 /// shifting to amber at 85 % and red at the limit.
 struct CircularGaugeView: View {
 
-    // Shared accent — matches the app's Codex purple throughout.
-    static let accent = Color(red: 0.62, green: 0.22, blue: 0.93)
+    // Shared accent — macOS resolves system purple for the current appearance.
+    static let accent = Color.gaugeAccent
 
     let primaryPercent: Int
     let primaryLimitReached: Bool
@@ -27,30 +27,11 @@ struct CircularGaugeView: View {
 
     /// Single colour for both rings, driven by the worst status.
     private var statusColor: Color {
-        if primaryLimitReached || secondaryLimitReached { return .red }
+        if primaryLimitReached || secondaryLimitReached { return .critical }
         let worst = max(primaryPercent, secondaryPercent)
-        if worst >= 95 { return .red }
-        if worst >= 85 { return Color(red: 1.0, green: 0.65, blue: 0.0) } // amber
+        if worst >= 95 { return .critical }
+        if worst >= 85 { return .warningAmber }
         return Self.accent
-    }
-
-    private static let amber = Color(red: 1.0, green: 0.65, blue: 0.0)
-
-    /// Mirrors the gauge's overall `statusColor` (worst-of primary & secondary) so the
-    /// primary caption never reads as "calm" when the gauge itself is in caution or
-    /// danger. Previously this used only the primary metric's own state, which made
-    /// the 5h reset caption stay purple while the arcs and 7d caption went red.
-    private var primaryCaptionStyle: AnyShapeStyle {
-        let worst = max(primaryPercent, secondaryPercent)
-        if primaryLimitReached || secondaryLimitReached || worst >= 95 {
-            return AnyShapeStyle(.red.opacity(0.8))
-        }
-        if worst >= 85 { return AnyShapeStyle(Self.amber) }
-        return AnyShapeStyle(Self.accent.opacity(0.85))
-    }
-
-    private var secondaryCaptionStyle: AnyShapeStyle {
-        AnyShapeStyle(statusColor.opacity(secondaryOpacity))
     }
 
     private var primaryFill:   Double { Double(max(0, min(100, primaryPercent))) / 100.0 }
@@ -59,6 +40,26 @@ struct CircularGaugeView: View {
     private var secondaryOpacity: Double {
         let worst = max(primaryPercent, secondaryPercent)
         return worst >= 85 ? 0.65 : 0.45
+    }
+
+    private var secondaryTextOpacity: Double {
+        let worst = max(primaryPercent, secondaryPercent)
+        return worst >= 85 ? 0.75 : 0.65
+    }
+
+    /// Reset captions echo the gauge state so the timing metadata stays tied to
+    /// the quota signal without relying on shadows or custom background tricks.
+    private var primaryCaptionStyle: AnyShapeStyle {
+        let worst = max(primaryPercent, secondaryPercent)
+        if primaryLimitReached || secondaryLimitReached || worst >= 95 {
+            return AnyShapeStyle(Color.critical)
+        }
+        if worst >= 85 { return AnyShapeStyle(Color.warningAmber) }
+        return AnyShapeStyle(Self.accent.opacity(0.85))
+    }
+
+    private var secondaryCaptionStyle: AnyShapeStyle {
+        AnyShapeStyle(statusColor.opacity(secondaryTextOpacity))
     }
 
     // Outer ring is slightly wider than inner (9pt vs 7pt), with a 2pt optical gap.
@@ -84,7 +85,7 @@ struct CircularGaugeView: View {
             // ── Outer track ───────────────────────────────────────────
             Circle()
                 .trim(from: 0, to: 0.75)
-                .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: outerLw, lineCap: .butt))
+                .stroke(.fill.tertiary, style: StrokeStyle(lineWidth: outerLw, lineCap: .butt))
                 .rotationEffect(.degrees(135))
 
             // ── Outer fill (primary) ──────────────────────────────────
@@ -97,7 +98,7 @@ struct CircularGaugeView: View {
             // ── Inner track (7pt, 2pt gap from outer) ─────────────────
             Circle()
                 .trim(from: 0, to: 0.75)
-                .stroke(.fill.quaternary, style: StrokeStyle(lineWidth: innerLw, lineCap: .butt))
+                .stroke(.fill.tertiary, style: StrokeStyle(lineWidth: innerLw, lineCap: .butt))
                 .rotationEffect(.degrees(135))
                 .padding(innerPad)
 
@@ -116,7 +117,6 @@ struct CircularGaugeView: View {
                     .scaledToFit()
                     .frame(width: 15, height: 15)
                     .foregroundStyle(statusColor)
-                    .accentLegibilityLift()
 
                 if isLoading {
                     ProgressView().controlSize(.mini)
@@ -127,22 +127,18 @@ struct CircularGaugeView: View {
                                 .font(.system(size: 14, weight: .bold, design: .rounded))
                                 .foregroundStyle(statusColor)
                                 .contentTransition(.numericText())
-                                .accentLegibilityLift()
                             Text(primaryLabel)
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(statusColor)
-                                .accentLegibilityLift()
                         }
                         HStack(alignment: .firstTextBaseline, spacing: 3) {
                             Text("\(secondaryPercent)%")
                                 .font(.system(size: 13, weight: .semibold, design: .rounded))
-                                .foregroundStyle(statusColor.opacity(0.5))
+                                .foregroundStyle(statusColor.opacity(secondaryTextOpacity))
                                 .contentTransition(.numericText())
-                                .accentLegibilityLift()
                             Text(secondaryLabel)
                                 .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(statusColor.opacity(0.5))
-                                .accentLegibilityLift()
+                                .foregroundStyle(statusColor.opacity(secondaryTextOpacity))
                         }
                     }
                 }
@@ -173,19 +169,17 @@ struct CircularGaugeView: View {
         VStack(spacing: 4) {
             Text(label)
                 .font(.headline.bold())
-                .foregroundStyle(primaryLimitReached ? .red : .primary)
+                .foregroundStyle(.foreground)
 
             VStack(spacing: 0) {
                 Text(primaryCountdownText)
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(primaryCaptionStyle)
-                    .accentLegibilityLift()
 
                 if !isLoading {
                     Text(secondaryCountdownText)
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(secondaryCaptionStyle)
-                        .accentLegibilityLift()
                 }
             }
         }
@@ -197,12 +191,6 @@ struct CircularGaugeView: View {
 
     private var secondaryCountdownText: String {
         ResetTimeTextFormatter.compactWindowCaption(secondaryLabel, resetAt: weeklyResetAt)
-    }
-}
-
-private extension View {
-    func accentLegibilityLift() -> some View {
-        shadow(color: .black.opacity(0.35), radius: 1, y: 0.5)
     }
 }
 

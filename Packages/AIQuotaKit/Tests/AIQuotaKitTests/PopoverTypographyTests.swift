@@ -24,6 +24,10 @@ struct PopoverTypographyTests {
         #expect(gaugeSource.contains(#".font(.system(size: 13, weight: .medium))"#))
         #expect(gaugeSource.contains(#".font(.system(size: 13, weight: .semibold, design: .rounded))"#))
         #expect(gaugeSource.contains(#".font(.caption2.monospacedDigit())"#))
+        #expect(gaugeSource.contains(#"Text(label)"#))
+        #expect(gaugeSource.contains(#".foregroundStyle(.foreground)"#))
+        #expect(!gaugeSource.contains(#".foregroundStyle(.primary)"#))
+        #expect(!gaugeSource.contains(#".foregroundStyle(.white)"#))
         #expect(gaugeSource.contains(".monospacedDigit()"))
         #expect(!gaugeSource.contains(#".font(.system(size: 12, weight: .semibold, design: .rounded))"#))
     }
@@ -62,7 +66,7 @@ struct PopoverTypographyTests {
         #expect(budgetStripSource.contains("static let showThreshold: Double = 100"))
         #expect(popoverSource.contains("if extra.utilization >= BudgetStripView.showThreshold"))
         #expect(budgetStripSource.contains(#"Text("Spent:")"#))
-        #expect(budgetStripSource.contains("extra.utilization >= 85 ? .red : .orange"))
+        #expect(budgetStripSource.contains("extra.utilization >= 85 ? .critical : .warningAmber"))
         #expect(popoverSource.contains("private func extraUsageValueTint(_ extra: ClaudeUsage.ExtraUsage) -> Color?"))
         #expect(popoverSource.contains("guard extra.utilization >= 85 else { return nil }"))
         #expect(popoverSource.contains("valueTint: tint"))
@@ -92,8 +96,40 @@ struct PopoverTypographyTests {
         let popoverSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/PopoverView.swift"), encoding: .utf8)
 
         #expect(popoverSource.contains("if #available(macOS 26.0, *)"))
-        #expect(popoverSource.contains("Color.black.opacity(0.26)"))
+        #expect(popoverSource.contains(".fill(.regularMaterial)"))
+        #expect(!popoverSource.contains("Color.black.opacity(0.26)"))
         #expect(popoverSource.contains("Color(nsColor: .windowBackgroundColor).opacity(0.92)"))
+    }
+
+    @Test("accent text uses adaptive colors without shadows")
+    func accentTextUsesAdaptiveColorsWithoutShadows() throws {
+        let gaugeSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/CircularGaugeView.swift"), encoding: .utf8)
+        let popoverSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/PopoverView.swift"), encoding: .utf8)
+        let colorsSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/AdaptiveColors.swift"), encoding: .utf8)
+
+        #expect(colorsSource.contains(#"static let brand = Color("BrandAccent")"#))
+        #expect(colorsSource.contains(#"static let gaugeAccent = Color(nsColor: .systemPurple)"#))
+        #expect(colorsSource.contains(#"static let warningAmber = Color(nsColor: .systemOrange)"#))
+        #expect(colorsSource.contains(#"static let critical = Color(nsColor: .systemRed)"#))
+        #expect(gaugeSource.contains("static let accent = Color.gaugeAccent"))
+        #expect(gaugeSource.contains("private var secondaryTextOpacity"))
+        #expect(gaugeSource.contains("return .warningAmber"))
+        #expect(popoverSource.contains("private static let amber = Color.warningAmber"))
+        #expect(!gaugeSource.contains("accentLegibilityLift"))
+        #expect(!popoverSource.contains("accentLegibilityLift"))
+        #expect(!gaugeSource.contains(".shadow("))
+        #expect(!popoverSource.contains(".shadow("))
+    }
+
+    @Test("gauge empty tracks use tertiary fill")
+    func gaugeEmptyTracksUseTertiaryFill() throws {
+        let gaugeSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/CircularGaugeView.swift"), encoding: .utf8)
+        let popoverSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/PopoverView.swift"), encoding: .utf8)
+
+        #expect(gaugeSource.components(separatedBy: ".stroke(.fill.tertiary").count == 3)
+        #expect(popoverSource.components(separatedBy: ".stroke(.fill.tertiary").count == 3)
+        #expect(!gaugeSource.contains(".stroke(.fill.quaternary"))
+        #expect(!popoverSource.contains(".stroke(.fill.quaternary"))
     }
 
     @Test("onboarding reinforces material only before Tahoe")
@@ -143,14 +179,22 @@ struct PopoverTypographyTests {
         #expect(popoverSource.contains("(u.sevenDayUtilization ?? 0) >= 100"))
     }
 
-    @Test("7d reset line uses the inner-ring color treatment")
-    func sevenDayResetLineMatchesInnerRingColor() throws {
+    @Test("reset lines use the gauge status color treatment")
+    func resetLinesUseGaugeStatusColorTreatment() throws {
         let gaugeSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/CircularGaugeView.swift"), encoding: .utf8)
         let widgetGaugeSource = try String(contentsOf: repoRoot.appending(path: "AIQuotaWidget/Views/WidgetGaugeView.swift"), encoding: .utf8)
 
         #expect(gaugeSource.contains("Circle()"))
         #expect(gaugeSource.contains(".stroke(statusColor.opacity(secondaryOpacity), style: StrokeStyle(lineWidth: innerLw, lineCap: .butt))"))
-        #expect(gaugeSource.contains("AnyShapeStyle(statusColor.opacity(secondaryOpacity))"))
+        #expect(gaugeSource.contains("Text(primaryCountdownText)"))
+        #expect(gaugeSource.contains("private var primaryCaptionStyle"))
+        #expect(gaugeSource.contains(#"return AnyShapeStyle(Color.critical)"#))
+        #expect(gaugeSource.contains(#"if worst >= 85 { return AnyShapeStyle(Color.warningAmber) }"#))
+        #expect(gaugeSource.contains(#"return AnyShapeStyle(Self.accent.opacity(0.85))"#))
+        #expect(gaugeSource.contains("Text(secondaryCountdownText)"))
+        #expect(gaugeSource.contains("private var secondaryCaptionStyle"))
+        #expect(gaugeSource.contains("AnyShapeStyle(statusColor.opacity(secondaryTextOpacity))"))
+        #expect(!gaugeSource.contains(".red.opacity(0.8)"))
 
         #expect(widgetGaugeSource.contains("secondaryPercent >= 85 || secondaryLimitReached"))
         #expect(!widgetGaugeSource.contains("secondaryPercent >= 95 || secondaryLimitReached"))

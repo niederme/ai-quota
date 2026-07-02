@@ -33,6 +33,7 @@ struct AnalyticsConsentSettingsTests {
                 refreshIntervalMinutes: 30,
                 notifications: NotificationPreferences(),
                 menuBarService: .claude,
+                menuBarDisplayMode: .both,
                 analyticsEnabled: true
             )
         )
@@ -41,6 +42,7 @@ struct AnalyticsConsentSettingsTests {
 
         #expect(decoded.analyticsEnabled == true)
         #expect(decoded.menuBarService == .claude)
+        #expect(decoded.menuBarDisplayMode == .both)
         #expect(decoded.refreshIntervalMinutes == 30)
     }
 
@@ -75,5 +77,6 @@ struct AnalyticsConsentSettingsTests {
         #expect(analyticsStepSource.contains("Off by default"))
         #expect(analyticsStepSource.contains("Change anytime in Settings"))
         #expect(settingsSource.contains("Help John improve AIQuota with anonymous usage analytics"))
+        #expect(settingsSource.contains("menubar_display_changed"))
     }
 }

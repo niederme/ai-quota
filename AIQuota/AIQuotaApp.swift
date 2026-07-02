@@ -74,14 +74,8 @@ struct AIQuotaApp: App {
                 }
                 #endif
         } label: {
-            MenuBarIconView(
-                usedPercent: menuBarUsedPercent,
-                secondaryPercent: menuBarSecondaryPercent,
-                limitReached: menuBarLimitReached,
-                isLoading: viewModel.isLoading,
-                worstPercent: menuBarStatusPercent
-            )
-            .onboardingLauncher(viewModel: viewModel)
+            menuBarIcon
+                .onboardingLauncher(viewModel: viewModel)
         }
         .menuBarExtraStyle(.window)
 
@@ -105,46 +99,46 @@ struct AIQuotaApp: App {
 
     // MARK: - Menu bar gauge selection
 
-    /// Returns the gauge value for the service configured in settings.
-    /// Falls back to whichever service is actually authenticated.
-    private var menuBarUsedPercent: Int {
-        switch resolvedMenuBarService {
-        case .codex:  return viewModel.codexUsage?.hourlyUsedPercent ?? 0
-        case .claude: return viewModel.claudeUsage?.usedPercent ?? 0
+    @ViewBuilder
+    private var menuBarIcon: some View {
+        if shouldShowBothMenuBarGauges {
+            DoubleMenuBarIconView(
+                left: menuBarGaugeInput(for: .codex),
+                right: menuBarGaugeInput(for: .claude)
+            )
+        } else {
+            MenuBarIconView(input: menuBarGaugeInput(for: resolvedMenuBarService))
         }
     }
 
-    /// 7-day consumption for the resolved service — drives the inner ring.
-    private var menuBarSecondaryPercent: Int {
-        switch resolvedMenuBarService {
-        case .codex:  return viewModel.codexUsage?.weeklyUsedPercent ?? 0
-        case .claude: return Int(viewModel.claudeUsage?.sevenDayUtilization?.rounded() ?? 0)
-        }
+    private var shouldShowBothMenuBarGauges: Bool {
+        viewModel.settings.menuBarDisplayMode == .both
+            && viewModel.enrolledServices.contains(.codex)
+            && viewModel.enrolledServices.contains(.claude)
     }
 
-    /// Worst metric for the resolved service only — keeps the menu bar icon's
-    /// warning colour aligned with the user's selected default service.
-    private var menuBarStatusPercent: Int {
-        switch resolvedMenuBarService {
+    private func menuBarGaugeInput(for service: ServiceType) -> MenuBarGaugeInput {
+        switch service {
         case .codex:
-            return max(
-                viewModel.codexUsage?.hourlyUsedPercent ?? 0,
-                viewModel.codexUsage?.weeklyUsedPercent ?? 0
+            let used = viewModel.codexUsage?.hourlyUsedPercent ?? 0
+            let secondary = viewModel.codexUsage?.weeklyUsedPercent ?? 0
+            return MenuBarGaugeInput(
+                usedPercent: used,
+                secondaryPercent: secondary,
+                limitReached: viewModel.codexUsage?.limitReached ?? false,
+                isLoading: viewModel.isLoading,
+                worstPercent: max(used, secondary)
             )
         case .claude:
-            return max(
-                viewModel.claudeUsage?.usedPercent ?? 0,
-                Int(viewModel.claudeUsage?.sevenDayUtilization?.rounded() ?? 0)
+            let used = viewModel.claudeUsage?.usedPercent ?? 0
+            let secondary = Int(viewModel.claudeUsage?.sevenDayUtilization?.rounded() ?? 0)
+            return MenuBarGaugeInput(
+                usedPercent: used,
+                secondaryPercent: secondary,
+                limitReached: viewModel.claudeUsage?.limitReached ?? false,
+                isLoading: viewModel.isLoading,
+                worstPercent: max(used, secondary)
             )
-        }
-    }
-
-    private var menuBarLimitReached: Bool {
-        switch resolvedMenuBarService {
-        case .codex:
-            return viewModel.codexUsage?.limitReached ?? false
-        case .claude:
-            return viewModel.claudeUsage?.limitReached ?? false
         }
     }
 

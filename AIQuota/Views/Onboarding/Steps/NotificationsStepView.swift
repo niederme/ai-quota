@@ -7,7 +7,7 @@ struct NotificationsStepView: View {
     @Environment(QuotaViewModel.self) private var viewModel
     @State private var permissionGranted = false
 
-    private var sectionsEnabled: Bool {
+    private var notificationControlsEnabled: Bool {
         viewModel.settings.notifications.enabled && permissionGranted
     }
 
@@ -46,84 +46,40 @@ struct NotificationsStepView: View {
                         }
                 }
 
-                // ── Codex ──────────────────────────────────────────────
-                if viewModel.isCodexEnrolled {
-                    Section("Codex") {
-                        serviceRow(logo: "logo-openai",
-                                   isOn: sectionsEnabled ? $vm.settings.notifications.codexEnabled : .constant(false))
-
-                        if sectionsEnabled && vm.settings.notifications.codexEnabled {
-                            subHeader("5-hour window")
-                            Toggle("Usage alerts", isOn: $vm.settings.notifications.codex5hThresholdAlerts)
-                            Toggle("Reset alert",  isOn: $vm.settings.notifications.codex5hReset)
-
-                            subHeader("7-day window")
-                            Toggle("Usage alerts", isOn: $vm.settings.notifications.codexWeeklyThresholdAlerts)
-                            Toggle("Reset alert",  isOn: $vm.settings.notifications.codexReset)
-                        }
-                    }
-                    .disabled(!sectionsEnabled)
-                    .opacity(sectionsEnabled ? 1 : 0.45)
-                }
-
-                // ── Claude Code ────────────────────────────────────────
-                if viewModel.isClaudeEnrolled {
-                    Section("Claude Code") {
-                        serviceRow(logo: "logo-claude",
-                                   isOn: sectionsEnabled ? $vm.settings.notifications.claudeEnabled : .constant(false))
-
-                        if sectionsEnabled && vm.settings.notifications.claudeEnabled {
-                            subHeader("5-hour window")
-                            Toggle("Usage alerts", isOn: $vm.settings.notifications.claude5hThresholdAlerts)
-                            Toggle("Reset alert",  isOn: $vm.settings.notifications.claude5hReset)
-
-                            subHeader("7-day window")
-                            Toggle("Usage alerts", isOn: $vm.settings.notifications.claude7dThresholdAlerts)
-                            Toggle("Reset alert",  isOn: $vm.settings.notifications.claude7dReset)
-                        }
-                    }
-                    .disabled(!sectionsEnabled)
-                    .opacity(sectionsEnabled ? 1 : 0.45)
-                }
-
-                if viewModel.enrolledServices.isEmpty {
+                if viewModel.settings.notifications.enabled {
                     Section {
-                        Text("Sign in to a service on the previous step to configure thresholds.")
-                            .foregroundStyle(.secondary)
+                        if viewModel.isCodexEnrolled {
+                            OnboardingNotificationServiceRow(
+                                service: .codex,
+                                logo: "logo-openai",
+                                isOn: $vm.settings.notifications.codexEnabled,
+                                isEnabled: notificationControlsEnabled,
+                                preferences: $vm.settings.notifications
+                            )
+                        }
+
+                        if viewModel.isClaudeEnrolled {
+                            OnboardingNotificationServiceRow(
+                                service: .claude,
+                                logo: "logo-claude",
+                                isOn: $vm.settings.notifications.claudeEnabled,
+                                isEnabled: notificationControlsEnabled,
+                                preferences: $vm.settings.notifications
+                            )
+                        }
+
+                        if viewModel.enrolledServices.isEmpty {
+                            Text("Sign in to a service on the previous step to configure thresholds.")
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
             }
             .formStyle(.grouped)
-            .animation(.spring(response: 0.4, dampingFraction: 0.85), value: sectionsEnabled)
+            .animation(.spring(response: 0.4, dampingFraction: 0.85), value: notificationControlsEnabled)
         }
         .task { await checkPermission() }
         .onChange(of: viewModel.settings) { viewModel.saveSettings() }
-    }
-
-    // MARK: - Helpers
-
-    /// Service row: logo on the left, enable/disable switch on the right.
-    /// The service name is provided by the enclosing Section title.
-    @ViewBuilder
-    private func serviceRow(logo: String, isOn: Binding<Bool>) -> some View {
-        HStack(spacing: 10) {
-            Image(logo)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 18, height: 18)
-            Toggle("", isOn: isOn)
-                .toggleStyle(.switch)
-                .labelsHidden()
-        }
-    }
-
-    /// Inline sub-section label.
-    @ViewBuilder
-    private func subHeader(_ title: String) -> some View {
-        Text(title)
-            .font(.footnote.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .listRowBackground(Color.clear)
     }
 
     private func checkPermission() async {
@@ -131,5 +87,145 @@ struct NotificationsStepView: View {
         withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
             permissionGranted = settings.authorizationStatus == .authorized
         }
+    }
+}
+
+private struct OnboardingNotificationServiceRow: View {
+    let service: ServiceType
+    let logo: String
+    @Binding var isOn: Bool
+    let isEnabled: Bool
+    @Binding var preferences: NotificationPreferences
+
+    @State private var isExpanded = false
+    @State private var isHovering = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                Button {
+                    toggleExpanded()
+                } label: {
+                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                        .frame(width: 12)
+                }
+                .buttonStyle(.plain)
+
+                HStack(spacing: 10) {
+                    Image(logo)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 18, height: 18)
+
+                    Text(service.displayName)
+                        .foregroundStyle(.foreground)
+
+                    Spacer(minLength: 8)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture(perform: toggleExpanded)
+
+                Toggle("", isOn: $isOn)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+                    .disabled(!isEnabled)
+            }
+            .onHover { isHovering = $0 }
+            .padding(.horizontal, 4)
+            .padding(.vertical, 3)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(isHovering ? Color.primary.opacity(0.06) : Color.clear)
+            )
+
+            if isExpanded {
+                OnboardingNotificationInlineControls(service: service, preferences: $preferences)
+                    .padding(.leading, 50)
+                    .padding(.top, 2)
+                    .padding(.bottom, 4)
+                    .disabled(!isOn || !isEnabled)
+                    .opacity(isOn && isEnabled ? 1 : 0.45)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
+        .opacity(isEnabled ? 1 : 0.55)
+        .animation(.easeInOut(duration: 0.12), value: isHovering)
+    }
+
+    private func toggleExpanded() {
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.86)) {
+            isExpanded.toggle()
+        }
+    }
+}
+
+private struct OnboardingNotificationInlineControls: View {
+    let service: ServiceType
+    @Binding var preferences: NotificationPreferences
+
+    var body: some View {
+        switch service {
+        case .codex:
+            codexControls
+        case .claude:
+            claudeControls
+        }
+    }
+
+    @ViewBuilder
+    private var codexControls: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            notificationOptionGroup("5-hour window") {
+                notificationCheckbox("Usage alerts", isOn: $preferences.codex5hThresholdAlerts)
+                notificationCheckbox("Reset alert", isOn: $preferences.codex5hReset)
+            }
+
+            notificationOptionGroup("7-day window") {
+                notificationCheckbox("Usage alerts", isOn: $preferences.codexWeeklyThresholdAlerts)
+                notificationCheckbox("Reset alert", isOn: $preferences.codexReset)
+            }
+
+            notificationOptionGroup("Credits") {
+                notificationCheckbox("Top-up events", isOn: $preferences.codexTopUp)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var claudeControls: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            notificationOptionGroup("5-hour window") {
+                notificationCheckbox("Usage alerts", isOn: $preferences.claude5hThresholdAlerts)
+                notificationCheckbox("Reset alert", isOn: $preferences.claude5hReset)
+            }
+
+            notificationOptionGroup("7-day window") {
+                notificationCheckbox("Usage alerts", isOn: $preferences.claude7dThresholdAlerts)
+                notificationCheckbox("Reset alert", isOn: $preferences.claude7dReset)
+            }
+        }
+    }
+
+    private func notificationOptionGroup<Content: View>(
+        _ title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title.uppercased())
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 6) {
+                content()
+            }
+        }
+    }
+
+    private func notificationCheckbox(_ title: String, isOn: Binding<Bool>) -> some View {
+        Toggle(title, isOn: isOn)
+            .toggleStyle(.checkbox)
     }
 }
