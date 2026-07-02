@@ -14,8 +14,8 @@ options:
 # CURRENT_PROJECT_VERSION = Sparkle / bundle build number — bump for every release.
 settings:
   base:
-    MARKETING_VERSION: "1.9.18"
-    CURRENT_PROJECT_VERSION: "375"
+    MARKETING_VERSION: "1.9.19"
+    CURRENT_PROJECT_VERSION: "376"
 
 packages:
   AIQuotaKit:
@@ -66,10 +66,10 @@ targets:
       - path: AIQuota
         excludes:
           - Resources/AIQuota.entitlements
+          - Resources/Analytics.plist
+          - Resources/GoogleService-Info.plist
     resources:
-      - path: AIQuota/Resources
-        excludes:
-          - AIQuota.entitlements
+      - path: AIQuota/Resources/Assets.xcassets
     dependencies:
       - package: AIQuotaKit
       - package: Firebase
