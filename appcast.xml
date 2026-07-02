@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.9.18</title>
+            <title>Version 1.9.19</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -47,17 +47,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.9.18</h2>  <ul><li><strong>Monthly overage spend at a glance</strong> — AIQuota now shows how much Codex bonus credit spend and Claude extra usage you have used this month.</li> <li><strong>Clearer credit details</strong> — Codex balances are shown as dollars, separate from the monthly amount spent after limits.</li> <li><strong>Cleaner overage styling</strong> — Spent rows are highlighted in amber across the popover and widgets, with red reserved for true limit or cap states.</li> <li><strong>Helpful spend context</strong> — Hover over the Spent row in the menu bar popover to see how the monthly amount is calculated and when it applies.</li></ul> <img src="https://github.com/niederme/ai-quota/releases/download/v1.9.18/AIQuota-1.9.18.png" alt="AIQuota 1.9.18" width="600">
+<h2>What's New in 1.9.19</h2>  <ul><li><strong>More reliable Claude Code sign-in</strong> — AIQuota now falls back to the web sign-in flow when stored Claude credentials are rejected.</li> <li><strong>Clearer widget gauges</strong> — empty gauge tracks are easier to see while still using system semantic colors.</li> <li><strong>Cleaner widget details</strong> — widgets now match the main app and no longer show a confusing amber `$0.00` spent line.</li> <li><strong>Better macOS 26 readability</strong> — the menu bar popover has stronger contrast when floating over bright windows.</li></ul> <img src="https://github.com/niederme/ai-quota/releases/download/v1.9.19/AIQuota-1.9.19.png" alt="AIQuota 1.9.19" width="600"> 
 </body>
 </html>
 ]]></description>
-            <sparkle:version>375</sparkle:version>
-            <sparkle:shortVersionString>1.9.18</sparkle:shortVersionString>
+            <sparkle:version>376</sparkle:version>
+            <sparkle:shortVersionString>1.9.19</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.9.18/AIQuota.zip"
-                sparkle:edSignature="RoXJxkEzHi1kpT+MhSFoerhSYxw4f3FUgpz9IoQfy4D4q/4MG9biBkZHXk4EVb2rf0FSVRLqz8mzSEGupjcxDg=="
-                length="6546046"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.9.19/AIQuota.zip"
+                sparkle:edSignature="+W1pzgK/rUn/cebmAnW9uwDyx0zceRgXlhjrBJldln3qBZ+oKhwrdZ8c6KGQJS471zG13pA38vh1jt+8zE+3BA=="
+                length="6556686"
                 type="application/zip"/>
         </item>
     </channel>
