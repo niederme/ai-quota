@@ -14,7 +14,7 @@ The marketing site in `docs/` follows the shared Codex web preview convention us
 
 ## Features
 
-- **Menu bar gauge** — a compact, color-coded arc icon that can show Codex, Claude Code, or both services together when both are connected
+- **Menu bar gauge** — compact, color-coded arc icons that show both Codex and Claude Code together by default when both services are connected
 - **Popover dashboard** — Codex and Claude Code both use the same dual-arc gauge language: the 5-hour window is the outer ring, the 7-day window is the inner ring
 - **Service details that matter** — reset timers, plan info, credit balances, monthly overage spend, and clear warning states are visible at a glance
 - **Desktop widgets** — polished widget variants for single-service and dual-service monitoring, including configurable small and medium widgets plus a large two-service layout

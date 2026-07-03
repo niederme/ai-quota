@@ -189,7 +189,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
         refreshIntervalMinutes: autoRefreshIntervalMinutes,
         notifications: NotificationPreferences(),
         menuBarService: .codex,
-        menuBarDisplayMode: .single,
+        menuBarDisplayMode: .both,
         analyticsEnabled: false
     )
 
@@ -197,7 +197,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
         refreshIntervalMinutes: Int,
         notifications: NotificationPreferences = NotificationPreferences(),
         menuBarService: ServiceType = .codex,
-        menuBarDisplayMode: MenuBarDisplayMode = .single,
+        menuBarDisplayMode: MenuBarDisplayMode = .both,
         analyticsEnabled: Bool = false
     ) {
         self.refreshIntervalMinutes = Self.normalizeRefreshIntervalMinutes(refreshIntervalMinutes)
@@ -214,7 +214,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
             ?? Self.autoRefreshIntervalMinutes
         refreshIntervalMinutes = Self.normalizeRefreshIntervalMinutes(decodedRefreshInterval)
         menuBarService = try c.decodeIfPresent(ServiceType.self, forKey: .menuBarService) ?? .codex
-        menuBarDisplayMode = try c.decodeIfPresent(MenuBarDisplayMode.self, forKey: .menuBarDisplayMode) ?? .single
+        menuBarDisplayMode = try c.decodeIfPresent(MenuBarDisplayMode.self, forKey: .menuBarDisplayMode) ?? .both
         notifications = try c.decodeIfPresent(NotificationPreferences.self, forKey: .notifications)
             ?? NotificationPreferences()
         analyticsEnabled = try c.decodeIfPresent(Bool.self, forKey: .analyticsEnabled) ?? false

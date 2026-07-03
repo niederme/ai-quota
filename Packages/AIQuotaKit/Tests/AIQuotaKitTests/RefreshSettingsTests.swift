@@ -8,7 +8,19 @@ struct RefreshSettingsTests {
     func defaultsToAuto() {
         #expect(AppSettings.default.refreshIntervalMinutes == AppSettings.autoRefreshIntervalMinutes)
         #expect(AppSettings.default.usesAdaptiveRefresh)
-        #expect(AppSettings.default.menuBarDisplayMode == .single)
+        #expect(AppSettings.default.menuBarDisplayMode == .both)
+        #expect(
+            MenuBarDisplayOption.current(
+                settings: AppSettings.default,
+                enrolledServices: [.codex]
+            ) == .codex
+        )
+        #expect(
+            MenuBarDisplayOption.current(
+                settings: AppSettings.default,
+                enrolledServices: [.codex, .claude]
+            ) == .both
+        )
     }
 
     @Test("legacy fixed refresh values normalize into the new supported set")
@@ -27,7 +39,7 @@ struct RefreshSettingsTests {
 
         #expect(settings.refreshIntervalMinutes == AppSettings.autoRefreshIntervalMinutes)
         #expect(settings.usesAdaptiveRefresh)
-        #expect(settings.menuBarDisplayMode == .single)
+        #expect(settings.menuBarDisplayMode == .both)
     }
 
     @Test("supported fixed refresh values still round-trip")
