@@ -4,9 +4,12 @@ import WebKit
 enum AuthInstallState {
     static let onboardingCompletedKey = "onboarding.v1.hasCompleted"
 
-    static func isExistingInstall(hasWebsiteData: Bool) -> Bool {
+    static func isExistingInstall(
+        hasWebsiteData: Bool,
+        userDefaults: UserDefaults = .standard
+    ) -> Bool {
         hasWebsiteData ||
-        UserDefaults.standard.object(forKey: onboardingCompletedKey) != nil ||
+        userDefaults.object(forKey: onboardingCompletedKey) != nil ||
         SharedDefaults.loadCachedUsage() != nil ||
         SharedDefaults.loadCachedClaudeUsage() != nil
     }

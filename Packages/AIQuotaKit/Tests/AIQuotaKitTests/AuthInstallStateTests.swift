@@ -12,15 +12,19 @@ struct AuthInstallStateTests {
 
     @Test("existing install when onboarding has completed even without website data")
     func existingInstallFromOnboardingMarker() {
-        UserDefaults.standard.set(true, forKey: "onboarding.v1.hasCompleted")
-        defer { UserDefaults.standard.removeObject(forKey: "onboarding.v1.hasCompleted") }
+        let (suiteName, defaults) = isolatedDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        defaults.set(true, forKey: "onboarding.v1.hasCompleted")
 
-        #expect(AuthInstallState.isExistingInstall(hasWebsiteData: false))
+        #expect(AuthInstallState.isExistingInstall(hasWebsiteData: false, userDefaults: defaults))
     }
 
     @Test("fresh install when no website data and no persisted app state")
     func freshInstallWithoutState() {
-        #expect(!AuthInstallState.isExistingInstall(hasWebsiteData: false))
+        let (suiteName, defaults) = isolatedDefaults()
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        #expect(!AuthInstallState.isExistingInstall(hasWebsiteData: false, userDefaults: defaults))
     }
 
     @Test("fresh install cleanup does not clear provider WebKit sessions")
@@ -40,5 +44,12 @@ struct AuthInstallStateTests {
 
         #expect(claude.contains("Do not clear WebKit cookies here"))
         #expect(codex.contains("Do not clear WebKit cookies here"))
+    }
+
+    private func isolatedDefaults() -> (suiteName: String, defaults: UserDefaults) {
+        let suiteName = "AIQuotaKit.AuthInstallStateTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defaults.removePersistentDomain(forName: suiteName)
+        return (suiteName, defaults)
     }
 }
