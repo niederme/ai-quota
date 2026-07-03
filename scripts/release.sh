@@ -165,6 +165,7 @@ NOTES_HTML=$(echo "$RELEASE_NOTES" | sed \
   | tr '\n' ' ' \
   | sed 's|<li>|<ul><li>|' \
   | sed 's|</li> <h2>|</li></ul><h2>|g' \
+  | sed 's|</li> *<img|</li></ul> <img|' \
   | sed 's|</li> *$|</li></ul>|')
 
 cat > "$APPCAST" <<EOF
@@ -241,12 +242,23 @@ EXTRA_ASSETS=()
 
 if gh release view "$TAG" -R "$REPO" &>/dev/null; then
     gh release edit "$TAG" --notes "$RELEASE_NOTES" -R "$REPO"
-    gh release upload "$TAG" "$ZIP" "$APPCAST" "${EXTRA_ASSETS[@]}" --clobber -R "$REPO"
+    if [ "${#EXTRA_ASSETS[@]}" -gt 0 ]; then
+        gh release upload "$TAG" "$ZIP" "$APPCAST" "${EXTRA_ASSETS[@]}" --clobber -R "$REPO"
+    else
+        gh release upload "$TAG" "$ZIP" "$APPCAST" --clobber -R "$REPO"
+    fi
 else
-    gh release create "$TAG" "$ZIP" "$APPCAST" "${EXTRA_ASSETS[@]}" \
-        --title "AIQuota ${VERSION}" \
-        --notes "$RELEASE_NOTES" \
-        -R "$REPO"
+    if [ "${#EXTRA_ASSETS[@]}" -gt 0 ]; then
+        gh release create "$TAG" "$ZIP" "$APPCAST" "${EXTRA_ASSETS[@]}" \
+            --title "AIQuota ${VERSION}" \
+            --notes "$RELEASE_NOTES" \
+            -R "$REPO"
+    else
+        gh release create "$TAG" "$ZIP" "$APPCAST" \
+            --title "AIQuota ${VERSION}" \
+            --notes "$RELEASE_NOTES" \
+            -R "$REPO"
+    fi
 fi
 
 echo "✓ Done. Release ${TAG} is live."
