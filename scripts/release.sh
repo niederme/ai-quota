@@ -123,9 +123,18 @@ fi
 
 # ── Build ZIP ─────────────────────────────────────────────────────────────────
 # ZIP is required for sandboxed Sparkle apps — DMG triggers "installer launch" errors.
+# iCloud Desktop sync tags exported apps with com.apple.FinderInfo xattrs; if those
+# reach the ZIP, Sparkle's strict codesign check rejects the update as "improperly
+# signed". Strip xattrs and exclude them from the archive.
 echo "▶ Building ZIP for ${TAG}…"
 rm -f "$ZIP"
-ditto -c -k --keepParent "$APP_SRC" "$ZIP"
+xattr -cr "$APP_SRC"
+ditto -c -k --norsrc --noextattr --noqtn --keepParent "$APP_SRC" "$ZIP"
+
+if zipinfo -1 "$ZIP" | grep -q '/\._'; then
+    echo "✗ ZIP contains AppleDouble (._*) entries — xattr contamination. Aborting."
+    exit 1
+fi
 
 # ── Sign ZIP ──────────────────────────────────────────────────────────────────
 echo "▶ Signing ZIP with Sparkle Ed25519 key…"
