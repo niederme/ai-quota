@@ -56,8 +56,8 @@
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
                 url="https://github.com/niederme/ai-quota/releases/download/v1.9.20/AIQuota.zip"
-                sparkle:edSignature="nwOpruibLYpb52sV+iNT8zUAXATxQBvq30z7SOgTu3k58mb1GSIMlWRdDRMY64jAOKin/Vd11pM/CP449lrUDg=="
-                length="6596974"
+                sparkle:edSignature="p33T23Ia54w87XvQyH5ExRyNaoXnRr7KdPcOhgP/HvMKuPszOiAWG7QEIRYb/QfzrjcSafh5rUfwpuBxKBA8Cg=="
+                length="6589498"
                 type="application/zip"/>
         </item>
     </channel>
