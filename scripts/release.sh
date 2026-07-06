@@ -53,6 +53,18 @@ ZIP="/tmp/AIQuota.zip"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APPCAST="${REPO_ROOT}/appcast.xml"
 
+# ── Refuse to release from a stale or dirty checkout ──────────────────────────
+# Releases have been run from more than one clone; a checkout behind origin/main
+# regenerates the appcast from stale data. Set FORCE_RELEASE=1 to override.
+if [ "${FORCE_RELEASE:-0}" != "1" ]; then
+    git -C "$REPO_ROOT" fetch origin main --quiet
+    if [ "$(git -C "$REPO_ROOT" rev-parse HEAD)" != "$(git -C "$REPO_ROOT" rev-parse origin/main)" ]; then
+        echo "✗ This checkout is not in sync with origin/main. Pull/push first,"
+        echo "  or re-run with FORCE_RELEASE=1 if you really mean it."
+        exit 1
+    fi
+fi
+
 # ── Locate exported .app on Desktop ──────────────────────────────────────────
 APP_SRC="$HOME/Desktop/AIQuota.app"
 if [ ! -d "$APP_SRC" ]; then
@@ -129,6 +141,18 @@ fi
 echo "▶ Building ZIP for ${TAG}…"
 rm -f "$ZIP"
 xattr -cr "$APP_SRC"
+
+# Sparkle validates the update with a strict codesign check; run the same check
+# here so a broken app fails the release instead of failing on users' Macs.
+if ! codesign --verify --deep --strict "$APP_SRC"; then
+    echo "✗ Exported app fails strict codesign validation. Aborting."
+    exit 1
+fi
+if ! spctl -a -t exec "$APP_SRC"; then
+    echo "✗ Exported app fails Gatekeeper assessment (not notarized?). Aborting."
+    exit 1
+fi
+
 ditto -c -k --norsrc --noextattr --noqtn --keepParent "$APP_SRC" "$ZIP"
 
 if zipinfo -1 "$ZIP" | grep -q '/\._'; then
@@ -269,5 +293,42 @@ else
             -R "$REPO"
     fi
 fi
+
+# ── Verify the published update exactly as Sparkle will ──────────────────────
+# Download what GitHub actually serves and validate the full chain: appcast
+# matches what we generated, ZIP matches what we signed, extracted app passes
+# strict codesign + Gatekeeper. Asset replacement can take a few minutes to
+# propagate through GitHub's CDN, so retry before declaring failure.
+echo "▶ Verifying published assets (may wait for CDN propagation)…"
+VERIFY_DIR=$(mktemp -d /tmp/aiquota-verify.XXXXXX)
+PUBLISHED_OK=0
+for attempt in $(seq 1 20); do
+    curl -fsSL -o "${VERIFY_DIR}/AIQuota.zip" "$DOWNLOAD_URL" || true
+    curl -fsSL -o "${VERIFY_DIR}/appcast.xml" "https://github.com/${REPO}/releases/download/${TAG}/appcast.xml" || true
+    REMOTE_SIG=$("${SPARKLE}/sign_update" "${VERIFY_DIR}/AIQuota.zip" 2>/dev/null | grep -o 'sparkle:edSignature="[^"]*"' | sed 's/sparkle:edSignature="//;s/"//' || true)
+    if [ "$REMOTE_SIG" = "$SIGNATURE" ] && cmp -s "${VERIFY_DIR}/appcast.xml" "$APPCAST"; then
+        PUBLISHED_OK=1
+        break
+    fi
+    echo "  Attempt ${attempt}/20: published assets don't match yet — retrying in 20s…"
+    sleep 20
+done
+if [ "$PUBLISHED_OK" != "1" ]; then
+    echo "✗ Published assets never matched the signed ZIP/appcast."
+    echo "  DO NOT announce this release — users will get 'improperly signed' errors."
+    exit 1
+fi
+
+ditto -x -k "${VERIFY_DIR}/AIQuota.zip" "${VERIFY_DIR}/out"
+if ! codesign --verify --deep --strict "${VERIFY_DIR}/out/AIQuota.app"; then
+    echo "✗ Published app fails strict codesign validation — Sparkle will reject it."
+    exit 1
+fi
+if ! spctl -a -t exec "${VERIFY_DIR}/out/AIQuota.app"; then
+    echo "✗ Published app fails Gatekeeper assessment."
+    exit 1
+fi
+rm -rf "$VERIFY_DIR"
+echo "  ✓ Published update validates cleanly (signature, appcast, codesign, Gatekeeper)."
 
 echo "✓ Done. Release ${TAG} is live."
