@@ -78,19 +78,20 @@ missing = []
 for index, release in enumerate(stable_releases[:4]):
     version = release["tag_name"].removeprefix("v")
     tag_url = f"https://github.com/niederme/ai-quota/releases/tag/{release['tag_name']}"
-    required_tokens = [
-        f"Version {version}",
-        tag_url,
-        release_date(release["published_at"]),
-    ]
 
     if index == 0:
-        required_tokens.extend(
-            [
-                f"AIQuota {version}",
-                f"Download {version}",
-            ]
-        )
+        required_tokens = [
+            f"AIQuota {version}",
+            f"Download {version}",
+            tag_url,
+            release_date(release["published_at"]),
+        ]
+    else:
+        required_tokens = [
+            f"Version {version}",
+            tag_url,
+            release_date(release["published_at"]),
+        ]
 
     for token in required_tokens:
         if token not in page_html:
