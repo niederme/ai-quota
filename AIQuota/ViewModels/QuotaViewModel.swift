@@ -39,6 +39,7 @@ final class QuotaViewModel {
     var isClaudeAuthenticated: Bool { claudeState == .authenticated }
     var isCodexAuthenticated:  Bool { codexState  == .authenticated }
     var isRestoringSession: Bool {
+        isClaudeRecoveryPending ||
         claudeState == .unknown || claudeState == .restoringSession ||
         codexState  == .unknown || codexState  == .restoringSession
     }
@@ -60,6 +61,7 @@ final class QuotaViewModel {
 
     var isCodexEnrolled: Bool { enrolledServices.contains(.codex) }
     var isClaudeEnrolled: Bool { enrolledServices.contains(.claude) }
+    private var isClaudeRecoveryPending = false
 
     // MARK: - Onboarding
 
@@ -210,6 +212,7 @@ final class QuotaViewModel {
         self.claudeClient      = ClaudeClient(coordinator: claude)
         self.codexClient       = OpenAIClient(coordinator: codex)
         self.resetCoordinator  = AppResetCoordinator(claude: claude, codex: codex)
+        self.isClaudeRecoveryPending = enrolledServices.contains(.claude)
 
         // Load cached data immediately
         codexUsage  = SharedDefaults.loadCachedUsage()
@@ -237,7 +240,8 @@ final class QuotaViewModel {
                     if state == .authenticated && self.refreshTask == nil {
                         self.startAutoRefresh()
                     }
-                    if state == .unauthenticated || state == .signedOutByUser {
+                    if state == .signedOutByUser ||
+                        (state == .unauthenticated && !self.isClaudeRecoveryPending) {
                         self.claudeUsage = nil
                         SharedDefaults.clearClaudeUsage()
                         WidgetCenter.shared.reloadAllTimelines()
@@ -277,14 +281,37 @@ final class QuotaViewModel {
         startPathMonitor()
         startLifecycleObservers()
 
-        // Bootstrap both coordinators — handles Keychain / WKWebView session restore
-        // internally; no need for a deferred Keychain access pattern here.
+        // Bootstrap both coordinators, then repair enrolled Claude installs that
+        // lost app-side state but still have usable Claude Code credentials.
         Task {
             await withTaskGroup(of: Void.self) { group in
                 group.addTask { await self.claudeCoordinator.bootstrap() }
                 group.addTask { await self.codexCoordinator.bootstrap() }
             }
+            await self.restoreEnrolledClaudeIfNeeded()
         }
+    }
+
+    private func restoreEnrolledClaudeIfNeeded() async {
+        logger.notice("[ClaudeRecovery] viewModel start enrolled=\(self.isClaudeEnrolled) state=\(String(describing: self.claudeState), privacy: .public)")
+        defer {
+            isClaudeRecoveryPending = false
+            logger.notice("[ClaudeRecovery] viewModel finished pending=false state=\(String(describing: self.claudeState), privacy: .public)")
+        }
+        guard isClaudeEnrolled else {
+            logger.notice("[ClaudeRecovery] viewModel skipped not enrolled")
+            return
+        }
+        guard await claudeCoordinator.restoreWithoutPromptIfPossible(allowSignedOutByUser: true) else {
+            logger.notice("[ClaudeRecovery] viewModel restore failed")
+            return
+        }
+
+        logger.notice("[ClaudeRecovery] viewModel restore succeeded")
+        claudeState = .authenticated
+        claudeError = nil
+        await refreshClaude()
+        if refreshTask == nil { startAutoRefresh() }
     }
 
     // MARK: - Network path monitor
@@ -701,6 +728,12 @@ final class QuotaViewModel {
     /// Refresh on menu bar popover open when the cached data is missing or stale,
     /// but avoid refetching on rapid open/close cycles.
     func refreshOnPopoverOpenIfNeeded() {
+        if isClaudeEnrolled && !isClaudeAuthenticated && !isClaudeRecoveryPending {
+            logger.notice("[ClaudeRecovery] popover retry scheduled state=\(String(describing: self.claudeState), privacy: .public)")
+            isClaudeRecoveryPending = true
+            Task { await restoreEnrolledClaudeIfNeeded() }
+        }
+
         guard isCodexAuthenticated || isClaudeAuthenticated else { return }
         guard !isLoading else { return }
         guard shouldRefreshOnPopoverOpen else { return }

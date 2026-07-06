@@ -52,6 +52,7 @@ public struct ClaudeOAuthKeychainReader: Sendable {
     }
 
     private static let serviceName = "Claude Code-credentials"
+    private static let sessionState = SessionState()
 
     private let read: @Sendable () throws -> Data?
 
@@ -64,6 +65,7 @@ public struct ClaudeOAuthKeychainReader: Sendable {
     }
 
     private static func readClaudeCodeSecurityFramework() throws -> Data? {
+        guard !sessionState.isAccessDenied else { return nil }
         if let persistentRef = try newestClaudeCodePersistentRef() {
             return try readData(persistentRef: persistentRef)
         }
@@ -138,10 +140,30 @@ public struct ClaudeOAuthKeychainReader: Sendable {
         switch status {
         case errSecSuccess:
             return result as? Data
-        case errSecItemNotFound, errSecUserCanceled, errSecAuthFailed, errSecInteractionNotAllowed:
+        case errSecItemNotFound, errSecInteractionNotAllowed:
+            return nil
+        case errSecUserCanceled, errSecAuthFailed:
+            sessionState.markAccessDenied()
             return nil
         default:
             throw ClaudeOAuthKeychainError(status: status)
+        }
+    }
+
+    private final class SessionState: @unchecked Sendable {
+        private let lock = NSLock()
+        private var accessDenied = false
+
+        var isAccessDenied: Bool {
+            lock.lock()
+            defer { lock.unlock() }
+            return accessDenied
+        }
+
+        func markAccessDenied() {
+            lock.lock()
+            defer { lock.unlock() }
+            accessDenied = true
         }
     }
 
@@ -170,28 +192,37 @@ public enum ClaudeOAuthCredentialsStore {
         fileManager: FileManager = .default,
         keychainReader: ClaudeOAuthKeychainReader? = nil
     ) throws -> ClaudeOAuthCredentials {
-        let credentials = try load(env: env, fileManager: fileManager, keychainReader: keychainReader)
+        let url = credentialsURL(env: env, fileManager: fileManager)
+        let fileError: Error?
+        if fileManager.fileExists(atPath: url.path) {
+            do {
+                return try validateUsable(parse(data: Data(contentsOf: url)))
+            } catch {
+                fileError = error
+            }
+        } else {
+            fileError = nil
+        }
+
+        if let keychainReader {
+            do {
+                guard let data = try keychainReader.readCredentialsData() else {
+                    throw fileError ?? ClaudeOAuthCredentialsError.notFound
+                }
+                return try validateUsable(parse(data: data))
+            } catch {
+                throw fileError ?? error
+            }
+        }
+
+        if let fileError { throw fileError }
+        throw ClaudeOAuthCredentialsError.notFound
+    }
+
+    private static func validateUsable(_ credentials: ClaudeOAuthCredentials) throws -> ClaudeOAuthCredentials {
         guard !credentials.isExpired else { throw ClaudeOAuthCredentialsError.expired }
         guard credentials.hasRequiredScope else { throw ClaudeOAuthCredentialsError.missingScope }
         return credentials
-    }
-
-    static func load(
-        env: [String: String] = ProcessInfo.processInfo.environment,
-        fileManager: FileManager = .default,
-        keychainReader: ClaudeOAuthKeychainReader? = nil
-    ) throws -> ClaudeOAuthCredentials {
-        let url = credentialsURL(env: env, fileManager: fileManager)
-        if fileManager.fileExists(atPath: url.path) {
-            let data = try Data(contentsOf: url)
-            return try parse(data: data)
-        }
-
-        if let keychainReader, let data = try? keychainReader.readCredentialsData() {
-            return try parse(data: data)
-        }
-
-        throw ClaudeOAuthCredentialsError.notFound
     }
 
     static func parse(data: Data) throws -> ClaudeOAuthCredentials {

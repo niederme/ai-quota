@@ -125,6 +125,42 @@ struct ClaudeOAuthCredentialsStoreTests {
         #expect(credentials.accessToken == "file-token")
     }
 
+    @Test("stale file credentials fall back to fresh Claude Code Keychain credentials")
+    func staleFileCredentialsFallBackToKeychainCredentials() throws {
+        let root = temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root.appending(path: ".claude"), withIntermediateDirectories: true)
+
+        try Data("""
+        {
+          "claudeAiOauth": {
+            "accessToken": "stale-file-token",
+            "expiresAt": \(Int(Date().addingTimeInterval(-3_600).timeIntervalSince1970 * 1000)),
+            "scopes": ["user:profile"]
+          }
+        }
+        """.utf8).write(to: root.appending(path: ".claude/.credentials.json"))
+
+        let keychainReader = ClaudeOAuthKeychainReader {
+            Data("""
+            {
+              "claudeAiOauth": {
+                "accessToken": "fresh-keychain-token",
+                "expiresAt": \(Int(Date().addingTimeInterval(3_600).timeIntervalSince1970 * 1000)),
+                "scopes": ["user:profile"]
+              }
+            }
+            """.utf8)
+        }
+
+        let credentials = try ClaudeOAuthCredentialsStore.loadUsable(
+            env: ["HOME": root.path],
+            keychainReader: keychainReader
+        )
+
+        #expect(credentials.accessToken == "fresh-keychain-token")
+    }
+
     @Test("interactive Keychain lookup prefers the newest Claude Code item")
     func interactiveKeychainLookupPrefersNewestItem() {
         let older = Data("older".utf8)

@@ -18,10 +18,12 @@ struct ClaudeAuthCoordinatorTests {
 
     private func makeSUT(
         probe: @escaping ClaudeAuthCoordinator.SessionProbe,
+        headlessSessionReviver: ClaudeAuthCoordinator.HeadlessSessionReviver? = nil,
         oauthCredentialsLoader: ClaudeAuthCoordinator.OAuthCredentialsLoader? = nil
     ) -> ClaudeAuthCoordinator {
         ClaudeAuthCoordinator(
             probe: probe,
+            headlessSessionReviver: headlessSessionReviver ?? { .notFound },
             oauthCredentialsLoader: oauthCredentialsLoader ?? { _ in throw ClaudeOAuthCredentialsError.notFound }
         )
     }
@@ -68,6 +70,123 @@ struct ClaudeAuthCoordinatorTests {
         await #expect(throws: NetworkError.self) {
             _ = try await sut.requestContext()
         }
+    }
+
+    @Test("post-bootstrap recovery restores Claude Code Keychain credentials")
+    func postBootstrapRecoveryRestoresKeychainCredentials() async throws {
+        let allowedKeychainValues = LockIsolated<[Bool]>([])
+        let sut = makeSUT(
+            probe: { .notFound },
+            oauthCredentialsLoader: { allowKeychain in
+                allowedKeychainValues.withLock { $0.append(allowKeychain) }
+                guard allowKeychain else { throw ClaudeOAuthCredentialsError.notFound }
+                return Self.oauthCredentials(accessToken: "keychain-token")
+            }
+        )
+
+        await sut.bootstrap()
+        #expect(await sut.state == .unauthenticated)
+
+        let restored = await sut.restoreWithoutPromptIfPossible()
+
+        #expect(restored)
+        #expect(await sut.state == .authenticated)
+        #expect(allowedKeychainValues.value == [false, false, false, true])
+        let credentials = try await sut.loadOAuthCredentials(allowKeychain: false)
+        #expect(credentials.accessToken == "keychain-token")
+    }
+
+    @Test("post-bootstrap recovery restores an existing WebKit session")
+    func postBootstrapRecoveryRestoresWebSession() async throws {
+        let probeResults = LockIsolated<[ClaudeProbeResult]>([
+            .notFound,
+            .found(orgId: "org-web", cookies: [])
+        ])
+        let sut = makeSUT(
+            probe: {
+                probeResults.withLock { results in
+                    results.isEmpty ? .notFound : results.removeFirst()
+                }
+            }
+        )
+
+        await sut.bootstrap()
+        #expect(await sut.state == .unauthenticated)
+
+        let restored = await sut.restoreWithoutPromptIfPossible()
+
+        #expect(restored)
+        #expect(await sut.state == .authenticated)
+        let context = try await sut.requestContext()
+        #expect(context.orgId == "org-web")
+    }
+
+    @Test("post-bootstrap recovery restores a headless WebKit session after passive probe misses")
+    func postBootstrapRecoveryRestoresHeadlessWebSession() async throws {
+        let sut = makeSUT(
+            probe: { .notFound },
+            headlessSessionReviver: { .found(orgId: "org-headless", cookies: []) }
+        )
+
+        await sut.bootstrap()
+        #expect(await sut.state == .unauthenticated)
+
+        let restored = await sut.restoreWithoutPromptIfPossible()
+
+        #expect(restored)
+        #expect(await sut.state == .authenticated)
+        let context = try await sut.requestContext()
+        #expect(context.orgId == "org-headless")
+    }
+
+    @Test("post-bootstrap recovery does not override explicit sign out")
+    func postBootstrapRecoverySkipsSignedOutByUser() async throws {
+        UserDefaults.standard.set(true, forKey: Self.signedOutKey)
+        defer { UserDefaults.standard.removeObject(forKey: Self.signedOutKey) }
+
+        let allowedKeychainValues = LockIsolated<[Bool]>([])
+        let sut = makeSUT(
+            probe: { .notFound },
+            oauthCredentialsLoader: { allowKeychain in
+                allowedKeychainValues.withLock { $0.append(allowKeychain) }
+                return Self.oauthCredentials(accessToken: "keychain-token")
+            }
+        )
+
+        await sut.bootstrap()
+        #expect(await sut.state == .signedOutByUser)
+
+        let restored = await sut.restoreWithoutPromptIfPossible()
+
+        #expect(!restored)
+        #expect(await sut.state == .signedOutByUser)
+        #expect(allowedKeychainValues.value.isEmpty)
+    }
+
+    @Test("enrolled post-bootstrap recovery clears stale signed out state")
+    func enrolledPostBootstrapRecoveryClearsStaleSignedOutByUser() async throws {
+        UserDefaults.standard.set(true, forKey: Self.signedOutKey)
+        defer { UserDefaults.standard.removeObject(forKey: Self.signedOutKey) }
+
+        let allowedKeychainValues = LockIsolated<[Bool]>([])
+        let sut = makeSUT(
+            probe: { .notFound },
+            oauthCredentialsLoader: { allowKeychain in
+                allowedKeychainValues.withLock { $0.append(allowKeychain) }
+                guard allowKeychain else { throw ClaudeOAuthCredentialsError.notFound }
+                return Self.oauthCredentials(accessToken: "keychain-token")
+            }
+        )
+
+        await sut.bootstrap()
+        #expect(await sut.state == .signedOutByUser)
+
+        let restored = await sut.restoreWithoutPromptIfPossible(allowSignedOutByUser: true)
+
+        #expect(restored)
+        #expect(await sut.state == .authenticated)
+        #expect(UserDefaults.standard.bool(forKey: Self.signedOutKey) == false)
+        #expect(allowedKeychainValues.value == [false, false, true])
     }
 
     @Test("bootstrap skipped when signedOutByUser persisted")

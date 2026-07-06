@@ -49,15 +49,19 @@ public actor ClaudeAuthCoordinator {
 
     /// Real probe reads WKWebsiteDataStore.default(). Tests inject a mock.
     public typealias SessionProbe = @Sendable () async -> ClaudeProbeResult
+    public typealias HeadlessSessionReviver = @Sendable () async -> ClaudeProbeResult?
     public typealias OAuthCredentialsLoader = @Sendable (_ allowKeychain: Bool) throws -> ClaudeOAuthCredentials
     private let probe: SessionProbe
+    private let headlessSessionReviver: HeadlessSessionReviver
     private let oauthCredentialsLoader: OAuthCredentialsLoader
 
     public init(
         probe: SessionProbe? = nil,
+        headlessSessionReviver: HeadlessSessionReviver? = nil,
         oauthCredentialsLoader: OAuthCredentialsLoader? = nil
     ) {
         self.probe = probe ?? ClaudeAuthCoordinator.wkProbe
+        self.headlessSessionReviver = headlessSessionReviver ?? ClaudeAuthCoordinator.headlessWebSessionReviver
         self.oauthCredentialsLoader = oauthCredentialsLoader ?? { allowKeychain in
             try ClaudeOAuthCredentialsStore.loadUsable(
                 keychainReader: allowKeychain ? .claudeCodeInteractive : nil
@@ -89,7 +93,7 @@ public actor ClaudeAuthCoordinator {
 
     private func transition(to newState: AuthState) {
         state = newState
-        logger.info("[ClaudeCoord] → \(String(describing: newState))")
+        logger.info("[ClaudeCoord] → \(String(describing: newState), privacy: .public)")
         for c in continuations.values { c.yield(newState) }
     }
 
@@ -183,6 +187,76 @@ public actor ClaudeAuthCoordinator {
             transition(to: .unauthenticated)
             throw error
         }
+    }
+
+    /// Best-effort recovery for already-enrolled installs that lose their app-side
+    /// Claude state after an app replacement. This mirrors the non-UI paths used by
+    /// Sign In, but never opens the login window.
+    @discardableResult
+    public func restoreWithoutPromptIfPossible(allowSignedOutByUser: Bool = false) async -> Bool {
+        logger.notice("[ClaudeRecovery] requested state=\(String(describing: self.state), privacy: .public) allowSignedOutByUser=\(allowSignedOutByUser)")
+        switch state {
+        case .unauthenticated:
+            break
+        case .signedOutByUser where allowSignedOutByUser:
+            break
+        default:
+            logger.notice("[ClaudeRecovery] skipped unsupported state=\(String(describing: self.state), privacy: .public)")
+            return false
+        }
+
+        if restoreFromOAuthCredentialsForRecovery() {
+            UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+            transition(to: .authenticated)
+            return true
+        }
+
+        logger.notice("[ClaudeRecovery] trying WebKit session probe")
+        let probeResult = await withProbeTimeout(probe)
+        if case .found(let orgId, let cookies) = probeResult {
+            logger.notice("[ClaudeRecovery] WebKit probe found orgId=\(orgId, privacy: .public) cookies=\(cookies.count)")
+            cachedOAuthCredentials = nil
+            capturedOrgId = orgId
+            capturedCookies = cookies
+            injectCookies(cookies)
+            persistSharedAuthContext()
+            UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+            transition(to: .authenticated)
+            return true
+        }
+
+        switch probeResult {
+        case .notFound:
+            logger.notice("[ClaudeRecovery] WebKit probe did not find a Claude session")
+        case .none:
+            logger.notice("[ClaudeRecovery] WebKit probe timed out")
+        case .found:
+            break
+        }
+
+        logger.notice("[ClaudeRecovery] trying headless WebKit session revival")
+        let headlessResult = await headlessSessionReviver()
+        if case .found(let orgId, let cookies) = headlessResult {
+            logger.notice("[ClaudeRecovery] headless WebKit revival found orgId=\(orgId, privacy: .public) cookies=\(cookies.count)")
+            cachedOAuthCredentials = nil
+            capturedOrgId = orgId
+            capturedCookies = cookies
+            injectCookies(cookies)
+            persistSharedAuthContext()
+            UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+            transition(to: .authenticated)
+            return true
+        }
+
+        switch headlessResult {
+        case .notFound:
+            logger.notice("[ClaudeRecovery] headless WebKit revival did not find a Claude session")
+        case .none:
+            logger.notice("[ClaudeRecovery] headless WebKit revival timed out")
+        case .found:
+            break
+        }
+        return false
     }
 
     // MARK: - signOut()
@@ -347,6 +421,47 @@ public actor ClaudeAuthCoordinator {
         return true
     }
 
+    private func restoreFromOAuthCredentialsForRecovery() -> Bool {
+        logger.notice("[ClaudeRecovery] trying Claude Code OAuth file")
+        do {
+            _ = try loadOAuthCredentials(allowKeychain: false)
+            logger.notice("[ClaudeRecovery] Claude Code OAuth file usable")
+            capturedOrgId = nil
+            capturedCookies = []
+            SharedAuthContextStore.clearClaude()
+            return true
+        } catch {
+            logger.notice("[ClaudeRecovery] Claude Code OAuth file failed reason=\(Self.recoveryErrorDescription(error), privacy: .public)")
+        }
+
+        logger.notice("[ClaudeRecovery] trying Claude Code Keychain fallback")
+        do {
+            _ = try loadOAuthCredentials(allowKeychain: true)
+            logger.notice("[ClaudeRecovery] Claude Code Keychain fallback usable")
+            capturedOrgId = nil
+            capturedCookies = []
+            SharedAuthContextStore.clearClaude()
+            return true
+        } catch {
+            logger.notice("[ClaudeRecovery] Claude Code Keychain fallback failed reason=\(Self.recoveryErrorDescription(error), privacy: .public)")
+            return false
+        }
+    }
+
+    private static func recoveryErrorDescription(_ error: Error) -> String {
+        if let credentialsError = error as? ClaudeOAuthCredentialsError {
+            switch credentialsError {
+            case .notFound: return "notFound"
+            case .decodeFailed: return "decodeFailed"
+            case .missingOAuth: return "missingOAuth"
+            case .missingAccessToken: return "missingAccessToken"
+            case .expired: return "expired"
+            case .missingScope: return "missingScope"
+            }
+        }
+        return String(describing: error)
+    }
+
     private func injectCookies(_ cookies: [HTTPCookie]) {
         for cookie in cookies { HTTPCookieStorage.shared.setCookie(cookie) }
     }
@@ -442,6 +557,23 @@ public actor ClaudeAuthCoordinator {
         }
     }
 
+    private static var headlessWebSessionReviver: HeadlessSessionReviver {
+        {
+            await withCheckedContinuation { continuation in
+                Task { @MainActor in
+                    let reviver = ClaudeHeadlessSessionReviver { result in
+                        if let result {
+                            continuation.resume(returning: .found(orgId: result.orgId, cookies: result.cookies))
+                        } else {
+                            continuation.resume(returning: .notFound)
+                        }
+                    }
+                    reviver.start()
+                }
+            }
+        }
+    }
+
     fileprivate static func resolveOrgId(from cookies: [HTTPCookie]) async -> String? {
         if let orgId = cookies.first(where: { $0.name == "lastActiveOrg" })?.value,
            !orgId.isEmpty {
@@ -472,6 +604,39 @@ public actor ClaudeAuthCoordinator {
             return nil
         }
     }
+
+    @MainActor
+    fileprivate static func detectOrgIdInPage(
+        webView: WKWebView,
+        completion: @escaping @MainActor (String?) -> Void
+    ) {
+        webView.callAsyncJavaScript("""
+            const r = await fetch('/api/organizations', {credentials: 'include'});
+            if (!r.ok) return null;
+            const orgs = await r.json();
+            if (!Array.isArray(orgs) || orgs.length === 0) return null;
+            const chatOrg = orgs.find((org) =>
+                Array.isArray(org.capabilities) &&
+                org.capabilities.map((cap) => String(cap).toLowerCase()).includes('chat')
+            );
+            const nonApiOrg = orgs.find((org) => {
+                if (!Array.isArray(org.capabilities) || org.capabilities.length === 0) return true;
+                const caps = org.capabilities.map((cap) => String(cap).toLowerCase());
+                return !(caps.length === 1 && caps[0] === 'api');
+            });
+            const org = chatOrg || nonApiOrg || orgs[0];
+            return org.uuid || org.id || null;
+        """, arguments: [:], in: nil, in: .page) { result in
+            guard case .success(let value) = result,
+                  let orgId = value as? String,
+                  !orgId.isEmpty
+            else {
+                completion(nil)
+                return
+            }
+            completion(orgId)
+        }
+    }
 }
 
 private struct ClaudeWebOrganization: Decodable {
@@ -488,6 +653,109 @@ private struct ClaudeWebOrganization: Decodable {
 
     var isAPIOnly: Bool {
         !normalizedCapabilities.isEmpty && normalizedCapabilities == ["api"]
+    }
+}
+
+// MARK: - ClaudeHeadlessSessionReviver
+
+@MainActor
+private final class ClaudeHeadlessSessionReviver: NSObject {
+    private var webView: WKWebView?
+    private var timeoutTask: Task<Void, Never>?
+    private var detectionRetryTask: Task<Void, Never>?
+    private var selfRetain: ClaudeHeadlessSessionReviver?
+    private var hasCompleted = false
+    private let onComplete: (@MainActor ((orgId: String, cookies: [HTTPCookie])?) -> Void)
+    private let logger = Logger(subsystem: "ai.quota", category: "claude-coord")
+
+    init(onComplete: @escaping (@MainActor ((orgId: String, cookies: [HTTPCookie])?) -> Void)) {
+        self.onComplete = onComplete
+    }
+
+    func start() {
+        selfRetain = self
+        let config = WKWebViewConfiguration()
+        config.websiteDataStore = .default()
+        let webView = WKWebView(frame: .init(x: 0, y: 0, width: 1, height: 1), configuration: config)
+        webView.navigationDelegate = self
+        self.webView = webView
+        timeoutTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(10))
+            await MainActor.run { [weak self] in
+                self?.complete(nil, reason: "timeout")
+            }
+        }
+        webView.load(URLRequest(url: URL(string: "https://claude.ai/")!))
+    }
+
+    private func tryDetectSession() {
+        guard !hasCompleted, let webView else { return }
+        guard let url = webView.url,
+              url.host?.contains("claude.ai") == true
+        else { return }
+        guard !url.path.hasPrefix("/login"),
+              !url.path.hasPrefix("/magic-link"),
+              !url.path.hasPrefix("/auth")
+        else {
+            logger.notice("[ClaudeRecovery] headless WebKit landed on auth path=\(url.path, privacy: .public)")
+            return
+        }
+
+        ClaudeAuthCoordinator.detectOrgIdInPage(webView: webView) { [weak self, weak webView] orgId in
+            Task { @MainActor [weak self, weak webView] in
+                guard let self, !self.hasCompleted else { return }
+                guard let orgId, let webView else {
+                    self.scheduleDetectionRetry()
+                    return
+                }
+                let cookies = await webView.configuration.websiteDataStore.httpCookieStore.allCookies()
+                let claudeCookies = cookies.filter { $0.domain.contains("claude.ai") }
+                self.complete((orgId: orgId, cookies: claudeCookies), reason: "found")
+            }
+        }
+    }
+
+    private func scheduleDetectionRetry() {
+        guard detectionRetryTask == nil, !hasCompleted else { return }
+        detectionRetryTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1))
+            await MainActor.run { [weak self] in
+                guard let self, !self.hasCompleted else { return }
+                self.detectionRetryTask = nil
+                self.tryDetectSession()
+            }
+        }
+    }
+
+    private func complete(_ result: (orgId: String, cookies: [HTTPCookie])?, reason: String) {
+        guard !hasCompleted else { return }
+        hasCompleted = true
+        logger.notice("[ClaudeRecovery] headless WebKit completed reason=\(reason, privacy: .public)")
+        timeoutTask?.cancel()
+        timeoutTask = nil
+        detectionRetryTask?.cancel()
+        detectionRetryTask = nil
+        webView?.stopLoading()
+        webView?.navigationDelegate = nil
+        webView = nil
+        let callback = onComplete
+        selfRetain = nil
+        callback(result)
+    }
+}
+
+@MainActor
+extension ClaudeHeadlessSessionReviver: WKNavigationDelegate {
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        tryDetectSession()
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        logger.notice("[ClaudeRecovery] headless WebKit navigation failed error=\(String(describing: error), privacy: .public)")
+    }
+
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        logger.notice("[ClaudeRecovery] headless WebKit provisional navigation failed error=\(String(describing: error), privacy: .public)")
     }
 }
 
@@ -636,18 +904,9 @@ extension CoordLoginWindowController: WKNavigationDelegate {
               !hasCompleted
         else { return }
 
-        webView.callAsyncJavaScript("""
-            const r = await fetch('/api/organizations', {credentials: 'include'});
-            if (!r.ok) return null;
-            const orgs = await r.json();
-            if (!Array.isArray(orgs) || orgs.length === 0) return null;
-            const org = orgs[0];
-            return org.uuid || org.id || null;
-        """, arguments: [:], in: nil, in: .page) { [weak self] result in
+        ClaudeAuthCoordinator.detectOrgIdInPage(webView: webView) { [weak self, weak webView] orgId in
             guard let self, !self.hasCompleted else { return }
-            guard case .success(let value) = result,
-                  let orgId = value as? String, !orgId.isEmpty
-            else { return }
+            guard let orgId, let webView else { return }
             webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { [weak self] cookies in
                 let claudeCookies = cookies.filter { $0.domain.contains("claude.ai") }
                 Task { @MainActor [weak self] in
