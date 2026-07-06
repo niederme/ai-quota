@@ -59,7 +59,11 @@ struct AnalyticsConsentSettingsTests {
             contentsOf: repoRoot.appending(path: "AIQuota/Views/Onboarding/OnboardingView.swift"),
             encoding: .utf8
         )
-        let analyticsStepSource = try String(
+        let doneSource = try String(
+            contentsOf: repoRoot.appending(path: "AIQuota/Views/Onboarding/Steps/DoneStepView.swift"),
+            encoding: .utf8
+        )
+        let analyticsCardSource = try String(
             contentsOf: repoRoot.appending(path: "AIQuota/Views/Onboarding/Steps/AnalyticsConsentStepView.swift"),
             encoding: .utf8
         )
@@ -68,15 +72,16 @@ struct AnalyticsConsentSettingsTests {
             encoding: .utf8
         )
 
-        #expect(onboardingSource.contains("case analytics"))
-        #expect(onboardingSource.contains("AnalyticsConsentStepView()"))
-        #expect(analyticsStepSource.contains("Text(\"Optional\")"))
-        #expect(analyticsStepSource.contains("Text(\"Help John improve AIQuota\")"))
-        #expect(analyticsStepSource.contains("AnalyticsTrustIllustration()"))
-        #expect(analyticsStepSource.contains("Anonymous only"))
-        #expect(analyticsStepSource.contains("Off by default"))
-        #expect(analyticsStepSource.contains("Change anytime in Settings"))
-        #expect(settingsSource.contains("Help John improve AIQuota with anonymous usage analytics"))
+        #expect(!onboardingSource.contains("case analytics"))
+        #expect(!onboardingSource.contains("AnalyticsConsentStepView()"))
+        #expect(doneSource.contains("Text(\"You’re all set!\")"))
+        #expect(doneSource.contains("AnalyticsConsentCard(isEnabled: $vm.settings.analyticsEnabled)"))
+        #expect(analyticsCardSource.contains("Text(\"Share anonymous usage data\")"))
+        #expect(analyticsCardSource.contains("Off by default"))
+        #expect(analyticsCardSource.contains("Change anytime in Settings"))
+        #expect(!analyticsCardSource.contains("LaunchAtLoginToggle()"))
+        #expect(!analyticsCardSource.contains("Help John improve AIQuota"))
+        #expect(settingsSource.contains("Share anonymous usage data"))
         #expect(settingsSource.contains("menubar_display_changed"))
     }
 }

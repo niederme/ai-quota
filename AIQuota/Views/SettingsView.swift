@@ -133,9 +133,9 @@ struct SettingsView: View {
 
             // MARK: Privacy
             Section("Privacy") {
-                Toggle("Help John improve AIQuota with anonymous usage analytics",
+                Toggle("Share anonymous usage data",
                        isOn: $vm.settings.analyticsEnabled)
-                Text("Share simple anonymous metrics with John, like installs, active use, app version, and setup completion. No prompts, tokens, or personal info.")
+                Text("Share app launches, active use, setup completion, and app version. No prompts, tokens, cookies, or personal info.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -172,9 +172,9 @@ struct SettingsView: View {
                 VStack(spacing: 3) {
                     Text("AIQuota \(version) (\(build))")
                         .fontWeight(.medium)
-                    Text("Made by John Niedermeyer, with a little help from\nClaude, Codex and friends.")
+                    Text("Made by John Niedermeyer, with a little help from\nClaude, Codex, and friends.")
                         .multilineTextAlignment(.center)
-                    Text("Need Help?")
+                    Text("Need help?")
                         .padding(.top, 4)
                     HStack(spacing: 12) {
                         Link("GitHub Issues", destination: URL(string: "https://github.com/niederme/ai-quota/issues")!)
@@ -197,7 +197,7 @@ struct SettingsView: View {
         .navigationTitle("Settings")
         .task { await checkNotifPermission() }
         // macOS keeps the Settings window alive between opens (just hides it),
-        // so onAppear doesn't re-fire. Observing didBecomeKey resets the Form's
+        // so onAppear doesn’t re-fire. Observing didBecomeKey resets the Form’s
         // identity each time the window is brought to front, scrolling back to top.
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
             formID = UUID()
@@ -657,7 +657,7 @@ private struct FloatingWindowElevator: NSViewRepresentable {
         guard let window else { return }
         window.level = .floating
         // Override any macOS-restored frame — saved sizes from older builds
-        // would otherwise produce a window that's too small to scroll into.
+        // would otherwise produce a window that’s too small to scroll into.
         let size = NSSize(width: 500, height: 700)
         window.minSize = size
         window.maxSize = size

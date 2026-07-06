@@ -9,8 +9,7 @@ enum OnboardingStep: Int, CaseIterable, Hashable {
     case services      = 1
     case notifications = 2
     case widgets       = 3
-    case analytics     = 4
-    case done          = 5
+    case done          = 4
 }
 
 // MARK: - OnboardingView
@@ -78,7 +77,6 @@ struct OnboardingView: View {
         case .services:      ServicesStepView()
         case .notifications: NotificationsStepView()
         case .widgets:       WidgetsStepView()
-        case .analytics:     AnalyticsConsentStepView()
         case .done:          DoneStepView()
         }
     }

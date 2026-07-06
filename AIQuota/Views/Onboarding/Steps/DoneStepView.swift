@@ -8,8 +8,10 @@ struct DoneStepView: View {
     @State private var appeared = false
 
     var body: some View {
+        @Bindable var vm = viewModel
+
         VStack(spacing: 0) {
-            Spacer()
+            Spacer(minLength: 28)
 
             // Animated checkmark
             ZStack {
@@ -26,12 +28,15 @@ struct DoneStepView: View {
 
             Spacer().frame(height: 24)
 
-            Text("You're all set!")
+            Text("You’re all set!")
                 .font(.title).fontWeight(.bold)
-                .opacity(appeared ? 1 : 0)
-                .offset(y: appeared ? 0 : 8)
 
-            Spacer().frame(height: 32)
+            Spacer().frame(height: 22)
+
+            AnalyticsConsentCard(isEnabled: $vm.settings.analyticsEnabled)
+                .padding(.horizontal, 52)
+
+            Spacer().frame(height: 24)
 
             // CTA button
             Button(action: finish) {
@@ -44,9 +49,8 @@ struct DoneStepView: View {
                     .clipShape(Capsule())
             }
             .buttonStyle(.plain)
-            .opacity(appeared ? 1 : 0)
 
-            Spacer()
+            Spacer(minLength: 20)
 
             // Footer — identical to Settings about block
             VStack(spacing: 3) {
@@ -54,9 +58,9 @@ struct DoneStepView: View {
                 let build   = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
                 Text("AIQuota \(version) (\(build))")
                     .fontWeight(.medium)
-                Text("Made by John Niedermeyer, with a little help from\nClaude, Codex and friends.")
+                Text("Made by John Niedermeyer, with a little help from\nClaude, Codex, and friends.")
                     .multilineTextAlignment(.center)
-                Text("Need Help?")
+                Text("Need help?")
                     .padding(.top, 4)
                 HStack(spacing: 12) {
                     Link("GitHub Issues", destination: URL(string: "https://github.com/niederme/ai-quota/issues")!)
@@ -70,13 +74,13 @@ struct DoneStepView: View {
             .foregroundStyle(.tertiary)
             .multilineTextAlignment(.center)
             .padding(.bottom, 24)
-            .opacity(appeared ? 1 : 0)
         }
         .onAppear {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.1)) {
                 appeared = true
             }
         }
+        .onChange(of: viewModel.settings) { viewModel.saveSettings() }
     }
 
     private func finish() {

@@ -19,7 +19,7 @@ struct NotificationsStepView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Notifications")
                     .font(.title2).fontWeight(.bold)
-                Text("Choose which alerts you'd like to receive.")
+                Text("Choose which alerts you’d like to receive.")
                     .font(.body)
                     .foregroundStyle(.secondary)
             }
