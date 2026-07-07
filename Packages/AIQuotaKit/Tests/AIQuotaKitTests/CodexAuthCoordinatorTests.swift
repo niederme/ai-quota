@@ -15,11 +15,13 @@ struct CodexAuthCoordinatorTests {
 
     private func makeSUT(
         probe: @escaping CodexAuthCoordinator.SessionProbe,
+        headlessSessionReviver: CodexAuthCoordinator.HeadlessSessionReviver? = nil,
         tokenRefresher: CodexAuthCoordinator.AccessTokenRefresher? = nil,
         oauthCredentialsLoader: CodexAuthCoordinator.OAuthCredentialsLoader? = nil
     ) -> CodexAuthCoordinator {
         CodexAuthCoordinator(
             probe: probe,
+            headlessSessionReviver: headlessSessionReviver ?? { nil },
             tokenRefresher: tokenRefresher,
             oauthCredentialsLoader: oauthCredentialsLoader ?? { throw CodexOAuthCredentialsError.notFound }
         )
@@ -210,6 +212,133 @@ struct CodexAuthCoordinatorTests {
         let context = try await sut.accessContext()
         #expect(context.source == .webSession)
         #expect(context.accountID == "team-account-123")
+    }
+
+    @Test("post-bootstrap recovery restores Codex OAuth credentials")
+    func postBootstrapRecoveryRestoresOAuth() async throws {
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
+        let sut = makeSUT(
+            probe: { .notFound },
+            oauthCredentialsLoader: {
+                Self.oauthCredentials(accessToken: "oauth-token", accountID: "account-123")
+            }
+        )
+
+        await sut.bootstrap()
+        #expect(await sut.state == .authenticated)
+        let context = try await sut.accessContext()
+        #expect(context.source == .codexOAuth)
+    }
+
+    @Test("post-bootstrap recovery restores a WebKit session token")
+    func postBootstrapRecoveryRestoresWebSessionToken() async throws {
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
+        let accessToken = Self.jwt(payload: [
+            "exp": Int(Date.now.addingTimeInterval(3_600).timeIntervalSince1970),
+            "https://api.openai.com/auth": [
+                "chatgpt_account_id": "web-account-123",
+            ],
+        ])
+        let probeResults = LockIsolated<[CodexProbeResult]>([
+            .notFound,
+            .found(sessionToken: "web-session")
+        ])
+        let sut = makeSUT(
+            probe: {
+                probeResults.withLock { results in
+                    results.isEmpty ? .notFound : results.removeFirst()
+                }
+            },
+            tokenRefresher: { _ in (accessToken, Date.now.addingTimeInterval(900)) }
+        )
+
+        await sut.bootstrap()
+        #expect(await sut.state == .unauthenticated)
+
+        let restored = await sut.restoreWithoutPromptIfPossible()
+
+        #expect(restored)
+        #expect(await sut.state == .authenticated)
+        let context = try await sut.accessContext()
+        #expect(context.source == .webSession)
+        #expect(context.accountID == "web-account-123")
+    }
+
+    @Test("post-bootstrap recovery restores a headless WebKit session")
+    func postBootstrapRecoveryRestoresHeadlessWebSession() async throws {
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
+        let accessToken = Self.jwt(payload: [
+            "exp": Int(Date.now.addingTimeInterval(3_600).timeIntervalSince1970),
+            "https://api.openai.com/auth": [
+                "chatgpt_account_id": "headless-account-123",
+            ],
+        ])
+        let sut = makeSUT(
+            probe: { .notFound },
+            headlessSessionReviver: {
+                CodexWebSessionResult(
+                    sessionToken: "headless-session",
+                    accessToken: accessToken,
+                    expiresAt: Date.now.addingTimeInterval(900)
+                )
+            }
+        )
+
+        await sut.bootstrap()
+        #expect(await sut.state == .unauthenticated)
+
+        let restored = await sut.restoreWithoutPromptIfPossible()
+
+        #expect(restored)
+        #expect(await sut.state == .authenticated)
+        let context = try await sut.accessContext()
+        #expect(context.source == .webSession)
+        #expect(context.accountID == "headless-account-123")
+    }
+
+    @Test("post-bootstrap recovery returns false when no source is usable")
+    func postBootstrapRecoveryReturnsFalseWhenUnavailable() async throws {
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
+        let sut = makeSUT(probe: { .notFound })
+
+        await sut.bootstrap()
+
+        let restored = await sut.restoreWithoutPromptIfPossible()
+
+        #expect(!restored)
+        #expect(await sut.state == .unauthenticated)
+    }
+
+    @Test("post-bootstrap recovery does not override explicit sign out")
+    func postBootstrapRecoverySkipsSignedOutByUser() async throws {
+        UserDefaults.standard.set(true, forKey: "codex.signedOutByUser")
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        defer {
+            UserDefaults.standard.removeObject(forKey: "codex.signedOutByUser")
+            UserDefaults.standard.removeObject(forKey: "app.installedAt.v2")
+        }
+        let sut = makeSUT(
+            probe: { .notFound },
+            headlessSessionReviver: {
+                CodexWebSessionResult(
+                    sessionToken: "headless-session",
+                    accessToken: Self.jwt(payload: ["exp": Int(Date.now.addingTimeInterval(3_600).timeIntervalSince1970)]),
+                    expiresAt: Date.now.addingTimeInterval(900)
+                )
+            }
+        )
+
+        await sut.bootstrap()
+        #expect(await sut.state == .signedOutByUser)
+
+        let restored = await sut.restoreWithoutPromptIfPossible()
+
+        #expect(!restored)
+        #expect(await sut.state == .signedOutByUser)
     }
 
     private static func jwt(payload: [String: Any]) -> String {

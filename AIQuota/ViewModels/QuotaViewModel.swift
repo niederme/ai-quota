@@ -39,6 +39,7 @@ final class QuotaViewModel {
     var isClaudeAuthenticated: Bool { claudeState == .authenticated }
     var isCodexAuthenticated:  Bool { codexState  == .authenticated }
     var isRestoringSession: Bool {
+        isCodexRecoveryPending ||
         isClaudeRecoveryPending ||
         claudeState == .unknown || claudeState == .restoringSession ||
         codexState  == .unknown || codexState  == .restoringSession
@@ -61,6 +62,7 @@ final class QuotaViewModel {
 
     var isCodexEnrolled: Bool { enrolledServices.contains(.codex) }
     var isClaudeEnrolled: Bool { enrolledServices.contains(.claude) }
+    private var isCodexRecoveryPending = false
     private var isClaudeRecoveryPending = false
 
     // MARK: - Onboarding
@@ -212,6 +214,7 @@ final class QuotaViewModel {
         self.claudeClient      = ClaudeClient(coordinator: claude)
         self.codexClient       = OpenAIClient(coordinator: codex)
         self.resetCoordinator  = AppResetCoordinator(claude: claude, codex: codex)
+        self.isCodexRecoveryPending = enrolledServices.contains(.codex)
         self.isClaudeRecoveryPending = enrolledServices.contains(.claude)
 
         // Load cached data immediately
@@ -262,7 +265,8 @@ final class QuotaViewModel {
                     if state == .authenticated && self.refreshTask == nil {
                         self.startAutoRefresh()
                     }
-                    if state == .unauthenticated || state == .signedOutByUser {
+                    if state == .signedOutByUser ||
+                        (state == .unauthenticated && !self.isCodexRecoveryPending) {
                         self.codexUsage      = nil
                         self.codexAutoReload = nil
                         SharedDefaults.clearUsage()
@@ -288,8 +292,34 @@ final class QuotaViewModel {
                 group.addTask { await self.claudeCoordinator.bootstrap() }
                 group.addTask { await self.codexCoordinator.bootstrap() }
             }
-            await self.restoreEnrolledClaudeIfNeeded()
+            await withTaskGroup(of: Void.self) { group in
+                group.addTask { await self.restoreEnrolledCodexIfNeeded() }
+                group.addTask { await self.restoreEnrolledClaudeIfNeeded() }
+            }
         }
+    }
+
+    private func restoreEnrolledCodexIfNeeded() async {
+        logger.notice("[CodexRecovery] viewModel start enrolled=\(self.isCodexEnrolled) state=\(String(describing: self.codexState), privacy: .public)")
+        defer {
+            isCodexRecoveryPending = false
+            logger.notice("[CodexRecovery] viewModel finished pending=false state=\(String(describing: self.codexState), privacy: .public)")
+        }
+        guard isCodexEnrolled else {
+            logger.notice("[CodexRecovery] viewModel skipped not enrolled")
+            return
+        }
+        guard await codexCoordinator.restoreWithoutPromptIfPossible(allowSignedOutByUser: true) else {
+            logger.notice("[CodexRecovery] viewModel restore failed")
+            clearCodexUsageSnapshot()
+            return
+        }
+
+        logger.notice("[CodexRecovery] viewModel restore succeeded")
+        codexState = .authenticated
+        codexError = nil
+        await refreshCodex()
+        if refreshTask == nil { startAutoRefresh() }
     }
 
     private func restoreEnrolledClaudeIfNeeded() async {
@@ -304,6 +334,7 @@ final class QuotaViewModel {
         }
         guard await claudeCoordinator.restoreWithoutPromptIfPossible(allowSignedOutByUser: true) else {
             logger.notice("[ClaudeRecovery] viewModel restore failed")
+            clearClaudeUsageSnapshot()
             return
         }
 
@@ -312,6 +343,19 @@ final class QuotaViewModel {
         claudeError = nil
         await refreshClaude()
         if refreshTask == nil { startAutoRefresh() }
+    }
+
+    private func clearCodexUsageSnapshot() {
+        codexUsage = nil
+        codexAutoReload = nil
+        SharedDefaults.clearUsage()
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    private func clearClaudeUsageSnapshot() {
+        claudeUsage = nil
+        SharedDefaults.clearClaudeUsage()
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     // MARK: - Network path monitor
@@ -728,6 +772,12 @@ final class QuotaViewModel {
     /// Refresh on menu bar popover open when the cached data is missing or stale,
     /// but avoid refetching on rapid open/close cycles.
     func refreshOnPopoverOpenIfNeeded() {
+        if isCodexEnrolled && !isCodexAuthenticated && !isCodexRecoveryPending {
+            logger.notice("[CodexRecovery] popover retry scheduled state=\(String(describing: self.codexState), privacy: .public)")
+            isCodexRecoveryPending = true
+            Task { await restoreEnrolledCodexIfNeeded() }
+        }
+
         if isClaudeEnrolled && !isClaudeAuthenticated && !isClaudeRecoveryPending {
             logger.notice("[ClaudeRecovery] popover retry scheduled state=\(String(describing: self.claudeState), privacy: .public)")
             isClaudeRecoveryPending = true

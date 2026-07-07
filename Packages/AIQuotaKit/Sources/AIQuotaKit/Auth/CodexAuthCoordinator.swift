@@ -16,6 +16,18 @@ public enum CodexAuthSource: String, Codable, Sendable, Equatable {
     case unknown
 }
 
+public struct CodexWebSessionResult: Sendable, Equatable {
+    public let sessionToken: String
+    public let accessToken: String
+    public let expiresAt: Date?
+
+    public init(sessionToken: String, accessToken: String, expiresAt: Date?) {
+        self.sessionToken = sessionToken
+        self.accessToken = accessToken
+        self.expiresAt = expiresAt
+    }
+}
+
 public struct CodexAccessContext: Sendable, Equatable {
     public let accessToken: String
     public let accountID: String?
@@ -50,18 +62,22 @@ public actor CodexAuthCoordinator {
     private let logger = Logger(subsystem: "ai.quota", category: "codex-coord")
 
     public typealias SessionProbe = @Sendable () async -> CodexProbeResult
+    public typealias HeadlessSessionReviver = @Sendable () async -> CodexWebSessionResult?
     public typealias AccessTokenRefresher = @Sendable (_ sessionToken: String) async throws -> (token: String, expiresAt: Date?)
     public typealias OAuthCredentialsLoader = @Sendable () throws -> CodexOAuthCredentials
     private let probe: SessionProbe
+    private let headlessSessionReviver: HeadlessSessionReviver
     private let tokenRefresher: AccessTokenRefresher
     private let oauthCredentialsLoader: OAuthCredentialsLoader
 
     public init(
         probe: SessionProbe? = nil,
+        headlessSessionReviver: HeadlessSessionReviver? = nil,
         tokenRefresher: AccessTokenRefresher? = nil,
         oauthCredentialsLoader: OAuthCredentialsLoader? = nil
     ) {
         self.probe = probe ?? CodexAuthCoordinator.wkProbe
+        self.headlessSessionReviver = headlessSessionReviver ?? CodexAuthCoordinator.headlessWebSessionReviver
         self.tokenRefresher = tokenRefresher ?? CodexAuthCoordinator.defaultTokenRefresher
         self.oauthCredentialsLoader = oauthCredentialsLoader ?? {
             try CodexOAuthCredentialsStore.loadUsable()
@@ -87,7 +103,7 @@ public actor CodexAuthCoordinator {
 
     private func transition(to newState: AuthState) {
         state = newState
-        logger.info("[CodexCoord] → \(String(describing: newState))")
+        logger.info("[CodexCoord] → \(String(describing: newState), privacy: .public)")
         for c in continuations.values { c.yield(newState) }
     }
 
@@ -157,6 +173,63 @@ public actor CodexAuthCoordinator {
             transition(to: .unauthenticated)
             throw error
         }
+    }
+
+    /// Best-effort recovery for already-enrolled installs that lose app-side
+    /// Codex state after an app replacement. This mirrors the non-UI sign-in
+    /// sources, including a headless WebKit page-context session fetch.
+    @discardableResult
+    public func restoreWithoutPromptIfPossible(allowSignedOutByUser: Bool = false) async -> Bool {
+        logger.notice("[CodexRecovery] requested state=\(String(describing: self.state), privacy: .public) allowSignedOutByUser=\(allowSignedOutByUser)")
+        switch state {
+        case .unauthenticated:
+            break
+        case .signedOutByUser where allowSignedOutByUser:
+            break
+        default:
+            logger.notice("[CodexRecovery] skipped unsupported state=\(String(describing: self.state), privacy: .public)")
+            return false
+        }
+
+        logger.notice("[CodexRecovery] trying Codex OAuth file")
+        if restoreFromOAuthCredentialsForRecovery() {
+            UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+            transition(to: .authenticated)
+            return true
+        }
+
+        logger.notice("[CodexRecovery] trying WebKit session probe")
+        let probeResult = await withProbeTimeout(probe)
+        if case .found(let token) = probeResult {
+            if await restoreFromSessionToken(token) {
+                logger.notice("[CodexRecovery] WebKit probe restored session")
+                UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+                transition(to: .authenticated)
+                return true
+            }
+            logger.notice("[CodexRecovery] WebKit probe token refresh failed")
+        }
+
+        switch probeResult {
+        case .notFound:
+            logger.notice("[CodexRecovery] WebKit probe did not find a Codex session")
+        case .none:
+            logger.notice("[CodexRecovery] WebKit probe timed out")
+        case .found:
+            break
+        }
+
+        logger.notice("[CodexRecovery] trying headless WebKit session revival")
+        if let headlessResult = await headlessSessionReviver() {
+            logger.notice("[CodexRecovery] headless WebKit revival found sessionToken=\(!headlessResult.sessionToken.isEmpty, privacy: .public)")
+            restoreFromWebSession(headlessResult)
+            UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+            transition(to: .authenticated)
+            return true
+        }
+
+        logger.notice("[CodexRecovery] headless WebKit revival did not find a Codex session")
+        return false
     }
 
     // MARK: - signOut()
@@ -294,6 +367,43 @@ public actor CodexAuthCoordinator {
         return true
     }
 
+    private func restoreFromOAuthCredentialsForRecovery() -> Bool {
+        guard !oauthDisabledForSession else {
+            logger.notice("[CodexRecovery] Codex OAuth file failed reason=disabledForSession")
+            return false
+        }
+        do {
+            let credentials = try oauthCredentialsLoader()
+            cachedAccessToken = credentials.accessToken
+            tokenExpiresAt = credentials.expiresAt ?? Date.now.addingTimeInterval(3600)
+            accountID = credentials.accountID
+            authSource = .codexOAuth
+            persistSharedAuthContext(sessionToken: "")
+            logger.notice("[CodexRecovery] Codex OAuth file usable")
+            return true
+        } catch {
+            logger.notice("[CodexRecovery] Codex OAuth file failed reason=\(Self.recoveryErrorDescription(error), privacy: .public)")
+            return false
+        }
+    }
+
+    private static func recoveryErrorDescription(_ error: Error) -> String {
+        switch error {
+        case CodexOAuthCredentialsError.notFound:
+            return "notFound"
+        case CodexOAuthCredentialsError.decodeFailed:
+            return "decodeFailed"
+        case CodexOAuthCredentialsError.missingTokens:
+            return "missingTokens"
+        case CodexOAuthCredentialsError.missingAccessToken:
+            return "missingAccessToken"
+        case CodexOAuthCredentialsError.expired:
+            return "expired"
+        default:
+            return String(describing: error)
+        }
+    }
+
     private func restoreFromSessionToken(_ sessionToken: String) async -> Bool {
         guard !sessionToken.isEmpty else { return false }
 
@@ -310,6 +420,17 @@ public actor CodexAuthCoordinator {
             clearTokenCache()
             return false
         }
+    }
+
+    private func restoreFromWebSession(_ result: CodexWebSessionResult) {
+        if !result.sessionToken.isEmpty {
+            KeychainStore.save(result.sessionToken, forKey: "sessionToken")
+        }
+        cachedAccessToken = result.accessToken
+        tokenExpiresAt = result.expiresAt ?? Date.now.addingTimeInterval(86400)
+        accountID = CodexOAuthCredentialsStore.jwtAccountID(result.accessToken)
+        authSource = .webSession
+        persistSharedAuthContext(sessionToken: result.sessionToken)
     }
 
     private func persistSharedAuthContext(sessionToken: String? = nil) {
@@ -491,6 +612,61 @@ public actor CodexAuthCoordinator {
             }
         }
     }
+
+    private static var headlessWebSessionReviver: HeadlessSessionReviver {
+        {
+            await withCheckedContinuation { continuation in
+                Task { @MainActor in
+                    let reviver = CodexHeadlessSessionReviver { result in
+                        continuation.resume(returning: result)
+                    }
+                    reviver.start()
+                }
+            }
+        }
+    }
+
+    @MainActor
+    fileprivate static func fetchSessionInPage(
+        webView: WKWebView,
+        completion: @escaping @MainActor (CodexWebSessionResult?) -> Void
+    ) {
+        webView.callAsyncJavaScript("""
+            try {
+                const r = await fetch('/api/auth/session', {
+                    credentials: 'include',
+                    headers: { 'Accept': 'application/json' }
+                });
+                if (!r.ok) return null;
+                return await r.json();
+            } catch(e) { return null; }
+        """, arguments: [:], in: nil, in: .page) { result in
+            Task { @MainActor in
+                guard case .success(let value) = result,
+                      let dict = value as? [String: Any],
+                      let accessToken = dict["accessToken"] as? String,
+                      !accessToken.isEmpty
+                else {
+                    completion(nil)
+                    return
+                }
+
+                let cookies = await webView.configuration.websiteDataStore.httpCookieStore.allCookies()
+                for cookie in cookies where cookie.domain.contains("chatgpt.com") || cookie.domain.contains("openai.com") {
+                    HTTPCookieStorage.shared.setCookie(cookie)
+                }
+                let sessionToken = cookies.first {
+                    $0.name == "__Secure-next-auth.session-token" && $0.domain.contains("chatgpt.com")
+                }?.value ?? ""
+
+                completion(CodexWebSessionResult(
+                    sessionToken: sessionToken,
+                    accessToken: accessToken,
+                    expiresAt: parseExpiryValue(dict["expires"] as? String)
+                ))
+            }
+        }
+    }
 }
 
 // MARK: - CodexLoginResult
@@ -501,6 +677,115 @@ struct CodexLoginResult {
     let sessionToken: String   // may be empty if the cookie wasn't found in WK store
     let accessToken: String    // JWT from /api/auth/session body
     let expiresAt: Date?
+
+    init(sessionToken: String, accessToken: String, expiresAt: Date?) {
+        self.sessionToken = sessionToken
+        self.accessToken = accessToken
+        self.expiresAt = expiresAt
+    }
+
+    init(_ session: CodexWebSessionResult) {
+        self.sessionToken = session.sessionToken
+        self.accessToken = session.accessToken
+        self.expiresAt = session.expiresAt
+    }
+}
+
+// MARK: - CodexHeadlessSessionReviver
+
+@MainActor
+private final class CodexHeadlessSessionReviver: NSObject {
+    private var webView: WKWebView?
+    private var timeoutTask: Task<Void, Never>?
+    private var detectionRetryTask: Task<Void, Never>?
+    private var selfRetain: CodexHeadlessSessionReviver?
+    private var hasCompleted = false
+    private var isFetchingSession = false
+    private let onComplete: (@MainActor (CodexWebSessionResult?) -> Void)
+    private let logger = Logger(subsystem: "ai.quota", category: "codex-coord")
+
+    init(onComplete: @escaping (@MainActor (CodexWebSessionResult?) -> Void)) {
+        self.onComplete = onComplete
+    }
+
+    func start() {
+        selfRetain = self
+        let config = WKWebViewConfiguration()
+        config.websiteDataStore = .default()
+        let webView = WKWebView(frame: .init(x: 0, y: 0, width: 1, height: 1), configuration: config)
+        webView.navigationDelegate = self
+        self.webView = webView
+        timeoutTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(10))
+            await MainActor.run { [weak self] in
+                self?.complete(nil, reason: "timeout")
+            }
+        }
+        webView.load(URLRequest(url: CodexAuthCoordinator.loginURL))
+    }
+
+    private func tryFetchSession() {
+        guard !hasCompleted, !isFetchingSession, let webView else { return }
+        guard let url = webView.url,
+              url.host?.contains("chatgpt.com") == true
+        else { return }
+        if url.path.hasPrefix("/auth/") || url.path == "/login" {
+            logger.notice("[CodexRecovery] headless WebKit landed on auth path=\(url.path, privacy: .public)")
+        }
+        isFetchingSession = true
+        CodexAuthCoordinator.fetchSessionInPage(webView: webView) { [weak self] result in
+            guard let self, !self.hasCompleted else { return }
+            self.isFetchingSession = false
+            if let result {
+                self.complete(result, reason: "found")
+            } else {
+                self.scheduleDetectionRetry()
+            }
+        }
+    }
+
+    private func scheduleDetectionRetry() {
+        guard detectionRetryTask == nil, !hasCompleted else { return }
+        detectionRetryTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1))
+            await MainActor.run { [weak self] in
+                guard let self, !self.hasCompleted else { return }
+                self.detectionRetryTask = nil
+                self.tryFetchSession()
+            }
+        }
+    }
+
+    private func complete(_ result: CodexWebSessionResult?, reason: String) {
+        guard !hasCompleted else { return }
+        hasCompleted = true
+        logger.notice("[CodexRecovery] headless WebKit completed reason=\(reason, privacy: .public)")
+        timeoutTask?.cancel()
+        timeoutTask = nil
+        detectionRetryTask?.cancel()
+        detectionRetryTask = nil
+        webView?.stopLoading()
+        webView?.navigationDelegate = nil
+        webView = nil
+        let callback = onComplete
+        selfRetain = nil
+        callback(result)
+    }
+}
+
+@MainActor
+extension CodexHeadlessSessionReviver: WKNavigationDelegate {
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        tryFetchSession()
+    }
+
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        logger.notice("[CodexRecovery] headless WebKit navigation failed error=\(String(describing: error), privacy: .public)")
+    }
+
+    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+        logger.notice("[CodexRecovery] headless WebKit provisional navigation failed error=\(String(describing: error), privacy: .public)")
+    }
 }
 
 // MARK: - CodexLoginWindowController
@@ -561,43 +846,18 @@ private final class CodexLoginWindowController: NSObject {
         isFetchingSession = true
         logger.info("[CodexLogin] tryFetchSession from \(webView.url?.path ?? "?")")
 
-        webView.callAsyncJavaScript("""
-            try {
-                const r = await fetch('/api/auth/session', {
-                    credentials: 'include',
-                    headers: { 'Accept': 'application/json' }
-                });
-                if (!r.ok) return null;
-                return await r.json();
-            } catch(e) { return null; }
-        """, arguments: [:], in: nil, in: .page) { [weak self] result in
+        CodexAuthCoordinator.fetchSessionInPage(webView: webView) { [weak self] session in
             Task { @MainActor [weak self] in
                 guard let self, !self.hasCompleted else { return }
                 self.isFetchingSession = false
 
-                guard case .success(let value) = result,
-                      let dict = value as? [String: Any],
-                      let accessToken = dict["accessToken"] as? String,
-                      !accessToken.isEmpty else {
+                guard let session else {
                     self.logger.info("[CodexLogin] session fetch: no accessToken yet")
                     return
                 }
 
                 self.logger.info("[CodexLogin] session fetch succeeded — completing")
-                let expiresAt = self.parseExpiry(dict["expires"] as? String)
-
-                // Best-effort: sync WK cookies to shared URLSession storage.
-                webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { cookies in
-                    for c in cookies where c.domain.contains("chatgpt.com") || c.domain.contains("openai.com") {
-                        HTTPCookieStorage.shared.setCookie(c)
-                    }
-                }
-
-                self.complete(CodexLoginResult(
-                    sessionToken: "",   // wkProbe on next bootstrap will persist to Keychain
-                    accessToken: accessToken,
-                    expiresAt: expiresAt
-                ))
+                self.complete(CodexLoginResult(session))
             }
         }
     }
@@ -664,15 +924,6 @@ private final class CodexLoginWindowController: NSObject {
         }
     }
 
-    private func parseExpiry(_ string: String?) -> Date? {
-        guard let string else { return nil }
-        let f = ISO8601DateFormatter()
-        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let d = f.date(from: string) { return d }
-        let f2 = ISO8601DateFormatter()
-        f2.formatOptions = [.withInternetDateTime]
-        return f2.date(from: string)
-    }
 }
 
 @MainActor
