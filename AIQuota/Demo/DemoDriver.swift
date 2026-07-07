@@ -70,9 +70,9 @@ final class DemoDriver {
         .init(fiveH: 100, sevenD: 100, resetSecs: 15300, weeklyResetDays: 4, tick: 1.4), // both red
         .init(fiveH:   0, sevenD: 100, resetSecs: 18000, weeklyResetDays: 4, tick: 0.5), // 5h back, week gone
 
-        // FINAL FRAME — timer halts here: weekly spent by mid-week, extra
-        // usage over the cap, 4 days until relief.
-        .init(fiveH:  36, sevenD: 100, resetSecs: 11400, weeklyResetDays: 4, tick: 86400),
+        // FINAL FRAME — held indefinitely (tick unused): weekly spent by
+        // mid-week, extra usage over the cap, 4 days until relief.
+        .init(fiveH:  36, sevenD: 100, resetSecs: 11400, weeklyResetDays: 4, tick: 0),
     ]
 
     // MARK: - Codex timeline  (lighter user — same 2.5 simulated days, 7d → ~58%)
@@ -112,8 +112,8 @@ final class DemoDriver {
         .init(fiveH:  85, sevenD:  56, resetSecs:  2400, weeklyResetDays: 4, tick: 1.3), // amber
         .init(fiveH: 100, sevenD:  57, resetSecs: 15700, weeklyResetDays: 4, tick: 1.4), // red + credits empty
         .init(fiveH:   0, sevenD:  57, resetSecs: 18000, weeklyResetDays: 4, tick: 0.6), // reload kicks in
-        // FINAL FRAME — timer halts after this
-        .init(fiveH:  21, sevenD:  58, resetSecs: 14700, weeklyResetDays: 4, tick: 86400),
+        // FINAL FRAME — held indefinitely (tick unused)
+        .init(fiveH:  21, sevenD:  58, resetSecs: 14700, weeklyResetDays: 4, tick: 0),
     ]
 
     // MARK: - Extra-usage progression (mirrors Claude timeline cycle indices)
@@ -245,8 +245,11 @@ final class DemoDriver {
 
     private func scheduleNextClaude() {
         guard claudeIndex < claudeFrames.count else { return }
-        let base = claudeFrames[claudeIndex].tick
-        var duration = base < 3 ? base * Double.random(in: 0.75...1.25) : base
+        // A frame's tick is how long it stays on screen; the frame just
+        // shown is claudeIndex - 1. The final frame schedules nothing, so
+        // it is held indefinitely.
+        let base = claudeFrames[claudeIndex - 1].tick
+        var duration = base * Double.random(in: 0.75...1.25)
         if claudeIndex == 1 { duration += startHold }  // hold on the opening frame
         claudeTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
             Task { @MainActor [weak self] in self?.applyNextClaudeFrame() }
@@ -294,8 +297,11 @@ final class DemoDriver {
 
     private func scheduleNextCodex() {
         guard codexIndex < codexFrames.count else { return }
-        let base = codexFrames[codexIndex].tick
-        var duration = base < 3 ? base * Double.random(in: 0.75...1.25) : base
+        // A frame's tick is how long it stays on screen; the frame just
+        // shown is codexIndex - 1. The final frame schedules nothing, so
+        // it is held indefinitely.
+        let base = codexFrames[codexIndex - 1].tick
+        var duration = base * Double.random(in: 0.75...1.25)
         if codexIndex == 1 { duration += startHold }  // hold on the opening frame
         codexTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
             Task { @MainActor [weak self] in self?.applyNextCodexFrame() }
