@@ -76,6 +76,9 @@ struct AIQuotaApp: App {
         } label: {
             menuBarIcon
                 .onboardingLauncher(viewModel: viewModel)
+                #if DEMO_MODE
+                .demoAutoOpen()
+                #endif
         }
         .menuBarExtraStyle(.window)
 

@@ -31,6 +31,7 @@
 		98F43072074B245C01E279A4 /* CountdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D136AA90C5E64F0E69E5B51 /* CountdownView.swift */; };
 		9FD10589109C0FC5A53692FD /* AIQuotaKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6F3F89B4746C627C8A2D541C /* AIQuotaKit */; };
 		A235B96E676D7BB0D9AA389F /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = FB0002B3439366F7C9621561 /* Sparkle */; };
+		A9A9F27E1D37CC53BEA92471 /* DemoAutoOpen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AD1CC15EEE16B262B2BBC8D /* DemoAutoOpen.swift */; };
 		ADD6CD78B8173A141696E733 /* AIQuotaWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FC79333A7787720CC4F63B8 /* AIQuotaWidget.swift */; };
 		B2719944C98CCEAFFCA0BBB9 /* NotificationsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88FA3DF197FD04781EF8C4EF /* NotificationsStepView.swift */; };
 		B337EC2AC2655557CDE13EC2 /* LaunchServicesSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11BE061D1CEB4B5B6F120AD /* LaunchServicesSync.swift */; };
@@ -86,6 +87,7 @@
 		4D136AA90C5E64F0E69E5B51 /* CountdownView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountdownView.swift; sourceTree = "<group>"; };
 		521E05B6030711C7B85B8092 /* UsageGaugeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageGaugeView.swift; sourceTree = "<group>"; };
 		561A3E63AB5C500E7FA650DE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		5AD1CC15EEE16B262B2BBC8D /* DemoAutoOpen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoAutoOpen.swift; sourceTree = "<group>"; };
 		6AFDFAA7F9E0650962EC80DC /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		716B00F14F1370CDAC33B5EB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		76B773676A8FBADF9E560DB2 /* WidgetMediumView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetMediumView.swift; sourceTree = "<group>"; };
@@ -293,6 +295,7 @@
 		FA64CFDF72582D2700992C65 /* Demo */ = {
 			isa = PBXGroup;
 			children = (
+				5AD1CC15EEE16B262B2BBC8D /* DemoAutoOpen.swift */,
 				C4CC237C662A19D0C0A77A43 /* DemoDriver.swift */,
 			);
 			path = Demo;
@@ -445,6 +448,7 @@
 				F3545CC3A5D937C4E3F40A3A /* BudgetStripView.swift in Sources */,
 				BD011637B9A98BF66EB809CD /* CircularGaugeView.swift in Sources */,
 				98F43072074B245C01E279A4 /* CountdownView.swift in Sources */,
+				A9A9F27E1D37CC53BEA92471 /* DemoAutoOpen.swift in Sources */,
 				4BDBDF48A5EC8E1D8DE63AEE /* DemoDriver.swift in Sources */,
 				F6564018685503ADEE6165C2 /* DoneStepView.swift in Sources */,
 				B337EC2AC2655557CDE13EC2 /* LaunchServicesSync.swift in Sources */,
