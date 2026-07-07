@@ -25,7 +25,7 @@ The marketing site in `docs/` follows the shared Codex web preview convention us
 - **ChatGPT and Claude sign-in** — reuses an existing Claude Code or Codex CLI login when available, and falls back to a browser-backed session otherwise (including Google sign-in, which opens in its own popup window); app authentication comes only from live OAuth or WebKit sessions, while widget credentials are stored separately for background refresh
 - **Notification controls** — a single notifications group with a master switch, per-service disclosure rows, and Mac-style checkbox controls for detailed alert choices
 - **Quiet account diagnostics** — Settings combines account status and redacted diagnostics so each service shows whether it is connected without duplicating developer-only HTTP details
-- **Recovery after updates** — Claude Code sessions silently reconnect from existing credentials or an existing web session after app replacements, and widget timelines reload more aggressively on launch
+- **Recovery after updates** — Codex and Claude Code sessions silently reconnect from existing CLI credentials or web sessions after app replacements, and widget timelines reload more aggressively on launch
 - **Auto-update** — Sparkle checks silently on launch and twice daily, with gentle reminders instead of intrusive prompts
 
 ---
@@ -224,7 +224,7 @@ See the pre-release checklist at the top of [`scripts/release.sh`](scripts/relea
 - [x] Visualize 7-day quota reset timing — the app now surfaces 7-day reset timing when the weekly window enters the warning range
 - [x] Settings restructured — Accounts and diagnostics are combined, notifications live in one master group, and service details expand inline with checkbox-level alert options
 - [x] Google sign-in in the embedded login — OAuth popups (`window.open`) are now hosted in a child window, fixing the generic "There was an error logging you in" failure for Google-SSO accounts on both Claude and ChatGPT logins
-- [x] Auth and widget recovery after updates — Claude Code reconnects from existing credentials or an existing web session after app replacements, widgets recover more reliably, and valid sessions restore automatically instead of showing stale Connect states
+- [x] Auth and widget recovery after updates — Codex and Claude Code reconnect from existing CLI credentials or web sessions after app replacements, widgets recover more reliably, and valid sessions restore automatically instead of showing stale Connect states
 - [x] Widget variations — configurable single-service medium widget plus a large two-service overview
 - [x] Menu bar display preference fully respected — the menu bar icon can show Codex, Claude Code, or a paired double gauge while remaining one clickable menu bar item
 - [x] Single-service layout — popover adapts width and layout when only one service is enrolled
