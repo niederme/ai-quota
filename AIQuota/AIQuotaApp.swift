@@ -48,7 +48,11 @@ struct AIQuotaApp: App {
                 .environment(UpdaterViewModel(updater: updaterController.updater))
                 .onAppear {
                     viewModel.recordDailyActiveIfNeeded()
+                    // Demo builds never fetch real usage — a live refresh here
+                    // would overwrite the scripted frames with actual data.
+                    #if !DEMO_MODE
                     viewModel.refreshOnPopoverOpenIfNeeded()
+                    #endif
                     let enabled = viewModel.settings.analyticsEnabled
                     let params = viewModel.analyticsContextParams
                     Task {
@@ -59,13 +63,13 @@ struct AIQuotaApp: App {
                         )
                     }
                 }
-                .task {
-                    #if DEMO_MODE
-                    demoDriver.prepare(for: viewModel)
-                    #endif
-                }
                 #if DEMO_MODE
-                .onAppear  { demoDriver.reset() }
+                // prepare must precede reset — .task would run after .onAppear,
+                // leaving the driver targetless on the first (auto-opened) show.
+                .onAppear {
+                    demoDriver.prepare(for: viewModel)
+                    demoDriver.reset()
+                }
                 .onDisappear { demoDriver.pause() }
                 .background {
                     Button("") { demoDriver.reset() }

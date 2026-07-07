@@ -477,6 +477,17 @@ final class QuotaViewModel {
 
     // MARK: - Refresh
 
+    /// Demo builds never fetch real usage — the DemoDriver scripts all data,
+    /// and a live fetch (launch recovery, auto-refresh, wake, manual button)
+    /// would overwrite its frames.
+    private static var isDemoBuild: Bool {
+        #if DEMO_MODE
+        true
+        #else
+        false
+        #endif
+    }
+
     func refresh() async {
         // Run both fetches concurrently, then reload widgets once both are done
         // so they always get a consistent snapshot.
@@ -488,6 +499,7 @@ final class QuotaViewModel {
     }
 
     func refreshCodex() async {
+        guard !Self.isDemoBuild else { return }
         guard isCodexAuthenticated else { return }
         guard !isCodexLoading else { return }
         let gen = codexRefreshGeneration
@@ -593,6 +605,7 @@ final class QuotaViewModel {
     }
 
     func refreshClaude() async {
+        guard !Self.isDemoBuild else { return }
         guard isClaudeAuthenticated else { return }
         guard !isClaudeLoading else { return }
         let gen = claudeRefreshGeneration
