@@ -37,8 +37,9 @@ final class DemoDriver {
     // Frame 0 is applied immediately on open — no loading state.
 
     private let claudeFrames: [ServiceFrame] = [
-        // Cycle 1 — day 1, morning: 0 → limit → reset  (7d: 3 → 26%)
-        .init(fiveH:   8, sevenD:   3, resetSecs: 15000, weeklyResetDays: 6, tick: 1.0),
+        // Cycle 1 — day 1, morning: 0 → limit → reset  (7d: 0 → 26%)
+        // Frame 0 is a clean slate, held for `startHold` before the climb.
+        .init(fiveH:   0, sevenD:   0, resetSecs: 18000, weeklyResetDays: 6, tick: 1.0),
         .init(fiveH:  34, sevenD:   9, resetSecs: 11700, weeklyResetDays: 6, tick: 1.0),
         .init(fiveH:  62, sevenD:  16, resetSecs:  7800, weeklyResetDays: 6, tick: 1.0),
         .init(fiveH:  88, sevenD:  22, resetSecs:  2400, weeklyResetDays: 6, tick: 1.2), // amber
@@ -83,8 +84,9 @@ final class DemoDriver {
     // ±25% jitter applied in scheduleNextCodex for a natural feel.
 
     private let codexFrames: [ServiceFrame] = [
-        // Cycle 1 — day 1: slow fill, 0 → limit → reset  (7d: 2 → 18%)
-        .init(fiveH:   4, sevenD:   2, resetSecs: 15200, weeklyResetDays: 6, tick: 1.1),
+        // Cycle 1 — day 1: slow fill, 0 → limit → reset  (7d: 0 → 18%)
+        // Frame 0 is a clean slate, held for `startHold` before the climb.
+        .init(fiveH:   0, sevenD:   0, resetSecs: 18000, weeklyResetDays: 6, tick: 1.1),
         .init(fiveH:  19, sevenD:   5, resetSecs: 13200, weeklyResetDays: 6, tick: 1.1),
         .init(fiveH:  41, sevenD:   8, resetSecs: 10500, weeklyResetDays: 6, tick: 1.1),
         .init(fiveH:  66, sevenD:  12, resetSecs:  6900, weeklyResetDays: 6, tick: 1.1),
