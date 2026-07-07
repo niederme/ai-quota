@@ -155,7 +155,7 @@ fi
 
 ditto -c -k --norsrc --noextattr --noqtn --keepParent "$APP_SRC" "$ZIP"
 
-if zipinfo -1 "$ZIP" | grep -q '/\._'; then
+if unzip -Z1 "$ZIP" | grep -q '/\._'; then
     echo "✗ ZIP contains AppleDouble (._*) entries — xattr contamination. Aborting."
     exit 1
 fi

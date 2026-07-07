@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.9.20</title>
+            <title>Version 1.9.21</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -47,17 +47,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.9.20</h2>  <ul><li><strong>New Feature: 🧭 Two gauges in the menu bar</strong> — when Codex and Claude Code are both connected, AIQuota shows a paired double gauge by default while keeping the menu bar item as one click target.</li> <li><strong>Cleaner Settings</strong> — Accounts now includes quiet auth health, refresh diagnostics, and copy diagnostics controls without repeating normal "all good" status in bright green.</li> <li><strong>More Mac-like notifications</strong> — Settings and onboarding now share a single notification hierarchy with a master switch, clickable service disclosure rows, and checkbox-level alert choices.</li> <li><strong>Better Tahoe materials</strong> — the popover uses system materials, semantic text, tertiary gauge tracks, and macOS system red/orange/purple status colors for light and dark appearances.</li></ul> <img src="https://github.com/niederme/ai-quota/releases/download/v1.9.20/AIQuota-1.9.20.png" alt="AIQuota 1.9.20" width="600">
+<h2>What's New in 1.9.21</h2>  <ul><li><strong>Smoother updates</strong> — AIQuota keeps Codex and Claude Code connected across app updates when your existing sessions are still valid, and adds safeguards to prevent broken updates.</li> <li><strong>Cleaner setup</strong> — first-run setup is shorter and puts optional choices where you expect them.</li></ul> <img src="https://github.com/niederme/ai-quota/releases/download/v1.9.21/AIQuota-1.9.21.png" alt="AIQuota 1.9.21" width="600">
 </body>
 </html>
 ]]></description>
-            <sparkle:version>378</sparkle:version>
-            <sparkle:shortVersionString>1.9.20</sparkle:shortVersionString>
+            <sparkle:version>379</sparkle:version>
+            <sparkle:shortVersionString>1.9.21</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.9.20/AIQuota.zip"
-                sparkle:edSignature="p33T23Ia54w87XvQyH5ExRyNaoXnRr7KdPcOhgP/HvMKuPszOiAWG7QEIRYb/QfzrjcSafh5rUfwpuBxKBA8Cg=="
-                length="6589498"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.9.21/AIQuota.zip"
+                sparkle:edSignature="IccOrnG8LTtkqnER6s88xuWszXtTEAQquSSyAbziGxTZWPUVTQbFsN7xGOY8Yf/gasTcS6D5CgXEWii3IprbDg=="
+                length="6648684"
                 type="application/zip"/>
         </item>
     </channel>
