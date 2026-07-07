@@ -15,9 +15,7 @@ struct PopoverView: View {
 
     var body: some View {
         Group {
-            if viewModel.isRestoringSession {
-                restoringSessionContent
-            } else if !viewModel.enrolledServices.isEmpty {
+            if !viewModel.enrolledServices.isEmpty {
                 authenticatedContent
             } else {
                 signInContent
@@ -48,18 +46,6 @@ struct PopoverView: View {
                     Color(nsColor: .windowBackgroundColor).opacity(0.92)
                 }
         }
-    }
-
-    // MARK: - Restoring session
-
-    private var restoringSessionContent: some View {
-        VStack(spacing: 12) {
-            ProgressView()
-            Text("Restoring session…")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-        }
-        .frame(width: popoverWidth, height: 120)
     }
 
     private func openSettingsKeepingPopover() {
@@ -121,6 +107,8 @@ struct PopoverView: View {
                     resetAt: nil, weeklyResetAt: nil, isRefreshing: true, onRefresh: {}
                 )
             }
+        } else if viewModel.isCodexRecovering {
+            loadingGauge(icon: "logo-openai", label: "Codex")
         } else {
             connectGauge(icon: "logo-openai", label: "Codex") {
                 Task { await viewModel.signIn() }
@@ -157,6 +145,8 @@ struct PopoverView: View {
                     resetAt: nil, weeklyResetAt: nil, isRefreshing: true, onRefresh: {}
                 )
             }
+        } else if viewModel.isClaudeRecovering {
+            loadingGauge(icon: "logo-claude", label: "Claude Code")
         } else {
             connectGauge(icon: "logo-claude", label: "Claude Code") {
                 Task { await viewModel.signInClaude() }
@@ -316,6 +306,24 @@ struct PopoverView: View {
                 }
             }
         }
+    }
+
+    private func loadingGauge(icon: String, label: String) -> some View {
+        CircularGaugeView(
+            primaryPercent: 0,
+            primaryLimitReached: false,
+            secondaryPercent: 0,
+            secondaryLimitReached: false,
+            isLoading: true,
+            icon: icon,
+            label: label,
+            primaryLabel: "5h",
+            secondaryLabel: "7d",
+            resetAt: nil,
+            weeklyResetAt: nil,
+            isRefreshing: true,
+            onRefresh: {}
+        )
     }
 
     @ViewBuilder

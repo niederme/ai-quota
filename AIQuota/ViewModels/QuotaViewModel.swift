@@ -38,11 +38,10 @@ final class QuotaViewModel {
 
     var isClaudeAuthenticated: Bool { claudeState == .authenticated }
     var isCodexAuthenticated:  Bool { codexState  == .authenticated }
+    var isCodexRecovering: Bool { isCodexRecoveryPending || codexState == .unknown || codexState == .restoringSession }
+    var isClaudeRecovering: Bool { isClaudeRecoveryPending || claudeState == .unknown || claudeState == .restoringSession }
     var isRestoringSession: Bool {
-        isCodexRecoveryPending ||
-        isClaudeRecoveryPending ||
-        claudeState == .unknown || claudeState == .restoringSession ||
-        codexState  == .unknown || codexState  == .restoringSession
+        isCodexRecovering || isClaudeRecovering
     }
 
     private let resetCoordinator: AppResetCoordinator
