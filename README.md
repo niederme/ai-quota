@@ -15,7 +15,7 @@ The marketing site in `docs/` follows the shared Codex web preview convention us
 ## Features
 
 - **Menu bar gauge** — compact, color-coded arc icons that show both Codex and Claude Code together by default when both services are connected
-- **Popover dashboard** — Codex and Claude Code both use the same dual-arc gauge language: the 5-hour window is the outer ring, the 7-day window is the inner ring
+- **Popover dashboard** — Codex and Claude Code share the same dual-arc gauge language: the 5-hour window is the outer ring when reported, and the 7-day window remains on the inner ring
 - **Service details that matter** — reset timers, plan info, credit balances, monthly overage spend, and clear warning states are visible at a glance
 - **Desktop widgets** — polished widget variants for single-service and dual-service monitoring, including configurable small and medium widgets plus a large two-service layout
 - **Graceful empty and loading states** — widgets and the popover keep a stable layout when a service is disconnected, restoring, or waiting on fresh data
@@ -232,12 +232,12 @@ See the pre-release checklist at the top of [`scripts/release.sh`](scripts/relea
 - [x] Stable popover layout — Connect button sits inside the gauge arc when a service needs to reconnect; no layout shifts
 - [x] Guided onboarding — step-by-step setup wizard on first launch; replayable from Settings
 - [x] Per-service notification switches — master toggle per service; detailed alert options collapse inline and use checkbox controls for dense Mac settings
-- [x] Dual-arc gauge — concentric rings for 5h and 7-day windows; color-coded purple → amber → red; both percentages labelled in the centre
+- [x] Dual-arc gauge — concentric tracks for 5h and 7-day windows; unavailable limits stay visibly honest instead of turning into fabricated percentages or reset times
 - [x] Widget redesign — dual-arc gauges, single-service and dual-service widget variants, improved placeholder states, and more resilient rendering after updates
 - [x] Network recovery — NWPathMonitor detects coming back online and refreshes immediately
 - [ ] Field-verify Claude Team and Enterprise support — OAuth-first sign-in, Team usage, and Enterprise spend-limit parsing are implemented; Jason's machine is now corporate-locked, so validation requires a different real Team/Enterprise tester
 - [x] Claude Code support — 5h and 7-day windows, Max plan credits, reset timers
-- [x] Harmonized window display — both Codex and Claude lead with the 5-hour rate-limit window, with 7-day usage always shown as a secondary row
+- [x] Harmonized window display — both services retain stable 5-hour and 7-day tracks, while provider-specific unavailable windows are clearly identified
 - [x] Widget service picker — choose Codex or Claude Code per widget instance
 - [x] Notifications — below 15%, below 5%, limit reached, quota reset; rolling-window drift no longer triggers spurious alerts
 - [x] Check for Updates — manual + silent auto-check on launch and twice daily via Sparkle, with gentle reminders

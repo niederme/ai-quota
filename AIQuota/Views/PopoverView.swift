@@ -82,17 +82,20 @@ struct PopoverView: View {
     private var codexGaugeSlot: some View {
         if viewModel.isCodexAuthenticated {
             if let u = viewModel.codexUsage {
+                let hasHourlyWindow = u.hasHourlyWindow
                 CircularGaugeView(
-                    primaryPercent: u.hourlyUsedPercent,
-                    primaryLimitReached: u.hourlyUsedPercent >= 100,
+                    primaryPercent: hasHourlyWindow ? u.hourlyUsedPercent : 0,
+                    primaryLimitReached: hasHourlyWindow && u.hourlyUsedPercent >= 100,
+                    showsPrimaryMetric: hasHourlyWindow,
                     secondaryPercent: u.weeklyUsedPercent,
                     secondaryLimitReached: u.isWeeklyExhausted,
+                    showsSecondaryMetric: true,
                     isLoading: false,
                     icon: "logo-openai",
                     label: "Codex",
                     primaryLabel: formatWindowDuration(u.hourlyWindowSeconds),
                     secondaryLabel: "7d",
-                    resetAt: u.hourlyResetAt == .distantFuture ? nil : u.hourlyResetAt,
+                    resetAt: hasHourlyWindow && u.hourlyResetAt != .distantFuture ? u.hourlyResetAt : nil,
                     weeklyResetAt: u.weeklyResetAt == .distantFuture ? nil : u.weeklyResetAt,
                     isRefreshing: viewModel.isCodexLoading,
                     onRefresh: { viewModel.manualRefresh() }
@@ -101,7 +104,9 @@ struct PopoverView: View {
             } else {
                 CircularGaugeView(
                     primaryPercent: 0, primaryLimitReached: false,
+                    showsPrimaryMetric: true,
                     secondaryPercent: 0, secondaryLimitReached: false,
+                    showsSecondaryMetric: true,
                     isLoading: true, icon: "logo-openai",
                     label: "Codex", primaryLabel: "5h", secondaryLabel: "7d",
                     resetAt: nil, weeklyResetAt: nil, isRefreshing: true, onRefresh: {}
@@ -123,8 +128,10 @@ struct PopoverView: View {
                 CircularGaugeView(
                     primaryPercent: u.usedPercent,
                     primaryLimitReached: u.limitReached,
+                    showsPrimaryMetric: true,
                     secondaryPercent: Int(u.sevenDayUtilization?.rounded() ?? 0),
                     secondaryLimitReached: (u.sevenDayUtilization ?? 0) >= 100,
+                    showsSecondaryMetric: true,
                     isLoading: false,
                     icon: "logo-claude",
                     label: "Claude Code",
@@ -139,7 +146,9 @@ struct PopoverView: View {
             } else {
                 CircularGaugeView(
                     primaryPercent: 0, primaryLimitReached: false,
+                    showsPrimaryMetric: true,
                     secondaryPercent: 0, secondaryLimitReached: false,
+                    showsSecondaryMetric: true,
                     isLoading: true, icon: "logo-claude",
                     label: "Claude Code", primaryLabel: "5h", secondaryLabel: "7d",
                     resetAt: nil, weeklyResetAt: nil, isRefreshing: true, onRefresh: {}
@@ -203,10 +212,18 @@ struct PopoverView: View {
     }
 
     private func codexTooltip(_ u: CodexUsage) -> String {
-        var lines = [
-            "\(formatWindowDuration(u.hourlyWindowSeconds)) window: \(u.hourlyUsedPercent)% used",
-            "7-day window: \(u.weeklyUsedPercent)% used",
-        ]
+        var lines: [String]
+        if u.hasHourlyWindow {
+            lines = [
+                "\(formatWindowDuration(u.hourlyWindowSeconds)) window: \(u.hourlyUsedPercent)% used",
+                "7-day window: \(u.weeklyUsedPercent)% used",
+            ]
+        } else {
+            lines = [
+                "5h window: not currently reported",
+                "7-day window: \(u.weeklyUsedPercent)% used",
+            ]
+        }
         if let balance = u.creditBalance { lines.append("Credits balance: \(formatCodexDollarAmount(balance))") }
         if let spent = u.bonusCreditsSpentThisMonth {
             lines.append("Usage credits spent this month: \(formatCodexDollarAmount(spent))")
@@ -312,8 +329,10 @@ struct PopoverView: View {
         CircularGaugeView(
             primaryPercent: 0,
             primaryLimitReached: false,
+            showsPrimaryMetric: true,
             secondaryPercent: 0,
             secondaryLimitReached: false,
+            showsSecondaryMetric: true,
             isLoading: true,
             icon: icon,
             label: label,
@@ -672,6 +691,8 @@ struct PopoverView: View {
     // MARK: - Helpers
 
     private func formatWindowDuration(_ seconds: Int) -> String {
+        let days = seconds / 86_400
+        if days > 0, seconds.isMultiple(of: 86_400) { return "\(days)d" }
         let hours = seconds / 3600
         return hours > 0 ? "\(hours)h" : "\(seconds / 60)m"
     }

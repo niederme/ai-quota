@@ -100,6 +100,7 @@ public struct CodexUsage: Codable, Sendable, Equatable {
     public var hourlyPercentFraction: Double { Double(hourlyUsedPercent) / 100.0 }
     public var weeklyRemaining: Int { max(0, 100 - weeklyUsedPercent) }
     public var isWeeklyExhausted: Bool { weeklyUsedPercent >= 100 }
+    public var hasHourlyWindow: Bool { hourlyResetAt != .distantFuture }
 
     public var localMessagesUsed: Int? { approxLocalMessages?.first }
     public var localMessagesLimit: Int? { approxLocalMessages?.last }
@@ -110,8 +111,17 @@ public struct CodexUsage: Codable, Sendable, Equatable {
 
     public init(from response: WhamUsageResponse, fetchedAt: Date = .now) {
         let rateLimit = response.rateLimit
-        let weekly = rateLimit?.secondaryWindow
-        let hourly = rateLimit?.primaryWindow
+        let primary = rateLimit?.primaryWindow
+        let secondary = rateLimit?.secondaryWindow
+
+        // Codex historically returned a short primary window and a weekly
+        // secondary window. Some accounts now expose only the weekly window,
+        // in primary_window. Normalize both response shapes so callers can
+        // continue treating the weekly quota as weekly without inventing an
+        // unavailable short-window metric.
+        let primaryIsWeekly = secondary == nil && (primary?.limitWindowSeconds ?? 0) >= 6 * 86_400
+        let weekly = secondary ?? (primaryIsWeekly ? primary : nil)
+        let hourly = primaryIsWeekly ? nil : primary
 
         weeklyUsedPercent = weekly?.usedPercent ?? 0
         weeklyResetAt = weekly?.resetAt.map { Date(timeIntervalSince1970: TimeInterval($0)) } ?? .distantFuture

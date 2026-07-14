@@ -74,9 +74,10 @@ struct PopoverTypographyTests {
         #expect(popoverSource.contains("isExhaustedWithoutReload && autoReload != nil"))
         #expect(popoverSource.contains("if shouldShowExceptionBar, let autoReload"))
         #expect(!popoverSource.contains("auto-reloads to"))
-        #expect(demoSource.contains("map[24] = 0"))
-        #expect(demoSource.contains("map[24] = off"))
-        #expect(demoSource.contains("usedCredits: 2060, utilization: 103"))
+        #expect(demoSource.contains("map[20] = 0"))
+        #expect(demoSource.contains("map[20] = off"))
+        #expect(demoSource.contains("map[22] = 238"))
+        #expect(demoSource.contains("map[24] = extra(5150)"))
     }
 
     @Test("duplicate network errors collapse into one banner")
@@ -159,10 +160,14 @@ struct PopoverTypographyTests {
     func resetLinesUseCompactCaptions() throws {
         let gaugeSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/CircularGaugeView.swift"), encoding: .utf8)
         let popoverSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/PopoverView.swift"), encoding: .utf8)
+        let notificationSource = try String(contentsOf: repoRoot.appending(path: "Packages/AIQuotaKit/Sources/AIQuotaKit/Notifications/NotificationManager.swift"), encoding: .utf8)
+        let viewModelSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/ViewModels/QuotaViewModel.swift"), encoding: .utf8)
 
         // CircularGaugeView: date-based reset parameters exist
         #expect(gaugeSource.contains("resetAt: Date?"))
         #expect(gaugeSource.contains("weeklyResetAt: Date?"))
+        #expect(gaugeSource.contains("showsSecondaryMetric: Bool"))
+        #expect(gaugeSource.contains(#"Text("No \(primaryLabel) limit right now")"#))
 
         // CircularGaugeView: captions use the compact formatter for popover density
         #expect(gaugeSource.contains("ResetTimeTextFormatter.compactWindowCaption(primaryLabel, resetAt: resetAt)"))
@@ -173,6 +178,11 @@ struct PopoverTypographyTests {
         // PopoverView: Codex passes real weekly reset dates and exhaustion state
         #expect(popoverSource.contains("u.weeklyResetAt"))
         #expect(popoverSource.contains("u.isWeeklyExhausted"))
+        #expect(popoverSource.contains("showsPrimaryMetric: hasHourlyWindow"))
+        #expect(popoverSource.contains("secondaryPercent: u.weeklyUsedPercent"))
+        #expect(notificationSource.contains("if current.hasHourlyWindow"))
+        #expect(notificationSource.contains("defaults.removeObject(forKey: Key.codex5hLastResetAt)"))
+        #expect(viewModelSource.contains("codexUsage.hasHourlyWindow && codexUsage.hourlyResetAfterSeconds <= 900"))
 
         // PopoverView: Claude passes real 7-day reset dates and exhaustion state
         #expect(popoverSource.contains("u.sevenDayResetsAt"))

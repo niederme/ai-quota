@@ -1,8 +1,7 @@
 import SwiftUI
 import AIQuotaKit
 
-/// Dual-arc circular gauge — outer ring = primary window (5h),
-/// inner ring = secondary window (7-day).
+/// Quota gauge with an outer primary ring and an optional inner secondary ring.
 ///
 /// Both rings use the app's purple accent in the normal state,
 /// shifting to amber at 85 % and red at the limit.
@@ -13,8 +12,10 @@ struct CircularGaugeView: View {
 
     let primaryPercent: Int
     let primaryLimitReached: Bool
+    let showsPrimaryMetric: Bool
     let secondaryPercent: Int
     let secondaryLimitReached: Bool
+    let showsSecondaryMetric: Bool
     let isLoading: Bool
     let icon: String           // xcassets image name
     let label: String
@@ -27,8 +28,8 @@ struct CircularGaugeView: View {
 
     /// Single colour for both rings, driven by the worst status.
     private var statusColor: Color {
-        if primaryLimitReached || secondaryLimitReached { return .critical }
-        let worst = max(primaryPercent, secondaryPercent)
+        if (showsPrimaryMetric && primaryLimitReached) || (showsSecondaryMetric && secondaryLimitReached) { return .critical }
+        let worst = max(showsPrimaryMetric ? primaryPercent : 0, showsSecondaryMetric ? secondaryPercent : 0)
         if worst >= 95 { return .critical }
         if worst >= 85 { return .warningAmber }
         return Self.accent
@@ -38,20 +39,20 @@ struct CircularGaugeView: View {
     private var secondaryFill: Double { Double(max(0, min(100, secondaryPercent))) / 100.0 }
     /// Inner ring is always subordinate — same hue, lower opacity.
     private var secondaryOpacity: Double {
-        let worst = max(primaryPercent, secondaryPercent)
+        let worst = max(showsPrimaryMetric ? primaryPercent : 0, showsSecondaryMetric ? secondaryPercent : 0)
         return worst >= 85 ? 0.65 : 0.45
     }
 
     private var secondaryTextOpacity: Double {
-        let worst = max(primaryPercent, secondaryPercent)
+        let worst = max(showsPrimaryMetric ? primaryPercent : 0, showsSecondaryMetric ? secondaryPercent : 0)
         return worst >= 85 ? 0.75 : 0.65
     }
 
     /// Reset captions echo the gauge state so the timing metadata stays tied to
     /// the quota signal without relying on shadows or custom background tricks.
     private var primaryCaptionStyle: AnyShapeStyle {
-        let worst = max(primaryPercent, secondaryPercent)
-        if primaryLimitReached || secondaryLimitReached || worst >= 95 {
+        let worst = max(showsPrimaryMetric ? primaryPercent : 0, showsSecondaryMetric ? secondaryPercent : 0)
+        if (showsPrimaryMetric && primaryLimitReached) || (showsSecondaryMetric && secondaryLimitReached) || worst >= 95 {
             return AnyShapeStyle(Color.critical)
         }
         if worst >= 85 { return AnyShapeStyle(Color.warningAmber) }
@@ -89,11 +90,13 @@ struct CircularGaugeView: View {
                 .rotationEffect(.degrees(135))
 
             // ── Outer fill (primary) ──────────────────────────────────
-            Circle()
-                .trim(from: 0, to: 0.75 * primaryFill)
-                .stroke(statusColor, style: StrokeStyle(lineWidth: outerLw, lineCap: .butt))
-                .rotationEffect(.degrees(135))
-                .animation(.easeInOut(duration: 0.5), value: primaryFill)
+            if showsPrimaryMetric {
+                Circle()
+                    .trim(from: 0, to: 0.75 * primaryFill)
+                    .stroke(statusColor, style: StrokeStyle(lineWidth: outerLw, lineCap: .butt))
+                    .rotationEffect(.degrees(135))
+                    .animation(.easeInOut(duration: 0.5), value: primaryFill)
+            }
 
             // ── Inner track (7pt, 2pt gap from outer) ─────────────────
             Circle()
@@ -102,13 +105,15 @@ struct CircularGaugeView: View {
                 .rotationEffect(.degrees(135))
                 .padding(innerPad)
 
-            // ── Inner fill (secondary) ────────────────────────────────
-            Circle()
-                .trim(from: 0, to: 0.75 * secondaryFill)
-                .stroke(statusColor.opacity(secondaryOpacity), style: StrokeStyle(lineWidth: innerLw, lineCap: .butt))
-                .rotationEffect(.degrees(135))
-                .padding(innerPad)
-                .animation(.easeInOut(duration: 0.5), value: secondaryFill)
+            if showsSecondaryMetric {
+                // ── Inner fill (secondary) ────────────────────────────
+                Circle()
+                    .trim(from: 0, to: 0.75 * secondaryFill)
+                    .stroke(statusColor.opacity(secondaryOpacity), style: StrokeStyle(lineWidth: innerLw, lineCap: .butt))
+                    .rotationEffect(.degrees(135))
+                    .padding(innerPad)
+                    .animation(.easeInOut(duration: 0.5), value: secondaryFill)
+            }
 
             // ── Centre: logo + labelled percentages ───────────────────
             VStack(spacing: 6) {
@@ -123,22 +128,24 @@ struct CircularGaugeView: View {
                 } else {
                     VStack(spacing: 1) {
                         HStack(alignment: .firstTextBaseline, spacing: 3) {
-                            Text("\(primaryPercent)%")
+                            Text(showsPrimaryMetric ? "\(primaryPercent)%" : "—")
                                 .font(.system(size: 14, weight: .bold, design: .rounded))
-                                .foregroundStyle(statusColor)
+                                .foregroundStyle(showsPrimaryMetric ? AnyShapeStyle(statusColor) : AnyShapeStyle(.tertiary))
                                 .contentTransition(.numericText())
                             Text(primaryLabel)
                                 .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(statusColor)
+                                .foregroundStyle(showsPrimaryMetric ? AnyShapeStyle(statusColor) : AnyShapeStyle(.tertiary))
                         }
-                        HStack(alignment: .firstTextBaseline, spacing: 3) {
-                            Text("\(secondaryPercent)%")
-                                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                                .foregroundStyle(statusColor.opacity(secondaryTextOpacity))
-                                .contentTransition(.numericText())
-                            Text(secondaryLabel)
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundStyle(statusColor.opacity(secondaryTextOpacity))
+                        if showsSecondaryMetric {
+                            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                                Text("\(secondaryPercent)%")
+                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(statusColor.opacity(secondaryTextOpacity))
+                                    .contentTransition(.numericText())
+                                Text(secondaryLabel)
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundStyle(statusColor.opacity(secondaryTextOpacity))
+                            }
                         }
                     }
                 }
@@ -172,11 +179,17 @@ struct CircularGaugeView: View {
                 .foregroundStyle(.foreground)
 
             VStack(spacing: 0) {
-                Text(primaryCountdownText)
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(primaryCaptionStyle)
+                if showsPrimaryMetric {
+                    Text(primaryCountdownText)
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(primaryCaptionStyle)
+                } else if !isLoading {
+                    Text("No \(primaryLabel) limit right now")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
 
-                if !isLoading {
+                if !isLoading && showsSecondaryMetric {
                     Text(secondaryCountdownText)
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(secondaryCaptionStyle)

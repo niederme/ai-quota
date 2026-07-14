@@ -747,9 +747,9 @@ final class QuotaViewModel {
     private var isCodexNearThreshold: Bool {
         guard let codexUsage else { return false }
         return codexUsage.limitReached
-            || codexUsage.hourlyUsedPercent >= 85
             || codexUsage.weeklyUsedPercent >= 85
-            || codexUsage.hourlyResetAfterSeconds <= 900
+            || (codexUsage.hasHourlyWindow && codexUsage.hourlyUsedPercent >= 85)
+            || (codexUsage.hasHourlyWindow && codexUsage.hourlyResetAfterSeconds <= 900)
             || codexUsage.weeklyResetAfterSeconds <= 900
     }
 

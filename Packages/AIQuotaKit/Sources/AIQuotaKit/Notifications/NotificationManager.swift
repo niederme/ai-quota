@@ -77,41 +77,46 @@ public actor NotificationManager {
         }
 
         // ── 5-hour threshold notifications ────────────────────────────────
-        let hourlyResetAt   = current.hourlyResetAt.timeIntervalSince1970
-        let storedHourly    = defaults.object(forKey: Key.codex5hLastResetAt) as? Double
+        if current.hasHourlyWindow {
+            let hourlyResetAt = current.hourlyResetAt.timeIntervalSince1970
+            let storedHourly = defaults.object(forKey: Key.codex5hLastResetAt) as? Double
 
-        if let stored5h = storedHourly {
-            let storedDate5h = Date(timeIntervalSince1970: stored5h)
-            if storedDate5h < .now {
-                clearThresholds(key: Key.codex5hThresholds)
-                defaults.set(hourlyResetAt, forKey: Key.codex5hLastResetAt)
-                if prefs.codex5hReset {
-                    await send(
-                        id: "codex5hReset",
-                        title: "Codex 5-hour window reset",
-                        body: "Your Codex 5-hour window has reset. You're back to full capacity."
-                    )
+            if let stored5h = storedHourly {
+                let storedDate5h = Date(timeIntervalSince1970: stored5h)
+                if storedDate5h < .now {
+                    clearThresholds(key: Key.codex5hThresholds)
+                    defaults.set(hourlyResetAt, forKey: Key.codex5hLastResetAt)
+                    if prefs.codex5hReset {
+                        await send(
+                            id: "codex5hReset",
+                            title: "Codex 5-hour window reset",
+                            body: "Your Codex 5-hour window has reset. You're back to full capacity."
+                        )
+                    }
+                } else {
+                    if stored5h != hourlyResetAt { defaults.set(hourlyResetAt, forKey: Key.codex5hLastResetAt) }
+                    let notified5h = loadThresholds(key: Key.codex5hThresholds)
+                    let remaining5h = max(0, 100 - current.hourlyUsedPercent)
+                    if current.limitReached && !notified5h.contains("limitReached") && prefs.codex5hLimitReached {
+                        markThreshold("limitReached", key: Key.codex5hThresholds)
+                        await send(id: "codex5hLimitReached", title: "Codex 5-hour limit reached",
+                                   body: "You've hit the limit for your Codex 5-hour window. Resets in \(timeString(current.hourlyResetAfterSeconds)).")
+                    } else if remaining5h < 5 && !notified5h.contains("below5") && prefs.codex5hAt5 {
+                        markThreshold("below5", key: Key.codex5hThresholds)
+                        await send(id: "codex5hBelow5", title: "Codex 5-hour near limit",
+                                   body: "You're almost at the limit for your Codex 5-hour window. Resets in \(timeString(current.hourlyResetAfterSeconds)).")
+                    } else if remaining5h < 15 && !notified5h.contains("below15") && prefs.codex5hAt15 {
+                        markThreshold("below15", key: Key.codex5hThresholds)
+                        await send(id: "codex5hBelow15", title: "Codex 5-hour usage high",
+                                   body: "You've used most of your Codex 5-hour window. Resets in \(timeString(current.hourlyResetAfterSeconds)).")
+                    }
                 }
             } else {
-                if stored5h != hourlyResetAt { defaults.set(hourlyResetAt, forKey: Key.codex5hLastResetAt) }
-                let notified5h  = loadThresholds(key: Key.codex5hThresholds)
-                let remaining5h = max(0, 100 - current.hourlyUsedPercent)
-                if current.limitReached && !notified5h.contains("limitReached") && prefs.codex5hLimitReached {
-                    markThreshold("limitReached", key: Key.codex5hThresholds)
-                    await send(id: "codex5hLimitReached", title: "Codex 5-hour limit reached",
-                               body: "You've hit the limit for your Codex 5-hour window. Resets in \(timeString(current.hourlyResetAfterSeconds)).")
-                } else if remaining5h < 5 && !notified5h.contains("below5") && prefs.codex5hAt5 {
-                    markThreshold("below5", key: Key.codex5hThresholds)
-                    await send(id: "codex5hBelow5", title: "Codex 5-hour near limit",
-                               body: "You're almost at the limit for your Codex 5-hour window. Resets in \(timeString(current.hourlyResetAfterSeconds)).")
-                } else if remaining5h < 15 && !notified5h.contains("below15") && prefs.codex5hAt15 {
-                    markThreshold("below15", key: Key.codex5hThresholds)
-                    await send(id: "codex5hBelow15", title: "Codex 5-hour usage high",
-                               body: "You've used most of your Codex 5-hour window. Resets in \(timeString(current.hourlyResetAfterSeconds)).")
-                }
+                defaults.set(hourlyResetAt, forKey: Key.codex5hLastResetAt)
             }
         } else {
-            defaults.set(hourlyResetAt, forKey: Key.codex5hLastResetAt)
+            clearThresholds(key: Key.codex5hThresholds)
+            defaults.removeObject(forKey: Key.codex5hLastResetAt)
         }
 
         // ── Weekly threshold notifications ────────────────────────────────

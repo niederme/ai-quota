@@ -20,7 +20,11 @@ private struct WidgetServiceSnapshot {
     let icon: String
     let primaryPercent: Int
     let primaryLimitReached: Bool
+    let showsPrimaryMetric: Bool
     let secondaryPercent: Int
+    let showsSecondaryMetric: Bool
+    let primaryLabel: String
+    let secondaryLabel: String
     let resetSeconds: Int
     let weeklyResetSeconds: Int
     let secondaryLimitReached: Bool
@@ -29,8 +33,8 @@ private struct WidgetServiceSnapshot {
     let alertText: String?
 
     var statusColor: Color {
-        if primaryLimitReached || secondaryLimitReached { return .red }
-        let worst = max(primaryPercent, secondaryPercent)
+        if (showsPrimaryMetric && primaryLimitReached) || (showsSecondaryMetric && secondaryLimitReached) { return .red }
+        let worst = max(showsPrimaryMetric ? primaryPercent : 0, showsSecondaryMetric ? secondaryPercent : 0)
         if worst >= 95 { return .red }
         if worst >= 85 { return Color(red: 1.0, green: 0.65, blue: 0.0) }
         return widgetAccentColor
@@ -42,6 +46,7 @@ private extension QuotaEntry {
         switch service {
         case .codex:
             guard let usage = codexUsage else { return nil }
+            let hasHourlyWindow = usage.hasHourlyWindow
             var detailRows = [
                 WidgetDetailRowData(
                     label: "Remaining",
@@ -81,9 +86,13 @@ private extension QuotaEntry {
             return WidgetServiceSnapshot(
                 label: "Codex",
                 icon: "logo-openai",
-                primaryPercent: usage.hourlyUsedPercent,
-                primaryLimitReached: usage.hourlyUsedPercent >= 100,
+                primaryPercent: hasHourlyWindow ? usage.hourlyUsedPercent : 0,
+                primaryLimitReached: hasHourlyWindow && usage.hourlyUsedPercent >= 100,
+                showsPrimaryMetric: hasHourlyWindow,
                 secondaryPercent: usage.weeklyUsedPercent,
+                showsSecondaryMetric: true,
+                primaryLabel: "5h",
+                secondaryLabel: "7-day",
                 resetSeconds: usage.hourlyResetAfterSeconds,
                 weeklyResetSeconds: usage.weeklyResetAfterSeconds,
                 secondaryLimitReached: usage.isWeeklyExhausted,
@@ -136,7 +145,11 @@ private extension QuotaEntry {
                 icon: "logo-claude",
                 primaryPercent: usage.usedPercent,
                 primaryLimitReached: usage.limitReached,
+                showsPrimaryMetric: true,
                 secondaryPercent: Int(usage.sevenDayUtilization?.rounded() ?? 0),
+                showsSecondaryMetric: true,
+                primaryLabel: usage.primaryMetricLabel,
+                secondaryLabel: "7-day",
                 resetSeconds: usage.resetAfterSeconds ?? 0,
                 weeklyResetSeconds: usage.sevenDayResetAfterSeconds ?? 0,
                 secondaryLimitReached: (usage.sevenDayUtilization ?? 0) >= 100,
@@ -345,11 +358,13 @@ private struct WidgetSingleGaugePanel: View {
                 WidgetGaugeView(
                     primaryPercent: snapshot.primaryPercent,
                     primaryLimitReached: snapshot.primaryLimitReached,
+                    showsPrimaryMetric: snapshot.showsPrimaryMetric,
                     secondaryPercent: snapshot.secondaryPercent,
+                    showsSecondaryMetric: snapshot.showsSecondaryMetric,
                     icon: snapshot.icon,
                     label: snapshot.label,
-                    primaryLabel: "5h",
-                    secondaryLabel: "7-day",
+                    primaryLabel: snapshot.primaryLabel,
+                    secondaryLabel: snapshot.secondaryLabel,
                     resetSeconds: snapshot.resetSeconds,
                     weeklyResetSeconds: snapshot.weeklyResetSeconds,
                     secondaryLimitReached: snapshot.secondaryLimitReached,
@@ -419,11 +434,13 @@ private struct WidgetServiceDetailPanel: View {
             WidgetGaugeView(
                 primaryPercent: snapshot.primaryPercent,
                 primaryLimitReached: snapshot.primaryLimitReached,
+                showsPrimaryMetric: snapshot.showsPrimaryMetric,
                 secondaryPercent: snapshot.secondaryPercent,
+                showsSecondaryMetric: snapshot.showsSecondaryMetric,
                 icon: snapshot.icon,
                 label: snapshot.label,
-                primaryLabel: "5h",
-                secondaryLabel: "7-day",
+                primaryLabel: snapshot.primaryLabel,
+                secondaryLabel: snapshot.secondaryLabel,
                 resetSeconds: snapshot.resetSeconds,
                 weeklyResetSeconds: snapshot.weeklyResetSeconds,
                 secondaryLimitReached: snapshot.secondaryLimitReached,
@@ -577,10 +594,13 @@ struct WidgetMediumView: View {
         switch service {
         case .codex:
             if let u = entry.codexUsage {
+                let hasHourlyWindow = u.hasHourlyWindow
                 WidgetGaugeView(
-                    primaryPercent: u.hourlyUsedPercent,
-                    primaryLimitReached: u.hourlyUsedPercent >= 100,
+                    primaryPercent: hasHourlyWindow ? u.hourlyUsedPercent : 0,
+                    primaryLimitReached: hasHourlyWindow && u.hourlyUsedPercent >= 100,
+                    showsPrimaryMetric: hasHourlyWindow,
                     secondaryPercent: u.weeklyUsedPercent,
+                    showsSecondaryMetric: true,
                     icon: "logo-openai",
                     label: "Codex",
                     primaryLabel: "5h",
@@ -599,7 +619,9 @@ struct WidgetMediumView: View {
                 WidgetGaugeView(
                     primaryPercent: u.usedPercent,
                     primaryLimitReached: u.limitReached,
+                    showsPrimaryMetric: true,
                     secondaryPercent: Int(u.sevenDayUtilization?.rounded() ?? 0),
+                    showsSecondaryMetric: true,
                     icon: "logo-claude",
                     label: "Claude Code",
                     primaryLabel: u.primaryMetricLabel,

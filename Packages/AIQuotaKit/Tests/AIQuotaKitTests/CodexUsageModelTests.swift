@@ -57,9 +57,42 @@ struct CodexUsageModelTests {
         #expect(usage.hourlyUsedPercent == 4)
         #expect(usage.weeklyUsedPercent == 35)
         #expect(usage.hourlyWindowSeconds == 18000)
+        #expect(usage.hasHourlyWindow)
         #expect(usage.creditBalance == 289.39242375)
         #expect(usage.approxLocalMessages == [72, 376])
         #expect(usage.approxCloudMessages == [12, 72])
+    }
+
+    @Test("normalizes a weekly-only primary window")
+    func normalizesWeeklyOnlyPrimaryWindow() throws {
+        let data = Data("""
+        {
+          "plan_type": "plus",
+          "rate_limit": {
+            "allowed": true,
+            "limit_reached": false,
+            "primary_window": {
+              "used_percent": 14,
+              "limit_window_seconds": 604800,
+              "reset_after_seconds": 565560,
+              "reset_at": 1784555160
+            },
+            "secondary_window": null
+          }
+        }
+        """.utf8)
+
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let raw = try decoder.decode(WhamUsageResponse.self, from: data)
+        let usage = CodexUsage(from: raw)
+
+        #expect(usage.weeklyUsedPercent == 14)
+        #expect(usage.weeklyResetAfterSeconds == 565560)
+        #expect(usage.weeklyResetAt == Date(timeIntervalSince1970: 1784555160))
+        #expect(!usage.hasHourlyWindow)
+        #expect(usage.hourlyUsedPercent == 0)
+        #expect(usage.hourlyResetAt == .distantFuture)
     }
 
     @Test("keeps partial Codex data when rate windows are missing")

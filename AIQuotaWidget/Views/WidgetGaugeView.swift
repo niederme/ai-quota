@@ -1,16 +1,16 @@
 import SwiftUI
 import AIQuotaKit
 
-/// Non-interactive dual-arc gauge for widget use.
-/// Matches the visual language of the popover's CircularGaugeView —
-/// outer ring = primary window (5h), inner ring = secondary window (7-day).
+/// Non-interactive quota gauge for widget use, with an optional secondary ring.
 struct WidgetGaugeView: View {
 
     static let accent = Color(red: 0.62, green: 0.22, blue: 0.93)
 
     let primaryPercent: Int
     let primaryLimitReached: Bool
+    let showsPrimaryMetric: Bool
     let secondaryPercent: Int
+    let showsSecondaryMetric: Bool
     let icon: String        // xcassets image name (SVG)
     let label: String
     let primaryLabel: String   // e.g. "5h"
@@ -21,8 +21,8 @@ struct WidgetGaugeView: View {
     let size: CGFloat
 
     private var statusColor: Color {
-        if primaryLimitReached || secondaryLimitReached { return .red }
-        let worst = max(primaryPercent, secondaryPercent)
+        if (showsPrimaryMetric && primaryLimitReached) || (showsSecondaryMetric && secondaryLimitReached) { return .red }
+        let worst = max(showsPrimaryMetric ? primaryPercent : 0, showsSecondaryMetric ? secondaryPercent : 0)
         if worst >= 95 { return .red }
         if worst >= 85 { return Color(red: 1.0, green: 0.65, blue: 0.0) }
         return Self.accent
@@ -31,7 +31,7 @@ struct WidgetGaugeView: View {
     private var primaryFill:   Double { Double(max(0, min(100, primaryPercent)))   / 100.0 }
     private var secondaryFill: Double { Double(max(0, min(100, secondaryPercent))) / 100.0 }
     private var secondaryOpacity: Double {
-        max(primaryPercent, secondaryPercent) >= 85 ? 0.65 : 0.45
+        max(showsPrimaryMetric ? primaryPercent : 0, showsSecondaryMetric ? secondaryPercent : 0) >= 85 ? 0.65 : 0.45
     }
 
     // Scaled dimensions — outer ring wider, inner narrower, 2pt-equivalent gap between them.
@@ -44,7 +44,9 @@ struct WidgetGaugeView: View {
     private var secPt:    CGFloat { size * 0.125 }
     private var labelPt:  CGFloat { size * 0.125 }
     private var resetPt:  CGFloat { size * 0.100 }
-    private var showsSecondaryResetLine: Bool { secondaryPercent >= 85 || secondaryLimitReached }
+    private var showsSecondaryResetLine: Bool {
+        showsPrimaryMetric && showsSecondaryMetric && (secondaryPercent >= 85 || secondaryLimitReached)
+    }
 
     var body: some View {
         VStack(spacing: size * 0.04) {
@@ -55,10 +57,12 @@ struct WidgetGaugeView: View {
                     .stroke(.fill.tertiary, style: StrokeStyle(lineWidth: outerLW, lineCap: .butt))
                     .rotationEffect(.degrees(135))
 
-                Circle()
-                    .trim(from: 0, to: 0.75 * primaryFill)
-                    .stroke(statusColor, style: StrokeStyle(lineWidth: outerLW, lineCap: .butt))
-                    .rotationEffect(.degrees(135))
+                if showsPrimaryMetric {
+                    Circle()
+                        .trim(from: 0, to: 0.75 * primaryFill)
+                        .stroke(statusColor, style: StrokeStyle(lineWidth: outerLW, lineCap: .butt))
+                        .rotationEffect(.degrees(135))
+                }
 
                 // ── Inner track (touching) ────────────────────────────
                 Circle()
@@ -67,11 +71,13 @@ struct WidgetGaugeView: View {
                     .rotationEffect(.degrees(135))
                     .padding(innerPad)
 
-                Circle()
-                    .trim(from: 0, to: 0.75 * secondaryFill)
-                    .stroke(statusColor.opacity(secondaryOpacity), style: StrokeStyle(lineWidth: innerLW, lineCap: .butt))
-                    .rotationEffect(.degrees(135))
-                    .padding(innerPad)
+                if showsSecondaryMetric {
+                    Circle()
+                        .trim(from: 0, to: 0.75 * secondaryFill)
+                        .stroke(statusColor.opacity(secondaryOpacity), style: StrokeStyle(lineWidth: innerLW, lineCap: .butt))
+                        .rotationEffect(.degrees(135))
+                        .padding(innerPad)
+                }
 
                 // ── Centre ────────────────────────────────────────────
                 VStack(spacing: size * 0.04) {
@@ -83,20 +89,22 @@ struct WidgetGaugeView: View {
 
                     VStack(spacing: 0) {
                         HStack(alignment: .firstTextBaseline, spacing: 2) {
-                            Text("\(primaryPercent)%")
+                            Text(showsPrimaryMetric ? "\(primaryPercent)%" : "—")
                                 .font(.system(size: primPt, weight: .bold, design: .rounded))
-                                .foregroundStyle(statusColor)
+                                .foregroundStyle(showsPrimaryMetric ? AnyShapeStyle(statusColor) : AnyShapeStyle(.tertiary))
                             Text(primaryLabel)
                                 .font(.system(size: primPt * 0.58))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(showsPrimaryMetric ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tertiary))
                         }
-                        HStack(alignment: .firstTextBaseline, spacing: 2) {
-                            Text("\(secondaryPercent)%")
-                                .font(.system(size: secPt, weight: .semibold, design: .rounded))
-                                .foregroundStyle(statusColor.opacity(secondaryOpacity))
-                            Text(secondaryLabel)
-                                .font(.system(size: secPt * 0.7))
-                                .foregroundStyle(.tertiary)
+                        if showsSecondaryMetric {
+                            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                                Text("\(secondaryPercent)%")
+                                    .font(.system(size: secPt, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(statusColor.opacity(secondaryOpacity))
+                                Text(secondaryLabel)
+                                    .font(.system(size: secPt * 0.7))
+                                    .foregroundStyle(.tertiary)
+                            }
                         }
                     }
                 }
@@ -115,7 +123,11 @@ struct WidgetGaugeView: View {
         VStack(spacing: 2) {
             Text(label)
                 .font(.system(size: labelPt, weight: .bold))
-                .foregroundStyle(primaryLimitReached ? .red : .primary)
+                .foregroundStyle(
+                    ((showsPrimaryMetric && primaryLimitReached) || (showsSecondaryMetric && secondaryLimitReached))
+                        ? AnyShapeStyle(.red)
+                        : AnyShapeStyle(.primary)
+                )
                 .lineLimit(1)
                 .minimumScaleFactor(0.85)
                 .frame(height: labelPt * 1.2, alignment: .top)
@@ -140,7 +152,10 @@ struct WidgetGaugeView: View {
     }
 
     private var resetText: String {
-        "\(primaryLabel) reset in \(CountdownTextFormatter.duration(resetSeconds, style: .compact))"
+        if showsPrimaryMetric {
+            return "\(primaryLabel) reset in \(CountdownTextFormatter.duration(resetSeconds, style: .compact))"
+        }
+        return "\(secondaryLabel) reset in \(CountdownTextFormatter.duration(weeklyResetSeconds, style: .compact))"
     }
 
     private var secondaryCountdownText: String {

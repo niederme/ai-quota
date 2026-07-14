@@ -13,7 +13,9 @@ struct WidgetSmallView: View {
                     WidgetGaugeView(
                         primaryPercent: u.usedPercent,
                         primaryLimitReached: u.limitReached,
+                        showsPrimaryMetric: true,
                         secondaryPercent: Int(u.sevenDayUtilization?.rounded() ?? 0),
+                        showsSecondaryMetric: true,
                         icon: "logo-claude",
                         label: "Claude Code",
                         primaryLabel: u.primaryMetricLabel,
@@ -28,10 +30,13 @@ struct WidgetSmallView: View {
                 }
             } else {
                 if let u = entry.codexUsage {
+                    let hasHourlyWindow = u.hasHourlyWindow
                     WidgetGaugeView(
-                        primaryPercent: u.hourlyUsedPercent,
-                        primaryLimitReached: u.hourlyUsedPercent >= 100,
+                        primaryPercent: hasHourlyWindow ? u.hourlyUsedPercent : 0,
+                        primaryLimitReached: hasHourlyWindow && u.hourlyUsedPercent >= 100,
+                        showsPrimaryMetric: hasHourlyWindow,
                         secondaryPercent: u.weeklyUsedPercent,
+                        showsSecondaryMetric: true,
                         icon: "logo-openai",
                         label: "Codex",
                         primaryLabel: "5h",
