@@ -46,10 +46,11 @@ check_status() {
 
 check_release_page_matches_github() {
   python3 - "$BASE_URL/releases/" <<'PY'
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import sys
 from urllib.request import Request, urlopen
+from zoneinfo import ZoneInfo
 
 page_url = sys.argv[1]
 page_html = urlopen(page_url).read().decode("utf-8")
@@ -70,9 +71,15 @@ stable_releases = [
 if len(stable_releases) < 4:
     raise SystemExit("Expected at least 4 stable GitHub releases to validate site sync")
 
-def release_date(published_at: str) -> str:
-    published = datetime.strptime(published_at, "%Y-%m-%dT%H:%M:%SZ")
+def formatted_date(published: datetime) -> str:
     return f"{published.strftime('%B')} {published.day}, {published.year}"
+
+def release_dates(published_at: str) -> set[str]:
+    published_utc = datetime.strptime(
+        published_at, "%Y-%m-%dT%H:%M:%SZ"
+    ).replace(tzinfo=timezone.utc)
+    published_local = published_utc.astimezone(ZoneInfo("America/New_York"))
+    return {formatted_date(published_utc), formatted_date(published_local)}
 
 missing = []
 for index, release in enumerate(stable_releases[:4]):
@@ -84,18 +91,20 @@ for index, release in enumerate(stable_releases[:4]):
             f"AIQuota {version}",
             f"Download {version}",
             tag_url,
-            release_date(release["published_at"]),
         ]
     else:
         required_tokens = [
             f"Version {version}",
             tag_url,
-            release_date(release["published_at"]),
         ]
 
     for token in required_tokens:
         if token not in page_html:
             missing.append(token)
+
+    valid_dates = release_dates(release["published_at"])
+    if not any(date in page_html for date in valid_dates):
+        missing.append(" or ".join(sorted(valid_dates)))
 
 if missing:
     formatted = "\n".join(f"- {token}" for token in missing)
@@ -115,7 +124,7 @@ check_contains "/" "\"@type\": \"SoftwareApplication\""
 check_contains "/" "\"@id\": \"https://nieder.me/#person\""
 check_contains "/" "\"operatingSystem\": \"macOS 15 or later\""
 check_contains "/" "\"downloadUrl\": \"https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip\""
-check_contains "/" "Single or dual Menu Bar gauges across 5-hour and 7-day windows"
+check_contains "/" "Single or dual Menu Bar gauges across available 5-hour and 7-day windows"
 check_contains "/" "Desktop widgets for background visibility"
 check_contains "/" "Reset timers, plan details, and warning states"
 check_contains "/releases/" "<h1>Releases</h1>"
