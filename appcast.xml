@@ -47,7 +47,7 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.9.22</h2>  <ul><li><strong>Accurate Codex limits</strong> — AIQuota now handles accounts where Codex currently reports only the weekly limit, preserving the familiar two-ring layout while showing the correct percentage and reset time without duplicate or misleading data.</li></ul> <img src="https://github.com/niederme/ai-quota/releases/download/v1.9.22/AIQuota-1.9.22.png" alt="AIQuota 1.9.22" width="600"> 
+<h2>What's New in 1.9.22</h2>  <ul><li><strong>Accurate Codex limits</strong> — AIQuota now handles accounts where Codex currently reports only the weekly limit, preserving the familiar two-ring layout while showing the correct percentage and reset time without duplicate or misleading data.</li></ul> <img src="https://github.com/niederme/ai-quota/releases/download/v1.9.22/AIQuota-1.9.22.png" alt="AIQuota 1.9.22" width="600">
 </body>
 </html>
 ]]></description>
