@@ -20,13 +20,17 @@ struct ClaudeAuthCoordinatorTests {
         probe: @escaping ClaudeAuthCoordinator.SessionProbe,
         headlessSessionReviver: ClaudeAuthCoordinator.HeadlessSessionReviver? = nil,
         oauthCredentialsLoader: ClaudeAuthCoordinator.OAuthCredentialsLoader? = nil,
-        sessionValidator: ClaudeAuthCoordinator.SessionValidator? = nil
+        sessionValidator: ClaudeAuthCoordinator.SessionValidator? = nil,
+        webSessionClearer: ClaudeAuthCoordinator.WebSessionClearer? = nil,
+        loginWindowRunner: ClaudeAuthCoordinator.LoginWindowRunner? = nil
     ) -> ClaudeAuthCoordinator {
         ClaudeAuthCoordinator(
             probe: probe,
             headlessSessionReviver: headlessSessionReviver ?? { .notFound },
             oauthCredentialsLoader: oauthCredentialsLoader ?? { _ in throw ClaudeOAuthCredentialsError.notFound },
-            sessionValidator: sessionValidator ?? { _ in .valid(orgId: "validated-org") }
+            sessionValidator: sessionValidator ?? { _ in .valid(orgId: "validated-org") },
+            webSessionClearer: webSessionClearer ?? {},
+            loginWindowRunner: loginWindowRunner
         )
     }
 
@@ -289,6 +293,28 @@ struct ClaudeAuthCoordinatorTests {
         let credentials = try await sut.loadOAuthCredentials(allowKeychain: false)
         #expect(credentials.accessToken == "keychain-token")
         #expect(keychainCalls.value == 1)
+    }
+
+    @Test("signIn clears a rejected WebKit session before opening login")
+    func signInClearsRejectedWebSession() async throws {
+        let events = LockIsolated<[String]>([])
+        let sut = makeSUT(
+            probe: { .notFound },
+            webSessionClearer: {
+                events.withLock { $0.append("clear") }
+            },
+            loginWindowRunner: {
+                events.withLock { $0.append("login") }
+                return ("org-fresh", [])
+            }
+        )
+
+        await sut.bootstrap()
+        try await sut.signIn()
+
+        #expect(events.value == ["clear", "login"])
+        #expect(await sut.state == .authenticated)
+        #expect(try await sut.requestContext().orgId == "org-fresh")
     }
 
     @Test("signIn skips OAuth credentials after OAuth is disabled for the session")

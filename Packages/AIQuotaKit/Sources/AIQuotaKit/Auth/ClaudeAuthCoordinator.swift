@@ -62,16 +62,22 @@ public actor ClaudeAuthCoordinator {
     public typealias HeadlessSessionReviver = @Sendable () async -> ClaudeProbeResult?
     public typealias OAuthCredentialsLoader = @Sendable (_ allowKeychain: Bool) throws -> ClaudeOAuthCredentials
     public typealias SessionValidator = @Sendable (_ cookies: [HTTPCookie]) async -> ClaudeSessionValidation
+    public typealias WebSessionClearer = @Sendable () async -> Void
+    public typealias LoginWindowRunner = @Sendable () async throws -> (orgId: String, cookies: [HTTPCookie])
     private let probe: SessionProbe
     private let headlessSessionReviver: HeadlessSessionReviver
     private let oauthCredentialsLoader: OAuthCredentialsLoader
     private let sessionValidator: SessionValidator
+    private let webSessionClearer: WebSessionClearer
+    private let loginWindowRunner: LoginWindowRunner
 
     public init(
         probe: SessionProbe? = nil,
         headlessSessionReviver: HeadlessSessionReviver? = nil,
         oauthCredentialsLoader: OAuthCredentialsLoader? = nil,
-        sessionValidator: SessionValidator? = nil
+        sessionValidator: SessionValidator? = nil,
+        webSessionClearer: WebSessionClearer? = nil,
+        loginWindowRunner: LoginWindowRunner? = nil
     ) {
         self.probe = probe ?? ClaudeAuthCoordinator.wkProbe
         self.headlessSessionReviver = headlessSessionReviver ?? ClaudeAuthCoordinator.headlessWebSessionReviver
@@ -81,6 +87,8 @@ public actor ClaudeAuthCoordinator {
             )
         }
         self.sessionValidator = sessionValidator ?? ClaudeAuthCoordinator.liveSessionValidator
+        self.webSessionClearer = webSessionClearer ?? ClaudeAuthCoordinator.clearDefaultWebSession
+        self.loginWindowRunner = loginWindowRunner ?? ClaudeAuthCoordinator.showLoginWindow
     }
 
     // MARK: - State stream
@@ -187,8 +195,14 @@ public actor ClaudeAuthCoordinator {
             return
         }
 
+        // The explicit Sign In path has already failed to validate the existing
+        // WebKit session. Clear it before opening Claude so an expired session
+        // cannot redirect to an apparently signed-in homepage that AIQuota must
+        // still reject. The user should see a real authentication screen instead.
+        await webSessionClearer()
+
         do {
-            let (orgId, cookies) = try await runLoginWindow()
+            let (orgId, cookies) = try await loginWindowRunner()
             cachedOAuthCredentials = nil
             capturedOrgId = orgId
             capturedCookies = cookies
@@ -510,6 +524,10 @@ public actor ClaudeAuthCoordinator {
     }
 
     private func clearWKCookies() async {
+        await Self.clearDefaultWebSession()
+    }
+
+    private static func clearDefaultWebSession() async {
         await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
             Task { @MainActor in
                 WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
@@ -568,7 +586,7 @@ public actor ClaudeAuthCoordinator {
 
     // MARK: - Login window
 
-    private func runLoginWindow() async throws -> (orgId: String, cookies: [HTTPCookie]) {
+    private static func showLoginWindow() async throws -> (orgId: String, cookies: [HTTPCookie]) {
         try await withCheckedThrowingContinuation { continuation in
             Task { @MainActor in
                 let controller = CoordLoginWindowController { result in
