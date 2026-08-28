@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.9.25</title>
+            <title>Version 1.9.26</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -47,17 +47,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.9.25</h2>  <ul><li><strong>Updates that wait for you:</strong> automatic checks now place a small amber dot on AIQuota's menu bar gauges instead of interrupting you with a window. Open AIQuota when convenient to see the available version and start the update.</li></ul> <img src="https://github.com/niederme/ai-quota/releases/download/v1.9.25/AIQuota-1.9.25.png" alt="AIQuota 1.9.25" width="600">
+<h2>What's New in 1.9.26</h2>  <ul><li><strong>Reliable Claude reauthentication:</strong> when Claude's embedded web session has expired, AIQuota now clears it before opening Sign In so you get a fresh login screen instead of an apparently signed-in Claude window that cannot refresh usage.</li></ul>
 </body>
 </html>
 ]]></description>
-            <sparkle:version>385</sparkle:version>
-            <sparkle:shortVersionString>1.9.25</sparkle:shortVersionString>
+            <sparkle:version>386</sparkle:version>
+            <sparkle:shortVersionString>1.9.26</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.9.25/AIQuota-1.9.25-385.zip"
-                sparkle:edSignature="fn9oB/1UOyTx5JLXnxHcHQLGROILBqs8Vrud3L+QV9BeOdpLUuexkz74nTKl+BBLCXWdviH4hcMO7RaADC25BQ=="
-                length="6772594"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.9.26/AIQuota-1.9.26-386.zip"
+                sparkle:edSignature="J+Eg1dcn+zv0Z9iGGuyGuCZUnpNtX6bfGDyq/YaDFxz24f91e/4qyvoT+j8GeMJcMU7yYvtIyKtZwbEMPHlTCg=="
+                length="6778095"
                 type="application/zip"/>
         </item>
     </channel>
