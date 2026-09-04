@@ -87,7 +87,7 @@ public actor ClaudeAuthCoordinator {
             )
         }
         self.sessionValidator = sessionValidator ?? ClaudeAuthCoordinator.liveSessionValidator
-        self.webSessionClearer = webSessionClearer ?? ClaudeAuthCoordinator.clearDefaultWebSession
+        self.webSessionClearer = webSessionClearer ?? ClaudeAuthCoordinator.clearRejectedWebSession
         self.loginWindowRunner = loginWindowRunner ?? ClaudeAuthCoordinator.showLoginWindow
     }
 
@@ -224,6 +224,9 @@ public actor ClaudeAuthCoordinator {
     public func restoreWithoutPromptIfPossible(allowSignedOutByUser: Bool = false) async -> Bool {
         logger.notice("[ClaudeRecovery] requested state=\(String(describing: self.state), privacy: .public) allowSignedOutByUser=\(allowSignedOutByUser)")
         switch state {
+        case .authenticated:
+            logger.notice("[ClaudeRecovery] already authenticated")
+            return true
         case .unauthenticated:
             break
         case .signedOutByUser where allowSignedOutByUser:
@@ -527,18 +530,56 @@ public actor ClaudeAuthCoordinator {
         await Self.clearDefaultWebSession()
     }
 
+    /// A rejected Claude session needs a fresh account login, but Claude's current
+    /// login page may first issue Cloudflare challenge cookies. Keep those browser
+    /// verification cookies so a retry does not force the user through Turnstile
+    /// again. Clear the account cookies from both WebKit and URLSession; otherwise
+    /// the freshly captured WebKit session can be shadowed by URLSession's stale
+    /// `sessionKey` and the first usage request immediately returns 401.
+    private static func clearRejectedWebSession() async {
+        await clearWebKitCookies(where: shouldClearBeforeSignIn)
+        clearURLSessionCookies(where: shouldClearBeforeSignIn)
+    }
+
     private static func clearDefaultWebSession() async {
+        await clearWebKitCookies { $0.domain.contains("claude.ai") }
+        clearURLSessionCookies { $0.domain.contains("claude.ai") }
+    }
+
+    private static func clearWebKitCookies(
+        where shouldDelete: @escaping @Sendable (HTTPCookie) -> Bool
+    ) async {
         await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
             Task { @MainActor in
                 WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
-                    let claude = cookies.filter { $0.domain.contains("claude.ai") }
-                    guard !claude.isEmpty else { cont.resume(); return }
+                    let matching = cookies.filter(shouldDelete)
+                    guard !matching.isEmpty else { cont.resume(); return }
                     let g = DispatchGroup()
-                    for c in claude { g.enter(); WKWebsiteDataStore.default().httpCookieStore.delete(c) { g.leave() } }
+                    for cookie in matching {
+                        g.enter()
+                        WKWebsiteDataStore.default().httpCookieStore.delete(cookie) { g.leave() }
+                    }
                     g.notify(queue: .main) { cont.resume() }
                 }
             }
         }
+    }
+
+    private static func clearURLSessionCookies(
+        where shouldDelete: (HTTPCookie) -> Bool
+    ) {
+        for cookie in HTTPCookieStorage.shared.cookies?.filter(shouldDelete) ?? [] {
+            HTTPCookieStorage.shared.deleteCookie(cookie)
+        }
+    }
+
+    static func shouldClearBeforeSignIn(_ cookie: HTTPCookie) -> Bool {
+        guard cookie.domain.contains("claude.ai") else { return false }
+        return cookie.name == "sessionKey"
+            || cookie.name == "lastActiveOrg"
+            || cookie.name == "unified_session_manifest"
+            || cookie.name.hasPrefix("__Secure-next-auth.session-token")
+            || cookie.name.hasPrefix("next-auth.session-token")
     }
 
     @discardableResult
@@ -636,20 +677,18 @@ public actor ClaudeAuthCoordinator {
     }
 
     /// Resolves an orgId only for cookies that plausibly form a usable session.
-    /// The long-lived lastActiveOrg cookie outlives the sessionKey, so it must
+    /// The long-lived lastActiveOrg cookie outlives the account session, so it must
     /// never be trusted on its own: without server validation an expired session
     /// keeps "authenticating" from every probe site (bootstrap, sign-in, recovery,
     /// login polling) and the app loops on 401s. lastActiveOrg is only used to
-    /// pick the preferred org once the sessionKey proves valid — or, when the
+    /// pick the preferred org once the session cookies prove valid — or, when the
     /// server is unreachable, as benefit of the doubt so an offline launch
     /// doesn't visually sign the user out.
     fileprivate static func resolveOrgId(from cookies: [HTTPCookie]) async -> String? {
         let lastActiveOrg = (cookies.first(where: { $0.name == "lastActiveOrg" })?.value)
             .flatMap { $0.isEmpty ? nil : $0 }
-        guard let sessionKey = cookies.first(where: { $0.name == "sessionKey" })?.value,
-              !sessionKey.isEmpty
-        else { return nil }
-        switch await validateSession(sessionKey: sessionKey) {
+        guard hasWebSessionCookies(cookies) else { return nil }
+        switch await validateSession(cookies: cookies) {
         case .valid(let serverOrgId):
             return lastActiveOrg ?? serverOrgId
         case .invalid:
@@ -659,33 +698,43 @@ public actor ClaudeAuthCoordinator {
         }
     }
 
-    private static func organizationsRequest(url: URL, sessionKey: String) -> URLRequest {
+    private static func organizationsRequest(url: URL, cookies: [HTTPCookie]) -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.timeoutInterval = 10
-        request.setValue("sessionKey=\(sessionKey)", forHTTPHeaderField: "Cookie")
+        let cookieHeader = HTTPCookie.requestHeaderFields(with: cookies)["Cookie"]
+        request.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         return request
     }
 
-    /// Real session validator: proves the sessionKey cookie is still accepted by
+    /// Real session validator: proves the account session cookies are still accepted by
     /// the server. Never trusts long-lived cookies — an expired session must come
     /// back .invalid so revalidation can sign out.
     private static var liveSessionValidator: SessionValidator {
         { cookies in
-            guard let sessionKey = cookies.first(where: { $0.name == "sessionKey" })?.value,
-                  !sessionKey.isEmpty
-            else { return .invalid }
-            return await validateSession(sessionKey: sessionKey)
+            guard hasWebSessionCookies(cookies) else { return .invalid }
+            return await validateSession(cookies: cookies)
         }
     }
 
-    private static func validateSession(sessionKey: String) async -> ClaudeSessionValidation {
+    static func hasWebSessionCookies(_ cookies: [HTTPCookie]) -> Bool {
+        cookies.contains { cookie in
+            guard !cookie.value.isEmpty else { return false }
+            return cookie.name == "sessionKey"
+                || cookie.name == "unified_session_manifest"
+                || cookie.name.hasPrefix("__Secure-next-auth.session-token")
+                || cookie.name.hasPrefix("next-auth.session-token")
+        }
+    }
+
+    private static func validateSession(cookies: [HTTPCookie]) async -> ClaudeSessionValidation {
         guard let url = URL(string: "https://claude.ai/api/organizations") else { return .indeterminate }
-        let request = organizationsRequest(url: url, sessionKey: sessionKey)
+        let request = organizationsRequest(url: url, cookies: cookies)
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
-            guard let status = (response as? HTTPURLResponse)?.statusCode else { return .indeterminate }
+            guard let http = response as? HTTPURLResponse else { return .indeterminate }
+            let status = http.statusCode
             switch status {
             case 200:
                 // A 200 that doesn't decode is an interstitial (e.g. Cloudflare),
@@ -697,6 +746,8 @@ public actor ClaudeAuthCoordinator {
                     return .invalid
                 }
                 return .valid(orgId: orgId)
+            case 403 where isCloudflareChallenge(response: http, data: data):
+                return .indeterminate
             case 401, 403:
                 return .invalid
             default:
@@ -705,6 +756,19 @@ public actor ClaudeAuthCoordinator {
         } catch {
             return .indeterminate
         }
+    }
+
+    static func isCloudflareChallenge(response: HTTPURLResponse, data: Data) -> Bool {
+        if response.value(forHTTPHeaderField: "CF-Mitigated")?.localizedCaseInsensitiveContains("challenge") == true {
+            return true
+        }
+        guard let body = String(data: data.prefix(8_000), encoding: .utf8)?.lowercased() else {
+            return false
+        }
+        return body.contains("challenges.cloudflare.com")
+            || body.contains("cf-chl-")
+            || body.contains("verify you are human")
+            || body.contains("performing security verification")
     }
 
     @MainActor

@@ -102,6 +102,22 @@ struct ClaudeAuthCoordinatorTests {
         #expect(credentials.accessToken == "keychain-token")
     }
 
+    @Test("post-bootstrap recovery accepts an already authenticated session")
+    func postBootstrapRecoveryAcceptsAuthenticatedSession() async throws {
+        let probeCalls = LockIsolated(0)
+        let sut = makeSUT(probe: {
+            probeCalls.withLock { $0 += 1 }
+            return .found(orgId: "org-web", cookies: [])
+        })
+
+        await sut.bootstrap()
+        let restored = await sut.restoreWithoutPromptIfPossible()
+
+        #expect(restored)
+        #expect(await sut.state == .authenticated)
+        #expect(probeCalls.value == 1)
+    }
+
     @Test("post-bootstrap recovery restores an existing WebKit session")
     func postBootstrapRecoveryRestoresWebSession() async throws {
         let probeResults = LockIsolated<[ClaudeProbeResult]>([
@@ -317,6 +333,67 @@ struct ClaudeAuthCoordinatorTests {
         #expect(try await sut.requestContext().orgId == "org-fresh")
     }
 
+    @Test("rejected-session cleanup preserves Cloudflare verification cookies")
+    func rejectedSessionCleanupPreservesCloudflareCookies() throws {
+        let session = try #require(Self.cookie(name: "sessionKey", domain: ".claude.ai"))
+        let activeOrg = try #require(Self.cookie(name: "lastActiveOrg", domain: ".claude.ai"))
+        let nextAuth = try #require(Self.cookie(name: "__Secure-next-auth.session-token.0", domain: ".claude.ai"))
+        let manifest = try #require(Self.cookie(name: "unified_session_manifest", domain: ".claude.ai"))
+        let clearance = try #require(Self.cookie(name: "cf_clearance", domain: ".claude.ai"))
+        let botManagement = try #require(Self.cookie(name: "__cf_bm", domain: ".claude.ai"))
+        let unrelated = try #require(Self.cookie(name: "sessionKey", domain: ".example.com"))
+
+        #expect(ClaudeAuthCoordinator.shouldClearBeforeSignIn(session))
+        #expect(ClaudeAuthCoordinator.shouldClearBeforeSignIn(activeOrg))
+        #expect(ClaudeAuthCoordinator.shouldClearBeforeSignIn(nextAuth))
+        #expect(ClaudeAuthCoordinator.shouldClearBeforeSignIn(manifest))
+        #expect(!ClaudeAuthCoordinator.shouldClearBeforeSignIn(clearance))
+        #expect(!ClaudeAuthCoordinator.shouldClearBeforeSignIn(botManagement))
+        #expect(!ClaudeAuthCoordinator.shouldClearBeforeSignIn(unrelated))
+    }
+
+    @Test("Cloudflare challenge responses are not treated as expired sessions")
+    func recognizesCloudflareChallenge() throws {
+        let url = try #require(URL(string: "https://claude.ai/api/organizations"))
+        let response = try #require(HTTPURLResponse(
+            url: url,
+            statusCode: 403,
+            httpVersion: nil,
+            headerFields: ["CF-Mitigated": "challenge"]
+        ))
+
+        #expect(ClaudeAuthCoordinator.isCloudflareChallenge(response: response, data: Data()))
+    }
+
+    @Test("ordinary Cloudflare 403 responses still invalidate the session")
+    func doesNotMistakeOrdinaryCloudflareResponseForChallenge() throws {
+        let url = try #require(URL(string: "https://claude.ai/api/organizations"))
+        let response = try #require(HTTPURLResponse(
+            url: url,
+            statusCode: 403,
+            httpVersion: nil,
+            headerFields: ["CF-Ray": "test-ray", "Server": "cloudflare"]
+        ))
+
+        #expect(!ClaudeAuthCoordinator.isCloudflareChallenge(response: response, data: Data()))
+    }
+
+    @Test("modern split NextAuth cookies identify a Claude web session")
+    func recognizesModernClaudeWebSessionCookies() throws {
+        let firstPart = try #require(Self.cookie(
+            name: "__Secure-next-auth.session-token.0",
+            domain: ".claude.ai"
+        ))
+        let secondPart = try #require(Self.cookie(
+            name: "__Secure-next-auth.session-token.1",
+            domain: ".claude.ai"
+        ))
+        let clearance = try #require(Self.cookie(name: "cf_clearance", domain: ".claude.ai"))
+
+        #expect(ClaudeAuthCoordinator.hasWebSessionCookies([firstPart, secondPart]))
+        #expect(!ClaudeAuthCoordinator.hasWebSessionCookies([clearance]))
+    }
+
     @Test("signIn skips OAuth credentials after OAuth is disabled for the session")
     func signInSkipsOAuthAfterSessionDisable() async throws {
         let oauthCalls = LockIsolated<[Bool]>([])
@@ -498,5 +575,15 @@ struct ClaudeAuthCoordinatorTests {
             rateLimitTier: nil,
             subscriptionType: nil
         )
+    }
+
+    private static func cookie(name: String, domain: String) -> HTTPCookie? {
+        HTTPCookie(properties: [
+            .domain: domain,
+            .path: "/",
+            .name: name,
+            .value: "test-value",
+            .secure: true,
+        ])
     }
 }

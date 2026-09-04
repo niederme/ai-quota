@@ -182,6 +182,9 @@ public actor CodexAuthCoordinator {
     public func restoreWithoutPromptIfPossible(allowSignedOutByUser: Bool = false) async -> Bool {
         logger.notice("[CodexRecovery] requested state=\(String(describing: self.state), privacy: .public) allowSignedOutByUser=\(allowSignedOutByUser)")
         switch state {
+        case .authenticated:
+            logger.notice("[CodexRecovery] already authenticated")
+            return true
         case .unauthenticated:
             break
         case .signedOutByUser where allowSignedOutByUser:

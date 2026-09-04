@@ -266,6 +266,27 @@ struct CodexAuthCoordinatorTests {
         #expect(context.accountID == "web-account-123")
     }
 
+    @Test("post-bootstrap recovery accepts an already authenticated session")
+    func postBootstrapRecoveryAcceptsAuthenticatedSession() async throws {
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
+        let loaderCalls = LockIsolated(0)
+        let sut = makeSUT(
+            probe: { .notFound },
+            oauthCredentialsLoader: {
+                loaderCalls.withLock { $0 += 1 }
+                return Self.oauthCredentials(accessToken: "oauth-token", accountID: "account-123")
+            }
+        )
+
+        await sut.bootstrap()
+        let restored = await sut.restoreWithoutPromptIfPossible()
+
+        #expect(restored)
+        #expect(await sut.state == .authenticated)
+        #expect(loaderCalls.value == 1)
+    }
+
     @Test("post-bootstrap recovery restores a headless WebKit session")
     func postBootstrapRecoveryRestoresHeadlessWebSession() async throws {
         UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
