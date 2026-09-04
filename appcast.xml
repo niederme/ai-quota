@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.9.26</title>
+            <title>Version 1.9.27</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -47,17 +47,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.9.26</h2>  <ul><li><strong>Reliable Claude reauthentication:</strong> when Claude's embedded web session has expired, AIQuota now clears it before opening Sign In so you get a fresh login screen instead of an apparently signed-in Claude window that cannot refresh usage.</li></ul>
+<h2>What's New in 1.9.27</h2>  <ul><li><strong>Reliable Claude web sign-in:</strong> AIQuota now recognizes Claude's current browser sessions, including logins that pass through Cloudflare verification, so a completed web login stays connected and refreshes usage without requiring the Claude app.</li></ul>
 </body>
 </html>
 ]]></description>
-            <sparkle:version>386</sparkle:version>
-            <sparkle:shortVersionString>1.9.26</sparkle:shortVersionString>
+            <sparkle:version>387</sparkle:version>
+            <sparkle:shortVersionString>1.9.27</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.9.26/AIQuota-1.9.26-386.zip"
-                sparkle:edSignature="J+Eg1dcn+zv0Z9iGGuyGuCZUnpNtX6bfGDyq/YaDFxz24f91e/4qyvoT+j8GeMJcMU7yYvtIyKtZwbEMPHlTCg=="
-                length="6778095"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.9.27/AIQuota-1.9.27-387.zip"
+                sparkle:edSignature="4odbKmJVEwSClq/youGaVhV384z/a+JoCUoOuxheM/KPtooKC/RXZl6nrn5QS/ZKtgyW2eMkQVjYfRnoIOm1Ag=="
+                length="6789824"
                 type="application/zip"/>
         </item>
     </channel>
