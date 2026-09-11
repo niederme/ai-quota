@@ -37,6 +37,9 @@
 			<string>com.niederme.oauth</string>
 		</dict>
 	</array>
+	<!-- Export compliance: only OS-provided encryption (HTTPS, Keychain) -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.utilities</string>
 	<key>NSHumanReadableCopyright</key>
