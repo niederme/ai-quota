@@ -180,6 +180,7 @@ public enum ClaudeOAuthCredentialsStore {
         fileManager: FileManager = .default,
         keychainReader: ClaudeOAuthKeychainReader? = nil
     ) throws -> ClaudeOAuthCredentials {
+        guard AppDistribution.allowsHostCredentialDiscovery else { throw ClaudeOAuthCredentialsError.notFound }
         let url = credentialsURL(env: env, fileManager: fileManager)
         let fileError: Error?
         if fileManager.fileExists(atPath: url.path) {

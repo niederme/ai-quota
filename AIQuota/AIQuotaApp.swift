@@ -1,5 +1,7 @@
 import SwiftUI
+#if !APP_STORE
 import Sparkle
+#endif
 import AppKit
 import WidgetKit
 import AIQuotaKit
@@ -16,18 +18,24 @@ struct AIQuotaApp: App {
     // Scheduled checks surface as a quiet badge in AIQuota. Sparkle's standard
     // window is shown only after the user chooses the update from the popover.
     private let updaterViewModel: UpdaterViewModel
+    #if !APP_STORE
     private let gentleDriverDelegate: GentleSparkleDriverDelegate
     private let updaterController: SPUStandardUpdaterController
+    #endif
 
     init() {
+        #if !APP_STORE
         LegacyWebKitMigration.migrateIfNeeded(bundleIdentifier: "com.niederme.AIQuota")
         LegacyDefaultsMigration.migrateIfNeeded(bundleIdentifier: "com.niederme.AIQuota")
         LaunchServicesSync.repairIfNeeded()
+        #endif
         _viewModel = State(initialValue: QuotaViewModel())
         #if DEMO_MODE
         _demoDriver = State(initialValue: DemoDriver())
         #endif
         let updaterViewModel = UpdaterViewModel()
+        self.updaterViewModel = updaterViewModel
+        #if !APP_STORE
         let gentleDriverDelegate = GentleSparkleDriverDelegate(updaterViewModel: updaterViewModel)
         updaterController = SPUStandardUpdaterController(
             startingUpdater: true,
@@ -35,7 +43,6 @@ struct AIQuotaApp: App {
             userDriverDelegate: gentleDriverDelegate
         )
         updaterViewModel.connect(to: updaterController.updater)
-        self.updaterViewModel = updaterViewModel
         self.gentleDriverDelegate = gentleDriverDelegate
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-AIQuotaShowUpdateBadge") {
@@ -47,6 +54,7 @@ struct AIQuotaApp: App {
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
             updater.checkForUpdatesInBackground()
         }
+        #endif
         DispatchQueue.main.async {
             WidgetCenter.shared.reloadAllTimelines()
         }
@@ -178,6 +186,7 @@ struct AIQuotaApp: App {
 /// Opts AIQuota into Sparkle's "gentle reminders" mode so scheduled update
 /// alerts never steal focus from the user's active app. Required for dockless
 /// menu bar apps per Sparkle documentation.
+#if !APP_STORE
 final class GentleSparkleDriverDelegate: NSObject, SPUStandardUserDriverDelegate {
     private let updaterViewModel: UpdaterViewModel
 
@@ -217,6 +226,8 @@ final class GentleSparkleDriverDelegate: NSObject, SPUStandardUserDriverDelegate
         Task { @MainActor [updaterViewModel] in updaterViewModel.clearAvailableUpdate() }
     }
 }
+
+#endif
 
 // MARK: - Onboarding launcher
 

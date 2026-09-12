@@ -143,12 +143,15 @@ struct SettingsView: View {
                     .foregroundColor(Color.brand)
             }
 
+            #if !APP_STORE
             // MARK: Updates
             Section("Updates") {
                 Toggle("Check for updates automatically", isOn: $u.automaticallyChecksForUpdates)
                 Button("Check Now") { updater.checkForUpdates() }
                     .disabled(!updater.canCheckForUpdates)
             }
+
+            #endif
 
             // MARK: Onboarding
             Section("Onboarding") {

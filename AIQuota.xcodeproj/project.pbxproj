@@ -7,31 +7,60 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		045BF5454A00DF2152B504B9 /* WidgetIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F1F18DB5A7FD4515D863D71 /* WidgetIntent.swift */; };
+		0A551ADD42969BAB772A2B1B /* BudgetStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8078C57920AA96E74607EA71 /* BudgetStripView.swift */; };
+		0C3D35A9CE3B5A6F4B5C7816 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDE2263EBEB7008EF6988081 /* WebKit.framework */; };
+		0CCE6E70E54EBBEBC9BBA987 /* CircularGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07B0B4CEC9ACF96AC981FA29 /* CircularGaugeView.swift */; };
+		11A36406309448810F07EAE2 /* AIQuotaWidgetStore.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B8DE4A8813E1946FCC7BCCE4 /* AIQuotaWidgetStore.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		1575BAA1F4C10951443BA5C8 /* AnalyticsConsentStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89176CF3C6B8574A223A6E55 /* AnalyticsConsentStepView.swift */; };
 		168599BDC65516BFAFB4B2DF /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AFDFAA7F9E0650962EC80DC /* OnboardingView.swift */; };
 		17126B49397A4A50A1B6325F /* MenuBarIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB657B3EE7EFE0906CC89C7E /* MenuBarIconView.swift */; };
 		1EDE4F3056D8B3FE3D63FD79 /* QuotaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5F53FC0B0CEEDEB3DD6488A /* QuotaViewModel.swift */; };
+		2494810777DC407773DE4C13 /* DemoDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CC237C662A19D0C0A77A43 /* DemoDriver.swift */; };
+		2C69185386A36C7DF06FA250 /* WidgetSmallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABA7E1FF303A5852FC6BCC6 /* WidgetSmallView.swift */; };
+		31617F1EEAF0A9A374712D99 /* DemoAutoOpen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AD1CC15EEE16B262B2BBC8D /* DemoAutoOpen.swift */; };
 		41AD8FA8B9500380BF0806C8 /* AIQuotaKit in Frameworks */ = {isa = PBXBuildFile; productRef = 4107956DD8A43F21A1968899 /* AIQuotaKit */; };
+		4B1E60A90D0067714F4A261C /* MenuBarIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB657B3EE7EFE0906CC89C7E /* MenuBarIconView.swift */; };
 		4BDBDF48A5EC8E1D8DE63AEE /* DemoDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CC237C662A19D0C0A77A43 /* DemoDriver.swift */; };
+		4F6C7A991E718D7B0865CC7F /* WidgetMediumView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76B773676A8FBADF9E560DB2 /* WidgetMediumView.swift */; };
+		521C4FF74CC8E196B5DE1A33 /* UsageGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 521E05B6030711C7B85B8092 /* UsageGaugeView.swift */; };
+		534A2FB1829888762272F18A /* AnalyticsConsentStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89176CF3C6B8574A223A6E55 /* AnalyticsConsentStepView.swift */; };
 		56024A9E038E05B44FFF61FE /* WidgetMediumView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 76B773676A8FBADF9E560DB2 /* WidgetMediumView.swift */; };
+		588EA4A84FC234A5AE6FFB86 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FB0180B641391BD6AFC75C41 /* Assets.xcassets */; };
+		5CF50DFE3EEB715DC76B3F30 /* AIQuotaWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4392F2EBD4EFDCA51009B2E9 /* AIQuotaWidgetBundle.swift */; };
+		5D5FB5B02ADE5849EDD7D764 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 9209085EEB25A6FC729B4DD8 /* AppIcon.icon */; };
 		5D841348FB1352DB4D417246 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8C0ACC770721BA686B7B6401 /* Assets.xcassets */; };
+		5DE66EB0726126B4F486029E /* WidgetGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 384CCB3989C01F13B3E22D43 /* WidgetGaugeView.swift */; };
+		6455F47887C2BB81F17E59D1 /* WelcomeStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 872D4B7AB7221C3A55960CE1 /* WelcomeStepView.swift */; };
 		64E9FF14FC1DB51A9FDD0DCB /* AnalyticsAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F97C407C158BC0A25FD792 /* AnalyticsAppDelegate.swift */; };
 		66BC2E8F33FD301642167B31 /* WidgetsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AEFC74142619076ED0AB5BA /* WidgetsStepView.swift */; };
+		66CD690CF72FD5FD63E90AC2 /* AdaptiveColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3808CB512F68E5EF125F3BAB /* AdaptiveColors.swift */; };
 		67830F52D6898E3B97D79FBE /* AdaptiveColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3808CB512F68E5EF125F3BAB /* AdaptiveColors.swift */; };
 		6C522866B159D2A3FE422C0D /* UsageGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 521E05B6030711C7B85B8092 /* UsageGaugeView.swift */; };
+		6DEA77E87281F6D56AD31657 /* ServicesStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C66610C3B005AD239F7EDE75 /* ServicesStepView.swift */; };
+		70C41E7913EC6AF154B3961A /* CountdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D136AA90C5E64F0E69E5B51 /* CountdownView.swift */; };
 		72AE89A41BD0B809A9D6DAB9 /* AIQuotaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3E5BEBFAE5CBFD5ABBEB22 /* AIQuotaApp.swift */; };
 		72ED593D13B133B274DE2113 /* WelcomeStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 872D4B7AB7221C3A55960CE1 /* WelcomeStepView.swift */; };
 		7301F858542C589FF8A78E37 /* UpdaterViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE3CDEE9A5B7D5B416193D23 /* UpdaterViewModel.swift */; };
+		7368987071D51B0183E4C30B /* AIQuotaWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FC79333A7787720CC4F63B8 /* AIQuotaWidget.swift */; };
+		7523F5D910F2D69DE485335D /* UpdaterViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE3CDEE9A5B7D5B416193D23 /* UpdaterViewModel.swift */; };
 		779B5BCC2EBC1AC187C561A5 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716B00F14F1370CDAC33B5EB /* SettingsView.swift */; };
+		7804C0D72C84FB4E3C150FD2 /* AIQuotaKit in Frameworks */ = {isa = PBXBuildFile; productRef = FDE48747144C193C30BDEB55 /* AIQuotaKit */; };
+		8B47673229B9F1E88153B1E5 /* DoneStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20C382E39D030AC581CA9B4 /* DoneStepView.swift */; };
 		924F0EB6579EBF80E4C0FF46 /* WidgetIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F1F18DB5A7FD4515D863D71 /* WidgetIntent.swift */; };
 		92585202E96046BAB9CFF37E /* QuotaTimelineProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACD5E0D36B8FCEF6F2E97EFA /* QuotaTimelineProvider.swift */; };
 		94EB3B6AC94DDB40E367306C /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDE2263EBEB7008EF6988081 /* WebKit.framework */; };
+		9647B4BB043BD10C36077083 /* QuotaTimelineProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACD5E0D36B8FCEF6F2E97EFA /* QuotaTimelineProvider.swift */; };
 		96ECF77AF4F522CAF9619D23 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FB0180B641391BD6AFC75C41 /* Assets.xcassets */; };
 		98B72F5B1196475CAB2D49DB /* AIQuotaWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 76D9EEAA0A27FF50A5E170F4 /* AIQuotaWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		98F43072074B245C01E279A4 /* CountdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D136AA90C5E64F0E69E5B51 /* CountdownView.swift */; };
+		9AD32B35F559C959F1E704A5 /* AIQuotaKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6BDA6DD3060568B481F493B5 /* AIQuotaKit */; };
+		9AEFBADF15FBDEF08FEF22D8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8C0ACC770721BA686B7B6401 /* Assets.xcassets */; };
 		9FD10589109C0FC5A53692FD /* AIQuotaKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6F3F89B4746C627C8A2D541C /* AIQuotaKit */; };
+		A18B06E3FC7B69C7D7FB9683 /* WidgetsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AEFC74142619076ED0AB5BA /* WidgetsStepView.swift */; };
 		A235B96E676D7BB0D9AA389F /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = FB0002B3439366F7C9621561 /* Sparkle */; };
 		A9A9F27E1D37CC53BEA92471 /* DemoAutoOpen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AD1CC15EEE16B262B2BBC8D /* DemoAutoOpen.swift */; };
+		ADABF7DBD43E19C01A19B69B /* QuotaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5F53FC0B0CEEDEB3DD6488A /* QuotaViewModel.swift */; };
 		ADD6CD78B8173A141696E733 /* AIQuotaWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FC79333A7787720CC4F63B8 /* AIQuotaWidget.swift */; };
 		B2719944C98CCEAFFCA0BBB9 /* NotificationsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88FA3DF197FD04781EF8C4EF /* NotificationsStepView.swift */; };
 		B337EC2AC2655557CDE13EC2 /* LaunchServicesSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11BE061D1CEB4B5B6F120AD /* LaunchServicesSync.swift */; };
@@ -39,8 +68,16 @@
 		B634179F85F5BA71ADF5A25D /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 9209085EEB25A6FC729B4DD8 /* AppIcon.icon */; };
 		B9AB1446FA6064350C523453 /* WidgetGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 384CCB3989C01F13B3E22D43 /* WidgetGaugeView.swift */; };
 		BD011637B9A98BF66EB809CD /* CircularGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07B0B4CEC9ACF96AC981FA29 /* CircularGaugeView.swift */; };
+		C27FDAB7EA8FE04B0C665192 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716B00F14F1370CDAC33B5EB /* SettingsView.swift */; };
 		C85373188A0821406ACB6164 /* AnalyticsClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC4153FE01FA354752C247C /* AnalyticsClient.swift */; };
+		D2136A96C94CC1D44DCD9678 /* AnalyticsClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC4153FE01FA354752C247C /* AnalyticsClient.swift */; };
+		D2EE7B19DE3D190D84FF160E /* PopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2B4A02F2F3618A00A9FE938 /* PopoverView.swift */; };
+		DF73B1ABD010C0FC8B4B0FE5 /* NotificationsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88FA3DF197FD04781EF8C4EF /* NotificationsStepView.swift */; };
+		E104D194CAEB9FF42758406C /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = 861B6B38CC5CE37615D5E6C5 /* FirebaseAnalyticsCore */; };
+		E160ECCBCF34150E6B3A8A61 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AFDFAA7F9E0650962EC80DC /* OnboardingView.swift */; };
 		E35629D70F3650759EDF8865 /* ServicesStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C66610C3B005AD239F7EDE75 /* ServicesStepView.swift */; };
+		E8EEDCE93DA5BCE1A7910DFE /* AIQuotaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3E5BEBFAE5CBFD5ABBEB22 /* AIQuotaApp.swift */; };
+		EB9C877E7BD02197A6859862 /* AnalyticsAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F97C407C158BC0A25FD792 /* AnalyticsAppDelegate.swift */; };
 		F15449DA517BF7C4B79320DC /* PopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2B4A02F2F3618A00A9FE938 /* PopoverView.swift */; };
 		F2F0EB0760448D88611066A4 /* WidgetSmallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABA7E1FF303A5852FC6BCC6 /* WidgetSmallView.swift */; };
 		F3545CC3A5D937C4E3F40A3A /* BudgetStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8078C57920AA96E74607EA71 /* BudgetStripView.swift */; };
@@ -49,6 +86,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		572F6E8C5E1EAF381E643AB5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 09CFF270E049817DEF5BFC5E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 488B4B48280B61AC5D62076D;
+			remoteInfo = AIQuotaWidgetStore;
+		};
 		9BE022D0F59CAD90E8B44B9A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 09CFF270E049817DEF5BFC5E /* Project object */;
@@ -59,6 +103,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		42EAB1C5BCF75ACFE5D6246D /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				11A36406309448810F07EAE2 /* AIQuotaWidgetStore.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		6ED5D27AA229E2A93B14F611 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -98,12 +153,14 @@
 		88FA3DF197FD04781EF8C4EF /* NotificationsStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsStepView.swift; sourceTree = "<group>"; };
 		89176CF3C6B8574A223A6E55 /* AnalyticsConsentStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsConsentStepView.swift; sourceTree = "<group>"; };
 		8C0ACC770721BA686B7B6401 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		8CC38D18D9F63986B37AC41B /* AIQuotaStore.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AIQuotaStore.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9209085EEB25A6FC729B4DD8 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		AABA7E1FF303A5852FC6BCC6 /* WidgetSmallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSmallView.swift; sourceTree = "<group>"; };
 		ACD5E0D36B8FCEF6F2E97EFA /* QuotaTimelineProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaTimelineProvider.swift; sourceTree = "<group>"; };
 		AE3CDEE9A5B7D5B416193D23 /* UpdaterViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterViewModel.swift; sourceTree = "<group>"; };
 		B11BE061D1CEB4B5B6F120AD /* LaunchServicesSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchServicesSync.swift; sourceTree = "<group>"; };
 		B2B4A02F2F3618A00A9FE938 /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
+		B8DE4A8813E1946FCC7BCCE4 /* AIQuotaWidgetStore.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AIQuotaWidgetStore.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		C4CC237C662A19D0C0A77A43 /* DemoDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoDriver.swift; sourceTree = "<group>"; };
 		C66610C3B005AD239F7EDE75 /* ServicesStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServicesStepView.swift; sourceTree = "<group>"; };
 		D5F53FC0B0CEEDEB3DD6488A /* QuotaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaViewModel.swift; sourceTree = "<group>"; };
@@ -115,6 +172,24 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		3DD90B5ACC77B85E6C058389 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9AD32B35F559C959F1E704A5 /* AIQuotaKit in Frameworks */,
+				E104D194CAEB9FF42758406C /* FirebaseAnalyticsCore in Frameworks */,
+				0C3D35A9CE3B5A6F4B5C7816 /* WebKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6CE049D794F4C0DEC21867E4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7804C0D72C84FB4E3C150FD2 /* AIQuotaKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		B61AF08623CE07EE64CBE178 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -305,7 +380,9 @@
 			isa = PBXGroup;
 			children = (
 				05DE0EF729DDBD14B958D28B /* AIQuota.app */,
+				8CC38D18D9F63986B37AC41B /* AIQuotaStore.app */,
 				76D9EEAA0A27FF50A5E170F4 /* AIQuotaWidget.appex */,
+				B8DE4A8813E1946FCC7BCCE4 /* AIQuotaWidgetStore.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -337,6 +414,26 @@
 			productReference = 05DE0EF729DDBD14B958D28B /* AIQuota.app */;
 			productType = "com.apple.product-type.application";
 		};
+		488B4B48280B61AC5D62076D /* AIQuotaWidgetStore */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 16A43871BE1DE5784AE79582 /* Build configuration list for PBXNativeTarget "AIQuotaWidgetStore" */;
+			buildPhases = (
+				D15A63A00351B0F3DFF32A38 /* Sources */,
+				2B6F5B43B16866B08A79C7C9 /* Resources */,
+				6CE049D794F4C0DEC21867E4 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = AIQuotaWidgetStore;
+			packageProductDependencies = (
+				FDE48747144C193C30BDEB55 /* AIQuotaKit */,
+			);
+			productName = AIQuotaWidgetStore;
+			productReference = B8DE4A8813E1946FCC7BCCE4 /* AIQuotaWidgetStore.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		7F9C5CB955BB7645111CD8CE /* AIQuotaWidget */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 5F2703817290F87955BFE8E9 /* Build configuration list for PBXNativeTarget "AIQuotaWidget" */;
@@ -357,6 +454,29 @@
 			productReference = 76D9EEAA0A27FF50A5E170F4 /* AIQuotaWidget.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		7FBC56661784E238EBE58B56 /* AIQuotaStore */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BBE75612FED321B63C81BF27 /* Build configuration list for PBXNativeTarget "AIQuotaStore" */;
+			buildPhases = (
+				A3863D1B69B89798C715FD82 /* Sources */,
+				255665685D706014E15B0F2E /* Resources */,
+				3DD90B5ACC77B85E6C058389 /* Frameworks */,
+				42EAB1C5BCF75ACFE5D6246D /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AE0AEEA9DDA7F9442C4A55F3 /* PBXTargetDependency */,
+			);
+			name = AIQuotaStore;
+			packageProductDependencies = (
+				6BDA6DD3060568B481F493B5 /* AIQuotaKit */,
+				861B6B38CC5CE37615D5E6C5 /* FirebaseAnalyticsCore */,
+			);
+			productName = AIQuotaStore;
+			productReference = 8CC38D18D9F63986B37AC41B /* AIQuotaStore.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -370,7 +490,15 @@
 						DevelopmentTeam = 289GY9L343;
 						ProvisioningStyle = Automatic;
 					};
+					488B4B48280B61AC5D62076D = {
+						DevelopmentTeam = 289GY9L343;
+						ProvisioningStyle = Automatic;
+					};
 					7F9C5CB955BB7645111CD8CE = {
+						DevelopmentTeam = 289GY9L343;
+						ProvisioningStyle = Automatic;
+					};
+					7FBC56661784E238EBE58B56 = {
 						DevelopmentTeam = 289GY9L343;
 						ProvisioningStyle = Automatic;
 					};
@@ -396,12 +524,31 @@
 			projectRoot = "";
 			targets = (
 				15F2C56050333A977220B1ED /* AIQuota */,
+				7FBC56661784E238EBE58B56 /* AIQuotaStore */,
 				7F9C5CB955BB7645111CD8CE /* AIQuotaWidget */,
+				488B4B48280B61AC5D62076D /* AIQuotaWidgetStore */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		255665685D706014E15B0F2E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5D5FB5B02ADE5849EDD7D764 /* AppIcon.icon in Resources */,
+				588EA4A84FC234A5AE6FFB86 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2B6F5B43B16866B08A79C7C9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9AEFBADF15FBDEF08FEF22D8 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		906B2306FDF27E3FE30B791C /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -436,6 +583,35 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A3863D1B69B89798C715FD82 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E8EEDCE93DA5BCE1A7910DFE /* AIQuotaApp.swift in Sources */,
+				66CD690CF72FD5FD63E90AC2 /* AdaptiveColors.swift in Sources */,
+				EB9C877E7BD02197A6859862 /* AnalyticsAppDelegate.swift in Sources */,
+				D2136A96C94CC1D44DCD9678 /* AnalyticsClient.swift in Sources */,
+				534A2FB1829888762272F18A /* AnalyticsConsentStepView.swift in Sources */,
+				0A551ADD42969BAB772A2B1B /* BudgetStripView.swift in Sources */,
+				0CCE6E70E54EBBEBC9BBA987 /* CircularGaugeView.swift in Sources */,
+				70C41E7913EC6AF154B3961A /* CountdownView.swift in Sources */,
+				31617F1EEAF0A9A374712D99 /* DemoAutoOpen.swift in Sources */,
+				2494810777DC407773DE4C13 /* DemoDriver.swift in Sources */,
+				8B47673229B9F1E88153B1E5 /* DoneStepView.swift in Sources */,
+				4B1E60A90D0067714F4A261C /* MenuBarIconView.swift in Sources */,
+				DF73B1ABD010C0FC8B4B0FE5 /* NotificationsStepView.swift in Sources */,
+				E160ECCBCF34150E6B3A8A61 /* OnboardingView.swift in Sources */,
+				D2EE7B19DE3D190D84FF160E /* PopoverView.swift in Sources */,
+				ADABF7DBD43E19C01A19B69B /* QuotaViewModel.swift in Sources */,
+				6DEA77E87281F6D56AD31657 /* ServicesStepView.swift in Sources */,
+				C27FDAB7EA8FE04B0C665192 /* SettingsView.swift in Sources */,
+				7523F5D910F2D69DE485335D /* UpdaterViewModel.swift in Sources */,
+				521C4FF74CC8E196B5DE1A33 /* UsageGaugeView.swift in Sources */,
+				6455F47887C2BB81F17E59D1 /* WelcomeStepView.swift in Sources */,
+				A18B06E3FC7B69C7D7FB9683 /* WidgetsStepView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		AEE023DFD7EC2C6153008C62 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -466,9 +642,28 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D15A63A00351B0F3DFF32A38 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7368987071D51B0183E4C30B /* AIQuotaWidget.swift in Sources */,
+				5CF50DFE3EEB715DC76B3F30 /* AIQuotaWidgetBundle.swift in Sources */,
+				9647B4BB043BD10C36077083 /* QuotaTimelineProvider.swift in Sources */,
+				5DE66EB0726126B4F486029E /* WidgetGaugeView.swift in Sources */,
+				045BF5454A00DF2152B504B9 /* WidgetIntent.swift in Sources */,
+				4F6C7A991E718D7B0865CC7F /* WidgetMediumView.swift in Sources */,
+				2C69185386A36C7DF06FA250 /* WidgetSmallView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		AE0AEEA9DDA7F9442C4A55F3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 488B4B48280B61AC5D62076D /* AIQuotaWidgetStore */;
+			targetProxy = 572F6E8C5E1EAF381E643AB5 /* PBXContainerItemProxy */;
+		};
 		E9F431E501E72CE89B86B8D1 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 7F9C5CB955BB7645111CD8CE /* AIQuotaWidget */;
@@ -641,6 +836,49 @@
 			};
 			name = Demo;
 		};
+		3EA4036892F978C6CC96CF5C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "AIQuota/Resources/AIQuota-TestFlight.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 388;
+				DEVELOPMENT_TEAM = 289GY9L343;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = "AIQuota/Resources/Info-TestFlight.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota;
+				PRODUCT_NAME = AIQuota;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) APP_STORE";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		54BCF3469CFF72CC2F53D361 /* Demo */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "AIQuotaWidget/Resources/AIQuotaWidget-TestFlight.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 388;
+				DEVELOPMENT_TEAM = 289GY9L343;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = "AIQuotaWidget/Resources/Info-TestFlight.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota.widget;
+				PRODUCT_NAME = AIQuotaWidget;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) APP_STORE";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Demo;
+		};
 		65E597B74BEE9E2EA9FA0BA2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -662,6 +900,69 @@
 			};
 			name = Debug;
 		};
+		71035A2EA31EAD162E8B75FF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "AIQuota/Resources/AIQuota-TestFlight.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 388;
+				DEVELOPMENT_TEAM = 289GY9L343;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = "AIQuota/Resources/Info-TestFlight.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota;
+				PRODUCT_NAME = AIQuota;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) APP_STORE";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		94589C4E8F2087A1D66DCE68 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "AIQuotaWidget/Resources/AIQuotaWidget-TestFlight.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 388;
+				DEVELOPMENT_TEAM = 289GY9L343;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = "AIQuotaWidget/Resources/Info-TestFlight.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota.widget;
+				PRODUCT_NAME = AIQuotaWidget;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) APP_STORE";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		AB3B9C8761EB56381D4BC720 /* Demo */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "AIQuota/Resources/AIQuota-TestFlight.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 388;
+				DEVELOPMENT_TEAM = 289GY9L343;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = "AIQuota/Resources/Info-TestFlight.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota;
+				PRODUCT_NAME = AIQuota;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) APP_STORE";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Demo;
+		};
 		B261116946F2796913CE4D6D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -677,6 +978,29 @@
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota;
 				SDKROOT = macosx;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		B875106AE824C38FCDCAEC5D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "AIQuotaWidget/Resources/AIQuotaWidget-TestFlight.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 388;
+				DEVELOPMENT_TEAM = 289GY9L343;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = "AIQuotaWidget/Resources/Info-TestFlight.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota.widget;
+				PRODUCT_NAME = AIQuotaWidget;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) APP_STORE";
 				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
@@ -790,6 +1114,16 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		16A43871BE1DE5784AE79582 /* Build configuration list for PBXNativeTarget "AIQuotaWidgetStore" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B875106AE824C38FCDCAEC5D /* Debug */,
+				54BCF3469CFF72CC2F53D361 /* Demo */,
+				94589C4E8F2087A1D66DCE68 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		32BF432C6F21647FFE372D58 /* Build configuration list for PBXNativeTarget "AIQuota" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -816,6 +1150,16 @@
 				65E597B74BEE9E2EA9FA0BA2 /* Debug */,
 				32A591D82FDFFD6C6AA25D97 /* Demo */,
 				BB4EE640AED36FD3D4383434 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BBE75612FED321B63C81BF27 /* Build configuration list for PBXNativeTarget "AIQuotaStore" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3EA4036892F978C6CC96CF5C /* Debug */,
+				AB3B9C8761EB56381D4BC720 /* Demo */,
+				71035A2EA31EAD162E8B75FF /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -853,9 +1197,18 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = AIQuotaKit;
 		};
+		6BDA6DD3060568B481F493B5 /* AIQuotaKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = AIQuotaKit;
+		};
 		6F3F89B4746C627C8A2D541C /* AIQuotaKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = AIQuotaKit;
+		};
+		861B6B38CC5CE37615D5E6C5 /* FirebaseAnalyticsCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3D6FCD5A7ED571B14516168D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalyticsCore;
 		};
 		99ECBE0988C11C866C163C4A /* FirebaseAnalyticsCore */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -866,6 +1219,10 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 482320011C9DDFBCEE718F58 /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
+		};
+		FDE48747144C193C30BDEB55 /* AIQuotaKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = AIQuotaKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

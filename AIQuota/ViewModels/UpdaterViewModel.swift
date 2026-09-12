@@ -1,3 +1,14 @@
+#if APP_STORE
+import Foundation
+
+/// TestFlight and App Store builds receive updates through Apple.
+@MainActor
+@Observable
+final class UpdaterViewModel {
+    var availableUpdateVersion: String? { nil }
+    func checkForUpdates() { }
+}
+#else
 import Foundation
 import Sparkle
 
@@ -38,3 +49,5 @@ final class UpdaterViewModel {
         set { updater?.automaticallyChecksForUpdates = newValue }
     }
 }
+
+#endif

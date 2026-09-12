@@ -1,6 +1,8 @@
 # AIQuota
 
-A native macOS menu bar app for monitoring AI coding quota. Track [OpenAI Codex](https://openai.com/codex) and [Claude Code](https://claude.ai) from the menu bar and desktop widgets without living in a browser tab.
+Native apps for monitoring AI coding quota on Mac and iPhone. Track [OpenAI Codex](https://openai.com/codex) and [Claude Code](https://claude.ai) with paired gauges for five-hour and seven-day allowances.
+
+**Mac:** available through [GitHub releases](https://github.com/niederme/ai-quota/releases/latest), with menu bar monitoring and desktop widgets. **iOS:** in TestFlight testing, with independent account connections and Lock Screen widgets. Public TestFlight enrollment is not currently listed here.
 
 The marketing site in `docs/` follows the shared Codex web preview convention using `/Users/niederme/.codex/bin/codex-preview-env`. The canonical global convention lives at `/Users/niederme/~Repos/ai-dotfiles/codex/docs/web-preview-convention.md`.
 
@@ -12,7 +14,7 @@ The marketing site in `docs/` follows the shared Codex web preview convention us
 
 ---
 
-## Features
+## Mac Features
 
 - **Menu bar gauge** — compact, color-coded arc icons that show both Codex and Claude Code together by default when both services are connected
 - **Popover dashboard** — Codex and Claude Code share the same dual-arc gauge language: the 5-hour window is the outer ring when reported, and the 7-day window remains on the inner ring
@@ -30,7 +32,7 @@ The marketing site in `docs/` follows the shared Codex web preview convention us
 
 ---
 
-## Widget Lineup
+## Mac Widget Lineup
 
 - **Small** — one service, configurable per widget instance
 - **Medium (single-service)** — one service with a larger gauge and detail column
@@ -49,7 +51,7 @@ Claude reports credit spending as one combined monthly total, so AIQuota does no
 
 ---
 
-## Requirements
+## Mac Requirements
 
 - macOS 15 (Sequoia) or later
 - An OpenAI account with Codex access (Plus, Pro, or Team plan)
@@ -58,7 +60,7 @@ Claude reports credit spending as one combined monthly total, so AIQuota does no
 
 ---
 
-## Installation
+## Mac Installation
 
 1. Download `AIQuota.zip` from the [latest release](https://github.com/niederme/ai-quota/releases/latest). Sparkle updates use immutable, build-specific archives internally.
 2. Unzip and move **AIQuota** to your Applications folder
@@ -223,11 +225,20 @@ See the pre-release checklist at the top of [`scripts/release.sh`](scripts/relea
 
 ---
 
-## Roadmap
+## Roadmaps
 
-- [ ] iOS / iPadOS app — native app and home screen widgets for iPhone and iPad
-- [ ] Gemini quota support (Google AI plans)
-- [ ] Menu bar icon monochrome mode — option to disable amber/red status colours for a cleaner, always-white icon
+The Mac app is the design reference for iOS: gauge proportions, typography, system colors and materials, labels, and visual hierarchy. Adapt layouts to each platform while keeping that shared language. These lists describe priorities, not release dates.
+
+### Mac
+
+- [ ] Finish testing the separate App Store distribution configuration while preserving direct downloads and Sparkle updates.
+- [ ] Field-verify Claude Team and Enterprise support with accessible test accounts.
+- [ ] Add an optional monochrome menu bar icon mode.
+- [ ] Continue testing session recovery, widget freshness, and diagnostics across updates.
+
+<details>
+<summary>Completed Mac milestones</summary>
+
 - [x] Marketing website — `aiquota.app` is live with download, releases, and policy pages plus automated deploys from `main`
 - [x] Visualize 7-day quota reset timing — the app now surfaces 7-day reset timing when the weekly window enters the warning range
 - [x] Settings restructured — Accounts and diagnostics are combined, notifications live in one master group, and service details expand inline with checkbox-level alert options
@@ -243,12 +254,46 @@ See the pre-release checklist at the top of [`scripts/release.sh`](scripts/relea
 - [x] Dual-arc gauge — concentric tracks for 5h and 7-day windows; unavailable limits stay visibly honest instead of turning into fabricated percentages or reset times
 - [x] Widget redesign — dual-arc gauges, single-service and dual-service widget variants, improved placeholder states, and more resilient rendering after updates
 - [x] Network recovery — NWPathMonitor detects coming back online and refreshes immediately
-- [ ] Field-verify Claude Team and Enterprise support — OAuth-first sign-in, Team usage, and Enterprise spend-limit parsing are implemented; Jason's machine is now corporate-locked, so validation requires a different real Team/Enterprise tester
 - [x] Claude Code support — 5h and 7-day windows, Max plan credits, reset timers
 - [x] Harmonized window display — both services retain stable 5-hour and 7-day tracks, while provider-specific unavailable windows are clearly identified
 - [x] Widget service picker — choose Codex or Claude Code per widget instance
 - [x] Notifications — below 15%, below 5%, limit reached, quota reset; rolling-window drift no longer triggers spurious alerts
 - [x] Check for Updates — manual + silent auto-check on launch and twice daily via Sparkle, with an unobtrusive menu-bar badge and in-popover update action
+
+</details>
+
+### iOS
+
+**Working in the current TestFlight builds**
+
+- [x] Independent Codex and Claude sign-in, with credentials stored on the device.
+- [x] Stacked service cards with dual-ring gauges, percentages, reset times, and reading age.
+- [x] Lock Screen widgets: a configurable single service, paired gauges, and an alternate layout with percentages.
+- [x] Automatic session renewal, refresh on app activation, and background widget refresh requests. Actual refresh delivery remains subject to iOS scheduling and needs longer device testing.
+
+**Next**
+
+- [ ] Settings: account connections, renewal, and diagnostics behind a toolbar gear.
+- [ ] Onboarding: clear sign-in steps, provider-specific setup requirements, and widget setup.
+- [ ] UI polish: follow the Mac's typography, gauge key, spacing, materials, and color hierarchy; test smaller and larger screens, landscape, and accessibility text sizes.
+- [ ] Pull-to-refresh on the overview.
+- [ ] Launch reliability: investigate reported slow or blank launches and any associated crash reports.
+- [ ] Background reliability: measure widget freshness and session renewal on real devices, including after resets and connectivity changes.
+
+**Following**
+
+- [ ] Home Screen widgets for one or both services.
+- [ ] Reset notifications: help people return when an allowance is expected to reset, while distinguishing that estimate from confirmed availability.
+- [ ] More account detail: plan, balance, and spending information where providers make it available.
+
+### Shared exploration
+
+- [ ] Usage history across the day and week, with gaps and changing allowances handled explicitly.
+- [ ] Insightful sentence summaries that add context beyond the gauges, such as recurring busy weekdays or approaching limits. Consider local models once there is enough reliable history.
+- [ ] Evaluate CloudKit for sharing timestamped readings between a person's Mac and phone, with explicit provider-account matching and no credential syncing.
+- [ ] Investigate Gemini quota support before committing to an integration.
+
+Implementation notes: [iOS development and testing](prototypes/mobile-access/README.md) and [Mac distribution](docs/mac-distribution.md).
 
 ---
 

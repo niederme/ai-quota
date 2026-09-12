@@ -58,6 +58,7 @@ public enum CodexOAuthCredentialsStore {
         env: [String: String] = ProcessInfo.processInfo.environment,
         fileManager: FileManager = .default
     ) throws -> CodexOAuthCredentials {
+        guard AppDistribution.allowsHostCredentialDiscovery else { throw CodexOAuthCredentialsError.notFound }
         let url = authURL(env: env, fileManager: fileManager)
         guard fileManager.fileExists(atPath: url.path) else {
             throw CodexOAuthCredentialsError.notFound

@@ -14,9 +14,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "15F2C56050333A977220B1ED"
+               BlueprintIdentifier = "7FBC56661784E238EBE58B56"
                BuildableName = "AIQuota.app"
-               BlueprintName = "AIQuota"
+               BlueprintName = "AIQuotaStore"
                ReferencedContainer = "container:AIQuota.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -28,9 +28,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "7F9C5CB955BB7645111CD8CE"
+               BlueprintIdentifier = "488B4B48280B61AC5D62076D"
                BuildableName = "AIQuotaWidget.appex"
-               BlueprintName = "AIQuotaWidget"
+               BlueprintName = "AIQuotaWidgetStore"
                ReferencedContainer = "container:AIQuota.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -44,9 +44,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "15F2C56050333A977220B1ED"
+            BlueprintIdentifier = "7FBC56661784E238EBE58B56"
             BuildableName = "AIQuota.app"
-            BlueprintName = "AIQuota"
+            BlueprintName = "AIQuotaStore"
             ReferencedContainer = "container:AIQuota.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
@@ -67,9 +67,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "15F2C56050333A977220B1ED"
+            BlueprintIdentifier = "7FBC56661784E238EBE58B56"
             BuildableName = "AIQuota.app"
-            BlueprintName = "AIQuota"
+            BlueprintName = "AIQuotaStore"
             ReferencedContainer = "container:AIQuota.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -84,9 +84,9 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "15F2C56050333A977220B1ED"
+            BlueprintIdentifier = "7FBC56661784E238EBE58B56"
             BuildableName = "AIQuota.app"
-            BlueprintName = "AIQuota"
+            BlueprintName = "AIQuotaStore"
             ReferencedContainer = "container:AIQuota.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
