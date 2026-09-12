@@ -45,6 +45,16 @@ schemes:
     archive:
       config: Release
 
+  AIQuota-TestFlight:
+    build:
+      targets:
+        AIQuotaStore: all
+        AIQuotaWidgetStore: all
+    run:
+      config: Debug
+    archive:
+      config: Release
+
   AIQuota-Demo:
     build:
       targets:
@@ -53,6 +63,17 @@ schemes:
       config: Demo
     archive:
       config: Demo
+
+targetTemplates:
+  StoreDistribution:
+    settings:
+      base:
+        CURRENT_PROJECT_VERSION: "388"
+        SWIFT_VERSION: "6.0"
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) APP_STORE"
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: 289GY9L343
+        ENABLE_HARDENED_RUNTIME: YES
 
 targets:
 
@@ -66,6 +87,8 @@ targets:
       - path: AIQuota
         excludes:
           - Resources/AIQuota.entitlements
+          - Resources/AIQuota-TestFlight.entitlements
+          - Resources/Info-TestFlight.plist
           - Resources/Analytics.plist
           - Resources/GoogleService-Info.plist
     resources:
@@ -112,6 +135,8 @@ targets:
       - path: AIQuotaWidget
         excludes:
           - Resources/AIQuotaWidget.entitlements
+          - Resources/AIQuotaWidget-TestFlight.entitlements
+          - Resources/Info-TestFlight.plist
     dependencies:
       - package: AIQuotaKit
     settings:
@@ -124,3 +149,52 @@ targets:
         CODE_SIGN_ENTITLEMENTS: AIQuotaWidget/Resources/AIQuotaWidget.entitlements
         ENABLE_HARDENED_RUNTIME: YES
         INFOPLIST_FILE: AIQuotaWidget/Resources/Info.plist
+
+  # Store targets share sources, but never link or embed Sparkle.
+
+  AIQuotaStore:
+    templates: [StoreDistribution]
+    type: application
+    platform: macOS
+    sources:
+      - path: AIQuota
+        excludes:
+          - Resources/*.entitlements
+          - Resources/Info.plist
+          - Resources/Info-TestFlight.plist
+          - Resources/Analytics.plist
+          - Resources/GoogleService-Info.plist
+          - Support/LaunchServicesSync.swift
+    dependencies:
+      - package: AIQuotaKit
+      - package: Firebase
+        product: FirebaseAnalyticsCore
+      - target: AIQuotaWidgetStore
+        embed: true
+      - sdk: WebKit.framework
+    settings:
+      base:
+        PRODUCT_NAME: AIQuota
+        PRODUCT_BUNDLE_IDENTIFIER: com.niederme.AIQuota
+        CODE_SIGN_ENTITLEMENTS: AIQuota/Resources/AIQuota-TestFlight.entitlements
+        INFOPLIST_FILE: AIQuota/Resources/Info-TestFlight.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+  AIQuotaWidgetStore:
+    templates: [StoreDistribution]
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: AIQuotaWidget
+        excludes:
+          - Resources/*.entitlements
+          - Resources/Info.plist
+          - Resources/Info-TestFlight.plist
+    dependencies:
+      - package: AIQuotaKit
+    settings:
+      base:
+        PRODUCT_NAME: AIQuotaWidget
+        PRODUCT_BUNDLE_IDENTIFIER: com.niederme.AIQuota.widget
+        CODE_SIGN_ENTITLEMENTS: AIQuotaWidget/Resources/AIQuotaWidget-TestFlight.entitlements
+        INFOPLIST_FILE: AIQuotaWidget/Resources/Info-TestFlight.plist
