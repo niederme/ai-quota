@@ -102,5 +102,33 @@ private func reply(_ body: String, status: Int = 200) -> HTTPResult {
         return reply("private provider body", status: 403)
     })
     let tokens = ClaudeTokens(accessToken: "synthetic", refreshToken: nil, expiresAt: timestamp)
-    await #expect(throws: AccessError.http(403)) { try await api.usage(tokens) }
+    do {
+        _ = try await api.usage(tokens)
+        Issue.record("Expected failure")
+    } catch let error as ClaudeAccessError {
+        #expect(error.errorDescription?.contains("usage update") == true)
+        #expect(error.errorDescription?.contains("403") == true)
+        #expect(error.errorDescription?.contains("private provider body") == false)
+    }
+}
+
+
+@Test func claudeRenewalFailureOffersSafeRecovery() async throws {
+    let tokens = ClaudeTokens(accessToken: "old", refreshToken: "refresh", expiresAt: timestamp)
+    for body in [#"{"error":"invalid_grant","error_description":"secret"}"#, #"{"error":"invalid_scope"}"#] {
+        let api = ClaudeAPI(transport: ClaudeMock { _ in reply(body, status: 400) })
+        do {
+            _ = try await api.renew(tokens)
+            Issue.record("Expected renewal failure")
+        } catch let error as ClaudeAccessError {
+            let message = error.errorDescription ?? ""
+            #expect(!message.contains("secret"))
+            if body.contains("invalid_grant") {
+                #expect(message.contains("Reconnect Claude"))
+            } else {
+                #expect(message.contains("sign-in renewal"))
+                #expect(message.contains("400"))
+            }
+        }
+    }
 }

@@ -925,21 +925,32 @@ private struct CodexCreditsRow: View {
         return min(max(autoReload.rechargeThreshold / target, 0), 1)
     }
 
+    private var balanceAmount: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 5) {
+            Text("Balance:").font(.caption2).foregroundStyle(.secondary)
+            Text(balanceText).font(.caption2.monospacedDigit()).foregroundStyle(valueTint)
+        }.fixedSize()
+    }
+    @ViewBuilder private var reloadStatus: some View {
+        if let statusText {
+            Text(statusText).font(.caption2.weight(.semibold)).foregroundStyle(statusTint)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+    private var balanceLine: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 5) {
+            balanceAmount
+            Spacer(minLength: 4)
+            reloadStatus.fixedSize()
+        }
+    }
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline, spacing: 5) {
-                Text("Balance:")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Text(balanceText)
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(valueTint)
-                Spacer(minLength: 4)
-                if let statusText {
-                    Text(statusText)
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(statusTint)
-                        .lineLimit(1)
+            ViewThatFits(in: .horizontal) {
+                balanceLine
+                VStack(alignment: .leading, spacing: 2) {
+                    balanceAmount
+                    reloadStatus
                 }
             }
 

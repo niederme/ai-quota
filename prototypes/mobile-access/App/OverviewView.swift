@@ -2,6 +2,7 @@ import SwiftUI
 import MobileAccessCore
 
 struct OverviewView: View {
+    @AppStorage("refreshIntervalMinutes") private var refreshMinutes = 0
     @State private var codex = ProbeModel()
     @State private var navigationID = UUID()
     @State private var showCodex = false
@@ -15,24 +16,37 @@ struct OverviewView: View {
             GeometryReader { geometry in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
-                        Text("Allowance used")
-                            .font(.subheadline).foregroundStyle(.secondary)
+                        ViewThatFits(in: .horizontal) {
+                            HStack {
+                                Text("Allowance used").foregroundStyle(.secondary)
+                                Spacer()
+                                gaugeKey
+                            }
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Allowance used").foregroundStyle(.secondary)
+                                gaugeKey
+                            }
+                        }.font(.subheadline)
                         VStack(spacing: 16) {
-                            ProviderDialCard(name: "Codex", icon: "logo-openai", reading: codex.reading,
+                            ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 780) - 40, reading: codex.reading,
                                              connected: codex.connected, busy: codex.busy, error: codex.error) {
                                 ProbeView(model: codex)
                             }
-                            ProviderDialCard(name: "Claude", icon: "logo-claude", reading: claude.reading,
+                            ProviderDialCard(name: "Claude", icon: "logo-claude", availableWidth: min(geometry.size.width, 780) - 40, reading: claude.reading,
                                              connected: claude.connected, busy: claude.busy, error: claude.error) {
                                 ClaudeProbeView(model: claude)
                             }
                         }
-                        Text("Outer arc · 5 hours    Inner arc · 7 days")
-                            .font(.caption).foregroundStyle(.secondary)
+
                     }
                     .padding(20)
                     .frame(maxWidth: 780)
                     .frame(maxWidth: .infinity)
+                }
+                .refreshable {
+                    async let first: Void = codex.refreshAndWait()
+                    async let second: Void = claude.refreshAndWait()
+                    _ = await (first, second)
                 }
                 .background(Color(uiColor: .systemGroupedBackground))
             }
@@ -56,25 +70,56 @@ struct OverviewView: View {
                 codex.refreshOnOpen()
                 claude.refreshOnOpen()
             }
+            .task(id: "\(scenePhase)-\(refreshMinutes)") {
+                guard scenePhase == .active else { return }
+                while !Task.isCancelled {
+                    let windows = [codex.reading?.shortTerm, codex.reading?.weekly,
+                                   claude.reading?.shortTerm, claude.reading?.weekly]
+                    let nearLimit = windows.compactMap { $0?.usedPercent }.contains { $0 >= 85 }
+                    let minutes = refreshMinutes == 0 ? (nearLimit ? 1 : 5) : max(1, refreshMinutes)
+                    do { try await Task.sleep(for: .seconds(minutes * 60)) }
+                    catch { return }
+                    async let first: Void = codex.refreshAndWait()
+                    async let second: Void = claude.refreshAndWait()
+                    _ = await (first, second)
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         codex.refresh()
                         claude.refresh()
                     } label: {
-                        Image(systemName: "arrow.clockwise")
+                        if codex.busy || claude.busy { ProgressView() }
+                        else { Image(systemName: "arrow.clockwise") }
                     }
-                    .accessibilityLabel("Refresh all usage")
-                    .disabled((!codex.connected || codex.busy) && (!claude.connected || claude.busy))
+                    .disabled(codex.busy || claude.busy)
+                    .accessibilityLabel("Refresh usage")
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        MobileSettingsView(codex: codex, claude: claude)
+                    } label: { Image(systemName: "gearshape") }
+                    .accessibilityLabel("Settings")
                 }
             }
         }.id(navigationID).tint(Color(uiColor: .systemPurple))
     }
+    private var gaugeKey: some View {
+        HStack(spacing: 12) {
+            Label("5h", systemImage: "circle.fill").foregroundStyle(Color(uiColor: .systemPurple))
+                .accessibilityLabel("Outer ring: five-hour allowance")
+            Label("7d", systemImage: "circle.fill").foregroundStyle(Color(uiColor: .systemPurple).opacity(0.45))
+                .accessibilityLabel("Inner ring: seven-day allowance")
+        }.labelStyle(GaugeKeyStyle()).fontWeight(.semibold)
+    }
+
 }
 
-private struct ProviderDialCard<Destination: View>: View {
+struct ProviderDialCard<Destination: View>: View {
     let name: String
     let icon: String
+    let availableWidth: CGFloat
     let reading: QuotaReading?
     let connected: Bool
     let busy: Bool
@@ -98,17 +143,19 @@ private struct ProviderDialCard<Destination: View>: View {
         .buttonStyle(.plain)
         .accessibilityHint(connected ? "Opens \(name) account details" : "Connect \(name)")
     }
-    private var cardContent: some View {
-        ViewThatFits(in: .horizontal) {
-            if !typeSize.isAccessibilitySize {
+    var cardContent: some View {
+        Group {
+            // Choose columns from the available space, not the text's unwrapped ideal width.
+            if !typeSize.isAccessibilitySize && availableWidth >= min(dialSize, 300) + 16 + 120 + 40 {
                 HStack(alignment: .top, spacing: 16) {
                     identity
                     details.frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
                 }
-            }
-            VStack(alignment: .leading, spacing: 16) {
-                identity.frame(maxWidth: .infinity, alignment: .leading)
-                details
+            } else {
+                VStack(alignment: .leading, spacing: 16) {
+                    identity.frame(maxWidth: .infinity, alignment: .leading)
+                    details
+                }
             }
         }
         .padding(20)
@@ -162,6 +209,7 @@ private struct ProviderDialCard<Destination: View>: View {
                 resetCaption(reading?.shortTerm, label: "5h")
                 resetCaption(reading?.weekly, label: "7d")
             }
+            accountMetadata
             TimelineView(.periodic(from: .now, by: 60)) { context in
                 VStack(alignment: .leading, spacing: 4) {
                     if busy { Text("Updating…") }
@@ -178,10 +226,27 @@ private struct ProviderDialCard<Destination: View>: View {
         }
         .fixedSize(horizontal: false, vertical: true)
     }
+    @ViewBuilder private var accountMetadata: some View {
+        if let data = reading?.metadata, data.plan != nil || data.balanceUSD != nil || data.usageSpent != nil {
+            VStack(alignment: .leading, spacing: 5) {
+                if let plan = data.plan { metadataRow("Plan", value: plan.capitalized) }
+                if let balance = data.balanceUSD { metadataRow("Balance", value: balance.formatted(.currency(code: "USD"))) }
+                if let spent = data.usageSpent {
+                    metadataRow(name == "Codex" ? "Spent this month" : "Usage credits", value: data.usageCurrency.map { spent.formatted(.currency(code: $0)) + " spent" }
+                        ?? spent.formatted(.number.precision(.fractionLength(0...2))) + " credits spent", spending: true)
+                }
+            }.padding(.vertical, 4)
+        }
+    }
+    private func metadataRow(_ label: String, value: String, spending: Bool = false) -> some View {
+        (Text("\(label): ").foregroundColor(.secondary) + Text(value).fontWeight(.semibold)
+            .foregroundColor(spending ? Color(uiColor: .systemOrange) : .primary))
+            .font(.caption).fixedSize(horizontal: false, vertical: true)
+    }
     private func resetCaption(_ window: QuotaWindow?, label: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             if let reset = window?.resetsAt {
-                Text("\(label) resets").foregroundStyle(.secondary)
+                Text("\(label) resets")
                 Text(reset.formatted(.dateTime.weekday(.abbreviated).hour().minute()))
                     .fontWeight(.semibold)
             } else {
@@ -189,7 +254,7 @@ private struct ProviderDialCard<Destination: View>: View {
             }
         }
         .font(.subheadline)
-        .foregroundStyle(label == "5h" ? tint : tint.opacity(contrast == .increased ? 0.9 : 0.7))
+        .foregroundStyle(tint.opacity(contrast == .increased ? 1 : (label == "5h" ? (worst >= 85 ? 1 : 0.85) : (worst >= 85 ? 0.75 : 0.65))))
     }
     private func arc(_ window: QuotaWindow?, width: CGFloat, opacity: Double) -> some View {
         ZStack {
@@ -200,5 +265,11 @@ private struct ProviderDialCard<Destination: View>: View {
                     .stroke(tint.opacity(opacity), style: StrokeStyle(lineWidth: width, lineCap: .butt))
             }
         }.rotationEffect(.degrees(135))
+    }
+}
+
+private struct GaugeKeyStyle: LabelStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        HStack(spacing: 3) { configuration.icon.font(.system(size: 6)); configuration.title }
     }
 }

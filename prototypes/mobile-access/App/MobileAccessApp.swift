@@ -20,7 +20,6 @@ struct ProbeView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Codex account").font(.title.bold())
                         Text(model.message).font(.callout).accessibilityIdentifier("probe.status")
                     }
                     if !model.connected {
@@ -78,7 +77,7 @@ struct ProbeView: View {
                     } else if model.connected {
                         VStack(alignment: .leading, spacing: 12) {
                             Button("Refresh quota") { model.refresh() }.buttonStyle(.borderedProminent)
-                            Button("Refresh connection") { model.refresh(forceRenewal: true) }
+                            Button("Reconnect Codex") { model.connect() }
                             if let date = model.renewedAt {
                                 Text("Renewed \(date.formatted(date: .omitted, time: .standard))")
                                     .font(.caption).foregroundStyle(.secondary)

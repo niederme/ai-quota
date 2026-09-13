@@ -80,6 +80,10 @@ public struct QuotaReading: Codable, Sendable, Equatable {
     public let fetchedAt: Date
     public let shortTerm: QuotaWindow?
     public let weekly: QuotaWindow?
+    public let metadata: AccountMetadata?
+    public init(fetchedAt: Date, shortTerm: QuotaWindow?, weekly: QuotaWindow?, metadata: AccountMetadata? = nil) {
+        self.fetchedAt = fetchedAt; self.shortTerm = shortTerm; self.weekly = weekly; self.metadata = metadata
+    }
     public static func decode(_ data: Data, now: Date) throws -> Self {
         let raw = try JSONDecoder().decode(UsageResponse.self, from: data)
         let windows = [raw.rateLimit?.primary, raw.rateLimit?.secondary].compactMap { $0 }
@@ -92,12 +96,23 @@ public struct QuotaReading: Codable, Sendable, Equatable {
         let short = parsed.first { $0.durationSeconds < 6 * 86400 }
         let week = parsed.first { $0.durationSeconds >= 6 * 86400 }
         guard short != nil || week != nil else { throw AccessError.noWindows }
-        return Self(fetchedAt: now, shortTerm: short, weekly: week)
+        let balance = raw.credits?.balance?.value
+        let metadata = AccountMetadata(plan: raw.planType, balanceUSD: balance.map { $0 / 25 }, usageSpent: nil, usageCurrency: nil)
+        return Self(fetchedAt: now, shortTerm: short, weekly: week, metadata: metadata)
     }
 }
 private struct UsageResponse: Decodable {
     let rateLimit: UsageLimit?
-    enum CodingKeys: String, CodingKey { case rateLimit = "rate_limit" }
+    let planType: String?
+    let credits: Credits?
+    struct Credits: Decodable { let balance: MetadataNumber? }
+    enum CodingKeys: String, CodingKey { case rateLimit = "rate_limit", planType = "plan_type", credits }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        rateLimit = try c.decodeIfPresent(UsageLimit.self, forKey: .rateLimit)
+        planType = try? c.decode(String.self, forKey: .planType)
+        credits = try? c.decode(Credits.self, forKey: .credits)
+    }
 }
 private struct UsageLimit: Decodable {
     let primary: UsageWindow?
@@ -141,7 +156,7 @@ public struct CodexAPI: Sendable {
         return try await tokenRequest(["grant_type": "refresh_token", "refresh_token": refresh,
             "client_id": Self.clientID], previous: tokens, now: now)
     }
-    public func usage(_ tokens: CodexTokens, now: Date? = nil) async throws -> QuotaReading {
+    public func usage(_ tokens: CodexTokens, now: Date? = nil, includeSpending: Bool = false) async throws -> QuotaReading {
         var req = URLRequest(url: URL(string: "https://chatgpt.com/backend-api/wham/usage")!)
         req.setValue("Bearer \(tokens.accessToken)", forHTTPHeaderField: "Authorization")
         req.setValue(tokens.accountID, forHTTPHeaderField: "ChatGPT-Account-Id")
@@ -149,7 +164,35 @@ public struct CodexAPI: Sendable {
         req.setValue("https://chatgpt.com/codex/settings/usage", forHTTPHeaderField: "Referer")
         let r = try await transport.send(req)
         try validate(r)
-        return try QuotaReading.decode(r.data, now: now ?? .now)
+        let reading = try QuotaReading.decode(r.data, now: now ?? .now)
+        guard includeSpending else { return reading }
+        req.url = URL(string: "https://chatgpt.com/backend-api/wham/usage/credit-usage-events")!
+        req.timeoutInterval = 5
+        // Optional metadata must not turn a successful quota fetch into a failure.
+        guard let response = try? await transport.send(req), (200..<300).contains(response.status),
+              let spent = try? Self.decodeSpending(response.data, now: reading.fetchedAt) else { return reading }
+        return QuotaReading(fetchedAt: reading.fetchedAt, shortTerm: reading.shortTerm, weekly: reading.weekly,
+            metadata: AccountMetadata(plan: reading.metadata?.plan, balanceUSD: reading.metadata?.balanceUSD,
+                usageSpent: spent, usageCurrency: "USD"))
+    }
+    public static func decodeSpending(_ data: Data, now: Date, calendar: Calendar = .current) throws -> Double {
+        struct Events: Decodable {
+            struct Event: Decodable { let date: String; let credit_amount: Double }
+            let data: [Event]
+        }
+        let events = try JSONDecoder().decode(Events.self, from: data)
+        guard let interval = calendar.dateInterval(of: .month, for: now) else { throw AccessError.invalidResponse }
+        let formatter = DateFormatter()
+        formatter.calendar = calendar; formatter.timeZone = calendar.timeZone
+        formatter.locale = Locale(identifier: "en_US_POSIX"); formatter.dateFormat = "yyyy-MM-dd"
+        var total = 0.0
+        for event in events.data {
+            guard event.credit_amount.isFinite, event.credit_amount >= 0,
+                  let date = formatter.date(from: event.date) else { throw AccessError.invalidResponse }
+            if interval.contains(date) { total += event.credit_amount }
+        }
+        guard total.isFinite else { throw AccessError.invalidResponse }
+        return total / 25
     }
     private func tokenRequest(_ values: [String: String], previous: CodexTokens?, now: Date) async throws -> CodexTokens {
         var req = URLRequest(url: URL(string: "https://auth.openai.com/oauth/token")!)

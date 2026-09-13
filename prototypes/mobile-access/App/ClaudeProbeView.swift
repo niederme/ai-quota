@@ -10,7 +10,6 @@ struct ClaudeProbeView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("Claude account").font(.title.bold())
                 Text(model.message).font(.callout)
                 if let reading = model.reading {
                     window(reading.shortTerm, label: "5 hours")
@@ -26,9 +25,9 @@ struct ClaudeProbeView: View {
                 if model.busy {
                     ProgressView()
                     Button("Cancel") { model.cancel(); pastedCode = "" }
-                } else if model.connected {
+                } else if model.connected && model.challenge == nil {
                     Button("Refresh quota") { model.refresh() }.buttonStyle(.borderedProminent)
-                    Button("Refresh connection") { model.refresh(forceRenewal: true) }
+                    Button("Reconnect Claude") { model.connect() }
                     if let date = model.renewedAt {
                         Text("Renewed \(date.formatted(date: .omitted, time: .standard))").font(.caption)
                     }
@@ -57,6 +56,7 @@ struct ClaudeProbeView: View {
             }.padding(24).frame(maxWidth: 700, alignment: .leading).frame(maxWidth: .infinity)
         }
         .navigationTitle("Claude account")
+        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showSignIn) {
             if let challenge = model.challenge {
                 ProbeBrowser(url: challenge.authorizationURL)

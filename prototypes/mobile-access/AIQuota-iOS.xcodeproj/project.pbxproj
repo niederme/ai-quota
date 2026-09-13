@@ -24,6 +24,7 @@
 		8C49EF9DB327A25206639D8A /* CodexLockScreen.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E703D1EFA432262D61E2FCE4 /* CodexLockScreen.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		8C85F5F54B15A0FBCDB288B4 /* TokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FFBABD81D84B816E058A18A /* TokenStore.swift */; };
 		AFE691967BB0010B230C74FE /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = D105C10D001CB467312EC68F /* AppIcon.icon */; };
+		B7006AC17E028F428A769717 /* MobileSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC6483FA9D6F3174B3E47F3D /* MobileSettingsView.swift */; };
 		CC5F281DB85E8B6C7066CA4C /* SharedQuotaStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8924102467BA8034DBE2CECD /* SharedQuotaStoreTests.swift */; };
 		CFAF8A80448A91B7EF75781E /* MobileAccessCore in Frameworks */ = {isa = PBXBuildFile; productRef = 173CF8E181A83E5F34DA278D /* MobileAccessCore */; };
 		D8DCDC8B4830C0460D879B02 /* ClaudeProbeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25D0C914A09E992523B60A79 /* ClaudeProbeModel.swift */; };
@@ -89,6 +90,7 @@
 		D105C10D001CB467312EC68F /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		E2681A208A2007E5167B5903 /* CompactQuotaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompactQuotaView.swift; sourceTree = "<group>"; };
 		E703D1EFA432262D61E2FCE4 /* CodexLockScreen.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = CodexLockScreen.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		EC6483FA9D6F3174B3E47F3D /* MobileSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileSettingsView.swift; sourceTree = "<group>"; };
 		F9302F08CDA8C2099F522EB6 /* TokenStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenStoreTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -148,6 +150,7 @@
 				126972287BBBDE180220E188 /* ClaudeTokenStore.swift */,
 				23DBF6CBC5AEF8D221D5EA51 /* Info.plist */,
 				667DECCAD3629416AE8E1184 /* MobileAccessApp.swift */,
+				EC6483FA9D6F3174B3E47F3D /* MobileSettingsView.swift */,
 				544AA7837A218AFDE7979ECA /* OverviewView.swift */,
 				652482B3FBA0A241F21DF910 /* PrivacyInfo.xcprivacy */,
 				59F4F1B59FFE30E899E31F8D /* ProbeModel.swift */,
@@ -362,6 +365,7 @@
 				33446789E7BF9AACA7AB3131 /* ClaudeTokenStore.swift in Sources */,
 				75693BD6C1BF90BE6314D47F /* CompactQuotaView.swift in Sources */,
 				5A46369816A5946D839E4BD1 /* MobileAccessApp.swift in Sources */,
+				B7006AC17E028F428A769717 /* MobileSettingsView.swift in Sources */,
 				746C4447FF212224EBC1C74F /* OverviewView.swift in Sources */,
 				4425E8D24C7474C6DAE872D0 /* ProbeModel.swift in Sources */,
 				E3D30E50AB75A441C40715E3 /* SharedQuotaStore.swift in Sources */,
@@ -446,7 +450,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 8;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -484,6 +488,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Shared/Mobile.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "AI Quota";
@@ -506,6 +511,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Shared/Mobile.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = App/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "AI Quota";
@@ -574,7 +580,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 8;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_NS_ASSERTIONS = NO;

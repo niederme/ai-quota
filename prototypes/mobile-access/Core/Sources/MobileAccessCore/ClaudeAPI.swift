@@ -4,8 +4,20 @@ import Security
 
 public enum ClaudeAccessError: Error, LocalizedError, Sendable {
     case invalidCode, expiredChallenge
+    case requestFailed(stage: String, status: Int)
+    case reconnectRequired
+
+    public var requiresReconnect: Bool {
+        switch self {
+        case .reconnectRequired: true
+        case .requestFailed(_, let status): status == 401
+        default: false
+        }
+    }
     public var errorDescription: String? {
         switch self {
+        case .reconnectRequired: "Claude could not renew this sign-in. Reconnect Claude to continue. Your last reading is saved."
+        case let .requestFailed(stage, status): "Claude \(stage) failed (HTTP \(status)). Try again. Your last reading is saved."
         case .invalidCode: "Paste the complete authorization code from the sign-in page for this connection."
         case .expiredChallenge: "This sign-in attempt expired. Start a new connection."
         }
@@ -91,7 +103,14 @@ public struct ClaudeAPI: Sendable {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONEncoder().encode(body)
         let response = try await transport.send(request)
-        guard (200..<300).contains(response.status) else { throw AccessError.http(response.status) }
+        guard (200..<300).contains(response.status) else {
+            // Only classify a known OAuth code; never expose provider response text.
+            let object = try? JSONSerialization.jsonObject(with: response.data) as? [String: Any]
+            if previous != nil, object?["error"] as? String == "invalid_grant" {
+                throw ClaudeAccessError.reconnectRequired
+            }
+            throw ClaudeAccessError.requestFailed(stage: previous == nil ? "sign-in" : "sign-in renewal", status: response.status)
+        }
         let raw = try JSONDecoder().decode(TokenResponse.self, from: response.data)
         guard !raw.access_token.isEmpty, raw.expires_in.isFinite, raw.expires_in > 0 else { throw AccessError.invalidResponse }
         return ClaudeTokens(accessToken: raw.access_token, refreshToken: raw.refresh_token ?? previous?.refreshToken,
@@ -104,7 +123,7 @@ public struct ClaudeAPI: Sendable {
         request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
         request.setValue("AIQuotaMobileProbe/0.1", forHTTPHeaderField: "User-Agent")
         let response = try await transport.send(request)
-        guard (200..<300).contains(response.status) else { throw AccessError.http(response.status) }
+        guard (200..<300).contains(response.status) else { throw ClaudeAccessError.requestFailed(stage: "usage update", status: response.status) }
         return try Self.decodeUsage(response.data, now: now ?? .now)
     }
     public static func decodeUsage(_ data: Data, now: Date) throws -> QuotaReading {
@@ -128,13 +147,37 @@ public struct ClaudeAPI: Sendable {
         let short = try window(raw.five_hour, duration: 18000)
         let weekly = try window(raw.seven_day, duration: 604800)
         guard short != nil || weekly != nil else { throw AccessError.noWindows }
-        return QuotaReading(fetchedAt: now, shortTerm: short, weekly: weekly)
+        // Match the Mac OAuth path: extra_usage values are already provider units.
+        // Structured spend amounts use the supplied exponent, not a fixed cents assumption.
+        let money = raw.spend?.used
+        let amount = money.flatMap { value -> Double? in
+            guard let minor = value.amount_minor?.value, let exponent = value.exponent, (0...6).contains(exponent) else { return nil }
+            return minor / pow(10, Double(exponent))
+        }
+        let metadata = AccountMetadata(plan: nil, balanceUSD: nil,
+            usageSpent: amount ?? raw.extra_usage?.used_credits?.value,
+            usageCurrency: amount != nil ? money?.currency : raw.extra_usage?.currency)
+        return QuotaReading(fetchedAt: now, shortTerm: short, weekly: weekly, metadata: metadata)
     }
     private struct TokenResponse: Decodable {
         let access_token: String
         let refresh_token: String?
         let expires_in: Double
     }
-    private struct UsageResponse: Decodable { let five_hour: Window?; let seven_day: Window? }
+    private struct UsageResponse: Decodable {
+        let five_hour: Window?; let seven_day: Window?
+        let extra_usage: ExtraUsage?; let spend: Spend?
+        enum CodingKeys: String, CodingKey { case five_hour, seven_day, extra_usage, spend }
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            five_hour = try c.decodeIfPresent(Window.self, forKey: .five_hour)
+            seven_day = try c.decodeIfPresent(Window.self, forKey: .seven_day)
+            extra_usage = try? c.decode(ExtraUsage.self, forKey: .extra_usage)
+            spend = try? c.decode(Spend.self, forKey: .spend)
+        }
+    }
+    private struct ExtraUsage: Decodable { let used_credits: MetadataNumber?; let currency: String? }
+    private struct Spend: Decodable { let used: Money? }
+    private struct Money: Decodable { let amount_minor: MetadataNumber?; let exponent: Int?; let currency: String? }
     private struct Window: Decodable { let utilization: Double?; let resets_at: String? }
 }

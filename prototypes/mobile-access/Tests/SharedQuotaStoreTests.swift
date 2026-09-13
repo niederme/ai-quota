@@ -89,3 +89,60 @@ final class SharedQuotaStoreTests: XCTestCase {
         try await clean(codex)
     }
 }
+
+// Render representative long-metadata cards for visual review without provider access.
+import SwiftUI
+final class OverviewLayoutReviewTests: XCTestCase {
+    @MainActor func testOverviewAppearances() throws {
+        for (name, percent, scheme) in [
+            ("purple-dark", 42.0, ColorScheme.dark),
+            ("orange-light", 87.0, .light),
+            ("red-dark", 100.0, .dark)
+        ] {
+            let raw = """
+            {"fetchedAt":\(Date.now.timeIntervalSinceReferenceDate),"shortTerm":{"usedPercent":\(percent),"durationSeconds":18000,"resetsAt":800003600},"weekly":{"usedPercent":47,"durationSeconds":604800,"resetsAt":800086400},"metadata":{"plan":"Plus","balanceUSD":9.75,"usageSpent":93.77,"usageCurrency":"USD"}}
+            """
+            let reading = try JSONDecoder().decode(QuotaReading.self, from: Data(raw.utf8))
+            let view = ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: 362,
+                reading: reading, connected: true, busy: false, error: nil) { Text("Account") }.cardContent
+                .frame(width: 362).padding(20)
+                .background(Color(uiColor: .systemGroupedBackground))
+                .environment(\.colorScheme, scheme)
+            let renderer = ImageRenderer(content: view)
+            renderer.scale = 2
+            let image = try XCTUnwrap(renderer.uiImage)
+            XCTAssertLessThan(image.size.height, 450, "Metadata must remain beside the gauge at phone width.")
+            let attachment = XCTAttachment(image: image)
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+            let path = FileManager.default.temporaryDirectory.appendingPathComponent("aiquota-" + name + ".png")
+            try image.pngData()?.write(to: path)
+            print("LAYOUT_REVIEW " + path.path)
+        }
+    }
+}
+
+final class WidgetLayoutReviewTests: XCTestCase {
+    @MainActor func testMixedWidgetProportions() throws {
+        let reading = try sample()
+        for service in QuotaService.allCases {
+            let value = ProviderReading(service: service, reading: reading, needsApp: false)
+            let view = HStack(spacing: 16) {
+                ServiceDetailsView(value: value, date: .now).frame(width: 160, height: 56)
+                CodexDial(value: value, date: .now, logoScale: 0.8).frame(width: 56, height: 56)
+                CodexDial(value: value, date: .now).frame(width: 56, height: 56)
+            }.padding(12).background(Color.black).environment(\.colorScheme, .dark)
+            let renderer = ImageRenderer(content: view)
+            renderer.scale = 3
+            let image = try XCTUnwrap(renderer.uiImage)
+            let attachment = XCTAttachment(image: image)
+            attachment.name = "Mixed widgets " + service.name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+            let path = FileManager.default.temporaryDirectory.appendingPathComponent("widgets-" + service.rawValue + ".png")
+            try image.pngData()?.write(to: path)
+            print("LAYOUT_REVIEW " + path.path)
+        }
+    }
+}

@@ -34,7 +34,7 @@ final class ProbeModel {
         } catch { self.error = "Could not read this device’s saved connection." }
     }
     func connect() {
-        guard !busy, !connected else { return }
+        guard !busy else { return }
         run { [self] in
             let newChallenge = try await api.requestChallenge()
             try Task.checkCancellation()
@@ -64,6 +64,10 @@ final class ProbeModel {
     func refresh(forceRenewal: Bool = false) {
         guard !busy, connected else { return }
         run { [self] in try await fetch(forceRenewal: forceRenewal) }
+    }
+    func refreshAndWait() async {
+        refresh()
+        await work?.value
     }
     func refreshOnOpen() {
         guard !busy, connected else { return }

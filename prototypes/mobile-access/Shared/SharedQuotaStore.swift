@@ -114,7 +114,7 @@ struct SharedQuotaStore: Sendable {
         case .codex:
             let api = CodexAPI()
             return try await fetch(CodexTokens.self, source: source, forceRenewal: forceRenewal, minimumAge: minimumAge,
-                                   renew: { try await api.renew($0) }, usage: { try await api.usage($0) })
+                                   renew: { try await api.renew($0) }, usage: { try await api.usage($0, includeSpending: source == "app") })
         case .claude:
             let api = ClaudeAPI()
             return try await fetch(ClaudeTokens.self, source: source, forceRenewal: forceRenewal, minimumAge: minimumAge,
