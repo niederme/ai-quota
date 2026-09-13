@@ -214,6 +214,8 @@ ai-quota/
 
 ## Releasing
 
+For iOS TestFlight builds, use the [iOS release workflow](prototypes/mobile-access/README.md#testflight-release-workflow). The following steps are for direct Mac releases.
+
 See the pre-release checklist at the top of [`scripts/release.sh`](scripts/release.sh). The short version:
 
 1. Update `README.md` (features, requirements, roadmap) — **always do this first**
@@ -239,6 +241,7 @@ The Mac app is the design reference for iOS: gauge proportions, typography, syst
 <details>
 <summary>Completed Mac milestones</summary>
 
+- [x] Balance layout: auto-reload status wraps below the balance when the Mac popover row is too narrow.
 - [x] Marketing website — `aiquota.app` is live with download, releases, and policy pages plus automated deploys from `main`
 - [x] Visualize 7-day quota reset timing — the app now surfaces 7-day reset timing when the weekly window enters the warning range
 - [x] Settings restructured — Accounts and diagnostics are combined, notifications live in one master group, and service details expand inline with checkbox-level alert options
@@ -264,19 +267,22 @@ The Mac app is the design reference for iOS: gauge proportions, typography, syst
 
 ### iOS
 
-**Working in the current TestFlight builds**
+**Working in TestFlight 0.1.0 (8)**
 
 - [x] Independent Codex and Claude sign-in, with credentials stored on the device.
 - [x] Stacked service cards with dual-ring gauges, percentages, reset times, and reading age.
-- [x] Lock Screen widgets: a configurable single service, paired gauges, and an alternate layout with percentages.
+- [x] Lock Screen widgets: configurable single-service rings, paired gauges, paired percentages, and single-service details with matching gauge proportions.
 - [x] Automatic session renewal, refresh on app activation, and background widget refresh requests. Actual refresh delivery remains subject to iOS scheduling and needs longer device testing.
+
+- [x] Settings: Mac-aligned General, Accounts, Privacy, and About sections, foreground refresh intervals, last-updated status, and explicit reconnect actions.
+- [x] Pull-to-refresh and a toolbar refresh button update both services.
+- [x] Account metadata: reported Codex plan, balance, and monthly spending plus Claude usage credits.
+- [x] Mac-style gauge key and reset colors, centered service names, and stable two-column cards with wrapping metadata.
 
 **Next**
 
-- [ ] Settings: account connections, renewal, and diagnostics behind a toolbar gear.
 - [ ] Onboarding: clear sign-in steps, provider-specific setup requirements, and widget setup.
 - [ ] UI polish: follow the Mac's typography, gauge key, spacing, materials, and color hierarchy; test smaller and larger screens, landscape, and accessibility text sizes.
-- [ ] Pull-to-refresh on the overview.
 - [ ] Launch reliability: investigate reported slow or blank launches and any associated crash reports.
 - [ ] Background reliability: measure widget freshness and session renewal on real devices, including after resets and connectivity changes.
 
@@ -284,7 +290,7 @@ The Mac app is the design reference for iOS: gauge proportions, typography, syst
 
 - [ ] Home Screen widgets for one or both services.
 - [ ] Reset notifications: help people return when an allowance is expected to reset, while distinguishing that estimate from confirmed availability.
-- [ ] More account detail: plan, balance, and spending information where providers make it available.
+- [ ] Broaden account metadata validation across plans. Codex metadata and Claude usage credits have appeared on the owner’s phone; Claude plan and balance are not available from the current mobile usage response.
 
 ### Shared exploration
 

@@ -34,7 +34,7 @@ final class ClaudeProbeModel {
         } catch { self.error = "Could not read this device’s saved connection." }
     }
     func connect() {
-        guard !busy, !connected else { return }
+        guard !busy else { return }
         do {
             challenge = try ClaudeChallenge()
             error = nil
@@ -42,7 +42,7 @@ final class ClaudeProbeModel {
         } catch { self.error = "Could not prepare sign-in. Try again." }
     }
     func finishSignIn(_ pasted: String) {
-        guard !busy, !connected, let pending = challenge else { return }
+        guard !busy, let pending = challenge else { return }
         run { [self] in
             let newTokens = try await api.exchange(pasted, challenge: pending)
             try Task.checkCancellation()
@@ -57,11 +57,15 @@ final class ClaudeProbeModel {
         }
     }
     func refresh(forceRenewal: Bool = false) {
-        guard !busy, connected else { return }
+        guard !busy, connected, challenge == nil else { return }
         run { [self] in try await fetch(forceRenewal: forceRenewal) }
     }
+    func refreshAndWait() async {
+        refresh()
+        await work?.value
+    }
     func refreshOnOpen() {
-        guard !busy, connected else { return }
+        guard !busy, connected, challenge == nil else { return }
         if let lastAutomaticRefresh, Date.now.timeIntervalSince(lastAutomaticRefresh) < 15 { return }
         lastAutomaticRefresh = .now
         refresh()

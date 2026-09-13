@@ -12,11 +12,6 @@ struct QuotaConfiguration: WidgetConfigurationIntent {
     static let description = IntentDescription("Five-hour and weekly allowance used.")
     @Parameter(title: "Service", default: .codex) var service: QuotaService
 }
-struct ProviderReading: Sendable {
-    let service: QuotaService
-    let reading: QuotaReading?
-    let needsApp: Bool
-}
 struct QuotaEntry: TimelineEntry {
     let date: Date
     let values: [ProviderReading]
@@ -28,6 +23,7 @@ private func loadReading(_ service: QuotaService) async -> ProviderReading {
         return ProviderReading(service: service, reading: reading, needsApp: false)
     } catch {
         let reconnect = (error as? AccessError) == .expired || (error as? AccessError) == .http(401)
+            || (error as? ClaudeAccessError)?.requiresReconnect == true
         return ProviderReading(service: service, reading: store.reading(), needsApp: reconnect)
     }
 }
@@ -70,56 +66,11 @@ struct BothProvider: AppIntentTimelineProvider {
         return WidgetTimeline.make(await [codex, claude])
     }
 }
-struct CodexDial: View {
-    let value: ProviderReading
-    let date: Date
-    private var stale: Bool { WidgetFreshness.isOld(value.reading, at: date) || value.needsApp }
-    private var warning: Bool { WidgetFreshness.limitReached(value.reading) }
-    var body: some View {
-        GeometryReader { geometry in
-            let size = min(geometry.size.width, geometry.size.height)
-            ZStack {
-                ring(value.reading?.shortTerm, width: size * 0.12, opacity: 1)
-                    .padding(size * 0.09)
-                ring(value.reading?.weekly, width: size * 0.12, opacity: 0.6)
-                    .padding(size * 0.21)
-                Image(value.service.logo)
-                    .renderingMode(.template)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: size * 0.324, height: size * 0.324)
-                    .foregroundStyle(.primary)
-            }
-            .frame(width: size, height: size)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-        .padding(3)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(value.service.name) allowance used")
-        .accessibilityValue("Five hours: \(formatted(value.reading?.shortTerm)). Seven days: \(formatted(value.reading?.weekly)). \(stale ? "Reading needs refreshing." : "") \(warning ? "An allowance limit is reached." : "")")
-        .accessibilityHint("Opens AI Quota")
-    }
-    private func formatted(_ window: QuotaWindow?) -> String {
-        window.map { "\(Int($0.usedPercent.rounded())) percent" } ?? "Unavailable"
-    }
-    private func ring(_ window: QuotaWindow?, width: CGFloat, opacity: Double) -> some View {
-        ZStack {
-            Circle().trim(from: 0, to: 0.75)
-                .stroke(.primary.opacity(0.18), style: StrokeStyle(lineWidth: width, dash: window == nil ? [2, 3] : []))
-            if let window {
-                Circle().trim(from: 0, to: 0.75 * min(1, max(0, window.usedPercent / 100)))
-                    .stroke(.primary.opacity(opacity * (stale ? 0.45 : 1)),
-                            style: StrokeStyle(lineWidth: width, dash: stale ? [2, 2] : []))
-            }
-        }.rotationEffect(.degrees(135))
-    }
-}
-
 struct SingleLockScreenWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "CodexLockScreen", intent: QuotaConfiguration.self, provider: CodexProvider()) { entry in
             if let value = entry.values.first {
-                CodexDial(value: value, date: entry.date)
+                CodexDial(value: value, date: entry.date, logoScale: 0.8)
                     .widgetURL(URL(string: "aiquota-probe://overview"))
                     .containerBackground(for: .widget) { Color.clear }
             }
@@ -193,5 +144,20 @@ struct CompactLockScreenWidget: Widget {
     }
 }
 @main struct QuotaWidgets: WidgetBundle {
-    var body: some Widget { SingleLockScreenWidget(); BothLockScreenWidget(); CompactLockScreenWidget() }
+    var body: some Widget { SingleLockScreenWidget(); BothLockScreenWidget(); CompactLockScreenWidget(); ServiceDetailsWidget() }
+}
+
+struct ServiceDetailsWidget: Widget {
+    var body: some WidgetConfiguration {
+        AppIntentConfiguration(kind: "ServiceDetails", intent: QuotaConfiguration.self, provider: CodexProvider()) { entry in
+            if let value = entry.values.first {
+                ServiceDetailsView(value: value, date: entry.date)
+                .widgetURL(URL(string: "aiquota-probe://overview"))
+                .containerBackground(for: .widget) { Color.clear }
+            }
+        }
+        .configurationDisplayName("Service details")
+        .description("One service with a gauge and both percentages. Choose Codex or Claude.")
+        .supportedFamilies([.accessoryRectangular])
+    }
 }

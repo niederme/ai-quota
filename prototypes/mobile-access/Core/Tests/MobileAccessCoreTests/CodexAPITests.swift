@@ -93,3 +93,18 @@ private let now = Date(timeIntervalSince1970: 1_800_000_000)
     await #expect(throws: AccessError.http(401)) { try await api.usage(tokens, now: now) }
     #expect(!AccessError.http(401).localizedDescription.contains("sensitive"))
 }
+
+@Test func optionalSpendingFailurePreservesQuota() async throws {
+    let api = CodexAPI(transport: MockTransport { request in
+        #expect(request.httpMethod == "GET")
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer synthetic")
+        #expect(request.value(forHTTPHeaderField: "ChatGPT-Account-Id") == "account")
+        if request.url?.path.hasSuffix("credit-usage-events") == true { return result("{}", status: 403) }
+        return result(#"{"plan_type":"plus","credits":{"balance":"250"},"rate_limit":{"primary_window":{"used_percent":42,"limit_window_seconds":18000}}}"#)
+    })
+    let tokens = CodexTokens(accessToken: "synthetic", refreshToken: nil, accountID: "account", expiresAt: now.addingTimeInterval(3600))
+    let reading = try await api.usage(tokens, now: now, includeSpending: true)
+    #expect(reading.shortTerm?.usedPercent == 42)
+    #expect(reading.metadata?.balanceUSD == 10)
+    #expect(reading.metadata?.usageSpent == nil)
+}
