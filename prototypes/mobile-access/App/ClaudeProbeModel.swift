@@ -6,9 +6,9 @@ import MobileAccessCore
 
 @MainActor @Observable
 final class ClaudeProbeModel {
-    private let shared = SharedQuotaStore(.claude)
+    private let shared: SharedQuotaStore
     private var lastAutomaticRefresh: Date?
-    private let api = ClaudeAPI()
+    private let api: ClaudeAPI
     private var work: Task<Void, Never>?
     private var generation = UUID()
     private var tokens: ClaudeTokens?
@@ -17,11 +17,16 @@ final class ClaudeProbeModel {
     private(set) var busy = false
     private(set) var message = "Connect Claude to see your usage."
     private(set) var error: String?
+    private(set) var connectionFailure: SharedQuotaStore.Failure?
     private(set) var renewedAt: Date?
     var connected: Bool { tokens != nil }
     private let cacheKey = "mobileProbe.claudeReading"
 
-    init() {
+    init(api: ClaudeAPI = ClaudeAPI(), shared: SharedQuotaStore = SharedQuotaStore(.claude), restore: Bool = true) {
+        self.api = api
+        self.shared = shared
+        guard restore else { return }
+        connectionFailure = shared.failure()
         do {
             tokens = try shared.load(ClaudeTokens.self) ?? ClaudeTokenStore.load()
             if tokens != nil {
@@ -87,6 +92,7 @@ final class ClaudeProbeModel {
         let value = try await shared.fetch(source: "app", forceRenewal: forceRenewal)
         try Task.checkCancellation()
         tokens = try shared.load(ClaudeTokens.self)
+        connectionFailure = nil
         reading = value
         UserDefaults.standard.set(try JSONEncoder().encode(value), forKey: cacheKey)
         if forceRenewal { renewedAt = .now }
@@ -104,6 +110,7 @@ final class ClaudeProbeModel {
             catch {
                 guard let self, self.generation == id else { return }
                 // Never surface raw response bodies, tokens, or provider error URLs.
+                if self.challenge == nil { self.connectionFailure = SharedQuotaStore.Failure.classify(error) }
                 self.error = (error as? ClaudeAccessError)?.errorDescription
                     ?? (error as? AccessError)?.errorDescription
                     ?? "The request did not complete. Check your connection and try again."
@@ -111,7 +118,6 @@ final class ClaudeProbeModel {
             }
             guard let self, self.generation == id else { return }
             self.busy = false
-            self.challenge = nil
             self.work = nil
         }
     }
@@ -125,18 +131,30 @@ final class ClaudeProbeModel {
     }
     func disconnect() {
         guard !busy else { return }
-        run { [self] in
-            try await shared.withLease { [shared] in
-                try ClaudeTokenStore.clear()
-                try shared.clear()
-            }
-            WidgetCenter.shared.reloadAllTimelines()
-            UserDefaults.standard.removeObject(forKey: cacheKey)
-            tokens = nil
-            reading = nil
-            renewedAt = nil
-            error = nil
-            message = "Connection removed from this device."
+        run { [self] in try await clearConnection() }
+    }
+    /// Await cancelled requests before clearing so a late response cannot restore credentials.
+    func resetForNewUser() async throws {
+        let pending = work
+        cancel()
+        busy = true
+        defer { busy = false }
+        await pending?.value
+        try await clearConnection()
+        lastAutomaticRefresh = nil
+    }
+    private func clearConnection() async throws {
+        try await shared.withLease { [shared] in
+            try ClaudeTokenStore.clear()
+            try shared.clear()
         }
+        WidgetCenter.shared.reloadAllTimelines()
+        UserDefaults.standard.removeObject(forKey: cacheKey)
+        tokens = nil
+        reading = nil
+        renewedAt = nil
+        connectionFailure = nil
+        error = nil
+        message = "Connection removed from this device."
     }
 }

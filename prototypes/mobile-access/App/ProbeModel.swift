@@ -130,19 +130,30 @@ final class ProbeModel {
     }
     func disconnect() {
         guard !busy else { return }
-        run { [self] in
-            try await shared.withLease { [shared] in
-                try TokenStore.clear()
-                try WidgetStore.clearAccess()
-                try shared.clear()
-            }
-            WidgetCenter.shared.reloadAllTimelines()
-            UserDefaults.standard.removeObject(forKey: cacheKey)
-            tokens = nil
-            reading = nil
-            renewedAt = nil
-            error = nil
-            message = "Connection removed from this device."
+        run { [self] in try await clearConnection() }
+    }
+    /// Await cancelled requests before clearing so a late response cannot restore credentials.
+    func resetForNewUser() async throws {
+        let pending = work
+        cancel()
+        busy = true
+        defer { busy = false }
+        await pending?.value
+        try await clearConnection()
+        lastAutomaticRefresh = nil
+    }
+    private func clearConnection() async throws {
+        try await shared.withLease { [shared] in
+            try TokenStore.clear()
+            try WidgetStore.clear()
+            try shared.clear()
         }
+        WidgetCenter.shared.reloadAllTimelines()
+        UserDefaults.standard.removeObject(forKey: cacheKey)
+        tokens = nil
+        reading = nil
+        renewedAt = nil
+        error = nil
+        message = "Connection removed from this device."
     }
 }

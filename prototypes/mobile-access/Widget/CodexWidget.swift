@@ -24,6 +24,7 @@ private func loadReading(_ service: QuotaService) async -> ProviderReading {
     } catch {
         let reconnect = (error as? AccessError) == .expired || (error as? AccessError) == .http(401)
             || (error as? ClaudeAccessError)?.requiresReconnect == true
+            || SharedQuotaStore.Failure.classify(error) == .renewal
         return ProviderReading(service: service, reading: store.reading(), needsApp: reconnect)
     }
 }

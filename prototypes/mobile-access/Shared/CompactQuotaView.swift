@@ -40,7 +40,10 @@ struct CompactQuotaView: View {
         ZStack {
             ring(reading?.shortTerm, width: 3.36, opacity: 1)
             ring(reading?.weekly, width: 3.36, opacity: 0.6).padding(4.36)
-            Circle().fill(.primary).frame(width: 3, height: 3)
+            Group {
+                if needsApp { Image(systemName: "exclamationmark").font(.system(size: 9, weight: .bold)) }
+                else { Circle().fill(.primary).frame(width: 3, height: 3) }
+            }
         }.padding(2.52)
     }
     private func ring(_ window: QuotaWindow?, width: CGFloat, opacity: Double) -> some View {
@@ -78,12 +81,16 @@ struct CodexDial: View {
                     .padding(size * 0.09)
                 ring(value.reading?.weekly, width: size * 0.12, opacity: 0.6)
                     .padding(size * 0.21 + 1)
+                if value.needsApp {
+                    Image(systemName: "exclamationmark").font(.system(size: size * 0.3, weight: .bold))
+                } else {
                 Image(value.service.logo)
                     .renderingMode(.template)
                     .resizable()
                     .scaledToFit()
                     .frame(width: size * 0.324 * logoScale, height: size * 0.324 * logoScale)
                     .foregroundStyle(.primary)
+                }
             }
             .frame(width: size, height: size)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -118,7 +125,7 @@ struct ServiceDetailsView: View {
                 HStack(spacing: 5) {
                     CodexDial(value: value, date: date, logoScale: 0.8).frame(width: 56, height: 56)
                     VStack(alignment: .leading, spacing: 0) {
-                        Text(value.service.name).font(.system(size: 12, weight: .medium)).lineLimit(1).minimumScaleFactor(0.8)
+                        Text(value.service.name).font(.system(size: 14, weight: .medium)).lineLimit(1).minimumScaleFactor(0.8)
                         metric(value.reading?.shortTerm, label: "5h").foregroundStyle(.primary)
                         metric(value.reading?.weekly, label: "7d").foregroundStyle(.secondary)
                     }.frame(maxWidth: .infinity, alignment: .leading)
