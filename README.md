@@ -279,9 +279,31 @@ The Mac app is the design reference for iOS: gauge proportions, typography, syst
 - [x] Account metadata: reported Codex plan, balance, and monthly spending plus Claude usage credits.
 - [x] Mac-style gauge key and reset colors, centered service names, and stable two-column cards with wrapping metadata.
 
+**Available in TestFlight 0.1.0 (9)**
+
+- [x] Skippable, resumable onboarding with service connection steps and Lock Screen widget guidance; replay available in Settings. Existing accounts bypass first-launch setup.
+- [x] Native light card backgrounds, subtler dark card fills, and service names closer beneath the gauges.
+- Validation: 16 hosted simulator tests passed. Phone sign-in and onboarding replay still need device review.
+
+**Available in TestFlight 0.1.0 (11)**
+
+- [x] Prominent renewal/reconnect states, subdued saved gauges, and minimal widget attention indicators.
+- [x] Retryable Claude code entry with a clear submit action and less sign-in copy.
+- [x] Compact overview header and consistent reset typography.
+- [x] Mac-inspired five-step onboarding with app branding and a completion screen.
+- [x] Optional local reset reminders with per-service Settings controls. Permission and delivery still need phone verification.
+- Validation: 27 core tests and 23 hosted simulator tests passed. Recurring Claude HTTP 400 remains under investigation; safe error-code diagnostics are added, not a confirmed root-cause fix.
+
+**Afternoon refinements (TestFlight build 12 available)**
+
+- Completion metadata/support footer, bold gauge key, and more structured service-card metadata are implemented. Full onboarding visual and interaction verification remains pending.
+- [x] Implement Mac-style Reset All Settings and separate Guided Setup replay (TestFlight build 13).
+- [x] Owner confirmed Claude remained connected through its next token renewal on build 13.
+- [ ] Confirm physical-device reinstall/reset behavior and finish onboarding visual and interaction checks.
+- [x] Scripted TestFlight release with live build numbering, synchronized project settings, saved archives/logs, and processing/status checks. See the [release workflow](prototypes/mobile-access/README.md#testflight-release-workflow).
+
 **Next**
 
-- [ ] Onboarding: clear sign-in steps, provider-specific setup requirements, and widget setup.
 - [ ] UI polish: follow the Mac's typography, gauge key, spacing, materials, and color hierarchy; test smaller and larger screens, landscape, and accessibility text sizes.
 - [ ] Launch reliability: investigate reported slow or blank launches and any associated crash reports.
 - [ ] Background reliability: measure widget freshness and session renewal on real devices, including after resets and connectivity changes.
@@ -289,7 +311,8 @@ The Mac app is the design reference for iOS: gauge proportions, typography, syst
 **Following**
 
 - [ ] Home Screen widgets for one or both services.
-- [ ] Reset notifications: help people return when an allowance is expected to reset, while distinguishing that estimate from confirmed availability.
+- [ ] Expand notification parity with the Mac beyond estimated-reset reminders (usage thresholds and limit alerts).
+- [ ] Optional analytics with explicit consent; no iOS collection is implemented.
 - [ ] Broaden account metadata validation across plans. Codex metadata and Claude usage credits have appeared on the owner’s phone; Claude plan and balance are not available from the current mobile usage response.
 
 ### Shared exploration

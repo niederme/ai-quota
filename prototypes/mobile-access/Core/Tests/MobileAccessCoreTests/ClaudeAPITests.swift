@@ -64,7 +64,9 @@ private func reply(_ body: String, status: Int = 200) -> HTTPResult {
         let api = ClaudeAPI(transport: ClaudeMock { request in
             let body = try JSONDecoder().decode([String: String].self, from: #require(request.httpBody))
             #expect(body["grant_type"] == "refresh_token")
-            #expect(body["scope"] == ClaudeAPI.scopes)
+            #expect(body["scope"] == nil)
+            #expect(body["refresh_token"] == "original")
+            #expect(body["client_id"] == ClaudeAPI.clientID)
             return reply(rotated
                 ? #"{"access_token":"new","refresh_token":"rotated","expires_in":3600}"#
                 : #"{"access_token":"new","expires_in":3600}"#)
@@ -128,6 +130,30 @@ private func reply(_ body: String, status: Int = 200) -> HTTPResult {
             } else {
                 #expect(message.contains("sign-in renewal"))
                 #expect(message.contains("400"))
+            }
+        }
+    }
+}
+
+@Test func renewalErrorsClassifyNestedCodesAndNeverExposeUnknownBodies() async throws {
+    for (body, expected) in [
+        (#"{"error":{"type":"invalid_grant","message":"secret-token"}}"#, "reconnect"),
+        (#"{"error":{"type":"invalid_scope","message":"secret-token"}}"#, "invalid_scope"),
+        (#"{"error":"secret-token","error_description":"private"}"#, "unknown")
+    ] {
+        let api = ClaudeAPI(transport: ClaudeMock { _ in reply(body, status: 400) })
+        do {
+            _ = try await api.renew(ClaudeTokens(accessToken: "test", refreshToken: "test-refresh", expiresAt: timestamp))
+            Issue.record("Expected failure")
+        } catch let error as ClaudeAccessError {
+            #expect(!error.localizedDescription.contains("secret-token"))
+            #expect(!error.localizedDescription.contains("private"))
+            if expected == "reconnect" { #expect(error.requiresReconnect) }
+            else {
+                #expect(!error.requiresReconnect)
+                guard case let .renewalRejected(status, reason) = error else { Issue.record("Expected renewal classification"); continue }
+                #expect(status == 400)
+                #expect(reason == (expected == "unknown" ? nil : expected))
             }
         }
     }

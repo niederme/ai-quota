@@ -24,14 +24,13 @@ struct ProbeView: View {
                     }
                     if !model.connected {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Before connecting").font(.headline)
-                            Text("On the ChatGPT website, enable “Enable device code authorization for Codex” under Settings → Security and login. Then return here to connect.")
+                            Text("Enable device-code sign-in").font(.headline)
+                            Text("Turn on device-code authorization in ChatGPT’s Security settings, then return here to sign in.")
                                 .font(.callout)
                             Button("Open ChatGPT security settings") {
                                 showSecuritySettings = true
                             }
-                            Text("This opens the website inside AI Quota. Sign in if asked, then use Settings → Security and login if needed. The toggle is on the website, not in the ChatGPT app. Tap Done when finished.")
-                                .font(.footnote).foregroundStyle(.secondary)
+
                         }
                     }
                     if let challenge = model.challenge {
@@ -51,7 +50,7 @@ struct ProbeView: View {
                             .accessibilityLabel(didCopyCode ? "Code copied. Copy again" : "Copy sign-in code")
                             Button("Open OpenAI sign-in") { openURL(challenge.verificationURL) }
                                 .buttonStyle(.borderedProminent)
-                            Text("Enter this code on OpenAI’s page. If device-code sign-in is disabled, you can enable it in your ChatGPT security settings. Return here after approving.")
+                            Text("Enter this code on OpenAI’s page, then return after approving.")
                                 .font(.footnote).foregroundStyle(.secondary)
                         }
                     }
@@ -86,8 +85,7 @@ struct ProbeView: View {
                     } else {
                         Button("Connect Codex") { model.connect() }.buttonStyle(.borderedProminent)
                     }
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("About this connection").font(.footnote.bold())
+                    DisclosureGroup("About this connection") {
                         Text("Uses Codex’s device-code sign-in. OpenAI may identify this connection as Codex CLI. Tokens stay in this device’s Keychain. AI Quota only reads quota; it never sends prompts or uses reset credits.")
                     }.font(.footnote).foregroundStyle(.secondary)
                 }

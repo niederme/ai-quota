@@ -6,6 +6,7 @@ public enum ClaudeAccessError: Error, LocalizedError, Sendable {
     case invalidCode, expiredChallenge
     case requestFailed(stage: String, status: Int)
     case reconnectRequired
+    case renewalRejected(status: Int, reason: String?)
 
     public var requiresReconnect: Bool {
         switch self {
@@ -16,6 +17,7 @@ public enum ClaudeAccessError: Error, LocalizedError, Sendable {
     }
     public var errorDescription: String? {
         switch self {
+        case let .renewalRejected(status, reason): "Claude sign-in renewal failed (HTTP \(status)\(reason.map { ", " + $0 } ?? "")). Retry or reconnect Claude. Your last reading is saved."
         case .reconnectRequired: "Claude could not renew this sign-in. Reconnect Claude to continue. Your last reading is saved."
         case let .requestFailed(stage, status): "Claude \(stage) failed (HTTP \(status)). Try again. Your last reading is saved."
         case .invalidCode: "Paste the complete authorization code from the sign-in page for this connection."
@@ -94,8 +96,10 @@ public struct ClaudeAPI: Sendable {
     }
     public func renew(_ tokens: ClaudeTokens, now: Date = .now) async throws -> ClaudeTokens {
         guard let refresh = tokens.refreshToken, !refresh.isEmpty else { throw AccessError.expired }
+        // RFC 6749 section 6: omit scope to retain the original grant. Replaying
+        // the sign-in scope list can request permissions the server did not grant.
         return try await tokenRequest(["grant_type": "refresh_token", "refresh_token": refresh,
-            "client_id": Self.clientID, "scope": Self.scopes], previous: tokens, now: now)
+            "client_id": Self.clientID], previous: tokens, now: now)
     }
     private func tokenRequest(_ body: [String: String], previous: ClaudeTokens?, now: Date) async throws -> ClaudeTokens {
         var request = URLRequest(url: URL(string: "https://console.anthropic.com/v1/oauth/token")!)
@@ -105,9 +109,16 @@ public struct ClaudeAPI: Sendable {
         let response = try await transport.send(request)
         guard (200..<300).contains(response.status) else {
             // Only classify a known OAuth code; never expose provider response text.
-            let object = try? JSONSerialization.jsonObject(with: response.data) as? [String: Any]
-            if previous != nil, object?["error"] as? String == "invalid_grant" {
+            let object = (try? JSONSerialization.jsonObject(with: response.data)) as? [String: Any]
+            let nested = object?["error"] as? [String: Any]
+            let code = object?["error"] as? String ?? nested?["type"] as? String
+            if previous != nil, code == "invalid_grant" {
                 throw ClaudeAccessError.reconnectRequired
+            }
+            if previous != nil, response.status == 400 {
+                let allowed = ["invalid_scope", "invalid_request", "invalid_client", "unauthorized_client", "unsupported_grant_type"]
+                throw ClaudeAccessError.renewalRejected(status: response.status,
+                    reason: code.flatMap { allowed.contains($0) ? $0 : nil })
             }
             throw ClaudeAccessError.requestFailed(stage: previous == nil ? "sign-in" : "sign-in renewal", status: response.status)
         }

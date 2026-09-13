@@ -10,53 +10,65 @@ struct ClaudeProbeView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text(model.message).font(.callout)
-                if let reading = model.reading {
-                    window(reading.shortTerm, label: "5 hours")
-                    window(reading.weekly, label: "Weekly")
-                    Text("Last successful reading: \(reading.fetchedAt.formatted(date: .abbreviated, time: .standard))")
-                        .font(.footnote)
-                    Text("Saved reading. Refresh to check current usage.")
-                        .font(.footnote).foregroundStyle(.secondary)
-                }
-                if let error = model.error {
-                    Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.red)
-                }
-                if model.busy {
-                    ProgressView()
-                    Button("Cancel") { model.cancel(); pastedCode = "" }
-                } else if model.connected && model.challenge == nil {
-                    Button("Refresh quota") { model.refresh() }.buttonStyle(.borderedProminent)
-                    Button("Reconnect Claude") { model.connect() }
-                    if let date = model.renewedAt {
-                        Text("Renewed \(date.formatted(date: .omitted, time: .standard))").font(.caption)
+                if model.challenge != nil {
+                    Text("Connect Claude").font(.title2.bold())
+                    Text("Sign in, then copy the code from Claude and paste it here.").foregroundStyle(.secondary)
+                    Button("Open Claude sign-in") { showSignIn = true }.buttonStyle(.bordered)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Authorization code").font(.headline)
+                        SecureField("Paste your code", text: $pastedCode)
+                            .textInputAutocapitalization(.never).autocorrectionDisabled()
+                            .textFieldStyle(.roundedBorder).submitLabel(.go)
+                            .onSubmit { submit() }
+                        if let error = model.error { Text(error).font(.callout).foregroundStyle(.red) }
                     }
-                    Button("Disconnect Claude", role: .destructive) { confirmDisconnect = true }
-                } else if model.challenge != nil {
-                    Button("Open Claude sign-in") { showSignIn = true }
-                        .buttonStyle(.borderedProminent)
-                    Text("Authorize in the browser, copy the complete code shown by Claude, then tap Done and paste it below. The code belongs to this attempt and expires after 15 minutes.")
-                        .font(.callout)
-                    SecureField("Authorization code", text: $pastedCode)
-                        .textInputAutocapitalization(.never).autocorrectionDisabled()
-                        .textFieldStyle(.roundedBorder)
-                    Button("Finish connecting") {
-                        let code = pastedCode
-                        pastedCode = ""
-                        model.finishSignIn(code)
-                    }.disabled(pastedCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Button(action: submit) {
+                        HStack {
+                            if model.busy { ProgressView().tint(.white) }
+                            Text(model.busy ? "Connecting…" : "Connect Claude")
+                        }.frame(maxWidth: .infinity)
+                    }.buttonStyle(.borderedProminent).controlSize(.large)
+                        .disabled(model.busy || pastedCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                     Button("Cancel sign-in") { model.cancel(); pastedCode = "" }
                 } else {
-                    Button("Connect Claude") { model.connect() }.buttonStyle(.borderedProminent)
+                    if let error = model.error {
+                        Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                    } else if model.connectionFailure != nil {
+                        Label("This connection needs attention. Retry or reconnect Claude.", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                    } else { Text(model.message).font(.callout) }
+                    if model.busy {
+                        ProgressView("Updating…")
+                    } else if model.connected {
+                        if model.connectionFailure == .reconnect || model.connectionFailure == .renewal {
+                            Button("Reconnect Claude") { startSignIn() }.buttonStyle(.borderedProminent)
+                            Button("Retry update") { model.refresh() }
+                        } else {
+                            Button("Refresh usage") { model.refresh() }.buttonStyle(.borderedProminent)
+                            Button("Reconnect Claude") { startSignIn() }
+                        }
+                    } else {
+                        Button("Sign In") { startSignIn() }.buttonStyle(.borderedProminent)
+                    }
+                    if let reading = model.reading {
+                        Text("Last saved usage").font(.headline)
+                        window(reading.shortTerm, label: "5 hours")
+                        window(reading.weekly, label: "7 days")
+                        Text("Updated \(reading.fetchedAt.formatted(date: .abbreviated, time: .shortened))")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
                 }
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("About this connection").bold()
+                DisclosureGroup("About this connection") {
                     Text("Claude may identify this sign-in as Claude Code. The requested permissions include profile access and API-key creation. AI Quota never creates keys, sends prompts, or requests inference permission. Tokens stay in a separate Keychain entry on this device.")
                 }.font(.footnote).foregroundStyle(.secondary)
             }.padding(24).frame(maxWidth: 700, alignment: .leading).frame(maxWidth: .infinity)
         }
         .navigationTitle("Claude account")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if model.connected {
+                Button("Disconnect", role: .destructive) { confirmDisconnect = true }.disabled(model.busy)
+            }
+        }
         .sheet(isPresented: $showSignIn) {
             if let challenge = model.challenge {
                 ProbeBrowser(url: challenge.authorizationURL)
@@ -67,6 +79,15 @@ struct ClaudeProbeView: View {
         } message: {
             Text("Removes the local connection and reading. It does not revoke authorization at Claude.")
         }
+    }
+    private func startSignIn() {
+        pastedCode = ""
+        model.connect()
+        showSignIn = model.challenge != nil
+    }
+    private func submit() {
+        guard !model.busy, !pastedCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        model.finishSignIn(pastedCode)
     }
     private func window(_ value: QuotaWindow?, label: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {

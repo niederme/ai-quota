@@ -146,3 +146,87 @@ final class WidgetLayoutReviewTests: XCTestCase {
         }
     }
 }
+
+final class ConnectionStateTests: XCTestCase {
+    func testFailurePersistsWithoutDeletingReadingAndClearsAfterSuccess() async throws {
+        let id = UUID().uuidString
+        let store = SharedQuotaStore(.claude, root: FileManager.default.temporaryDirectory.appendingPathComponent(id), namespace: id)
+        try await store.withLease { try store.saveCredentials(credentials()) }
+        let saved = try await store.fetch(CodexTokens.self, source: "test", renew: { $0 }, usage: { _ in try sample() })
+        for (failure, expected) in [(ClaudeAccessError.renewalRejected(status: 400, reason: nil), SharedQuotaStore.Failure.renewal), (.reconnectRequired, .reconnect)] {
+            do {
+                _ = try await store.fetch(CodexTokens.self, source: "test", forceRenewal: true, renew: { _ in throw failure }, usage: { _ in try sample() })
+                XCTFail("Expected failure")
+            } catch {}
+            XCTAssertEqual(store.failure(), expected)
+            XCTAssertEqual(store.reading(), saved)
+            XCTAssertNotNil(try store.load(CodexTokens.self))
+        }
+        _ = try await store.fetch(CodexTokens.self, source: "test", renew: { $0 }, usage: { _ in try sample() })
+        XCTAssertNil(store.failure())
+        try await store.withLease { try store.clear() }
+        try? FileManager.default.removeItem(at: store.root!)
+    }
+    func testNetworkAndGenericBadRequestAreNotDisconnected() {
+        XCTAssertEqual(SharedQuotaStore.Failure.classify(URLError(.notConnectedToInternet)), .temporary)
+        XCTAssertEqual(SharedQuotaStore.Failure.classify(ClaudeAccessError.requestFailed(stage: "usage update", status: 400)), .temporary)
+        XCTAssertEqual(SharedQuotaStore.Failure.classify(ClaudeAccessError.reconnectRequired), .reconnect)
+    }
+    func testResetPlanRejectsStalePastAndEmptyReadingsAndUsesStableIDs() throws {
+        let now = Date.now
+        func reading(age: Double, reset: Double, used: Int) throws -> QuotaReading {
+            try JSONDecoder().decode(QuotaReading.self, from: Data("""
+            {"fetchedAt":\(now.addingTimeInterval(-age).timeIntervalSinceReferenceDate),"shortTerm":{"usedPercent":\(used),"durationSeconds":18000,"resetsAt":\(now.addingTimeInterval(reset).timeIntervalSinceReferenceDate)}}
+            """.utf8))
+        }
+        XCTAssertEqual(MobileResetNotifications.planned(try reading(age: 1, reset: 3600, used: 42), now: now).count, 1)
+        for (age, reset, used) in [(1801.0, 3600.0, 42), (1, -1, 42), (1, 3600, 0)] {
+            XCTAssertTrue(MobileResetNotifications.planned(try reading(age: age, reset: reset, used: used), now: now).isEmpty)
+        }
+        XCTAssertTrue(MobileResetNotifications.planned(nil, now: now).isEmpty)
+        XCTAssertNotEqual(MobileResetNotifications.identifier(.claude, "5h"), MobileResetNotifications.identifier(.codex, "5h"))
+        XCTAssertNotEqual(MobileResetNotifications.identifier(.claude, "5h"), MobileResetNotifications.identifier(.claude, "7d"))
+    }
+    @MainActor func testRenewalStateRender() throws {
+        let content = ProviderDialCard(name: "Claude", icon: "logo-claude", availableWidth: 362,
+            reading: try sample(), connected: true, busy: false, error: nil, failure: .renewal) { Text("Reconnect") }.cardContent
+            .frame(width: 362).padding(20).background(Color(uiColor: .systemGroupedBackground))
+            .environment(\.colorScheme, .dark)
+        let renderer = ImageRenderer(content: content)
+        renderer.scale = 2
+        let image = try XCTUnwrap(renderer.uiImage)
+        let path = FileManager.default.temporaryDirectory.appendingPathComponent("renewal-state.png")
+        try image.pngData()?.write(to: path)
+        print("STATE_REVIEW " + path.path)
+    }
+}
+
+private actor ReminderRecorder {
+    var pending: [String: Date] = [:]
+    func schedule(_ id: String, date: Date) { pending[id] = date }
+    func remove(_ id: String) { pending.removeValue(forKey: id) }
+}
+final class ResetSchedulingTests: XCTestCase {
+    func testReplaceCancelAndProviderIsolation() async throws {
+        let recorder = ReminderRecorder()
+        let first = Date.now.addingTimeInterval(3600), changed = first.addingTimeInterval(60)
+        func apply(_ service: QuotaService, _ plan: [(String, Date)]) async throws {
+            try await MobileResetNotifications.apply(service, plan: plan,
+                remove: { await recorder.remove($0) }, schedule: { id, _, date in await recorder.schedule(id, date: date) })
+        }
+        try await apply(.claude, [("5h", first), ("7d", first)])
+        try await apply(.claude, [("5h", changed), ("7d", first)])
+        var pending = await recorder.pending
+        XCTAssertEqual(pending.count, 2)
+        XCTAssertEqual(pending[MobileResetNotifications.identifier(.claude, "5h")], changed)
+        try await apply(.codex, [("5h", first)])
+        // Empty plans represent disabled, disconnected, stale, or unavailable windows.
+        try await apply(.claude, [])
+        pending = await recorder.pending
+        XCTAssertEqual(pending.count, 1)
+        XCTAssertNotNil(pending[MobileResetNotifications.identifier(.codex, "5h")])
+        try await apply(.codex, [])
+        let empty = await recorder.pending.isEmpty
+        XCTAssertTrue(empty)
+    }
+}

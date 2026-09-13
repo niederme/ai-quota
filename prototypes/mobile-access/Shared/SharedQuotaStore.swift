@@ -59,6 +59,8 @@ struct SharedQuotaStore: Sendable {
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else { throw AccessError.storage }
         if let url = readingURL, FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
+        saveFailure(nil)
+        if namespace == "live" { MobileResetNotifications.cancel(service) }
         log("app", "disconnected")
     }
     func withLease<T: Sendable>(_ action: @Sendable () async throws -> T) async throws -> T {
@@ -101,10 +103,16 @@ struct SharedQuotaStore: Sendable {
                 let value = try await usage(credentials)
                 try Task.checkCancellation()
                 try saveReading(value)
+                saveFailure(nil)
+                if namespace == "live" { await MobileResetNotifications.update(service, reading: value) }
                 log(source, "success", reading: value)
                 return value
             } catch {
-                log(source, "failed", reading: reading())
+                if !(error is CancellationError) {
+                    saveFailure(Failure.classify(error))
+                    if namespace == "live" { MobileResetNotifications.cancel(service) }
+                }
+                log(source, Self.safeFailureCode(error), reading: reading())
                 throw error
             }
         }
@@ -121,6 +129,39 @@ struct SharedQuotaStore: Sendable {
                                    renew: { try await api.renew($0) }, usage: { try await api.usage($0) })
         }
     }
+    static func safeFailureCode(_ error: Error) -> String {
+        if let error = error as? ClaudeAccessError {
+            switch error {
+            case .reconnectRequired: return "renewal.invalid_grant"
+            case let .renewalRejected(status, reason):
+                let allowed = ["invalid_scope", "invalid_request", "invalid_client", "unauthorized_client", "unsupported_grant_type"]
+                return "renewal.http\(status)." + (reason.flatMap { allowed.contains($0) ? $0 : nil } ?? "unknown")
+            case let .requestFailed(stage, status):
+                let safeStage = ["sign-in", "sign-in renewal", "usage update"].contains(stage) ? stage : "request"
+                return "\(safeStage).http\(status)"
+            default: return "sign-in.invalid_or_expired_code"
+            }
+        }
+        return Failure.classify(error).rawValue
+    }
+    enum Failure: String, Codable, Sendable {
+        case reconnect, renewal, temporary
+        static func classify(_ error: Error) -> Self {
+            if (error as? ClaudeAccessError)?.requiresReconnect == true || (error as? AccessError) == .expired || (error as? AccessError) == .http(401) { return .reconnect }
+            if case .renewalRejected = error as? ClaudeAccessError { return .renewal }
+            return .temporary
+        }
+    }
+    private var failureURL: URL? { root?.appendingPathComponent("\(service.rawValue)-failure.json") }
+    func failure() -> Failure? {
+        guard let url = failureURL, let data = try? Data(contentsOf: url) else { return nil }
+        return try? JSONDecoder().decode(Failure.self, from: data)
+    }
+    private func saveFailure(_ value: Failure?) {
+        guard let url = failureURL else { return }
+        if let value { try? JSONEncoder().encode(value).write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication]) }
+        else { try? FileManager.default.removeItem(at: url) }
+    }
     func log(_ source: String, _ result: String, reading: QuotaReading? = nil, entryDates: [Date] = []) {
         guard let directory = root?.appendingPathComponent("widget-diagnostics") else { return }
         struct Event: Encodable { let date: Date; let provider: String; let source: String; let result: String; let readingDate: Date?; let entryDates: [Date] }
@@ -129,5 +170,63 @@ struct SharedQuotaStore: Sendable {
             let value = Event(date: .now, provider: service.rawValue, source: source, result: result, readingDate: reading?.fetchedAt, entryDates: entryDates)
             try JSONEncoder().encode(value).write(to: directory.appendingPathComponent(UUID().uuidString + ".json"), options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
         } catch { /* Missing diagnostics intervals remain unknown, never counted as fresh. */ }
+    }
+}
+
+import UserNotifications
+
+/// Scheduled reset estimates only. Delivery does not confirm renewed availability.
+enum MobileResetNotifications {
+    static var defaults: UserDefaults { UserDefaults(suiteName: WidgetStore.group) ?? .standard }
+    static func identifier(_ service: QuotaService, _ window: String) -> String { "quota.reset.\(service.rawValue).\(window)" }
+    static func planned(_ reading: QuotaReading?, now: Date) -> [(String, Date)] {
+        guard let reading, !WidgetFreshness.isOld(reading, at: now) else { return [] }
+        return [("5h", reading.shortTerm), ("7d", reading.weekly)].compactMap { label, window in
+            guard let window, window.usedPercent > 0, let reset = window.resetsAt, reset > now else { return nil }
+            return (label, reset)
+        }
+    }
+    static func cancel(_ service: QuotaService) {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier(service, "5h"), identifier(service, "7d")])
+    }
+    // Call under the provider lease so app and widget do not race scheduling or disconnect.
+    static func update(_ service: QuotaService, reading: QuotaReading?) async {
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        guard defaults.bool(forKey: "notifications.enabled"),
+              defaults.object(forKey: "notifications.\(service.rawValue)") as? Bool ?? true,
+              settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else {
+            cancel(service); return
+        }
+        do {
+            try await apply(service, plan: planned(reading, now: .now), remove: { id in
+                center.removePendingNotificationRequests(withIdentifiers: [id])
+            }, schedule: { id, label, reset in
+                let content = UNMutableNotificationContent()
+                content.title = "\(service.name) \(label) reset expected"
+                content.body = "Your last reading reported a reset now. Open AIQuota to check current usage."
+                content.sound = .default
+                let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: reset)
+                try await center.add(UNNotificationRequest(identifier: id, content: content,
+                    trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)))
+            })
+            defaults.removeObject(forKey: "notifications.error")
+        } catch { defaults.set("Couldn’t schedule reset alerts. Try again.", forKey: "notifications.error") }
+    }
+    static func apply(_ service: QuotaService, plan: [(String, Date)],
+        remove: (String) async -> Void, schedule: (String, String, Date) async throws -> Void) async throws {
+        for label in ["5h", "7d"] {
+            let id = identifier(service, label)
+            if let reset = plan.first(where: { $0.0 == label })?.1 { try await schedule(id, label, reset) }
+            else { await remove(id) }
+        }
+    }
+    static func reconcile() async {
+        for service in QuotaService.allCases {
+            let store = SharedQuotaStore(service)
+            try? await store.withLease {
+                await update(service, reading: store.failure() == nil ? store.reading() : nil)
+            }
+        }
     }
 }
