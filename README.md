@@ -310,8 +310,8 @@ The Mac app is the design reference for iOS: gauge proportions, typography, syst
 
 **Following**
 
-- [ ] Home Screen widgets for one or both services.
-- [ ] Expand notification parity with the Mac beyond estimated-reset reminders (usage thresholds and limit alerts).
+- [x] Implement all four Mac-equivalent Home Screen widget layouts locally; phone gallery/tint validation and TestFlight delivery pending.
+- [x] Implement per-window approaching/limit alerts on iOS and near-limit reset controls on iOS and Mac locally; device verification and release pending.
 - [ ] Optional analytics with explicit consent; no iOS collection is implemented.
 - [ ] Broaden account metadata validation across plans. Codex metadata and Claude usage credits have appeared on the owner’s phone; Claude plan and balance are not available from the current mobile usage response.
 

@@ -15,10 +15,13 @@
 		363831E14640C6E63BA8CD06 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 652482B3FBA0A241F21DF910 /* PrivacyInfo.xcprivacy */; };
 		3B37B886A505345D94F1106D /* SharedQuotaStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A827B61B801F45B571C22D4 /* SharedQuotaStore.swift */; };
 		3B54D157161590113ACED407 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C4A665A3F6E10210205651C1 /* Assets.xcassets */; };
+		3FE2C7EAFFB0C84FBB81748B /* HomeQuotaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39129D16B4B1A86FA705A17C /* HomeQuotaView.swift */; };
 		4425E8D24C7474C6DAE872D0 /* ProbeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59F4F1B59FFE30E899E31F8D /* ProbeModel.swift */; };
 		4B3475597E85C005EAD58BE3 /* TokenStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9302F08CDA8C2099F522EB6 /* TokenStoreTests.swift */; };
+		4D3BAC69D9A0F62B6AF53918 /* HomeWidgetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3805EE8533FA745C2DDA0491 /* HomeWidgetTests.swift */; };
 		5A46369816A5946D839E4BD1 /* MobileAccessApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 667DECCAD3629416AE8E1184 /* MobileAccessApp.swift */; };
 		7221848F4E38D90D66F26309 /* MobileAccessCore in Frameworks */ = {isa = PBXBuildFile; productRef = DFF4C4A5EB5BDFA9C95AAECF /* MobileAccessCore */; };
+		734B00FD1B1B65A72E964613 /* HomeQuotaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39129D16B4B1A86FA705A17C /* HomeQuotaView.swift */; };
 		746C4447FF212224EBC1C74F /* OverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 544AA7837A218AFDE7979ECA /* OverviewView.swift */; };
 		75693BD6C1BF90BE6314D47F /* CompactQuotaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2681A208A2007E5167B5903 /* CompactQuotaView.swift */; };
 		799C6B9A2DDFF680424B37A3 /* OnboardingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D3DAB2AE10FEF44FAAAEEEE /* OnboardingTests.swift */; };
@@ -70,22 +73,24 @@
 /* Begin PBXFileReference section */
 		033BEE818868F742F0C74E02 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0FFBABD81D84B816E058A18A /* TokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenStore.swift; sourceTree = "<group>"; };
-		10E78A55674FC8381F9E6696 /* AIQuota-iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "AIQuota-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		10E78A55674FC8381F9E6696 /* AIQuota-iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "AIQuota-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		126972287BBBDE180220E188 /* ClaudeTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeTokenStore.swift; sourceTree = "<group>"; };
 		1D3DAB2AE10FEF44FAAAEEEE /* OnboardingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingTests.swift; sourceTree = "<group>"; };
 		23DBF6CBC5AEF8D221D5EA51 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		25D0C914A09E992523B60A79 /* ClaudeProbeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeProbeModel.swift; sourceTree = "<group>"; };
 		33016447347AF46F0499E374 /* Widget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Widget.entitlements; sourceTree = "<group>"; };
+		3805EE8533FA745C2DDA0491 /* HomeWidgetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetTests.swift; sourceTree = "<group>"; };
+		39129D16B4B1A86FA705A17C /* HomeQuotaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeQuotaView.swift; sourceTree = "<group>"; };
 		4A827B61B801F45B571C22D4 /* SharedQuotaStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedQuotaStore.swift; sourceTree = "<group>"; };
 		544AA7837A218AFDE7979ECA /* OverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewView.swift; sourceTree = "<group>"; };
 		59F4F1B59FFE30E899E31F8D /* ProbeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProbeModel.swift; sourceTree = "<group>"; };
 		64469AA7AC51D1904D08039F /* ClaudeProbeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeProbeView.swift; sourceTree = "<group>"; };
-		652482B3FBA0A241F21DF910 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		652482B3FBA0A241F21DF910 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		665C8528F74765B27A7E8206 /* MobileAccessHostTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MobileAccessHostTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		667DECCAD3629416AE8E1184 /* MobileAccessApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileAccessApp.swift; sourceTree = "<group>"; };
 		8924102467BA8034DBE2CECD /* SharedQuotaStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedQuotaStoreTests.swift; sourceTree = "<group>"; };
 		926FEB7F8D7432AC85C40F34 /* Mobile.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Mobile.entitlements; sourceTree = "<group>"; };
-		9541934EFB0D1035EA296DB4 /* Core */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Core; sourceTree = SOURCE_ROOT; };
+		9541934EFB0D1035EA296DB4 /* Core */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Core; path = Core; sourceTree = SOURCE_ROOT; };
 		A2B1CD537E4DD95CEBAE23D6 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		B2DD6DC0C92D6E6CBCA60A64 /* WidgetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetStore.swift; sourceTree = "<group>"; };
 		BC43070E1A6F758DB7AF31A6 /* CodexWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexWidget.swift; sourceTree = "<group>"; };
@@ -198,6 +203,7 @@
 		93C3533137E35584B6D3FC89 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				3805EE8533FA745C2DDA0491 /* HomeWidgetTests.swift */,
 				1D3DAB2AE10FEF44FAAAEEEE /* OnboardingTests.swift */,
 				8924102467BA8034DBE2CECD /* SharedQuotaStoreTests.swift */,
 				F9302F08CDA8C2099F522EB6 /* TokenStoreTests.swift */,
@@ -209,6 +215,7 @@
 			isa = PBXGroup;
 			children = (
 				E2681A208A2007E5167B5903 /* CompactQuotaView.swift */,
+				39129D16B4B1A86FA705A17C /* HomeQuotaView.swift */,
 				926FEB7F8D7432AC85C40F34 /* Mobile.entitlements */,
 				4A827B61B801F45B571C22D4 /* SharedQuotaStore.swift */,
 				33016447347AF46F0499E374 /* Widget.entitlements */,
@@ -357,6 +364,7 @@
 			files = (
 				FB35301AC5F7338EEA7F8089 /* CodexWidget.swift in Sources */,
 				8299DA3C7C1FD96239063B69 /* CompactQuotaView.swift in Sources */,
+				3FE2C7EAFFB0C84FBB81748B /* HomeQuotaView.swift in Sources */,
 				3B37B886A505345D94F1106D /* SharedQuotaStore.swift in Sources */,
 				35E250658F5C0CA0E7785184 /* WidgetStore.swift in Sources */,
 			);
@@ -370,6 +378,7 @@
 				1C083A4F4BDACFE1F22DF9C3 /* ClaudeProbeView.swift in Sources */,
 				33446789E7BF9AACA7AB3131 /* ClaudeTokenStore.swift in Sources */,
 				75693BD6C1BF90BE6314D47F /* CompactQuotaView.swift in Sources */,
+				734B00FD1B1B65A72E964613 /* HomeQuotaView.swift in Sources */,
 				5A46369816A5946D839E4BD1 /* MobileAccessApp.swift in Sources */,
 				B7006AC17E028F428A769717 /* MobileSettingsView.swift in Sources */,
 				0EF1B05BC738A8B47D47E2FC /* OnboardingView.swift in Sources */,
@@ -385,6 +394,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4D3BAC69D9A0F62B6AF53918 /* HomeWidgetTests.swift in Sources */,
 				799C6B9A2DDFF680424B37A3 /* OnboardingTests.swift in Sources */,
 				CC5F281DB85E8B6C7066CA4C /* SharedQuotaStoreTests.swift in Sources */,
 				4B3475597E85C005EAD58BE3 /* TokenStoreTests.swift in Sources */,
@@ -458,7 +468,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -496,13 +506,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Shared/Mobile.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 13;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = App/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "AI Quota";
-				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -519,13 +524,8 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Shared/Mobile.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 13;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = App/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "AI Quota";
-				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -588,7 +588,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_NS_ASSERTIONS = NO;

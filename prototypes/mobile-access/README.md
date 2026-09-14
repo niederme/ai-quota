@@ -306,3 +306,102 @@ unfinished. Xcode again lingered after suite completion and was stopped, so this
 is suite-level success rather than a clean test-command exit. Build 13 was subsequently archived and uploaded with the release script, and
 the owner confirmed successful Claude renewal. Next: finish visual/interaction
 checks and physical-device reset/reinstall verification.
+
+## Home Screen widgets and granular alerts (local, not yet uploaded)
+
+Mac widget inventory and iOS equivalents:
+
+| Mac option | Home Screen size | iOS configuration |
+| --- | --- | --- |
+| Single-service gauge | Small | Codex or Claude Code |
+| Single-service details | Medium | Codex or Claude Code |
+| Both-service gauges | Medium | Both, centering a single enrolled service |
+| Both-service details | Large | Both services with available account metadata |
+
+These add two new widget kinds, preserving the four existing Lock Screen kinds.
+They reuse shared credentials, lease-protected refresh, saved readings, freshness
+boundaries and attention states. Metadata appears only when supplied by the mobile
+provider; Claude plan information and complete Mac billing metadata are not always
+available. Taps open the corresponding account. Gallery placement, iOS tint modes,
+and background delivery still require physical-device verification.
+
+Reset alerts now offer Off, Only near the limit, and Every reset separately for
+each service's 5h and 7d window. Near-limit defaults to 90% and is adjustable.
+Existing master and service switches stay intact. Existing enabled reset alerts
+adopt the quieter 90% default. Lowering usage to 18% cancels an unneeded reminder;
+100% remains eligible. iOS continues to schedule an estimated reset from the latest
+fresh reading, not claim that a provider has actually restored capacity. The owner
+confirmed an estimated-reset notification arrived at 100% in the prior build.
+
+iOS also has opt-in approaching-limit and limit-reached alerts per window, with an
+adjustable approaching threshold (85% default). These run on successful app/widget
+refresh, never on a timer that invents usage. A persisted per-window high-water
+mark suppresses repeat alerts. Delivery is subject to iOS update opportunities;
+it is not a server push service. Missing reset dates suppress usage alerts so a
+stable deduplication window is required. Full reset removes these preferences and
+state; disconnect clears the account's deduplication state.
+
+Mac Settings gets the same reset choices and threshold wording, retaining its
+existing usage-alert groups. The Mac records peak observed usage within the old
+window and only considers reset when the provider reports a new future window.
+This avoids evaluating the new zero-percent value and avoids repeated alerts when
+an expired timestamp is merely repeated. Initial install of this policy establishes
+a baseline without sending a reset alert. Existing disabled reset switches remain
+disabled. Mac and iOS use the same user-facing policy, with different delivery
+mechanisms appropriate to their platforms.
+
+Validation: 29 mobile core tests and 144 AIQuotaKit tests passed. Hosted simulator
+suites reported 28 passing cases; the first run exited successfully, while the
+later run lingered after all suites passed and was stopped. Both iOS and Mac
+Debug builds succeeded. All four Home Screen layouts were rendered at compact
+phone widget sizes in light and dark mode; an unintended blue Link tint was
+removed and the corrected renders reviewed. Build 14 subsequently archived, uploaded, and reached internal TestFlight
+(`VALID`, `IN_BETA_TESTING`), confirmed by the release record and the owner's
+Home Screen screenshots. The owner reviewed full-color light/dark and clear/tinted
+widget appearances. Delivery of the new notification choices still needs device
+coverage beyond the earlier estimated-reset alert.
+
+## September 14 refinement: widget readability and stable refresh layout
+
+Implemented locally after the reset, using the owner's six build-14 widget
+screenshots and six sampled frames of the supplied reload recording.
+
+- Home Screen metadata increases from caption2 (11 pt) to 13 pt. Service names
+  use 12 pt bold, and reset/status captions increase from 10 pt to 11 pt.
+- Single-service medium widgets align their metadata to the top. Gauge captions
+  reclaim the empty bottom of the arc, accommodating larger text without growing
+  the ring. Medium/large detail layouts show the weekly reset in the metadata
+  column instead of repeating it under the gauge.
+- Full-color widget containers use regular material, matching the Mac popover's
+  material choice. Reduce Transparency uses a neutral grouped background. The
+  background stays inside WidgetKit's removable container; no custom glass layer
+  is placed over clear/tinted content. Apple controls the final Home Screen
+  composition, so physical full-color material rendering needs owner review.
+- Overview cards measure together and share the taller natural height. Ordinary
+  metadata rows, reset blocks, and status space remain reserved as readings change.
+  Content anchors at the top, with unused space below. Connection errors can grow
+  both cards together; they are never clipped to a fixed pixel height.
+- The toolbar swaps its refresh icon and spinner within the same 24 pt bounds.
+  Refreshing replaces the freshness label rather than adding a row. Freshness
+  follows the Mac's `Just now`, seconds, minutes, and hours labels, retaining
+  explicit saved/older-reading cues. Failed readings do not claim a current limit.
+
+Validation: the iOS app and widget compile successfully. Hosted simulator layout
+and regression tests cover refresh/idle and disappearing metadata at default,
+extra-large, and accessibility sizes, plus shared height with a renewal failure.
+All four Home Screen sizes were rendered and reviewed in light/dark mode. Preview
+views now install their SwiftUI environment properly, so accessibility layout is
+actually exercised. ImageRenderer previews use a neutral backing surface because
+it does not reproduce WidgetKit's wallpaper composition. Final hosted run: 29 tests passed, with `TEST SUCCEEDED` in
+`/tmp/aiquota-refinement-final-tests.log`. The build log is
+`/tmp/aiquota-refinement-build.log`. The small widget with both reset captions at
+a weekly limit was also rendered for fit review. `git diff --check` passed.
+
+References: Mac `CircularGaugeView` refresh swap, `PopoverView` freshness labels
+and regular material, and Apple's
+[widget background guidance](https://developer.apple.com/documentation/widgetkit/displaying-the-right-widget-background)
+and [Liquid Glass rendering guidance](https://developer.apple.com/documentation/widgetkit/optimizing-your-widget-for-accented-rendering-mode-and-liquid-glass).
+
+No new archive, upload, commit, or merge is part of this pass. Build 14 remains the
+TestFlight build. Later observations about explicit 5h/7d labels on Remaining and
+secondary-text contrast were not added to the scheduled implementation scope.

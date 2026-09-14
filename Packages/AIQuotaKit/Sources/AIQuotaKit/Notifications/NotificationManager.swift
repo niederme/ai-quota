@@ -52,6 +52,24 @@ public actor NotificationManager {
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized else { return }
 
+        let weeklyResetPeak = observeReset(key: Key.codexLastResetAt, used: Double(current.weeklyUsedPercent), end: current.weeklyResetAt)
+        let hourlyResetPeak = current.hasHourlyWindow ? observeReset(key: Key.codex5hLastResetAt, used: Double(current.hourlyUsedPercent), end: current.hourlyResetAt) : nil
+
+        if prefs.codexReset && ResetAlertObservation.allows(priorPeak: weeklyResetPeak, minimum: prefs.codexResetMinimum) {
+            await send(
+                id: "codexReset",
+                title: "Codex 7-day window reset",
+                body: "Your Codex 7-day window has reset. You're back to full capacity."
+            )
+        }
+        if prefs.codex5hReset && ResetAlertObservation.allows(priorPeak: hourlyResetPeak, minimum: prefs.codex5hResetMinimum) {
+            await send(
+                id: "codex5hReset",
+                title: "Codex 5-hour window reset",
+                body: "Your Codex 5-hour window has reset. You're back to full capacity."
+            )
+        }
+
         let storedResetAt  = defaults.object(forKey: Key.codexLastResetAt) as? Double
         let currentResetAt = current.weeklyResetAt.timeIntervalSince1970
 
@@ -60,13 +78,6 @@ public actor NotificationManager {
             if storedDate < .now {
                 clearThresholds(key: Key.codexThresholds)
                 defaults.set(currentResetAt, forKey: Key.codexLastResetAt)
-                if prefs.codexReset {
-                    await send(
-                        id: "codexReset",
-                        title: "Codex 7-day window reset",
-                        body: "Your Codex 7-day window has reset. You're back to full capacity."
-                    )
-                }
                 return
             } else if stored != currentResetAt {
                 defaults.set(currentResetAt, forKey: Key.codexLastResetAt)
@@ -86,13 +97,6 @@ public actor NotificationManager {
                 if storedDate5h < .now {
                     clearThresholds(key: Key.codex5hThresholds)
                     defaults.set(hourlyResetAt, forKey: Key.codex5hLastResetAt)
-                    if prefs.codex5hReset {
-                        await send(
-                            id: "codex5hReset",
-                            title: "Codex 5-hour window reset",
-                            body: "Your Codex 5-hour window has reset. You're back to full capacity."
-                        )
-                    }
                 } else {
                     if stored5h != hourlyResetAt { defaults.set(hourlyResetAt, forKey: Key.codex5hLastResetAt) }
                     let notified5h = loadThresholds(key: Key.codex5hThresholds)
@@ -195,6 +199,27 @@ public actor NotificationManager {
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized else { return }
 
+        let hourlyResetPeak = claude.fiveHourUtilization.flatMap { used in
+            claude.fiveHourResetsAt.flatMap { observeReset(key: Key.claudeLastResetAt, used: used, end: $0) }
+        }
+        let weeklyResetPeak = claude.sevenDayUtilization.flatMap { used in
+            claude.sevenDayResetsAt.flatMap { observeReset(key: Key.claudeSevenDayLastResetAt, used: used, end: $0) }
+        }
+        if prefs.claude5hReset && ResetAlertObservation.allows(priorPeak: hourlyResetPeak, minimum: prefs.claude5hResetMinimum) {
+            await send(
+                id: "claudeReset",
+                title: "Claude 5-hour window reset",
+                body: "Your Claude 5-hour window has reset. You're back to full capacity."
+            )
+        }
+        if prefs.claude7dReset && ResetAlertObservation.allows(priorPeak: weeklyResetPeak, minimum: prefs.claude7dResetMinimum) {
+            await send(
+                id: "claudeSevenDayReset",
+                title: "Claude 7-day window reset",
+                body: "Your Claude 7-day window has reset. You're back to full capacity."
+            )
+        }
+
         if let fiveHourUsed = claude.fiveHourUtilization,
            let fiveHourResetAt = claude.fiveHourResetsAt {
             let storedResetAt  = defaults.object(forKey: Key.claudeLastResetAt) as? Double
@@ -205,13 +230,6 @@ public actor NotificationManager {
                 if storedDate < .now {
                     clearThresholds(key: Key.claudeThresholds)
                     defaults.set(currentResetAt, forKey: Key.claudeLastResetAt)
-                    if prefs.claude5hReset {
-                        await send(
-                            id: "claudeReset",
-                            title: "Claude 5-hour window reset",
-                            body: "Your Claude 5-hour window has reset. You're back to full capacity."
-                        )
-                    }
                     return
                 } else if stored != currentResetAt {
                     defaults.set(currentResetAt, forKey: Key.claudeLastResetAt)
@@ -272,13 +290,6 @@ public actor NotificationManager {
             if storedDate < .now {
                 clearThresholds(key: Key.claudeSevenDayThresholds)
                 defaults.set(sevenDayResetAt, forKey: Key.claudeSevenDayLastResetAt)
-                if prefs.claude7dReset {
-                    await send(
-                        id: "claudeSevenDayReset",
-                        title: "Claude 7-day window reset",
-                        body: "Your Claude 7-day window has reset. You're back to full capacity."
-                    )
-                }
             } else {
                 if stored != sevenDayResetAt {
                     defaults.set(sevenDayResetAt, forKey: Key.claudeSevenDayLastResetAt)
@@ -324,6 +335,20 @@ public actor NotificationManager {
 
     private func loadThresholds(key: String) -> Set<String> {
         Set(defaults.stringArray(forKey: key) ?? [])
+    }
+
+    public func clearResetHistory(for service: ServiceType) {
+        let keys = service == .codex ? [Key.codexLastResetAt, Key.codex5hLastResetAt] : [Key.claudeLastResetAt, Key.claudeSevenDayLastResetAt]
+        for key in keys { defaults.removeObject(forKey: key + ".resetObservation") }
+    }
+
+    private func observeReset(key: String, used: Double, end: Date) -> Double? {
+        let storageKey = key + ".resetObservation"
+        var observation = defaults.data(forKey: storageKey).flatMap { try? JSONDecoder().decode(ResetAlertObservation.self, from: $0) }
+            ?? ResetAlertObservation(end: end, peak: used)
+        let priorPeak = observation.observe(used: used, end: end, now: .now)
+        if let data = try? JSONEncoder().encode(observation) { defaults.set(data, forKey: storageKey) }
+        return priorPeak
     }
 
     private func markThreshold(_ threshold: String, key: String) {

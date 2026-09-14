@@ -1,4 +1,5 @@
 import SwiftUI
+import MobileAccessCore
 
 struct MobileSettingsView: View {
     @AppStorage("refreshIntervalMinutes") private var refreshMinutes = 0
@@ -37,7 +38,7 @@ struct MobileSettingsView: View {
                     onboarding.replay()
                     showOnboarding = true
                 }
-                NavigationLink("Lock Screen widgets") { LockScreenSetupView() }
+                NavigationLink("Widgets") { LockScreenSetupView() }
                 Button("Reset All Settings…", role: .destructive) { confirmReset = true }
                 if resetting { ProgressView("Resetting…") }
                 if let resetError { Text(resetError).font(.callout).foregroundStyle(.red) }
@@ -130,8 +131,10 @@ struct MobileNotificationControls: View {
             })).disabled(requesting)
             if enabled {
                 Toggle("Codex", isOn: $codex)
-                Toggle("Claude", isOn: $claude)
-                Text("5-hour and 7-day reset reminders use your last fresh reading. They are estimates; open the app to confirm availability.")
+                if codex { MobileServiceAlertControls(service: .codex) }
+                Toggle("Claude Code", isOn: $claude)
+                if claude { MobileServiceAlertControls(service: .claude) }
+                Text("Usage alerts are checked when the app or widgets update. Reset reminders use your last fresh reading and are estimates; open the app to confirm availability.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
             if denied {
@@ -161,9 +164,61 @@ enum MobileSettingsReset {
             shared.removeObject(forKey: key)
         }
         for service in QuotaService.allCases {
+            for window in ["5h", "7d"] {
+                for suffix in ["resetMode", "resetThreshold", "usageEnabled", "usageThreshold", "limitEnabled", "usageState"] {
+                    shared.removeObject(forKey: "notifications.\(service.rawValue).\(window).\(suffix)")
+                }
+            }
             MobileResetNotifications.cancel(service)
             UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers:
-                [MobileResetNotifications.identifier(service, "5h"), MobileResetNotifications.identifier(service, "7d")])
+                [MobileResetNotifications.identifier(service, "5h"), MobileResetNotifications.identifier(service, "7d"), "quota.usage.\(service.rawValue).5h", "quota.usage.\(service.rawValue).7d"])
         }
+    }
+}
+
+struct MobileServiceAlertControls: View {
+    let service: QuotaService
+    var body: some View {
+        VStack(spacing: 12) {
+            MobileWindowAlertControls(service: service, window: "5h", title: "5-hour window")
+            MobileWindowAlertControls(service: service, window: "7d", title: "7-day window")
+        }
+    }
+}
+struct MobileWindowAlertControls: View {
+    @AppStorage private var mode: String
+    @AppStorage private var threshold: Double
+    @AppStorage private var usageEnabled: Bool
+    @AppStorage private var usageThreshold: Double
+    @AppStorage private var limitEnabled: Bool
+    let title: String
+    init(service: QuotaService, window: String, title: String) {
+        self.title = title
+        let prefix = "notifications.\(service.rawValue).\(window)."
+        _mode = AppStorage(wrappedValue: "nearLimit", prefix + "resetMode", store: MobileResetNotifications.defaults)
+        _threshold = AppStorage(wrappedValue: 90, prefix + "resetThreshold", store: MobileResetNotifications.defaults)
+        _usageEnabled = AppStorage(wrappedValue: false, prefix + "usageEnabled", store: MobileResetNotifications.defaults)
+        _usageThreshold = AppStorage(wrappedValue: 85, prefix + "usageThreshold", store: MobileResetNotifications.defaults)
+        _limitEnabled = AppStorage(wrappedValue: false, prefix + "limitEnabled", store: MobileResetNotifications.defaults)
+    }
+    var body: some View {
+        DisclosureGroup(title) {
+            VStack(alignment: .leading, spacing: 12) {
+                Toggle("Approaching the limit", isOn: $usageEnabled)
+                if usageEnabled { Stepper("At least \(Int(usageThreshold))% used", value: $usageThreshold, in: 5...95, step: 5) }
+                Toggle("Limit reached", isOn: $limitEnabled)
+                Divider()
+                Picker("Reset alerts", selection: $mode) {
+                    Text("Off").tag("off")
+                    Text("Only near the limit").tag("nearLimit")
+                    Text("Every reset").tag("everyReset")
+                }
+                if mode == "nearLimit" {
+                    Stepper("At least \(Int(threshold))% used", value: $threshold, in: 5...100, step: 5)
+                }
+            }.padding(.top, 8)
+        }
+        .onChange(of: mode) { Task { await MobileResetNotifications.reconcile() } }
+        .onChange(of: threshold) { Task { await MobileResetNotifications.reconcile() } }
     }
 }
