@@ -206,9 +206,15 @@ struct OnboardingWelcome: View {
 struct LockScreenSetupContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Your limits at a glance").font(.largeTitle.bold()).fixedSize(horizontal: false, vertical: true)
-            Text("Add AI Quota to your Lock Screen. You can do this now or come back to these instructions in Settings.")
+            Text("Add AIQuota widgets").font(.largeTitle.bold()).fixedSize(horizontal: false, vertical: true)
+            Text("See your quota at a glance on your Home Screen and Lock Screen.")
                 .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            Text("Home Screen").font(.headline)
+            instruction(1, "Touch and hold your Home Screen, then open the widget gallery.")
+            instruction(2, "Search for AI Quota. Choose a small or medium widget for one service, or a medium or large widget for both.")
+            instruction(3, "For a single-service widget, edit the placed widget to choose Codex or Claude Code.")
+            Divider()
+            Text("Lock Screen").font(.headline)
             instruction(1, "Touch and hold your Lock Screen, then tap Customize and choose the Lock Screen.")
             instruction(2, "Tap the widget area and choose AI Quota. Add rings, percentages, or Service details.")
             instruction(3, "For a single-service widget, tap the placed widget to choose Codex or Claude. Finish customizing to save.")

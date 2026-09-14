@@ -60,7 +60,12 @@ struct SharedQuotaStore: Sendable {
         guard status == errSecSuccess || status == errSecItemNotFound else { throw AccessError.storage }
         if let url = readingURL, FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
         saveFailure(nil)
-        if namespace == "live" { MobileResetNotifications.cancel(service) }
+        if namespace == "live" {
+            MobileResetNotifications.cancel(service)
+            for window in ["5h", "7d"] {
+                MobileResetNotifications.defaults.removeObject(forKey: "notifications.\(service.rawValue).\(window).usageState")
+            }
+        }
         log("app", "disconnected")
     }
     func withLease<T: Sendable>(_ action: @Sendable () async throws -> T) async throws -> T {
@@ -104,7 +109,7 @@ struct SharedQuotaStore: Sendable {
                 try Task.checkCancellation()
                 try saveReading(value)
                 saveFailure(nil)
-                if namespace == "live" { await MobileResetNotifications.update(service, reading: value) }
+                if namespace == "live" { await MobileResetNotifications.update(service, reading: value, evaluateUsage: true) }
                 log(source, "success", reading: value)
                 return value
             } catch {
@@ -179,18 +184,26 @@ import UserNotifications
 enum MobileResetNotifications {
     static var defaults: UserDefaults { UserDefaults(suiteName: WidgetStore.group) ?? .standard }
     static func identifier(_ service: QuotaService, _ window: String) -> String { "quota.reset.\(service.rawValue).\(window)" }
-    static func planned(_ reading: QuotaReading?, now: Date) -> [(String, Date)] {
+    static func planned(_ reading: QuotaReading?, now: Date, rules: [String: ResetAlertRule] = [:]) -> [(String, Date)] {
         guard let reading, !WidgetFreshness.isOld(reading, at: now) else { return [] }
         return [("5h", reading.shortTerm), ("7d", reading.weekly)].compactMap { label, window in
-            guard let window, window.usedPercent > 0, let reset = window.resetsAt, reset > now else { return nil }
+            guard let window, (rules[label] ?? ResetAlertRule()).allows(usedPercent: window.usedPercent), let reset = window.resetsAt, reset > now else { return nil }
             return (label, reset)
         }
     }
+    static func rules(_ service: QuotaService, store: UserDefaults = defaults) -> [String: ResetAlertRule] {
+        Dictionary(uniqueKeysWithValues: ["5h", "7d"].map { window in
+            let key = "notifications.\(service.rawValue).\(window)."
+            let mode = ResetAlertRule.Mode(rawValue: store.string(forKey: key + "resetMode") ?? "") ?? .nearLimit
+            let threshold = store.object(forKey: key + "resetThreshold") as? Double ?? 90
+            return (window, ResetAlertRule(mode: mode, threshold: threshold))
+        })
+    }
     static func cancel(_ service: QuotaService) {
-        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier(service, "5h"), identifier(service, "7d")])
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier(service, "5h"), identifier(service, "7d"), "quota.usage.\(service.rawValue).5h", "quota.usage.\(service.rawValue).7d"])
     }
     // Call under the provider lease so app and widget do not race scheduling or disconnect.
-    static func update(_ service: QuotaService, reading: QuotaReading?) async {
+    static func update(_ service: QuotaService, reading: QuotaReading?, evaluateUsage: Bool = false) async {
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         guard defaults.bool(forKey: "notifications.enabled"),
@@ -199,7 +212,7 @@ enum MobileResetNotifications {
             cancel(service); return
         }
         do {
-            try await apply(service, plan: planned(reading, now: .now), remove: { id in
+            try await apply(service, plan: planned(reading, now: .now, rules: rules(service)), remove: { id in
                 center.removePendingNotificationRequests(withIdentifiers: [id])
             }, schedule: { id, label, reset in
                 let content = UNMutableNotificationContent()
@@ -210,8 +223,30 @@ enum MobileResetNotifications {
                 try await center.add(UNNotificationRequest(identifier: id, content: content,
                     trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)))
             })
+            if evaluateUsage { try await usageAlerts(service, reading: reading) }
             defaults.removeObject(forKey: "notifications.error")
         } catch { defaults.set("Couldn’t schedule reset alerts. Try again.", forKey: "notifications.error") }
+    }
+    private static func usageAlerts(_ service: QuotaService, reading: QuotaReading?) async throws {
+        guard let reading, !WidgetFreshness.isOld(reading, at: .now) else { return }
+        for (label, window) in [("5h", reading.shortTerm), ("7d", reading.weekly)] {
+            guard let window, let end = window.resetsAt else { continue }
+            let prefix = "notifications.\(service.rawValue).\(label)."
+            var state = defaults.data(forKey: prefix + "usageState").flatMap { try? JSONDecoder().decode(UsageAlertState.self, from: $0) }
+                ?? UsageAlertState(windowEnd: end)
+            if state.windowEnd != end { state = UsageAlertState(windowEnd: end) }
+            guard let level = state.next(used: window.usedPercent, now: .now,
+                nearEnabled: defaults.bool(forKey: prefix + "usageEnabled"),
+                nearThreshold: defaults.object(forKey: prefix + "usageThreshold") as? Double ?? 85,
+                limitEnabled: defaults.bool(forKey: prefix + "limitEnabled")) else { continue }
+            let content = UNMutableNotificationContent()
+            content.title = "\(service.name) \(label) " + (level == 100 ? "limit reached" : "usage high")
+            content.body = "\(Int(window.usedPercent.rounded()))% used. Open AIQuota for current usage."
+            content.sound = .default
+            try await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "quota.usage.\(service.rawValue).\(label)", content: content, trigger: nil))
+            state.highestNotified = level
+            defaults.set(try JSONEncoder().encode(state), forKey: prefix + "usageState")
+        }
     }
     static func apply(_ service: QuotaService, plan: [(String, Date)],
         remove: (String) async -> Void, schedule: (String, String, Date) async throws -> Void) async throws {

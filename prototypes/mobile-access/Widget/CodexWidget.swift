@@ -16,6 +16,12 @@ struct QuotaEntry: TimelineEntry {
     let date: Date
     let values: [ProviderReading]
 }
+private func hasSavedCredentials(_ store: SharedQuotaStore) -> Bool {
+    switch store.service {
+    case .codex: return (try? store.load(CodexTokens.self)) != nil
+    case .claude: return (try? store.load(ClaudeTokens.self)) != nil
+    }
+}
 private func loadReading(_ service: QuotaService) async -> ProviderReading {
     let store = SharedQuotaStore(service)
     do {
@@ -25,7 +31,7 @@ private func loadReading(_ service: QuotaService) async -> ProviderReading {
         let reconnect = (error as? AccessError) == .expired || (error as? AccessError) == .http(401)
             || (error as? ClaudeAccessError)?.requiresReconnect == true
             || SharedQuotaStore.Failure.classify(error) == .renewal
-        return ProviderReading(service: service, reading: store.reading(), needsApp: reconnect)
+        return ProviderReading(service: service, reading: store.reading(), needsApp: reconnect && (hasSavedCredentials(store) || store.reading() != nil))
     }
 }
 private func timeline(_ values: [ProviderReading]) -> Timeline<QuotaEntry> {
@@ -39,7 +45,7 @@ private func timeline(_ values: [ProviderReading]) -> Timeline<QuotaEntry> {
 struct CodexProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> QuotaEntry { QuotaEntry(date: .now, values: [ProviderReading(service: .codex, reading: nil, needsApp: false)]) }
     func snapshot(for configuration: QuotaConfiguration, in context: Context) async -> QuotaEntry {
-        QuotaEntry(date: .now, values: [ProviderReading(service: configuration.service, reading: SharedQuotaStore(configuration.service).reading(), needsApp: false)])
+        QuotaEntry(date: .now, values: [ProviderReading(service: configuration.service, reading: SharedQuotaStore(configuration.service).reading(), needsApp: SharedQuotaStore(configuration.service).failure().map { $0 != .temporary } ?? false)])
     }
     func timeline(for configuration: QuotaConfiguration, in context: Context) async -> Timeline<QuotaEntry> {
         await makeTimeline(configuration.service)
@@ -59,7 +65,7 @@ struct BothConfiguration: WidgetConfigurationIntent {
 struct BothProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> QuotaEntry { QuotaEntry(date: .now, values: QuotaService.allCases.map { ProviderReading(service: $0, reading: nil, needsApp: false) }) }
     func snapshot(for configuration: BothConfiguration, in context: Context) async -> QuotaEntry {
-        QuotaEntry(date: .now, values: QuotaService.allCases.map { ProviderReading(service: $0, reading: SharedQuotaStore($0).reading(), needsApp: false) })
+        QuotaEntry(date: .now, values: QuotaService.allCases.map { ProviderReading(service: $0, reading: SharedQuotaStore($0).reading(), needsApp: SharedQuotaStore($0).failure().map { $0 != .temporary } ?? false) })
     }
     func timeline(for configuration: BothConfiguration, in context: Context) async -> Timeline<QuotaEntry> {
         async let codex = loadReading(.codex)
@@ -117,7 +123,7 @@ struct CompactProvider: AppIntentTimelineProvider {
         QuotaEntry(date: .now, values: [.init(service: .codex, reading: nil, needsApp: false), .init(service: .claude, reading: nil, needsApp: false)])
     }
     func snapshot(for configuration: CompactConfiguration, in context: Context) async -> QuotaEntry {
-        QuotaEntry(date: .now, values: configuration.services.services.map { ProviderReading(service: $0, reading: SharedQuotaStore($0).reading(), needsApp: false) })
+        QuotaEntry(date: .now, values: configuration.services.services.map { ProviderReading(service: $0, reading: SharedQuotaStore($0).reading(), needsApp: SharedQuotaStore($0).failure().map { $0 != .temporary } ?? false) })
     }
     func timeline(for configuration: CompactConfiguration, in context: Context) async -> Timeline<QuotaEntry> {
         if configuration.services == .both {
@@ -145,7 +151,7 @@ struct CompactLockScreenWidget: Widget {
     }
 }
 @main struct QuotaWidgets: WidgetBundle {
-    var body: some Widget { SingleLockScreenWidget(); BothLockScreenWidget(); CompactLockScreenWidget(); ServiceDetailsWidget() }
+    var body: some Widget { SingleLockScreenWidget(); BothLockScreenWidget(); CompactLockScreenWidget(); ServiceDetailsWidget(); SingleHomeScreenWidget(); BothHomeScreenWidget() }
 }
 
 struct ServiceDetailsWidget: Widget {
@@ -160,5 +166,41 @@ struct ServiceDetailsWidget: Widget {
         .configurationDisplayName("Service details")
         .description("One service with a gauge and both percentages. Choose Codex or Claude.")
         .supportedFamilies([.accessoryRectangular])
+    }
+}
+
+private struct HomeEntryView: View {
+    let entry: QuotaEntry
+    let both: Bool
+    @Environment(\.widgetFamily) private var family
+    var body: some View {
+        HomeQuotaView(values: entry.values, date: entry.date,
+            layout: both ? (family == .systemLarge ? .large : .dualMedium) : (family == .systemSmall ? .small : .singleMedium))
+    }
+}
+struct SingleHomeScreenWidget: Widget {
+    var body: some WidgetConfiguration {
+        AppIntentConfiguration(kind: "AIQuotaHomeSingle", intent: QuotaConfiguration.self, provider: CodexProvider()) { entry in
+            HomeEntryView(entry: entry, both: false)
+                .widgetURL(entry.values.first?.service.url)
+                .containerBackground(for: .widget) { HomeWidgetBackground() }
+        }
+        .configurationDisplayName("AI Quota")
+        .description("Track your AI service usage quota. Choose Codex or Claude Code.")
+        .supportedFamilies([.systemSmall, .systemMedium])
+        .contentMarginsDisabled()
+    }
+}
+struct BothHomeScreenWidget: Widget {
+    var body: some WidgetConfiguration {
+        AppIntentConfiguration(kind: "AIQuotaHomeBoth", intent: BothConfiguration.self, provider: BothProvider()) { entry in
+            HomeEntryView(entry: entry, both: true)
+                .widgetURL(URL(string: "aiquota-probe://overview"))
+                .containerBackground(for: .widget) { HomeWidgetBackground() }
+        }
+        .configurationDisplayName("AI Quota")
+        .description("Track both Codex and Claude Code with room for more detail.")
+        .supportedFamilies([.systemMedium, .systemLarge])
+        .contentMarginsDisabled()
     }
 }

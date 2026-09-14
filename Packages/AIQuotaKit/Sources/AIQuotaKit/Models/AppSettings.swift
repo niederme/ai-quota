@@ -99,6 +99,11 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
     // Codex — credit top-up events
     public var codexTopUp: Bool = true          // balance jump > 50 credits
 
+    public var codex5hResetMinimum: Int = 90
+    public var codexResetMinimum: Int = 90
+    public var claude5hResetMinimum: Int = 90
+    public var claude7dResetMinimum: Int = 90
+
     public init() {}
 
     /// Migration-safe decoder: missing keys fall back to defaults rather than throwing.
@@ -123,6 +128,10 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
         claude7dAt95         = try c.decodeIfPresent(Bool.self, forKey: .claude7dAt95)         ?? true
         claude7dLimitReached = try c.decodeIfPresent(Bool.self, forKey: .claude7dLimitReached) ?? true
         claude7dReset        = try c.decodeIfPresent(Bool.self, forKey: .claude7dReset)        ?? true
+        codex5hResetMinimum = min(100, max(0, try c.decodeIfPresent(Int.self, forKey: .codex5hResetMinimum) ?? 90))
+        codexResetMinimum = min(100, max(0, try c.decodeIfPresent(Int.self, forKey: .codexResetMinimum) ?? 90))
+        claude5hResetMinimum = min(100, max(0, try c.decodeIfPresent(Int.self, forKey: .claude5hResetMinimum) ?? 90))
+        claude7dResetMinimum = min(100, max(0, try c.decodeIfPresent(Int.self, forKey: .claude7dResetMinimum) ?? 90))
         codexTopUp           = try c.decodeIfPresent(Bool.self, forKey: .codexTopUp)           ?? true
     }
 

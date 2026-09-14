@@ -345,12 +345,12 @@ private struct NotificationInlineControls: View {
         VStack(alignment: .leading, spacing: 12) {
             notificationOptionGroup("5-hour window") {
                 notificationCheckbox("Usage alerts", isOn: $preferences.codex5hThresholdAlerts)
-                notificationCheckbox("Reset alert", isOn: $preferences.codex5hReset)
+                resetAlertControls(enabled: $preferences.codex5hReset, minimum: $preferences.codex5hResetMinimum)
             }
 
             notificationOptionGroup("7-day window") {
                 notificationCheckbox("Usage alerts", isOn: $preferences.codexWeeklyThresholdAlerts)
-                notificationCheckbox("Reset alert", isOn: $preferences.codexReset)
+                resetAlertControls(enabled: $preferences.codexReset, minimum: $preferences.codexResetMinimum)
             }
 
             notificationOptionGroup("Credits") {
@@ -364,12 +364,31 @@ private struct NotificationInlineControls: View {
         VStack(alignment: .leading, spacing: 12) {
             notificationOptionGroup("5-hour window") {
                 notificationCheckbox("Usage alerts", isOn: $preferences.claude5hThresholdAlerts)
-                notificationCheckbox("Reset alert", isOn: $preferences.claude5hReset)
+                resetAlertControls(enabled: $preferences.claude5hReset, minimum: $preferences.claude5hResetMinimum)
             }
 
             notificationOptionGroup("7-day window") {
                 notificationCheckbox("Usage alerts", isOn: $preferences.claude7dThresholdAlerts)
-                notificationCheckbox("Reset alert", isOn: $preferences.claude7dReset)
+                resetAlertControls(enabled: $preferences.claude7dReset, minimum: $preferences.claude7dResetMinimum)
+            }
+        }
+    }
+
+    private func resetAlertControls(enabled: Binding<Bool>, minimum: Binding<Int>) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Picker("Reset alerts", selection: Binding<Int>(get: {
+                !enabled.wrappedValue ? 0 : minimum.wrappedValue == 0 ? 2 : 1
+            }, set: { mode in
+                enabled.wrappedValue = mode != 0
+                if mode == 2 { minimum.wrappedValue = 0 }
+                else if mode == 1 && minimum.wrappedValue == 0 { minimum.wrappedValue = 90 }
+            })) {
+                Text("Off").tag(0)
+                Text("Only near the limit").tag(1)
+                Text("Every reset").tag(2)
+            }
+            if enabled.wrappedValue && minimum.wrappedValue > 0 {
+                Stepper("At least \(minimum.wrappedValue)% used", value: minimum, in: 5...100, step: 5)
             }
         }
     }

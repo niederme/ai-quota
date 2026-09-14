@@ -148,6 +148,8 @@ final class QuotaViewModel {
 
         // Step 2: auth reset
         let result = await resetCoordinator.reset()
+        await NotificationManager.shared.clearResetHistory(for: .codex)
+        await NotificationManager.shared.clearResetHistory(for: .claude)
         if !result.warnings.isEmpty {
             logger.warning("[Reset] warnings: \(result.warnings.joined(separator: "; "))")
         }
@@ -874,6 +876,7 @@ final class QuotaViewModel {
         stopAutoRefresh()
         Task {
             try? await codexCoordinator.signOut()
+            await NotificationManager.shared.clearResetHistory(for: .codex)
             self.enrolledServices.remove(.codex)
             SharedDefaults.unenrollService(.codex)
             self.trackServiceDisconnected(.codex)
@@ -890,6 +893,7 @@ final class QuotaViewModel {
     func signOutClaude() {
         Task {
             try? await claudeCoordinator.signOut()
+            await NotificationManager.shared.clearResetHistory(for: .claude)
             self.enrolledServices.remove(.claude)
             SharedDefaults.unenrollService(.claude)
             self.trackServiceDisconnected(.claude)

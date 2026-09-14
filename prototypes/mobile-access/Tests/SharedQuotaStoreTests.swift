@@ -93,6 +93,40 @@ final class SharedQuotaStoreTests: XCTestCase {
 // Render representative long-metadata cards for visual review without provider access.
 import SwiftUI
 final class OverviewLayoutReviewTests: XCTestCase {
+    @MainActor func testCardHeightDoesNotChangeWhileRefreshingOrLosingMetadata() throws {
+        let full = try JSONDecoder().decode(QuotaReading.self, from: Data("""
+        {"fetchedAt":\(Date.now.timeIntervalSinceReferenceDate),"shortTerm":{"usedPercent":98,"durationSeconds":18000,"resetsAt":\(Date.now.addingTimeInterval(3600).timeIntervalSinceReferenceDate)},"weekly":{"usedPercent":55,"durationSeconds":604800,"resetsAt":\(Date.now.addingTimeInterval(86400).timeIntervalSinceReferenceDate)},"metadata":{"plan":"Plus","balanceUSD":12.50,"usageSpent":45.12,"usageCurrency":"USD"}}
+        """.utf8))
+        let empty = try JSONDecoder().decode(QuotaReading.self, from: Data("""
+        {"fetchedAt":\(Date.now.timeIntervalSinceReferenceDate),"shortTerm":{"usedPercent":18,"durationSeconds":18000},"weekly":{"usedPercent":55,"durationSeconds":604800}}
+        """.utf8))
+        for typeSize in [DynamicTypeSize.large, .xxxLarge, .accessibility3] {
+            func card(_ reading: QuotaReading?, busy: Bool, failure: SharedQuotaStore.Failure? = nil) -> some View {
+                ProviderDialCardContent(name: "Codex", icon: "logo-openai", availableWidth: 338,
+                    reading: reading, connected: true, busy: busy, error: nil, failure: failure)
+            }
+            func renderedSize<V: View>(_ view: V) throws -> CGSize {
+                try XCTUnwrap(ImageRenderer(content: view.frame(width: 338).environment(\.dynamicTypeSize, typeSize)).uiImage).size
+            }
+            let idle = try renderedSize(card(full, busy: false))
+            XCTAssertEqual(try renderedSize(card(full, busy: true)), idle)
+            XCTAssertEqual(try renderedSize(card(empty, busy: false)), idle)
+            let failure = try renderedSize(card(full, busy: false, failure: .renewal))
+            let pair = EqualHeightCardStack(spacing: 16) {
+                card(full, busy: false)
+                card(empty, busy: true, failure: .renewal)
+            }
+            let pairSize = try renderedSize(pair)
+            XCTAssertEqual(pairSize.height, max(idle.height, failure.height) * 2 + 16, accuracy: 1)
+            let renderer = ImageRenderer(content: pair.frame(width: 338).padding(20)
+                .background(Color(uiColor: .systemGroupedBackground))
+                .environment(\.colorScheme, .dark).environment(\.dynamicTypeSize, typeSize))
+            renderer.scale = 2
+            let path = FileManager.default.temporaryDirectory.appendingPathComponent("overview-pair-\(typeSize).png")
+            try XCTUnwrap(renderer.uiImage).pngData()?.write(to: path)
+            print("PAIR_REVIEW " + path.path)
+        }
+    }
     @MainActor func testOverviewAppearances() throws {
         for (name, percent, scheme) in [
             ("purple-dark", 42.0, ColorScheme.dark),
@@ -103,8 +137,8 @@ final class OverviewLayoutReviewTests: XCTestCase {
             {"fetchedAt":\(Date.now.timeIntervalSinceReferenceDate),"shortTerm":{"usedPercent":\(percent),"durationSeconds":18000,"resetsAt":800003600},"weekly":{"usedPercent":47,"durationSeconds":604800,"resetsAt":800086400},"metadata":{"plan":"Plus","balanceUSD":9.75,"usageSpent":93.77,"usageCurrency":"USD"}}
             """
             let reading = try JSONDecoder().decode(QuotaReading.self, from: Data(raw.utf8))
-            let view = ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: 362,
-                reading: reading, connected: true, busy: false, error: nil) { Text("Account") }.cardContent
+            let view = ProviderDialCardContent(name: "Codex", icon: "logo-openai", availableWidth: 362,
+                reading: reading, connected: true, busy: false, error: nil)
                 .frame(width: 362).padding(20)
                 .background(Color(uiColor: .systemGroupedBackground))
                 .environment(\.colorScheme, scheme)
@@ -179,7 +213,7 @@ final class ConnectionStateTests: XCTestCase {
             {"fetchedAt":\(now.addingTimeInterval(-age).timeIntervalSinceReferenceDate),"shortTerm":{"usedPercent":\(used),"durationSeconds":18000,"resetsAt":\(now.addingTimeInterval(reset).timeIntervalSinceReferenceDate)}}
             """.utf8))
         }
-        XCTAssertEqual(MobileResetNotifications.planned(try reading(age: 1, reset: 3600, used: 42), now: now).count, 1)
+        XCTAssertEqual(MobileResetNotifications.planned(try reading(age: 1, reset: 3600, used: 95), now: now).count, 1)
         for (age, reset, used) in [(1801.0, 3600.0, 42), (1, -1, 42), (1, 3600, 0)] {
             XCTAssertTrue(MobileResetNotifications.planned(try reading(age: age, reset: reset, used: used), now: now).isEmpty)
         }
@@ -188,8 +222,8 @@ final class ConnectionStateTests: XCTestCase {
         XCTAssertNotEqual(MobileResetNotifications.identifier(.claude, "5h"), MobileResetNotifications.identifier(.claude, "7d"))
     }
     @MainActor func testRenewalStateRender() throws {
-        let content = ProviderDialCard(name: "Claude", icon: "logo-claude", availableWidth: 362,
-            reading: try sample(), connected: true, busy: false, error: nil, failure: .renewal) { Text("Reconnect") }.cardContent
+        let content = ProviderDialCardContent(name: "Claude", icon: "logo-claude", availableWidth: 362,
+            reading: try sample(), connected: true, busy: false, error: nil, failure: .renewal)
             .frame(width: 362).padding(20).background(Color(uiColor: .systemGroupedBackground))
             .environment(\.colorScheme, .dark)
         let renderer = ImageRenderer(content: content)
