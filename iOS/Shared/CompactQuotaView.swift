@@ -125,7 +125,7 @@ struct ServiceDetailsView: View {
                 HStack(spacing: 5) {
                     CodexDial(value: value, date: date, logoScale: 0.8).frame(width: 56, height: 56)
                     VStack(alignment: .leading, spacing: 0) {
-                        Text(value.service.name).font(.system(size: 14, weight: .medium)).lineLimit(1).minimumScaleFactor(0.8)
+                        Text(value.service.name).font(.system(size: 16, weight: .medium)).lineLimit(1).minimumScaleFactor(0.8)
                         metric(value.reading?.shortTerm, label: "5h").foregroundStyle(value.reading?.shortTerm == nil ? .secondary : .primary)
                         metric(value.reading?.weekly, label: "7d").foregroundStyle(.secondary)
                     }.frame(maxWidth: .infinity, alignment: .leading)
@@ -135,8 +135,8 @@ struct ServiceDetailsView: View {
     private func metric(_ window: QuotaWindow?, label: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
             Text(window.map { "\(Int($0.usedPercent.rounded()))%" } ?? "N/A")
-                .font(.system(size: 14, weight: .semibold, design: .rounded)).monospacedDigit()
-            Text(label).font(.system(size: 10))
+                .font(.system(size: 16, weight: .semibold, design: .rounded)).monospacedDigit()
+            Text(label).font(.system(size: 16, weight: .regular))
         }.lineLimit(1).minimumScaleFactor(0.8)
     }
 }

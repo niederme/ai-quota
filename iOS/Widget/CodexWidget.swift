@@ -159,6 +159,7 @@ struct ServiceDetailsWidget: Widget {
         AppIntentConfiguration(kind: "ServiceDetails", intent: QuotaConfiguration.self, provider: CodexProvider()) { entry in
             if let value = entry.values.first {
                 ServiceDetailsView(value: value, date: entry.date)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .widgetURL(URL(string: "aiquota-probe://overview"))
                 .containerBackground(for: .widget) { Color.clear }
             }
