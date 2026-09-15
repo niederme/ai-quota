@@ -18,7 +18,7 @@ struct CompactQuotaView: View {
             }
             VStack(alignment: .leading, spacing: 0) {
                 percentage(reading?.shortTerm, label: "5h")
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(reading?.shortTerm == nil ? .secondary : .primary)
                 percentage(reading?.weekly, label: "7d")
                     .foregroundStyle(.secondary)
             }
@@ -31,7 +31,7 @@ struct CompactQuotaView: View {
     }
     private func percentage(_ window: QuotaWindow?, label: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
-            Text(window.map { "\(Int($0.usedPercent.rounded()))%" } ?? "—")
+            Text(window.map { "\(Int($0.usedPercent.rounded()))%" } ?? "N/A")
                 .font(.system(size: 18, weight: .semibold, design: .rounded)).monospacedDigit()
             Text(label).font(.system(size: 10, weight: .regular))
         }.lineLimit(1).minimumScaleFactor(0.75)
@@ -126,7 +126,7 @@ struct ServiceDetailsView: View {
                     CodexDial(value: value, date: date, logoScale: 0.8).frame(width: 56, height: 56)
                     VStack(alignment: .leading, spacing: 0) {
                         Text(value.service.name).font(.system(size: 14, weight: .medium)).lineLimit(1).minimumScaleFactor(0.8)
-                        metric(value.reading?.shortTerm, label: "5h").foregroundStyle(.primary)
+                        metric(value.reading?.shortTerm, label: "5h").foregroundStyle(value.reading?.shortTerm == nil ? .secondary : .primary)
                         metric(value.reading?.weekly, label: "7d").foregroundStyle(.secondary)
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -134,7 +134,7 @@ struct ServiceDetailsView: View {
     }
     private func metric(_ window: QuotaWindow?, label: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
-            Text(window.map { "\(Int($0.usedPercent.rounded()))%" } ?? "—")
+            Text(window.map { "\(Int($0.usedPercent.rounded()))%" } ?? "N/A")
                 .font(.system(size: 14, weight: .semibold, design: .rounded)).monospacedDigit()
             Text(label).font(.system(size: 10))
         }.lineLimit(1).minimumScaleFactor(0.8)

@@ -128,13 +128,13 @@ struct CircularGaugeView: View {
                 } else {
                     VStack(spacing: 1) {
                         HStack(alignment: .firstTextBaseline, spacing: 3) {
-                            Text(showsPrimaryMetric ? "\(primaryPercent)%" : "—")
+                            Text(showsPrimaryMetric ? "\(primaryPercent)%" : "N/A")
                                 .font(.system(size: 14, weight: .bold, design: .rounded))
-                                .foregroundStyle(showsPrimaryMetric ? AnyShapeStyle(statusColor) : AnyShapeStyle(.tertiary))
+                                .foregroundStyle(showsPrimaryMetric ? AnyShapeStyle(statusColor) : AnyShapeStyle(.secondary))
                                 .contentTransition(.numericText())
                             Text(primaryLabel)
                                 .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(showsPrimaryMetric ? AnyShapeStyle(statusColor) : AnyShapeStyle(.tertiary))
+                                .foregroundStyle(showsPrimaryMetric ? AnyShapeStyle(statusColor) : AnyShapeStyle(.secondary))
                         }
                         if showsSecondaryMetric {
                             HStack(alignment: .firstTextBaseline, spacing: 3) {
@@ -164,7 +164,6 @@ struct CircularGaugeView: View {
                 }
                 .animation(.easeInOut(duration: 0.15), value: isRefreshing)
                 .padding(.bottom, 2)
-                .offset(y: 3)
             }
         }
         .frame(width: 114, height: 114)
@@ -227,6 +226,7 @@ private struct RefreshButton: View {
                 )
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Refresh usage")
         .onHover { hovering in
             isHovering = hovering
             if hovering { NSCursor.pointingHand.push() } else { NSCursor.pop() }

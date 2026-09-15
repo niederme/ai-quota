@@ -151,8 +151,8 @@ Use these checks after touching this behavior:
 
 ```sh
 swift test --disable-sandbox
-xcodebuild -project AIQuota.xcodeproj -scheme AIQuota -configuration Debug -destination 'platform=macOS' build
-xcodebuild -project AIQuota.xcodeproj -scheme AIQuota-Demo -configuration Demo -destination 'platform=macOS' build
+xcodebuild -project AIQuota.xcodeproj -scheme AIQuota-macOS -configuration Debug -destination 'platform=macOS' build
+xcodebuild -project AIQuota.xcodeproj -scheme AIQuota-macOS-Demo -configuration Demo -destination 'platform=macOS' build
 git diff --check
 ```
 

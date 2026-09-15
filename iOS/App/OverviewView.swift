@@ -20,17 +20,12 @@ struct OverviewView: View {
             GeometryReader { geometry in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
-                        ViewThatFits(in: .horizontal) {
-                            HStack(alignment: .firstTextBaseline) {
-                                Text("AI Quota").font(.largeTitle.bold())
-                                Spacer(minLength: 16)
-                                gaugeKey.font(.title3)
-                            }
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("AI Quota").font(.largeTitle.bold())
-                                gaugeKey.font(.title3)
-                            }
+                        HStack(alignment: .firstTextBaseline) {
+                            overviewFreshness
+                            Spacer(minLength: 16)
+                            gaugeKey.font(.subheadline)
                         }
+                        .padding(.horizontal, 12)
                         EqualHeightCardStack(spacing: 16) {
                             ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 780) - 40, reading: codex.reading,
                                              connected: codex.connected, busy: codex.busy, error: codex.error, failure: codex.connectionFailure) {
@@ -43,7 +38,9 @@ struct OverviewView: View {
                         }
 
                     }
-                    .padding(20)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                    .padding(.bottom, 20)
                     .frame(maxWidth: 780)
                     .frame(maxWidth: .infinity)
                 }
@@ -54,8 +51,8 @@ struct OverviewView: View {
                 }
                 .background(Color(uiColor: .systemGroupedBackground))
             }
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationTitle("AI Quota")
+            .toolbarTitleDisplayMode(.inlineLarge)
             .navigationDestination(isPresented: $showCodex) { ProbeView(model: codex) }
             .navigationDestination(isPresented: $showClaude) { ClaudeProbeView(model: claude) }
             .onOpenURL { url in
@@ -122,6 +119,21 @@ struct OverviewView: View {
             OnboardingView(codex: codex, claude: claude, progress: onboarding)
         }
     }
+    private var overviewFreshness: some View {
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            let readings = [codex.reading, claude.reading].compactMap { $0 }
+            let oldest = readings.map(\.fetchedAt).min()
+            Text(codex.busy || claude.busy ? "Refreshing…" : oldest.map {
+                overviewFreshnessLabel($0, at: context.date,
+                    saved: codex.error != nil || claude.error != nil
+                        || codex.connectionFailure != nil || claude.connectionFailure != nil)
+            } ?? "No reading yet")
+            .font(.caption).foregroundStyle(.secondary)
+            .accessibilityLabel("Usage freshness")
+            .accessibilityValue(oldest.map { $0.formatted(date: .abbreviated, time: .shortened) } ?? "No reading yet")
+        }
+    }
+
     private var gaugeKey: some View {
         HStack(spacing: 12) {
             Label("5h", systemImage: "circle.fill").foregroundStyle(Color(uiColor: .systemPurple))
@@ -168,12 +180,9 @@ struct ProviderDialCard<Destination: View>: View {
     var failure: SharedQuotaStore.Failure? = nil
     @ViewBuilder let destination: () -> Destination
     var body: some View {
-        NavigationLink(destination: destination) {
-            ProviderDialCardContent(name: name, icon: icon, availableWidth: availableWidth,
-                reading: reading, connected: connected, busy: busy, error: error, failure: failure)
-        }
-        .buttonStyle(.plain)
-        .accessibilityHint(connected ? "Opens \(name) account details" : "Connect \(name)")
+        ProviderDialCardContent(name: name, icon: icon, availableWidth: availableWidth,
+            reading: reading, connected: connected, busy: busy, error: error, failure: failure,
+            accountDestination: AnyView(destination()))
     }
 }
 
@@ -186,6 +195,8 @@ struct ProviderDialCardContent: View {
     let busy: Bool
     let error: String?
     var failure: SharedQuotaStore.Failure? = nil
+    var accountDestination: AnyView? = nil
+    @State var info: MetadataExplanation?
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -197,35 +208,84 @@ struct ProviderDialCardContent: View {
         return Color(uiColor: .systemPurple)
     }
     @Environment(\.dynamicTypeSize) private var typeSize
+    @ScaledMetric(relativeTo: .subheadline) private var resetLineHeight = 18.0
     @ScaledMetric(relativeTo: .body) private var dialSize = 148.0
-    private var usageColumnWidth: CGFloat { max(min(dialSize, 300), (availableWidth - 40) * 0.56) }
-    private var usesColumns: Bool { !typeSize.isAccessibilitySize && availableWidth >= min(dialSize, 300) + 40 + 25 + 100 }
+    private var usageColumnWidth: CGFloat { max(min(dialSize, 300), (availableWidth - 40 - 33) * 2 / 3) }
+    private var usesColumns: Bool { !typeSize.isAccessibilitySize && availableWidth >= min(dialSize, 300) + 40 + 33 + 88 }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             if usesColumns {
-                HStack(alignment: .top, spacing: 25) {
-                    identity.frame(width: usageColumnWidth)
+                HStack(alignment: .top, spacing: 33) {
+                    linkedIdentity.frame(width: usageColumnWidth)
                     accountMetadata.frame(maxWidth: .infinity, alignment: .topLeading)
                 }
                 .overlay(alignment: .leading) {
                     Rectangle().fill(Color(uiColor: .separator)).frame(width: 1)
-                        .offset(x: usageColumnWidth + 12)
+                        .offset(x: usageColumnWidth + 16)
                         .accessibilityHidden(true)
+                        .allowsHitTesting(false)
                 }
             } else {
-                identity.frame(maxWidth: .infinity)
+                linkedIdentity.frame(maxWidth: .infinity)
                 Divider()
                 accountMetadata
             }
-            Divider()
-            freshness
+        }
+        .opacity(connected ? 1 : 0)
+        .allowsHitTesting(connected)
+        .accessibilityHidden(!connected)
+        .overlay {
+            if !connected { disconnectedContent }
         }
         .padding(20)
         .frame(minHeight: 260)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(colorScheme == .dark ? Color(uiColor: .quaternarySystemFill) : Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+
+    }
+    private var disconnectedContent: some View {
+        VStack(spacing: 12) {
+            ZStack {
+                Circle().trim(from: 0, to: 0.75)
+                    .stroke(Color(uiColor: .tertiarySystemFill), lineWidth: 9)
+                Circle().trim(from: 0, to: 0.75)
+                    .stroke(Color(uiColor: .tertiarySystemFill), lineWidth: 7)
+                    .padding(10)
+            }
+            .rotationEffect(.degrees(135))
+            .overlay {
+                Image(icon).resizable().scaledToFit()
+                    .frame(width: 28, height: 28).foregroundStyle(.secondary)
+            }
+            .frame(width: min(dialSize, 220), height: min(dialSize, 220))
+            .padding(.bottom, -min(dialSize, 220) * 0.16)
+            .accessibilityHidden(true)
+            VStack(spacing: 4) {
+                Text(name).font(.headline.bold())
+                Text("Not connected").font(.subheadline).foregroundStyle(.secondary)
+            }
+            if let accountDestination {
+                NavigationLink { accountDestination } label: {
+                    Text("Connect").fontWeight(.semibold)
+                        .frame(minHeight: 32).padding(.horizontal, 12)
+                }
+                .buttonStyle(.bordered)
+                .tint(Color(uiColor: .systemPurple))
+                .accessibilityLabel("Connect \(name)")
+                .accessibilityHint("Opens sign-in for \(name)")
+            }
+        }
+        .multilineTextAlignment(.center)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    @ViewBuilder private var linkedIdentity: some View {
+        if let accountDestination {
+            NavigationLink { accountDestination } label: { identity }
+                .buttonStyle(.plain)
+                .accessibilityHint("Opens \(name) account details")
+        } else { identity }
     }
     private var identity: some View {
         VStack(spacing: 4) {
@@ -235,10 +295,10 @@ struct ProviderDialCardContent: View {
             Text(name).font(.headline.bold())
                 .multilineTextAlignment(.center)
                 .frame(width: min(dialSize, 300))
-            VStack(spacing: 4) {
+            VStack(spacing: 1) {
                 resetCaption(reading?.shortTerm, label: "5h")
                 resetCaption(reading?.weekly, label: "7d")
-            }.padding(.top, 4).frame(width: usesColumns ? usageColumnWidth : min(dialSize, 300))
+            }.padding(.top, 2).frame(width: usesColumns ? usageColumnWidth : min(dialSize, 300))
         }
     }
     private var dial: some View {
@@ -266,77 +326,98 @@ struct ProviderDialCardContent: View {
     private func dialValue(_ window: QuotaWindow?, label: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
             if let window { Text("\(window.usedPercent, specifier: "%.0f")%") }
-            else { Text("—") }
+            else { Text("N/A") }
             Text(label)
         }
+        .foregroundStyle(window == nil ? Color.secondary : tint)
     }
     private func accessibleValue(_ window: QuotaWindow?) -> String {
         window.map { "\(Int($0.usedPercent.rounded())) percent" } ?? "not reported"
     }
-    private var freshness: some View {
-            TimelineView(.periodic(from: .now, by: 60)) { context in
-                VStack(alignment: .leading, spacing: 4) {
-                    ZStack(alignment: .topLeading) {
-                        // Reserve the same status area for healthy, failed, and disconnected cards.
-                        Text("Sign-in renewal failed · Tap to reconnect").hidden()
-                        if failure == .reconnect || failure == .renewal {
-                            Text("Reconnect \(name) · Tap to sign in")
-                                .foregroundStyle(Color(uiColor: .systemOrange))
-                        } else if !connected { Text("Connect \(name) · Tap to sign in") }
-                        else if error != nil || failure != nil { Text("Couldn’t update · Tap to retry") }
-                        else if reading == nil { Text("No reading yet") }
-                        else if worst >= 100 { Text("Limit reached").fontWeight(.semibold) }
-                    }
-                    ZStack(alignment: .topLeading) {
-                        Text("Older reading · 59m ago").hidden()
-                        if busy { Text("Refreshing…") }
-                        else if let reading {
-                            Text(freshnessLabel(reading.fetchedAt, at: context.date))
-                                .accessibilityLabel("Last updated: \(freshnessLabel(reading.fetchedAt, at: context.date))")
-                        }
-                    }
-                }.font(.caption).foregroundStyle(.secondary)
+    private var connectionStatus: some View {
+        ZStack(alignment: .topLeading) {
+            Text("Reconnect Claude Code · Tap to sign in").hidden()
+            Group {
+                if failure == .reconnect || failure == .renewal {
+                    Text("Reconnect \(name) · Tap to sign in").foregroundStyle(Color(uiColor: .systemOrange))
+                } else if !connected { Text("Connect \(name) · Tap to sign in") }
+                else if error != nil || failure != nil { Text("Couldn’t update · Tap to retry") }
+                else if reading == nil { Text("No reading yet") }
+                else if worst >= 100 { Text("Limit reached").fontWeight(.semibold) }
             }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-    private func freshnessLabel(_ fetchedAt: Date, at now: Date) -> String {
-        let elapsed = max(0, Int(now.timeIntervalSince(fetchedAt)))
-        let relative = elapsed < 10 ? "Just now" : elapsed < 60 ? "\(elapsed)s ago"
-            : elapsed < 3600 ? "\(elapsed / 60)m ago" : "\(elapsed / 3600)h ago"
-        if error != nil || failure != nil { return "Saved · \(relative)" }
-        if elapsed >= 1800 { return "Older reading · \(relative)" }
-        return relative
+        }.font(.caption).foregroundStyle(.secondary)
     }
     private var accountMetadata: some View {
-        ZStack(alignment: .topLeading) {
-            VStack(spacing: 12) {
-                metadataRow("Plan", value: "Plus")
-                metadataRow("Balance", value: "$999.99")
-                metadataRow("Credits used", value: "$999.99")
-            }.hidden()
-            reportedMetadata
+        VStack(alignment: .leading, spacing: 8) {
+            ZStack(alignment: .topLeading) {
+                VStack(alignment: .leading, spacing: 8) {
+                    metadataRow("Plan", value: "Not reported", explanation: .plan, interactive: false)
+                    metadataRow("Balance", value: "$999.99")
+                    metadataRow("Usage credits", value: "$999.99 spent", spending: true, explanation: .claudeSpend, interactive: false)
+                }.hidden().accessibilityHidden(true).allowsHitTesting(false)
+                reportedMetadata
+            }
+            if let accountDestination {
+                NavigationLink { accountDestination } label: { connectionStatus }
+                    .buttonStyle(.plain)
+            } else { connectionStatus }
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
     private var reportedMetadata: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let data = reading?.metadata {
-                if let plan = data.displayPlan { metadataRow("Plan", value: plan) }
-                if let balance = data.balanceUSD { metadataRow("Balance", value: balance.formatted(.currency(code: "USD"))) }
-                if let spent = data.usageSpent {
-                    metadataRow(name == "Codex" ? "Spent" : "Credits used", value: data.usageCurrency.map { spent.formatted(.currency(code: $0)) }
-                        ?? spent.formatted(.number.precision(.fractionLength(0...2))) + " credits", spending: true)
-                }
+        VStack(alignment: .leading, spacing: 8) {
+            let data = reading?.metadata
+            metadataRow("Plan", value: data?.displayPlan ?? "Not reported",
+                explanation: data?.displayPlan == nil ? .plan : nil)
+            if let balance = data?.balanceUSD {
+                metadataRow("Balance", value: balance.formatted(.currency(code: "USD")))
+            }
+            if let spent = data?.usageSpent {
+                let amount = data?.usageCurrency.map { spent.formatted(.currency(code: $0)) }
+                    ?? spent.formatted(.number.precision(.fractionLength(0...2))) + " credits"
+                metadataRow(name == "Codex" ? "Spent" : "Usage credits",
+                    value: name == "Codex" ? amount : "\(amount) spent", spending: true,
+                    explanation: name == "Codex" ? .codexSpend : .claudeSpend)
             }
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
-    private func metadataRow(_ label: String, value: String, spending: Bool = false) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(label).foregroundStyle(.secondary)
-            Text(value).fontWeight(.medium).monospacedDigit()
-                .foregroundStyle(spending ? Color(uiColor: .systemOrange) : .primary)
+    private func metadataRow(_ label: String, value: String, spending: Bool = false,
+                             explanation: MetadataExplanation? = nil, interactive: Bool = true) -> some View {
+        let content = HStack(alignment: .center, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label).fixedSize(horizontal: false, vertical: true)
+                    .foregroundStyle(spending ? Color(uiColor: .systemOrange) : .secondary)
+                Text(value).fontWeight(.medium).monospacedDigit()
+                    .fixedSize(horizontal: false, vertical: true)
+                    .foregroundStyle(spending ? Color(uiColor: .systemOrange) : (value == "Not reported" ? .secondary : .primary))
+            }
+            Spacer(minLength: 0)
+            if explanation != nil {
+                Image(systemName: "info.circle")
+                    .foregroundStyle(spending ? Color(uiColor: .systemOrange) : .secondary)
+                    .accessibilityHidden(true)
+            }
         }
         .font(.caption)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, minHeight: explanation != nil ? 44 : 32, alignment: .leading)
+        .contentShape(Rectangle())
+        return Group {
+            if let explanation, interactive {
+                Button { info = explanation } label: { content }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("metadata-info-\(explanation.rawValue)")
+                    .accessibilityLabel("\(label): \(value). \(explanation.title)")
+                    .accessibilityHint("Shows more information")
+                    .popover(isPresented: Binding(get: { info == explanation }, set: { if !$0 { info = nil } }),
+                             attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text(explanation.title).font(.headline)
+                            Text(explanation.message).font(.subheadline)
+                        }.padding(20).frame(idealWidth: 300, maxWidth: 340)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .presentationCompactAdaptation(.popover)
+                    }
+            } else { content }
+        }
     }
     private func resetCaption(_ window: QuotaWindow?, label: String) -> some View {
         let text: String = {
@@ -345,11 +426,13 @@ struct ProviderDialCardContent: View {
             if reset <= .now { return "\(label) reset unconfirmed" }
             let format: Date.FormatStyle = Calendar.current.isDateInToday(reset)
                 ? .dateTime.hour().minute() : .dateTime.weekday(.abbreviated).hour().minute()
-            return "\(label) · \(reset.formatted(format))"
+            return "\(label) resets \(reset.formatted(format))"
         }()
         return Text(text).font(.subheadline.weight(.semibold))
-            .foregroundStyle(tint.opacity(label == "5h" ? 1 : (contrast == .increased ? 0.85 : 0.5)))
-            .multilineTextAlignment(.center).lineLimit(1).minimumScaleFactor(0.85)
+            .foregroundStyle(window == nil ? Color.secondary : tint.opacity(label == "5h" ? 1 : (contrast == .increased ? 0.85 : 0.5)))
+            .multilineTextAlignment(.center)
+            .lineLimit(typeSize.isAccessibilitySize ? 2 : 1).minimumScaleFactor(0.85)
+            .frame(height: resetLineHeight * (typeSize.isAccessibilitySize ? 2 : 1))
     }
     private func arc(_ window: QuotaWindow?, width: CGFloat, opacity: Double) -> some View {
         ZStack {
@@ -367,4 +450,36 @@ private struct GaugeKeyStyle: LabelStyle {
     func makeBody(configuration: Configuration) -> some View {
         HStack(spacing: 3) { configuration.icon.font(.system(size: 6)); configuration.title }
     }
+}
+
+enum MetadataExplanation: String, Identifiable {
+    case plan, codexSpend, claudeSpend
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .plan: "Plan not reported"
+        case .codexSpend: "Estimated Monthly Spend"
+        case .claudeSpend: "Fable 5 & Post-Limit Usage"
+        }
+    }
+    private var currentMonthName: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM"
+        return formatter.string(from: .now)
+    }
+    var message: String {
+        switch self {
+        case .plan: "The latest account refresh did not report a recognized plan name. Your allowance gauges use the limits the provider reports."
+        case .codexSpend: "AIQuota sums \(currentMonthName)’s usage-credit events and converts them at 25 credits = $1."
+        case .claudeSpend: "Claude reports both as one monthly total and doesn’t provide a reliable breakdown."
+        }
+    }
+}
+
+private func overviewFreshnessLabel(_ fetchedAt: Date, at now: Date, saved: Bool) -> String {
+    let elapsed = max(0, Int(now.timeIntervalSince(fetchedAt)))
+    let relative = elapsed < 60 ? "Just now" : elapsed < 3600 ? "\(elapsed / 60)m ago" : "\(elapsed / 3600)h ago"
+    if saved { return "Saved · \(relative)" }
+    if elapsed >= 1800 { return "Older reading · \(relative)" }
+    return relative
 }

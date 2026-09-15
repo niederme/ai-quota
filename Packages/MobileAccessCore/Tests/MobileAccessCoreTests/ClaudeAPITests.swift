@@ -158,3 +158,50 @@ private func reply(_ body: String, status: Int = 200) -> HTTPResult {
         }
     }
 }
+
+
+private actor ChangingClaudeProfile: HTTPTransport {
+    var profileResponses: [HTTPResult]
+    init(_ responses: [HTTPResult]) { profileResponses = responses }
+    func send(_ request: URLRequest) async throws -> HTTPResult {
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer synthetic")
+        if request.url?.path == "/api/oauth/usage" {
+            return reply(#"{"five_hour":{"utilization":12},"seven_day":{"utilization":31},"extra_usage":{"used_credits":15.58,"currency":"USD"}}"#)
+        }
+        #expect(request.url?.absoluteString == "https://api.anthropic.com/api/oauth/profile")
+        #expect(request.value(forHTTPHeaderField: "Cache-Control") == "no-cache")
+        #expect(request.cachePolicy == .reloadIgnoringLocalCacheData)
+        #expect(request.timeoutInterval <= 5)
+        return profileResponses.removeFirst()
+    }
+}
+
+@Test func claudePlanTracksUpgradesDowngradesAndUnavailableProfiles() async throws {
+    let transport = ChangingClaudeProfile([
+        reply(#"{"organization":{"organization_type":"claude_pro"}}"#),
+        reply(#"{"organization":{"organization_type":"claude_max"}}"#),
+        reply(#"{"organization":{"organization_type":"claude_pro"}}"#),
+        reply("{}", status: 503),
+        reply(#"{"organization":{"organization_type":"future_plan"}}"#),
+        reply("malformed"),
+        reply(#"{"organization":{"organization_type":"claude_team"}}"#)
+    ])
+    let api = ClaudeAPI(transport: transport)
+    let tokens = ClaudeTokens(accessToken: "synthetic", refreshToken: nil, expiresAt: timestamp)
+    for expected: String? in ["Pro", "Max", "Pro", nil, nil, nil, "Team"] {
+        let reading = try await api.usage(tokens, now: timestamp)
+        #expect(reading.metadata?.displayPlan == expected)
+        #expect(reading.shortTerm?.usedPercent == 12)
+        #expect(reading.metadata?.usageSpent == 15.58)
+    }
+}
+
+@Test func claudeProfileNetworkFailureKeepsQuotaWithoutAPlanGuess() async throws {
+    let api = ClaudeAPI(transport: ClaudeMock { request in
+        if request.url?.path == "/api/oauth/profile" { throw URLError(.timedOut) }
+        return reply(#"{"five_hour":{"utilization":8}}"#)
+    })
+    let reading = try await api.usage(ClaudeTokens(accessToken: "synthetic", refreshToken: nil, expiresAt: timestamp))
+    #expect(reading.shortTerm?.usedPercent == 8)
+    #expect(reading.metadata?.plan == nil)
+}

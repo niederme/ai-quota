@@ -89,12 +89,12 @@ struct WidgetGaugeView: View {
 
                     VStack(spacing: 0) {
                         HStack(alignment: .firstTextBaseline, spacing: 2) {
-                            Text(showsPrimaryMetric ? "\(primaryPercent)%" : "—")
+                            Text(showsPrimaryMetric ? "\(primaryPercent)%" : "N/A")
                                 .font(.system(size: primPt, weight: .bold, design: .rounded))
-                                .foregroundStyle(showsPrimaryMetric ? AnyShapeStyle(statusColor) : AnyShapeStyle(.tertiary))
+                                .foregroundStyle(showsPrimaryMetric ? AnyShapeStyle(statusColor) : AnyShapeStyle(.secondary))
                             Text(primaryLabel)
                                 .font(.system(size: primPt * 0.58))
-                                .foregroundStyle(showsPrimaryMetric ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tertiary))
+                                .foregroundStyle(.secondary)
                         }
                         if showsSecondaryMetric {
                             HStack(alignment: .firstTextBaseline, spacing: 2) {

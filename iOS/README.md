@@ -1,5 +1,9 @@
 # AI Quota for iOS
 
+**Beta via TestFlight for iPhone and iPad.** See the [iOS roadmap](../README.md#ios)
+for implemented features and remaining beta validation. Public TestFlight enrollment
+is not currently listed here.
+
 The iPhone/iPad app lives in `iOS/` and builds from the root `AIQuota.xcodeproj`
 using the `AIQuota-iOS` scheme. It shares the Mac app's App Store Connect record. The Mac remains the design reference for typography, system colors,
 materials, gauge proportions, and Settings language.
@@ -100,8 +104,12 @@ make that additional request.
 
 Claude prefers structured spend using its supplied currency exponent, otherwise
 using extra_usage values in the response's native units. Unknown currency is
-shown as credits. Claude plan and balance are not exposed by the current response
-and are not inferred. Optional fields remain backward-compatible with old caches.
+shown as credits. Claude's plan comes from a separate account-profile lookup on
+each successful usage refresh, using the app's browser-connected account. No CLI
+installation or local CLI credentials are required. The profile is not cached
+independently: upgrades and downgrades replace the previous plan, while failed,
+malformed, or unknown profiles show “Not reported” and preserve the quota reading.
+Claude balance is not exposed and is not inferred. Optional fields remain backward-compatible with old caches.
 The owner has observed Codex metadata and Claude usage credits on the phone;
 availability across other plans needs further validation.
 
@@ -311,7 +319,7 @@ is suite-level success rather than a clean test-command exit. Build 13 was subse
 the owner confirmed successful Claude renewal. Next: finish visual/interaction
 checks and physical-device reset/reinstall verification.
 
-## Home Screen widgets and granular alerts (local, not yet uploaded)
+## Home Screen widgets and granular alerts (implementation checkpoint)
 
 Mac widget inventory and iOS equivalents:
 
@@ -423,3 +431,14 @@ Lock Screen layouts, already reviewed by the owner in build 16.
 ## Deferred App Intents plan
 
 See the shared [Mac + iOS App Intents backlog](../README.md#app-intents-backlog-mac--ios) for scope, acceptance criteria, and later integrations. This is planned work, not a shipped feature or scheduled task.
+
+
+## Overview polish (September 15, 2026)
+
+- Native inline large navigation title; freshness shares a baseline with the 5h/7d key.
+- Two-thirds allowance column and one-third account metadata column, with a centered divider and equal gutters.
+- Reset captions use “5h resets” / “7d resets”; unreported windows use secondary gray.
+- Card footer dividers and repeated timestamps are removed. Connection recovery remains available in each card.
+- Spending rows include native information popovers. Claude uses “Usage credits” and “spent” to match the Mac.
+- Card height stays stable through refresh, missing metadata, and connection states at normal and accessibility text sizes.
+- Profile transition tests cover Pro → Max → Pro, profile failures, unknown plans, and recovery. Live plan-change verification remains a device check.

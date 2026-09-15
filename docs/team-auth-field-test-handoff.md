@@ -163,7 +163,7 @@ Passed:
 ```text
 swift test --filter ClaudeOAuthCredentialsStoreTests
 swift test --filter CodexOAuthCredentialsStoreTests
-xcodebuild -project AIQuota.xcodeproj -scheme AIQuota -configuration Debug -destination 'platform=macOS' build
+xcodebuild -project AIQuota.xcodeproj -scheme AIQuota-macOS -configuration Debug -destination 'platform=macOS' build
 git diff --check
 ```
 
