@@ -85,6 +85,7 @@ public struct CodexUsage: Codable, Sendable, Equatable {
     public let limitReached: Bool
     public let allowed: Bool
     public let planType: String
+    public var displayPlan: String { planType.lowercased() == "prolite" ? "Pro" : planType.capitalized }
 
     // Credits
     public let creditBalance: Double?
@@ -100,7 +101,9 @@ public struct CodexUsage: Codable, Sendable, Equatable {
     public var hourlyPercentFraction: Double { Double(hourlyUsedPercent) / 100.0 }
     public var weeklyRemaining: Int { max(0, 100 - weeklyUsedPercent) }
     public var isWeeklyExhausted: Bool { weeklyUsedPercent >= 100 }
-    public var hasHourlyWindow: Bool { hourlyResetAt != .distantFuture }
+    // Optional for compatibility with caches written before presence was explicit.
+    private let hourlyWindowReported: Bool?
+    public var hasHourlyWindow: Bool { hourlyWindowReported ?? (hourlyResetAt != .distantFuture) }
 
     public var localMessagesUsed: Int? { approxLocalMessages?.first }
     public var localMessagesLimit: Int? { approxLocalMessages?.last }
@@ -127,6 +130,7 @@ public struct CodexUsage: Codable, Sendable, Equatable {
         weeklyResetAt = weekly?.resetAt.map { Date(timeIntervalSince1970: TimeInterval($0)) } ?? .distantFuture
         weeklyResetAfterSeconds = weekly?.resetAfterSeconds ?? 0
 
+        hourlyWindowReported = hourly?.usedPercent != nil
         hourlyUsedPercent = hourly?.usedPercent ?? 0
         hourlyResetAt = hourly?.resetAt.map { Date(timeIntervalSince1970: TimeInterval($0)) } ?? .distantFuture
         hourlyResetAfterSeconds = hourly?.resetAfterSeconds ?? 0
@@ -183,8 +187,9 @@ public struct CodexUsage: Codable, Sendable, Equatable {
         hourlyWindowSeconds: Int, limitReached: Bool, allowed: Bool, planType: String,
         creditBalance: Double?, bonusCreditsSpentThisMonth: Double? = nil,
         approxLocalMessages: [Int]?, approxCloudMessages: [Int]?,
-        fetchedAt: Date
+        fetchedAt: Date, hourlyWindowReported: Bool? = nil
     ) {
+        self.hourlyWindowReported = hourlyWindowReported
         self.weeklyUsedPercent = weeklyUsedPercent
         self.weeklyResetAt = weeklyResetAt
         self.weeklyResetAfterSeconds = weeklyResetAfterSeconds
@@ -218,7 +223,7 @@ public struct CodexUsage: Codable, Sendable, Equatable {
             bonusCreditsSpentThisMonth: spent,
             approxLocalMessages: approxLocalMessages,
             approxCloudMessages: approxCloudMessages,
-            fetchedAt: fetchedAt
+            fetchedAt: fetchedAt, hourlyWindowReported: hourlyWindowReported
         )
     }
 }

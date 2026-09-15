@@ -95,7 +95,7 @@ struct BothLockScreenWidget: Widget {
                 let diameter = min(geometry.size.height, max(0, (geometry.size.width - gap) / 2))
                 HStack(spacing: gap) {
                     ForEach(entry.values, id: \.service) { value in
-                        Link(destination: URL(string: "aiquota-probe://overview")!) { CodexDial(value: value, date: entry.date) }
+                        Link(destination: URL(string: "aiquota-probe://overview")!) { CodexDial(value: value, date: entry.date, logoScale: 0.8) }
                             .frame(width: diameter, height: diameter)
                     }
                 }

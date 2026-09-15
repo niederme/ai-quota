@@ -37,7 +37,7 @@ struct ClaudeProbeView: View {
                         Label("This connection needs attention. Retry or reconnect Claude.", systemImage: "exclamationmark.triangle.fill").foregroundStyle(.orange)
                     } else { Text(model.message).font(.callout) }
                     if model.busy {
-                        ProgressView("Updating…")
+                        ProgressView("Refreshing…")
                     } else if model.connected {
                         if model.connectionFailure == .reconnect || model.connectionFailure == .renewal {
                             Button("Reconnect Claude") { startSignIn() }.buttonStyle(.borderedProminent)
@@ -50,7 +50,7 @@ struct ClaudeProbeView: View {
                         Button("Sign In") { startSignIn() }.buttonStyle(.borderedProminent)
                     }
                     if let reading = model.reading {
-                        Text("Last saved usage").font(.headline)
+                        Text(model.error != nil || model.connectionFailure != nil ? "Last saved usage" : "Current usage").font(.headline)
                         window(reading.shortTerm, label: "5 hours")
                         window(reading.weekly, label: "7 days")
                         Text("Updated \(reading.fetchedAt.formatted(date: .abbreviated, time: .shortened))")
@@ -62,7 +62,7 @@ struct ClaudeProbeView: View {
                 }.font(.footnote).foregroundStyle(.secondary)
             }.padding(24).frame(maxWidth: 700, alignment: .leading).frame(maxWidth: .infinity)
         }
-        .navigationTitle("Claude account")
+        .navigationTitle("Claude Code account")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if model.connected {

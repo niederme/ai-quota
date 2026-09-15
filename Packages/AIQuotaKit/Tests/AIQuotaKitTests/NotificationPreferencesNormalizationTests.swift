@@ -138,9 +138,8 @@ struct NotificationPreferencesNormalizationTests {
         #expect(!onboardingSource.contains(#"Section("Codex")"#))
         #expect(!onboardingSource.contains(#"Section("Claude Code")"#))
         #expect(onboardingSource.contains("OnboardingNotificationServiceRow"))
-        #expect(onboardingSource.contains("OnboardingNotificationInlineControls"))
-        #expect(onboardingSource.contains(".toggleStyle(.checkbox)"))
-        #expect(onboardingSource.contains(#"notificationOptionGroup("Credits")"#))
+        #expect(onboardingSource.contains("NotificationInlineControls(service:"))
+        #expect(!onboardingSource.contains("struct OnboardingNotificationInlineControls"))
         #expect(!onboardingSource.contains("Tailor alerts"))
         #expect(!onboardingSource.contains("NotificationDetailSheet"))
     }

@@ -96,7 +96,7 @@ struct HomeQuotaView: View {
                 Text("Saved reading").foregroundStyle(.secondary)
             } else {
                 reset(value.reading?.shortTerm, label: "5h")
-                if layout != .singleMedium && layout != .large && (value.reading?.weekly?.usedPercent ?? 0) >= 85 {
+                if layout != .singleMedium && layout != .large {
                     reset(value.reading?.weekly, label: "7d")
                 }
             }
@@ -114,16 +114,18 @@ struct HomeQuotaView: View {
     private func percent(_ window: QuotaWindow?) -> String { window.map { "\(Int($0.usedPercent.rounded()))%" } ?? "—" }
     private func reset(_ window: QuotaWindow?, label: String) -> some View {
         Group {
-            if let end = window?.resetsAt, end > date {
-                Text("\(label) resets \(end.formatted(.dateTime.hour().minute()))")
-            } else { Text("\(label) reset unavailable") }
+            if window == nil { Text("\(label) not reported") }
+            else if let end = window?.resetsAt, end > date {
+                Text("\(label) resets \(end.formatted(label == "7d" ? .dateTime.weekday(.abbreviated).hour().minute() : .dateTime.hour().minute()))")
+            } else if window?.resetsAt != nil { Text("\(label) reset unconfirmed") }
+            else { Text("\(label) reset unavailable") }
         }.foregroundStyle(.secondary).lineLimit(1).minimumScaleFactor(0.85)
     }
     private func details(_ value: ProviderReading) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             if let reading = value.reading {
-                if let window = value.service == .codex ? reading.weekly : reading.shortTerm { row("Remaining", "\(Int((100 - window.usedPercent).rounded()))%", icon: "sparkles") }
-                if let plan = reading.metadata?.plan { row("Plan", plan.capitalized, icon: "person.fill") }
+                if let window = value.service == .codex ? reading.weekly : reading.shortTerm { row(value.service == .codex ? "7d left" : "5h left", "\(Int((100 - window.usedPercent).rounded()))%", icon: "sparkles") }
+                if let plan = reading.metadata?.displayPlan { row("Plan", plan, icon: "person.fill") }
                 if let balance = reading.metadata?.balanceUSD { row("Balance", balance.formatted(.currency(code: "USD")), icon: "creditcard.fill") }
                 if let spent = reading.metadata?.usageSpent {
                     let amount = reading.metadata?.usageCurrency.map { spent.formatted(.currency(code: $0)) } ?? spent.formatted()

@@ -8,7 +8,8 @@ public enum ResetTimeTextFormatter {
         calendar: Calendar = .autoupdatingCurrent,
         locale: Locale = .autoupdatingCurrent
     ) -> String {
-        "\(windowLabel) resets \(resetPhrase(resetAt: resetAt, now: now, calendar: calendar, locale: locale))"
+        if let fallback = fallbackCaption(windowLabel, resetAt: resetAt, now: now) { return fallback }
+        return "\(windowLabel) resets \(resetPhrase(resetAt: resetAt, now: now, calendar: calendar, locale: locale))"
     }
 
     public static func compactWindowCaption(
@@ -18,7 +19,15 @@ public enum ResetTimeTextFormatter {
         calendar: Calendar = .autoupdatingCurrent,
         locale: Locale = .autoupdatingCurrent
     ) -> String {
-        "\(windowLabel) resets \(compactResetPhrase(resetAt: resetAt, now: now, calendar: calendar, locale: locale))"
+        if let fallback = fallbackCaption(windowLabel, resetAt: resetAt, now: now) { return fallback }
+        return "\(windowLabel) resets \(compactResetPhrase(resetAt: resetAt, now: now, calendar: calendar, locale: locale))"
+    }
+
+    private static func fallbackCaption(_ label: String, resetAt: Date?, now: Date) -> String? {
+        guard let resetAt, resetAt != .distantFuture, resetAt != .distantPast else {
+            return "\(label) reset unavailable"
+        }
+        return resetAt <= now ? "\(label) reset unconfirmed" : nil
     }
 
     private static func resetPhrase(
@@ -45,7 +54,7 @@ public enum ResetTimeTextFormatter {
             return "Tomorrow \(time)"
         }
 
-        return "\(weekdayAbbrev(for: resetAt, calendar: calendar)) \(time)"
+        return "\(dayText(for: resetAt, now: now, calendar: calendar, locale: locale)) \(time)"
     }
 
     private static func compactResetPhrase(
@@ -67,7 +76,19 @@ public enum ResetTimeTextFormatter {
             return time
         }
 
-        return "\(weekdayAbbrev(for: resetAt, calendar: calendar)) \(time)"
+        return "\(dayText(for: resetAt, now: now, calendar: calendar, locale: locale)) \(time)"
+    }
+
+    private static func dayText(for date: Date, now: Date, calendar: Calendar, locale: Locale) -> String {
+        let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: now), to: calendar.startOfDay(for: date)).day ?? 0
+        let weekday = weekdayAbbrev(for: date, calendar: calendar)
+        guard days >= 7 else { return weekday }
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
+        formatter.locale = locale
+        formatter.setLocalizedDateFormatFromTemplate("MMM d")
+        return "\(weekday) \(formatter.string(from: date))"
     }
 
     private static func timeText(for date: Date, locale: Locale) -> String {

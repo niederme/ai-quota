@@ -194,3 +194,15 @@ struct CodexUsageModelTests {
         #expect(total == 25)
     }
 }
+
+@Test func reportedFiveHourUsageDoesNotRequireResetDate() throws {
+    let decoder = JSONDecoder()
+    decoder.keyDecodingStrategy = .convertFromSnakeCase
+    let raw = try decoder.decode(WhamUsageResponse.self, from: Data(#"{"plan_type":"prolite","rate_limit":{"primary_window":{"used_percent":18,"limit_window_seconds":18000}}}"#.utf8))
+    let usage = CodexUsage(from: raw)
+    #expect(usage.hasHourlyWindow)
+    #expect(usage.displayPlan == "Pro")
+    #expect(usage.withBonusCreditsSpentThisMonth(5).hasHourlyWindow)
+    let cached = try JSONDecoder().decode(CodexUsage.self, from: JSONEncoder().encode(usage))
+    #expect(cached.hasHourlyWindow)
+}

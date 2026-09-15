@@ -33,10 +33,10 @@ struct OverviewView: View {
                         }
                         EqualHeightCardStack(spacing: 16) {
                             ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 780) - 40, reading: codex.reading,
-                                             connected: codex.connected, busy: codex.busy, error: codex.error) {
+                                             connected: codex.connected, busy: codex.busy, error: codex.error, failure: codex.connectionFailure) {
                                 ProbeView(model: codex)
                             }
-                            ProviderDialCard(name: "Claude", icon: "logo-claude", availableWidth: min(geometry.size.width, 780) - 40, reading: claude.reading,
+                            ProviderDialCard(name: "Claude Code", icon: "logo-claude", availableWidth: min(geometry.size.width, 780) - 40, reading: claude.reading,
                                              connected: claude.connected, busy: claude.busy, error: claude.error, failure: claude.connectionFailure) {
                                 ClaudeProbeView(model: claude)
                             }
@@ -197,25 +197,32 @@ struct ProviderDialCardContent: View {
         return Color(uiColor: .systemPurple)
     }
     @Environment(\.dynamicTypeSize) private var typeSize
-    @ScaledMetric(relativeTo: .body) private var dialSize = 136.0
+    @ScaledMetric(relativeTo: .body) private var dialSize = 148.0
+    private var usageColumnWidth: CGFloat { max(min(dialSize, 300), (availableWidth - 40) * 0.56) }
+    private var usesColumns: Bool { !typeSize.isAccessibilitySize && availableWidth >= min(dialSize, 300) + 40 + 25 + 100 }
 
     var body: some View {
-        Group {
-            // Choose columns from the available space, not the text's unwrapped ideal width.
-            if !typeSize.isAccessibilitySize && availableWidth >= min(dialSize, 300) + 16 + 120 + 40 {
-                HStack(alignment: .top, spacing: 16) {
-                    identity
-                    details.frame(minWidth: 120, maxWidth: .infinity, alignment: .leading)
+        VStack(alignment: .leading, spacing: 16) {
+            if usesColumns {
+                HStack(alignment: .top, spacing: 25) {
+                    identity.frame(width: usageColumnWidth)
+                    accountMetadata.frame(maxWidth: .infinity, alignment: .topLeading)
+                }
+                .overlay(alignment: .leading) {
+                    Rectangle().fill(Color(uiColor: .separator)).frame(width: 1)
+                        .offset(x: usageColumnWidth + 12)
+                        .accessibilityHidden(true)
                 }
             } else {
-                VStack(alignment: .leading, spacing: 16) {
-                    identity.frame(maxWidth: .infinity, alignment: .leading)
-                    details
-                }
+                identity.frame(maxWidth: .infinity)
+                Divider()
+                accountMetadata
             }
+            Divider()
+            freshness
         }
         .padding(20)
-        .frame(minHeight: 218)
+        .frame(minHeight: 260)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(colorScheme == .dark ? Color(uiColor: .quaternarySystemFill) : Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
@@ -225,9 +232,13 @@ struct ProviderDialCardContent: View {
             dial
                 // Reclaim the empty bottom of the partial-circle bounds.
                 .padding(.bottom, -min(dialSize, 300) * 0.08)
-            Text(name).font(.title3.bold())
+            Text(name).font(.headline.bold())
                 .multilineTextAlignment(.center)
                 .frame(width: min(dialSize, 300))
+            VStack(spacing: 4) {
+                resetCaption(reading?.shortTerm, label: "5h")
+                resetCaption(reading?.weekly, label: "7d")
+            }.padding(.top, 4).frame(width: usesColumns ? usageColumnWidth : min(dialSize, 300))
         }
     }
     private var dial: some View {
@@ -262,31 +273,20 @@ struct ProviderDialCardContent: View {
     private func accessibleValue(_ window: QuotaWindow?) -> String {
         window.map { "\(Int($0.usedPercent.rounded())) percent" } ?? "not reported"
     }
-    private var details: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            if failure == .reconnect || failure == .renewal {
-                Label(failure == .reconnect ? "Reconnect \(name)" : "Sign-in renewal failed", systemImage: "exclamationmark.triangle.fill")
-                    .font(.headline).foregroundStyle(Color(uiColor: .systemOrange))
-                Text(failure == .renewal ? "Tap to retry or reconnect" : "Tap to sign in again")
-                    .font(.caption).foregroundStyle(.secondary)
-            } else if !connected {
-                Label("Connect \(name)", systemImage: "person.crop.circle.badge.exclamationmark").font(.headline)
-            } else if error != nil {
-                Label("Couldn’t update usage", systemImage: "exclamationmark.triangle").font(.headline)
-            }
-            if error != nil || failure != nil { Text("Last saved usage").font(.caption).foregroundStyle(.secondary) }
-            VStack(alignment: .leading, spacing: 10) {
-                resetCaption(reading?.shortTerm, label: "5h")
-                resetCaption(reading?.weekly, label: "7d")
-            }
-            accountMetadata
+    private var freshness: some View {
             TimelineView(.periodic(from: .now, by: 60)) { context in
                 VStack(alignment: .leading, spacing: 4) {
-                    if error != nil || failure != nil { Text("Limit reached").fontWeight(.semibold).hidden() }
-                    else if !connected { Text("Not connected") }
-                    else if reading == nil { Text("No reading yet") }
-                    else if worst >= 100 { Text("Limit reached").fontWeight(.semibold) }
-                    else { Text("Limit reached").fontWeight(.semibold).hidden() }
+                    ZStack(alignment: .topLeading) {
+                        // Reserve the same status area for healthy, failed, and disconnected cards.
+                        Text("Sign-in renewal failed · Tap to reconnect").hidden()
+                        if failure == .reconnect || failure == .renewal {
+                            Text("Reconnect \(name) · Tap to sign in")
+                                .foregroundStyle(Color(uiColor: .systemOrange))
+                        } else if !connected { Text("Connect \(name) · Tap to sign in") }
+                        else if error != nil || failure != nil { Text("Couldn’t update · Tap to retry") }
+                        else if reading == nil { Text("No reading yet") }
+                        else if worst >= 100 { Text("Limit reached").fontWeight(.semibold) }
+                    }
                     ZStack(alignment: .topLeading) {
                         Text("Older reading · 59m ago").hidden()
                         if busy { Text("Refreshing…") }
@@ -297,8 +297,7 @@ struct ProviderDialCardContent: View {
                     }
                 }.font(.caption).foregroundStyle(.secondary)
             }
-        }
-        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
     private func freshnessLabel(_ fetchedAt: Date, at now: Date) -> String {
         let elapsed = max(0, Int(now.timeIntervalSince(fetchedAt)))
@@ -309,56 +308,48 @@ struct ProviderDialCardContent: View {
         return relative
     }
     private var accountMetadata: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Divider().padding(.vertical, 2).opacity(reading?.metadata == nil ? 0 : 1)
-            ZStack(alignment: .topLeading) {
-                // Reserve all three rows, even when a provider omits billing
-                // fields on a refresh. Hidden placeholders are not accessible.
-                Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 6) {
-                    metadataRow("Plan", value: "Plus")
-                    metadataRow("Balance", value: "$0.00")
-                    metadataRow("This month", value: "$0.00")
-                }.hidden()
-                reportedMetadata
-            }.padding(.vertical, 4)
-        }
+        ZStack(alignment: .topLeading) {
+            VStack(spacing: 12) {
+                metadataRow("Plan", value: "Plus")
+                metadataRow("Balance", value: "$999.99")
+                metadataRow("Credits used", value: "$999.99")
+            }.hidden()
+            reportedMetadata
+        }.frame(maxWidth: .infinity, alignment: .leading)
     }
-    @ViewBuilder private var reportedMetadata: some View {
-        if let data = reading?.metadata {
-            Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 6) {
-                if let plan = data.plan { metadataRow("Plan", value: plan.capitalized) }
+    private var reportedMetadata: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let data = reading?.metadata {
+                if let plan = data.displayPlan { metadataRow("Plan", value: plan) }
                 if let balance = data.balanceUSD { metadataRow("Balance", value: balance.formatted(.currency(code: "USD"))) }
                 if let spent = data.usageSpent {
-                    metadataRow(name == "Codex" ? "This month" : "Credits used", value: data.usageCurrency.map { spent.formatted(.currency(code: $0)) }
+                    metadataRow(name == "Codex" ? "Spent" : "Credits used", value: data.usageCurrency.map { spent.formatted(.currency(code: $0)) }
                         ?? spent.formatted(.number.precision(.fractionLength(0...2))) + " credits", spending: true)
                 }
             }
-        }
+        }.frame(maxWidth: .infinity, alignment: .leading)
     }
     private func metadataRow(_ label: String, value: String, spending: Bool = false) -> some View {
-        GridRow(alignment: .firstTextBaseline) {
+        VStack(alignment: .leading, spacing: 3) {
             Text(label).foregroundStyle(.secondary)
-            Text(value).fontWeight(.semibold)
+            Text(value).fontWeight(.medium).monospacedDigit()
                 .foregroundStyle(spending ? Color(uiColor: .systemOrange) : .primary)
-        }.font(.caption).fixedSize(horizontal: false, vertical: true)
+        }
+        .font(.caption)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
     private func resetCaption(_ window: QuotaWindow?, label: String) -> some View {
-        ZStack(alignment: .topLeading) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("\(label) last reported reset")
-                Text("Wed 12:00 AM")
-            }.hidden()
-            VStack(alignment: .leading, spacing: 2) {
-                if let reset = window?.resetsAt {
-                    Text(reset <= Date.now ? "\(label) last reported reset" : "\(label) resets")
-                    Text(reset.formatted(.dateTime.weekday(.abbreviated).hour().minute()))
-                } else {
-                    Text(window == nil ? "\(label) not reported" : "\(label) reset unavailable")
-                }
-            }
-        }
-        .font(.subheadline)
-        .foregroundStyle(tint.opacity(contrast == .increased ? 1 : (label == "5h" ? (worst >= 85 ? 1 : 0.85) : (worst >= 85 ? 0.75 : 0.65))))
+        let text: String = {
+            guard let window else { return "\(label) not reported" }
+            guard let reset = window.resetsAt else { return "\(label) reset unavailable" }
+            if reset <= .now { return "\(label) reset unconfirmed" }
+            let format: Date.FormatStyle = Calendar.current.isDateInToday(reset)
+                ? .dateTime.hour().minute() : .dateTime.weekday(.abbreviated).hour().minute()
+            return "\(label) · \(reset.formatted(format))"
+        }()
+        return Text(text).font(.subheadline.weight(.semibold))
+            .foregroundStyle(tint.opacity(label == "5h" ? 1 : (contrast == .increased ? 0.85 : 0.5)))
+            .multilineTextAlignment(.center).lineLimit(1).minimumScaleFactor(0.85)
     }
     private func arc(_ window: QuotaWindow?, width: CGFloat, opacity: Double) -> some View {
         ZStack {

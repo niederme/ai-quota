@@ -67,7 +67,23 @@ struct ResetTimeTextFormatterTests {
             locale: locale
         )
 
-        #expect(formatted == "5h resets soon")
+        #expect(formatted == "5h reset unavailable")
+    }
+
+    @Test("expired dates do not promise a reset")
+    func expiredResetNeedsConfirmation() {
+        let now = Date()
+        #expect(ResetTimeTextFormatter.windowCaption("7d", resetAt: now, now: now) == "7d reset unconfirmed")
+        #expect(ResetTimeTextFormatter.compactWindowCaption("7d", resetAt: now.addingTimeInterval(-60), now: now) == "7d reset unconfirmed")
+        #expect(ResetTimeTextFormatter.compactWindowCaption("5h", resetAt: nil) == "5h reset unavailable")
+    }
+
+    @Test("next week's same weekday includes the calendar date")
+    func nextWeekResetIsUnambiguous() {
+        let now = date(year: 2026, month: 9, day: 14, hour: 14, minute: 50)
+        let reset = date(year: 2026, month: 9, day: 21, hour: 14, minute: 27)
+        let caption = ResetTimeTextFormatter.compactWindowCaption("7d", resetAt: reset, now: now, calendar: calendar, locale: locale)
+        #expect(caption == "7d resets Mon. Sep 21 2:27pm")
     }
 
     @Test("compact same-day resets omit today")

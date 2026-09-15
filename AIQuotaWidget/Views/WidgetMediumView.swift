@@ -57,7 +57,7 @@ private extension QuotaEntry {
                 ),
                 WidgetDetailRowData(
                     label: "Plan",
-                    value: usage.planType.capitalized,
+                    value: usage.displayPlan,
                     icon: "person.fill",
                     tint: .secondary
                 ),

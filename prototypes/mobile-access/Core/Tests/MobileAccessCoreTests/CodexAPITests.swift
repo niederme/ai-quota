@@ -108,3 +108,9 @@ private let now = Date(timeIntervalSince1970: 1_800_000_000)
     #expect(reading.metadata?.balanceUSD == 10)
     #expect(reading.metadata?.usageSpent == nil)
 }
+
+@Test func revokedRefreshGrantRequiresReconnect() async throws {
+    let api = CodexAPI(transport: MockTransport { _ in result(#"{"error":"invalid_grant","error_description":"private provider detail"}"#, status: 400) })
+    let tokens = CodexTokens(accessToken: "test", refreshToken: "revoked", accountID: nil, expiresAt: now)
+    await #expect(throws: AccessError.expired) { try await api.renew(tokens, now: now) }
+}

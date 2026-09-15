@@ -405,3 +405,17 @@ and [Liquid Glass rendering guidance](https://developer.apple.com/documentation/
 No new archive, upload, commit, or merge is part of this pass. Build 14 remains the
 TestFlight build. Later observations about explicit 5h/7d labels on Remaining and
 secondary-text contrast were not added to the scheduled implementation scope.
+
+## September 14 follow-up: consistent weekly reset captions
+
+The small and dual-gauge Home Screen widgets now show the 7-day reset at all
+usage levels, removing the former 85% visibility threshold. Single-medium and
+large widgets continue to show it in their metadata column. Weekly captions
+include the weekday as well as the time. Saved and disconnected readings retain
+their existing status cues instead of presenting stale reset predictions.
+The double Lock Screen widget also uses the same 80% logo scale as the other
+Lock Screen layouts, already reviewed by the owner in build 16.
+
+## Deferred App Intents plan
+
+See the shared [Mac + iOS App Intents backlog](../../README.md#app-intents-backlog-mac--ios) for scope, acceptance criteria, and later integrations. This is planned work, not a shipped feature or scheduled task.
