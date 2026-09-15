@@ -5,7 +5,7 @@
         <link>https://github.com/niederme/ai-quota</link>
         <description>AIQuota release feed</description>
         <item>
-            <title>Version 1.9.27</title>
+            <title>Version 1.9.28</title>
             <description><![CDATA[
 <!DOCTYPE html>
 <html>
@@ -47,17 +47,17 @@
 </style>
 </head>
 <body>
-<h2>What's New in 1.9.27</h2>  <ul><li><strong>Reliable Claude web sign-in:</strong> AIQuota now recognizes Claude's current browser sessions, including logins that pass through Cloudflare verification, so a completed web login stays connected and refreshes usage without requiring the Claude app.</li></ul>
+<h2>What's New in 1.9.28</h2>  <ul><li><strong>Clearer labels for extra usage:</strong> more clearly distinguish your remaining credit balance from credits used on top of your subscription, including Fable 5.</li> <li><strong>Easier-to-read reset dates:</strong> resets a week or more away include a calendar date.</li> <li><strong>Small display fixes:</strong> clearer messages when usage limits or reset times aren’t available.</li>  <strong>📱 Coming soon: AIQuota for iPhone & iPad, with Home Screen and Lock Screen widgets.</strong>  <img src="https://github.com/niederme/ai-quota/releases/download/v1.9.28/AIQuota.1.9.28.png" alt="AIQuota 1.9.28" width="600">
 </body>
 </html>
 ]]></description>
-            <sparkle:version>387</sparkle:version>
-            <sparkle:shortVersionString>1.9.27</sparkle:shortVersionString>
+            <sparkle:version>388</sparkle:version>
+            <sparkle:shortVersionString>1.9.28</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
             <enclosure
-                url="https://github.com/niederme/ai-quota/releases/download/v1.9.27/AIQuota-1.9.27-387.zip"
-                sparkle:edSignature="4odbKmJVEwSClq/youGaVhV384z/a+JoCUoOuxheM/KPtooKC/RXZl6nrn5QS/ZKtgyW2eMkQVjYfRnoIOm1Ag=="
-                length="6789824"
+                url="https://github.com/niederme/ai-quota/releases/download/v1.9.28/AIQuota-1.9.28-388.zip"
+                sparkle:edSignature="1CMsFbsdbqzyoyUlAAQU5JqXNlXA88xGmF449CIgXMJWi4hwXwJKKFS8d/+izSWLTH0c4HVffUB8jLBsEXreAQ=="
+                length="6792197"
                 type="application/zip"/>
         </item>
     </channel>
