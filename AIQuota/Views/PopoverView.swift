@@ -102,7 +102,9 @@ struct PopoverView: View {
                     isRefreshing: viewModel.isCodexLoading,
                     onRefresh: { viewModel.manualRefresh() }
                 )
-                .help(codexTooltip(u))
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Codex usage")
+                .accessibilityValue(codexAccessibilitySummary(u))
             } else {
                 CircularGaugeView(
                     primaryPercent: 0, primaryLimitReached: false,
@@ -144,7 +146,9 @@ struct PopoverView: View {
                     isRefreshing: viewModel.isClaudeLoading,
                     onRefresh: { viewModel.manualRefresh() }
                 )
-                .help(claudeTooltip(u))
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Claude usage")
+                .accessibilityValue(claudeAccessibilitySummary(u))
             } else {
                 CircularGaugeView(
                     primaryPercent: 0, primaryLimitReached: false,
@@ -213,7 +217,7 @@ struct PopoverView: View {
         }
     }
 
-    private func codexTooltip(_ u: CodexUsage) -> String {
+    private func codexAccessibilitySummary(_ u: CodexUsage) -> String {
         var lines: [String]
         if u.hasHourlyWindow {
             lines = [
@@ -240,7 +244,7 @@ struct PopoverView: View {
         return lines.joined(separator: "\n")
     }
 
-    private func claudeTooltip(_ u: ClaudeUsage) -> String {
+    private func claudeAccessibilitySummary(_ u: ClaudeUsage) -> String {
         var lines = [
             "\(u.primaryMetricLabel) usage: \(u.primaryMetric.utilization.map { "\(Int($0.rounded()))% used" } ?? "unknown")",
         ]

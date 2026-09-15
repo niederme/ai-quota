@@ -188,6 +188,60 @@ final class OverviewLayoutReviewTests: XCTestCase {
             print("PAIR_REVIEW " + path.path)
         }
     }
+    @MainActor func testDisconnectedCardsOfferConnectAction() throws {
+        for size in [DynamicTypeSize.large, .accessibility3] {
+            let view = ProviderDialCardContent(name: "Claude Code", icon: "logo-claude", availableWidth: 362,
+                reading: nil, connected: false, busy: false, error: nil,
+                accountDestination: AnyView(Text("Claude sign-in")))
+                .frame(width: 362).padding(20)
+                .background(Color(uiColor: .systemGroupedBackground))
+                .environment(\.colorScheme, .dark).environment(\.dynamicTypeSize, size)
+            let renderer = ImageRenderer(content: view)
+            renderer.scale = 2
+            let image = try XCTUnwrap(renderer.uiImage)
+            let attachment = XCTAttachment(image: image)
+            attachment.name = "Disconnected Claude \(size)"; attachment.lifetime = .keepAlways
+            add(attachment)
+            let path = FileManager.default.temporaryDirectory.appendingPathComponent("disconnected-\(size).png")
+            try image.pngData()?.write(to: path)
+            print("DISCONNECTED_REVIEW " + path.path)
+        }
+    }
+    @MainActor func testSpendingPopoversPresentOnCards() async throws {
+        let reading = try JSONDecoder().decode(QuotaReading.self, from: Data("""
+        {"fetchedAt":\(Date.now.timeIntervalSinceReferenceDate),"weekly":{"usedPercent":59,"durationSeconds":604800,"resetsAt":\(Date.now.addingTimeInterval(3600).timeIntervalSinceReferenceDate)},"metadata":{"plan":"Pro","balanceUSD":10.44,"usageSpent":15.58,"usageCurrency":"USD"}}
+        """.utf8))
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        for (name, icon, explanation) in [("Codex", "logo-openai", MetadataExplanation.codexSpend),
+                                          ("Claude Code", "logo-claude", .claudeSpend)] {
+            let view = NavigationStack {
+                ProviderDialCardContent(name: name, icon: icon, availableWidth: 362,
+                    reading: reading, connected: true, busy: false, error: nil,
+                    accountDestination: AnyView(Text("Account details")), info: explanation)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(20)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .navigationTitle("AI Quota").toolbarTitleDisplayMode(.inlineLarge)
+            }.tint(Color(uiColor: .systemPurple))
+            let host = UIHostingController(rootView: view)
+            let window = UIWindow(windowScene: scene)
+            window.rootViewController = host
+            window.makeKeyAndVisible()
+            defer { window.isHidden = true; previous?.makeKey() }
+            try await Task.sleep(for: .milliseconds(800))
+            XCTAssertNotNil(host.presentedViewController, "The info button must present a popover independently of account navigation.")
+            let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            }
+            let attachment = XCTAttachment(image: image)
+            attachment.name = "\(name) spending popover"; attachment.lifetime = .keepAlways
+            add(attachment)
+            let path = FileManager.default.temporaryDirectory.appendingPathComponent("popover-\(explanation.rawValue).png")
+            try image.pngData()?.write(to: path)
+            print("POPOVER_REVIEW " + path.path)
+        }
+    }
     @MainActor func testOverviewAppearances() throws {
         for (name, percent, scheme) in [
             ("purple-dark", 42.0, ColorScheme.dark),

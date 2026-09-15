@@ -135,7 +135,37 @@ public struct ClaudeAPI: Sendable {
         request.setValue("AIQuotaMobileProbe/0.1", forHTTPHeaderField: "User-Agent")
         let response = try await transport.send(request)
         guard (200..<300).contains(response.status) else { throw ClaudeAccessError.requestFailed(stage: "usage update", status: response.status) }
-        return try Self.decodeUsage(response.data, now: now ?? .now)
+        let reading = try Self.decodeUsage(response.data, now: now ?? .now)
+        // Resolve the current subscription each time, not from a login-time snapshot.
+        // Profile failure must not discard a successful quota reading or retain an old plan.
+        var profileRequest = request
+        profileRequest.url = URL(string: "https://api.anthropic.com/api/oauth/profile")!
+        profileRequest.timeoutInterval = 5
+        profileRequest.cachePolicy = .reloadIgnoringLocalCacheData
+        profileRequest.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        let profile = try? await transport.send(profileRequest)
+        try Task.checkCancellation()
+        let plan = profile.flatMap { (200..<300).contains($0.status) ? Self.decodePlan($0.data) : nil }
+        let metadata = AccountMetadata(plan: plan, balanceUSD: reading.metadata?.balanceUSD,
+            usageSpent: reading.metadata?.usageSpent, usageCurrency: reading.metadata?.usageCurrency)
+        return QuotaReading(fetchedAt: reading.fetchedAt, shortTerm: reading.shortTerm,
+                            weekly: reading.weekly, metadata: metadata)
+    }
+    // Profile path, organization field, and mappings match the installed first-party
+    // Claude Code client. Unknown/new organization types remain explicitly unavailable.
+    static func decodePlan(_ data: Data) -> String? {
+        struct Profile: Decodable {
+            struct Organization: Decodable { let organization_type: String? }
+            let organization: Organization?
+        }
+        guard let type = (try? JSONDecoder().decode(Profile.self, from: data))?.organization?.organization_type else { return nil }
+        switch type {
+        case "claude_pro": return "Pro"
+        case "claude_max": return "Max"
+        case "claude_team": return "Team"
+        case "claude_enterprise": return "Enterprise"
+        default: return nil
+        }
     }
     public static func decodeUsage(_ data: Data, now: Date) throws -> QuotaReading {
         let raw = try JSONDecoder().decode(UsageResponse.self, from: data)

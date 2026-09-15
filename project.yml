@@ -36,7 +36,7 @@ configs:
   Demo: debug
 
 schemes:
-  AIQuota:
+  AIQuota-macOS:
     build:
       targets:
         AIQuota: all
@@ -48,7 +48,7 @@ schemes:
     archive:
       config: Release
 
-  AIQuota-TestFlight:
+  AIQuota-macOS-TestFlight:
     build:
       targets:
         AIQuotaStore: all
@@ -58,7 +58,7 @@ schemes:
     archive:
       config: Release
 
-  AIQuota-Demo:
+  AIQuota-macOS-Demo:
     build:
       targets:
         AIQuota: all

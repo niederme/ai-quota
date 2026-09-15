@@ -69,7 +69,7 @@ Before handing off another UI pass, run:
 
 ```bash
 swift test --package-path Packages/AIQuotaKit --no-parallel
-xcodebuild -project AIQuota.xcodeproj -scheme AIQuota -configuration Debug -destination 'platform=macOS' build
+xcodebuild -project AIQuota.xcodeproj -scheme AIQuota-macOS -configuration Debug -destination 'platform=macOS' build
 git diff --check
 ```
 

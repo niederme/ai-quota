@@ -2,7 +2,7 @@
 
 Native apps for monitoring AI coding quota on Mac and iPhone. Track [OpenAI Codex](https://openai.com/codex) and [Claude Code](https://claude.ai) with paired gauges for five-hour and seven-day allowances.
 
-**Mac:** available through [GitHub releases](https://github.com/niederme/ai-quota/releases/latest), with menu bar monitoring and desktop widgets. **iOS:** in TestFlight testing, with independent account connections and Lock Screen widgets. Public TestFlight enrollment is not currently listed here.
+**Mac:** available through [GitHub releases](https://github.com/niederme/ai-quota/releases/latest), with menu bar monitoring and desktop widgets. **iPhone and iPad:** in beta via TestFlight, with independent Codex and Claude connections. See the [iOS beta roadmap](#ios) for features and remaining validation. Public TestFlight enrollment is not currently listed here.
 
 The marketing site in `docs/` follows the shared Codex web preview convention using `/Users/niederme/.codex/bin/codex-preview-env`. The canonical global convention lives at `/Users/niederme/~Repos/ai-dotfiles/codex/docs/web-preview-convention.md`.
 
@@ -180,9 +180,9 @@ Choose a scheme in the shared `AIQuota.xcodeproj`:
 
 | Scheme | Platform and distribution |
 | --- | --- |
-| `AIQuota` | macOS, direct distribution |
-| `AIQuota-TestFlight` | macOS, App Store / TestFlight |
-| `AIQuota-Demo` | macOS, demo data |
+| `AIQuota-macOS` | macOS, direct distribution |
+| `AIQuota-macOS-TestFlight` | macOS, App Store / TestFlight |
+| `AIQuota-macOS-Demo` | macOS, demo data |
 | `AIQuota-iOS` | iPhone/iPad, including widgets and hosted tests |
 
 The root `project.yml` includes `iOS/project.yml`. Run `xcodegen generate` from
@@ -280,53 +280,37 @@ The Mac app is the design reference for iOS: gauge proportions, typography, syst
 
 ### iOS
 
-**Working in TestFlight 0.1.0 (8)**
+**Beta via TestFlight.** The iPhone and iPad app is now part of the shared
+`AIQuota.xcodeproj`, using the `AIQuota-iOS` scheme. Public TestFlight enrollment
+is not currently listed here.
 
-- [x] Independent Codex and Claude sign-in, with credentials stored on the device.
-- [x] Stacked service cards with dual-ring gauges, percentages, reset times, and reading age.
-- [x] Lock Screen widgets: configurable single-service rings, paired gauges, paired percentages, and single-service details with matching gauge proportions.
-- [x] Automatic session renewal, refresh on app activation, and background widget refresh requests. Actual refresh delivery remains subject to iOS scheduling and needs longer device testing.
+**Implemented**
 
-- [x] Settings: Mac-aligned General, Accounts, Privacy, and About sections, foreground refresh intervals, last-updated status, and explicit reconnect actions.
-- [x] Pull-to-refresh and a toolbar refresh button update both services.
-- [x] Account metadata: reported Codex plan, balance, and monthly spending plus Claude usage credits.
-- [x] Mac-style gauge key and reset colors, centered service names, and stable two-column cards with wrapping metadata.
+- [x] Independent Codex and Claude sign-in, device-only credential storage, session renewal, and reconnect flows.
+- [x] Dual-ring service cards with percentages, reset times, reading age, and reported account metadata.
+- [x] Configurable Lock Screen widgets and four Home Screen layouts for individual or paired services.
+- [x] Foreground refresh controls, pull-to-refresh, and background widget refresh requests, subject to iOS scheduling.
+- [x] Per-service and per-window alert controls, including approaching-limit alerts, limit-reached alerts, and estimated reset reminders.
+- [x] Skippable onboarding, Guided Setup replay, and Reset All Settings.
+- [x] Shared Xcode project with separate platform schemes and independent version/build settings.
+- [x] Scripted TestFlight archive, upload, and processing checks. See the [release workflow](iOS/README.md#testflight-release-workflow).
 
-**Available in TestFlight 0.1.0 (9)**
+This list describes the current codebase. Build-specific release and device-validation
+history lives in the [iOS development notes](iOS/README.md).
 
-- [x] Skippable, resumable onboarding with service connection steps and Lock Screen widget guidance; replay available in Settings. Existing accounts bypass first-launch setup.
-- [x] Native light card backgrounds, subtler dark card fills, and service names closer beneath the gauges.
-- Validation: 16 hosted simulator tests passed. Phone sign-in and onboarding replay still need device review.
+**Beta priorities**
 
-**Available in TestFlight 0.1.0 (11)**
+- [ ] Validate layouts and onboarding on smaller and larger phones, iPad, landscape, and accessibility text sizes.
+- [x] Keep card heights stable during refresh, metadata loss, and connection recovery, including accessibility text sizes.
+- [ ] Investigate reported slow or blank launches and associated crash reports.
+- [ ] Measure widget freshness and session renewal on real devices, including after resets and connectivity changes.
+- [ ] Verify Home Screen widget gallery placement, tinting, and notification permission/delivery behavior on devices.
+- [ ] Confirm physical-device reinstall/reset behavior and onboarding replay.
+- [ ] Broaden account metadata validation across plans. Codex metadata and Claude usage credits have appeared on the owner's phone; Claude plan refresh now uses the connected account's profile; balance remains unavailable. Live plan-change verification is pending.
 
-- [x] Prominent renewal/reconnect states, subdued saved gauges, and minimal widget attention indicators.
-- [x] Retryable Claude code entry with a clear submit action and less sign-in copy.
-- [x] Compact overview header and consistent reset typography.
-- [x] Mac-inspired five-step onboarding with app branding and a completion screen.
-- [x] Optional local reset reminders with per-service Settings controls. Permission and delivery still need phone verification.
-- Validation: 27 core tests and 23 hosted simulator tests passed. Recurring Claude HTTP 400 remains under investigation; safe error-code diagnostics are added, not a confirmed root-cause fix.
+**Later**
 
-**Afternoon refinements (TestFlight build 12 available)**
-
-- Completion metadata/support footer, bold gauge key, and more structured service-card metadata are implemented. Full onboarding visual and interaction verification remains pending.
-- [x] Implement Mac-style Reset All Settings and separate Guided Setup replay (TestFlight build 13).
-- [x] Owner confirmed Claude remained connected through its next token renewal on build 13.
-- [ ] Confirm physical-device reinstall/reset behavior and finish onboarding visual and interaction checks.
-- [x] Scripted TestFlight release with live build numbering, synchronized project settings, saved archives/logs, and processing/status checks. See the [release workflow](iOS/README.md#testflight-release-workflow).
-
-**Next**
-
-- [ ] UI polish: follow the Mac's typography, gauge key, spacing, materials, and color hierarchy; test smaller and larger screens, landscape, and accessibility text sizes.
-- [ ] Launch reliability: investigate reported slow or blank launches and any associated crash reports.
-- [ ] Background reliability: measure widget freshness and session renewal on real devices, including after resets and connectivity changes.
-
-**Following**
-
-- [x] Implement all four Mac-equivalent Home Screen widget layouts locally; phone gallery/tint validation and TestFlight delivery pending.
-- [x] Implement per-window approaching/limit alerts on iOS and near-limit reset controls on iOS and Mac locally; device verification and release pending.
 - [ ] Optional analytics with explicit consent; no iOS collection is implemented.
-- [ ] Broaden account metadata validation across plans. Codex metadata and Claude usage credits have appeared on the owner’s phone; Claude plan and balance are not available from the current mobile usage response.
 
 ### Shared exploration
 

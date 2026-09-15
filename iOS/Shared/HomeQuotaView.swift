@@ -83,7 +83,9 @@ struct HomeQuotaView: View {
                         Image(value.service.logo).resizable().scaledToFit().frame(width: size * 0.16, height: size * 0.16)
                     }
                     Text(percent(value.reading?.shortTerm) + " 5h").font(.system(size: size * 0.175, weight: .bold))
-                    Text(percent(value.reading?.weekly) + " 7d").font(.system(size: size * 0.125, weight: .semibold)).opacity(0.5)
+                        .foregroundStyle(value.reading?.shortTerm == nil ? Color.secondary : tint(value))
+                    Text(percent(value.reading?.weekly) + " 7d").font(.system(size: size * 0.125, weight: .semibold))
+                        .foregroundStyle(value.reading?.weekly == nil ? Color.secondary : tint(value).opacity(0.5))
                 }.foregroundStyle(tint(value)).monospacedDigit()
             }.frame(width: size, height: size)
                 .padding(.bottom, -size * 0.08)
@@ -111,7 +113,7 @@ struct HomeQuotaView: View {
             }
         }.rotationEffect(.degrees(135))
     }
-    private func percent(_ window: QuotaWindow?) -> String { window.map { "\(Int($0.usedPercent.rounded()))%" } ?? "—" }
+    private func percent(_ window: QuotaWindow?) -> String { window.map { "\(Int($0.usedPercent.rounded()))%" } ?? "N/A" }
     private func reset(_ window: QuotaWindow?, label: String) -> some View {
         Group {
             if window == nil { Text("\(label) not reported") }
