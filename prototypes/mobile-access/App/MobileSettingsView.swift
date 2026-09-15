@@ -27,7 +27,7 @@ struct MobileSettingsView: View {
                     account("Codex", connected: codex.connected, error: codex.error, updated: codex.reading?.fetchedAt, busy: codex.busy)
                 }
                 NavigationLink { ClaudeProbeView(model: claude) } label: {
-                    account("Claude", connected: claude.connected, error: claude.error, updated: claude.reading?.fetchedAt, busy: claude.busy)
+                    account("Claude Code", connected: claude.connected, error: claude.error, updated: claude.reading?.fetchedAt, busy: claude.busy)
                 }
             } header: { Text("Accounts") } footer: {
                 Text("Manage accounts, reconnect, and check when usage last updated.")
@@ -83,7 +83,7 @@ struct MobileSettingsView: View {
     private func account(_ name: String, connected: Bool, error: String?, updated: Date?, busy: Bool) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             LabeledContent(name) {
-                Text(busy ? "Updating…" : !connected ? "Connect" : error == nil ? "Connected" : "Needs attention")
+                Text(busy ? "Refreshing…" : !connected ? "Connect" : error == nil ? "Connected" : "Needs attention")
                     .foregroundStyle(.secondary)
             }
             if let updated {
@@ -116,7 +116,7 @@ struct MobileNotificationControls: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Notifications").font(.title.bold())
-            Text("Get a reminder when a reset is expected.").foregroundStyle(.secondary)
+            Text("Choose which alerts you’d like to receive.").foregroundStyle(.secondary)
             Toggle("Enable notifications", isOn: Binding(get: { enabled }, set: { value in
                 enabled = value
                 Task {
@@ -130,10 +130,8 @@ struct MobileNotificationControls: View {
                 }
             })).disabled(requesting)
             if enabled {
-                Toggle("Codex", isOn: $codex)
-                if codex { MobileServiceAlertControls(service: .codex) }
-                Toggle("Claude Code", isOn: $claude)
-                if claude { MobileServiceAlertControls(service: .claude) }
+                serviceGroup("Codex", service: .codex, enabled: $codex)
+                serviceGroup("Claude Code", service: .claude, enabled: $claude)
                 Text("Usage alerts are checked when the app or widgets update. Reset reminders use your last fresh reading and are estimates; open the app to confirm availability.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
@@ -147,6 +145,19 @@ struct MobileNotificationControls: View {
         .onChange(of: claude) { Task { await MobileResetNotifications.reconcile() } }
         .task(id: phase) { if phase == .active { await check() } }
     }
+    private func serviceGroup(_ name: String, service: QuotaService, enabled: Binding<Bool>) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Toggle(isOn: enabled) { Text(name).font(.headline) }
+            if enabled.wrappedValue {
+                Divider()
+                MobileServiceAlertControls(service: service)
+            }
+        }
+        .padding(16)
+        .background(Color(uiColor: .secondarySystemGroupedBackground),
+                    in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
     private func check() async {
         denied = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus == .denied
         await MobileResetNotifications.reconcile()
@@ -179,8 +190,9 @@ enum MobileSettingsReset {
 struct MobileServiceAlertControls: View {
     let service: QuotaService
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
             MobileWindowAlertControls(service: service, window: "5h", title: "5-hour window")
+            Divider()
             MobileWindowAlertControls(service: service, window: "7d", title: "7-day window")
         }
     }
@@ -202,21 +214,29 @@ struct MobileWindowAlertControls: View {
         _limitEnabled = AppStorage(wrappedValue: false, prefix + "limitEnabled", store: MobileResetNotifications.defaults)
     }
     var body: some View {
-        DisclosureGroup(title) {
+        DisclosureGroup {
             VStack(alignment: .leading, spacing: 12) {
                 Toggle("Approaching the limit", isOn: $usageEnabled)
                 if usageEnabled { Stepper("At least \(Int(usageThreshold))% used", value: $usageThreshold, in: 5...95, step: 5) }
                 Toggle("Limit reached", isOn: $limitEnabled)
-                Divider()
-                Picker("Reset alerts", selection: $mode) {
-                    Text("Off").tag("off")
-                    Text("Only near the limit").tag("nearLimit")
-                    Text("Every reset").tag("everyReset")
-                }
-                if mode == "nearLimit" {
-                    Stepper("At least \(Int(threshold))% used", value: $threshold, in: 5...100, step: 5)
-                }
-            }.padding(.top, 8)
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Reset reminders").font(.subheadline.weight(.semibold))
+                    Picker("Reset reminders", selection: $mode) {
+                        Text("Off").tag("off")
+                        Text("Only near the limit").tag("nearLimit")
+                        Text("Every reset").tag("everyReset")
+                    }.pickerStyle(.menu).labelsHidden()
+                    if mode == "nearLimit" {
+                        Stepper("At least \(Int(threshold))% used", value: $threshold, in: 5...100, step: 5)
+                    }
+                }.padding(.top, 8)
+            }
+            .padding(.leading, 12)
+            .padding(.top, 16)
+            .padding(.bottom, 8)
+        } label: {
+            Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(.primary)
+                .padding(.vertical, 6)
         }
         .onChange(of: mode) { Task { await MobileResetNotifications.reconcile() } }
         .onChange(of: threshold) { Task { await MobileResetNotifications.reconcile() } }

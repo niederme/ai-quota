@@ -322,6 +322,31 @@ The Mac app is the design reference for iOS: gauge proportions, typography, syst
 - [ ] Evaluate CloudKit for sharing timestamped readings between a person's Mac and phone, with explicit provider-account matching and no credential syncing.
 - [ ] Investigate Gemini quota support before committing to an integration.
 
+### App Intents backlog (Mac + iOS)
+
+Deferred plan, saved September 14, 2026. Start with useful Shortcuts actions;
+keep names, parameters, and result meanings consistent across Mac and iOS.
+Existing widget configuration intents do not complete this backlog.
+
+**First release**
+
+- [ ] **Get Usage:** select Codex or Claude; return structured 5-hour and weekly usage, reset dates, and the last-updated time. Keep an absent window explicitly “not reported,” never zero or unlimited.
+- [ ] **Refresh Usage:** reuse existing authentication, token recovery, and refresh handling; return the resulting reading or a clear failure with saved-data freshness.
+- [ ] Add ready-made **Check Codex** and **Check Claude** App Shortcuts, with concise spoken and visual summaries where supported.
+
+**Acceptance**
+
+- [ ] Verify actions in Shortcuts on both platforms, including execution without opening AIQuota where supported.
+- [ ] Verify structured results can feed conditions and subsequent actions in a custom shortcut.
+- [ ] Verify healthy, stale, missing-window, offline, and reconnect-required states without presenting saved values as fresh.
+- [ ] Verify spoken responses and visual summaries on supported system surfaces; distinguish Shortcuts, App Shortcuts, Spotlight, and Siri support based on observed behavior.
+
+**Later**
+
+- [ ] Configure reset reminders and pause alerts through intents.
+- [ ] Explore Spotlight and Siri search/open integration for service accounts.
+- [ ] After public release and verified support, submit to [Siri AI Apps](https://siriaiapps.com/submit). Its [review criteria](https://siriaiapps.com/how-we-review) distinguish Shortcuts from Siri AI support and TestFlight from public-release availability.
+
 Implementation notes: [iOS development and testing](prototypes/mobile-access/README.md) and [Mac distribution](docs/mac-distribution.md).
 
 ---

@@ -98,14 +98,26 @@ struct SharedQuotaStore: Sendable {
                     return cached
                 }
                 log(source, "attempt", reading: reading())
-                if forceRenewal || credentials.needsRefresh(at: .now) {
+                let renewedBeforeUsage = forceRenewal || credentials.needsRefresh(at: .now)
+                if renewedBeforeUsage {
                     credentials = try await renew(credentials)
                     // Persist rotated refresh credentials even if the caller was cancelled meanwhile.
                     try saveCredentials(credentials)
                     log(source, "renewed", reading: reading())
                 }
                 try Task.checkCancellation()
-                let value = try await usage(credentials)
+                let value: QuotaReading
+                do {
+                    value = try await usage(credentials)
+                } catch AccessError.http(401) where !renewedBeforeUsage {
+                    // A plan change can invalidate an otherwise unexpired access token.
+                    // Keep recovery under the app/widget lease and retry only once.
+                    credentials = try await renew(credentials)
+                    try saveCredentials(credentials)
+                    log(source, "renewed_after_401", reading: reading())
+                    try Task.checkCancellation()
+                    value = try await usage(credentials)
+                }
                 try Task.checkCancellation()
                 try saveReading(value)
                 saveFailure(nil)

@@ -184,7 +184,7 @@ struct CircularGaugeView: View {
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(primaryCaptionStyle)
                 } else if !isLoading {
-                    Text("No \(primaryLabel) limit right now")
+                    Text("\(primaryLabel) not reported")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }

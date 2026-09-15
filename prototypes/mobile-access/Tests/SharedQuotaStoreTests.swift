@@ -21,6 +21,21 @@ private actor Calls {
     }
     func usage(_ token: CodexTokens) throws -> QuotaReading { access.append(token.accessToken); return try sample() }
 }
+private actor UnauthorizedCalls {
+    var renewals = 0
+    var attempts = 0
+    let alwaysReject: Bool
+    init(alwaysReject: Bool = false) { self.alwaysReject = alwaysReject }
+    func renew(_ old: CodexTokens) throws -> CodexTokens {
+        renewals += 1
+        return try credentials()
+    }
+    func usage(_ token: CodexTokens) throws -> QuotaReading {
+        attempts += 1
+        if attempts == 1 || alwaysReject { throw AccessError.http(401) }
+        return try sample()
+    }
+}
 final class SharedQuotaStoreTests: XCTestCase {
     private func store(_ service: QuotaService = .codex) -> SharedQuotaStore {
         let id = UUID().uuidString
@@ -29,6 +44,47 @@ final class SharedQuotaStoreTests: XCTestCase {
     private func clean(_ store: SharedQuotaStore) async throws {
         try await store.withLease { try store.clear() }
         if let root = store.root { try? FileManager.default.removeItem(at: root) }
+    }
+    func testUnexpiredTokenRenewsOnceAfter401() async throws {
+        let store = store(), calls = UnauthorizedCalls()
+        try await store.withLease { try store.saveCredentials(credentials()) }
+        let value = try await store.fetch(CodexTokens.self, source: "app",
+            renew: { try await calls.renew($0) }, usage: { try await calls.usage($0) })
+        let renewals = await calls.renewals, attempts = await calls.attempts
+        XCTAssertEqual(renewals, 1)
+        XCTAssertEqual(attempts, 2)
+        XCTAssertEqual(store.reading(), value)
+        XCTAssertNil(store.failure())
+        try await clean(store)
+    }
+    func testSecond401StopsAndPreservesSavedReading() async throws {
+        let store = store(), calls = UnauthorizedCalls(alwaysReject: true)
+        try await store.withLease { try store.saveCredentials(credentials()) }
+        let saved = try await store.fetch(CodexTokens.self, source: "app", renew: { $0 }, usage: { _ in try sample() })
+        do {
+            _ = try await store.fetch(CodexTokens.self, source: "app",
+                renew: { try await calls.renew($0) }, usage: { try await calls.usage($0) })
+            XCTFail("Expected reconnection requirement")
+        } catch { XCTAssertEqual(error as? AccessError, .http(401)) }
+        let renewals = await calls.renewals, attempts = await calls.attempts
+        XCTAssertEqual(renewals, 1)
+        XCTAssertEqual(attempts, 2)
+        XCTAssertEqual(store.failure(), .reconnect)
+        XCTAssertEqual(store.reading(), saved)
+        try await clean(store)
+    }
+    func testAlreadyRenewedTokenDoesNotRenewAgainAfter401() async throws {
+        let store = store(), calls = UnauthorizedCalls(alwaysReject: true)
+        try await store.withLease { try store.saveCredentials(credentials(expired: true)) }
+        do {
+            _ = try await store.fetch(CodexTokens.self, source: "app",
+                renew: { try await calls.renew($0) }, usage: { try await calls.usage($0) })
+            XCTFail("Expected reconnection requirement")
+        } catch { XCTAssertEqual(error as? AccessError, .http(401)) }
+        let renewals = await calls.renewals, attempts = await calls.attempts
+        XCTAssertEqual(renewals, 1)
+        XCTAssertEqual(attempts, 1)
+        try await clean(store)
     }
     func testConcurrentAppAndWidgetRenewOnlyOnce() async throws {
         let store = store(), calls = Calls()
@@ -101,9 +157,9 @@ final class OverviewLayoutReviewTests: XCTestCase {
         {"fetchedAt":\(Date.now.timeIntervalSinceReferenceDate),"shortTerm":{"usedPercent":18,"durationSeconds":18000},"weekly":{"usedPercent":55,"durationSeconds":604800}}
         """.utf8))
         for typeSize in [DynamicTypeSize.large, .xxxLarge, .accessibility3] {
-            func card(_ reading: QuotaReading?, busy: Bool, failure: SharedQuotaStore.Failure? = nil) -> some View {
+            func card(_ reading: QuotaReading?, busy: Bool, failure: SharedQuotaStore.Failure? = nil, connected: Bool = true, error: String? = nil) -> some View {
                 ProviderDialCardContent(name: "Codex", icon: "logo-openai", availableWidth: 338,
-                    reading: reading, connected: true, busy: busy, error: nil, failure: failure)
+                    reading: reading, connected: connected, busy: busy, error: error, failure: failure)
             }
             func renderedSize<V: View>(_ view: V) throws -> CGSize {
                 try XCTUnwrap(ImageRenderer(content: view.frame(width: 338).environment(\.dynamicTypeSize, typeSize)).uiImage).size
@@ -111,13 +167,18 @@ final class OverviewLayoutReviewTests: XCTestCase {
             let idle = try renderedSize(card(full, busy: false))
             XCTAssertEqual(try renderedSize(card(full, busy: true)), idle)
             XCTAssertEqual(try renderedSize(card(empty, busy: false)), idle)
-            let failure = try renderedSize(card(full, busy: false, failure: .renewal))
+            for failure in [SharedQuotaStore.Failure.renewal, .reconnect, .temporary] {
+                XCTAssertEqual(try renderedSize(card(full, busy: false, failure: failure)), idle)
+            }
+            XCTAssertEqual(try renderedSize(card(nil, busy: false)), idle)
+            XCTAssertEqual(try renderedSize(card(nil, busy: false, connected: false)), idle)
+            XCTAssertEqual(try renderedSize(card(full, busy: false, error: "Provider request failed (HTTP 401).")), idle)
             let pair = EqualHeightCardStack(spacing: 16) {
                 card(full, busy: false)
                 card(empty, busy: true, failure: .renewal)
             }
             let pairSize = try renderedSize(pair)
-            XCTAssertEqual(pairSize.height, max(idle.height, failure.height) * 2 + 16, accuracy: 1)
+            XCTAssertEqual(pairSize.height, idle.height * 2 + 16, accuracy: 1)
             let renderer = ImageRenderer(content: pair.frame(width: 338).padding(20)
                 .background(Color(uiColor: .systemGroupedBackground))
                 .environment(\.colorScheme, .dark).environment(\.dynamicTypeSize, typeSize))

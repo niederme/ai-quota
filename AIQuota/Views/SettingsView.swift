@@ -327,7 +327,7 @@ private struct NotificationServiceRow: View {
     }
 }
 
-private struct NotificationInlineControls: View {
+struct NotificationInlineControls: View {
     let service: ServiceType
     @Binding var preferences: NotificationPreferences
 

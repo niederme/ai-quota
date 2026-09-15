@@ -236,7 +236,7 @@ struct PopoverView: View {
         if let cloud = u.approxCloudMessages, cloud.count == 2 {
             lines.append("Cloud messages: ~\(cloud[0]) / \(cloud[1])")
         }
-        lines.append("Plan: \(u.planType.capitalized)")
+        lines.append("Plan: \(u.displayPlan)")
         return lines.joined(separator: "\n")
     }
 
@@ -310,7 +310,7 @@ struct PopoverView: View {
         if let usage = viewModel.codexUsage {
             let autoReload = viewModel.codexAutoReload
             VStack(alignment: .leading, spacing: 5) {
-                compactRow("Plan", usage.planType.capitalized)
+                compactRow("Plan", usage.displayPlan)
                 if let balance = usage.creditBalance {
                     CodexCreditsRow(balance: balance, autoReload: autoReload)
                 }

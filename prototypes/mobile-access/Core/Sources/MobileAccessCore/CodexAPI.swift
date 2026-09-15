@@ -200,6 +200,9 @@ public struct CodexAPI: Sendable {
         req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         req.httpBody = Self.formBody(values)
         let r = try await transport.send(req)
+        if previous != nil, r.status == 400,
+           let reason = try? JSONDecoder().decode([String: String].self, from: r.data),
+           reason["error"] == "invalid_grant" { throw AccessError.expired }
         try validate(r)
         let raw = try JSONDecoder().decode(TokenResponse.self, from: r.data)
         guard !raw.access.isEmpty else { throw AccessError.invalidResponse }

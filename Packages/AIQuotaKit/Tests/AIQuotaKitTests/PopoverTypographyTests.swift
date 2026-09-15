@@ -181,7 +181,7 @@ struct PopoverTypographyTests {
         #expect(gaugeSource.contains("resetAt: Date?"))
         #expect(gaugeSource.contains("weeklyResetAt: Date?"))
         #expect(gaugeSource.contains("showsSecondaryMetric: Bool"))
-        #expect(gaugeSource.contains(#"Text("No \(primaryLabel) limit right now")"#))
+        #expect(gaugeSource.contains(#"Text("\(primaryLabel) not reported")"#))
 
         // CircularGaugeView: captions use the compact formatter for popover density
         #expect(gaugeSource.contains("ResetTimeTextFormatter.compactWindowCaption(primaryLabel, resetAt: resetAt)"))

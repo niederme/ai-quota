@@ -48,3 +48,11 @@ import Testing
         try CodexAPI.decodeSpending(Data(#"{"data":[{"date":"bad","credit_amount":10}]}"#.utf8), now: now)
     }
 }
+
+@Test func upgradedProWeeklyWindowKeepsMissingFiveHourWindowAbsent() throws {
+    let reading = try QuotaReading.decode(Data(#"{"plan_type":"prolite","rate_limit":{"primary_window":{"used_percent":1,"limit_window_seconds":604800}}}"#.utf8), now: .now)
+    #expect(reading.shortTerm == nil)
+    #expect(reading.weekly?.usedPercent == 1)
+    #expect(reading.metadata?.plan == "prolite")
+    #expect(reading.metadata?.displayPlan == "Pro")
+}

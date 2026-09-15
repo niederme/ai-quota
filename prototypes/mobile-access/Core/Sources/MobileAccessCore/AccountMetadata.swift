@@ -2,6 +2,9 @@ import Foundation
 
 public struct AccountMetadata: Codable, Sendable, Equatable {
     public let plan: String?
+    public var displayPlan: String? {
+        plan.map { $0.lowercased() == "prolite" ? "Pro" : $0.capitalized }
+    }
     public let balanceUSD: Double?
     public let usageSpent: Double?
     public let usageCurrency: String?

@@ -142,7 +142,7 @@ private struct OnboardingNotificationServiceRow: View {
             )
 
             if isExpanded {
-                OnboardingNotificationInlineControls(service: service, preferences: $preferences)
+                NotificationInlineControls(service: service, preferences: $preferences)
                     .padding(.leading, 50)
                     .padding(.top, 2)
                     .padding(.bottom, 4)
@@ -159,73 +159,5 @@ private struct OnboardingNotificationServiceRow: View {
         withAnimation(.spring(response: 0.25, dampingFraction: 0.86)) {
             isExpanded.toggle()
         }
-    }
-}
-
-private struct OnboardingNotificationInlineControls: View {
-    let service: ServiceType
-    @Binding var preferences: NotificationPreferences
-
-    var body: some View {
-        switch service {
-        case .codex:
-            codexControls
-        case .claude:
-            claudeControls
-        }
-    }
-
-    @ViewBuilder
-    private var codexControls: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            notificationOptionGroup("5-hour window") {
-                notificationCheckbox("Usage alerts", isOn: $preferences.codex5hThresholdAlerts)
-                notificationCheckbox("Reset alert", isOn: $preferences.codex5hReset)
-            }
-
-            notificationOptionGroup("7-day window") {
-                notificationCheckbox("Usage alerts", isOn: $preferences.codexWeeklyThresholdAlerts)
-                notificationCheckbox("Reset alert", isOn: $preferences.codexReset)
-            }
-
-            notificationOptionGroup("Credits") {
-                notificationCheckbox("Top-up events", isOn: $preferences.codexTopUp)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var claudeControls: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            notificationOptionGroup("5-hour window") {
-                notificationCheckbox("Usage alerts", isOn: $preferences.claude5hThresholdAlerts)
-                notificationCheckbox("Reset alert", isOn: $preferences.claude5hReset)
-            }
-
-            notificationOptionGroup("7-day window") {
-                notificationCheckbox("Usage alerts", isOn: $preferences.claude7dThresholdAlerts)
-                notificationCheckbox("Reset alert", isOn: $preferences.claude7dReset)
-            }
-        }
-    }
-
-    private func notificationOptionGroup<Content: View>(
-        _ title: String,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title.uppercased())
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-
-            VStack(alignment: .leading, spacing: 6) {
-                content()
-            }
-        }
-    }
-
-    private func notificationCheckbox(_ title: String, isOn: Binding<Bool>) -> some View {
-        Toggle(title, isOn: isOn)
-            .toggleStyle(.checkbox)
     }
 }

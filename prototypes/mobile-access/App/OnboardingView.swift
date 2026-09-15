@@ -102,7 +102,7 @@ struct OnboardingView: View {
                             Image(systemName: "checkmark.circle.fill").font(.system(size: 64)).foregroundStyle(.green)
                             Text("You’re all set!").font(.title.bold())
                             Button("Start using AIQuota") { progress.finish(); dismiss() }
-                                .buttonStyle(.borderedProminent).controlSize(.large)
+                                .buttonStyle(OnboardingPrimaryButtonStyle())
                             VStack(spacing: 6) {
                                 let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
                                 let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
@@ -129,7 +129,7 @@ struct OnboardingView: View {
                         Button("Back", systemImage: "chevron.left") {
                             let index = OnboardingProgress.order.firstIndex(of: progress.step) ?? 0
                             progress.setStep(OnboardingProgress.order[max(0, index - 1)])
-                        }
+                        }.buttonStyle(OnboardingSecondaryButtonStyle())
                     }
                     Spacer()
                     HStack(spacing: 6) {
@@ -142,7 +142,7 @@ struct OnboardingView: View {
                     Button("Continue") {
                         let index = OnboardingProgress.order.firstIndex(of: progress.step) ?? 0
                         progress.setStep(OnboardingProgress.order[index + 1])
-                    }.buttonStyle(.borderedProminent)
+                    }.buttonStyle(OnboardingPrimaryButtonStyle())
                     }
                 }.padding(20).background(.bar)
             }
@@ -150,11 +150,29 @@ struct OnboardingView: View {
             .navigationTitle("Set up AIQuota")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Not now") { progress.dismiss(); dismiss() }
+                if progress.step != .complete {
+                    if #available(iOS 26.0, *) {
+                        ToolbarItem(placement: .cancellationAction) { skipButton }
+                            .sharedBackgroundVisibility(.hidden)
+                    } else {
+                        ToolbarItem(placement: .cancellationAction) { skipButton }
+                    }
                 }
             }
         }.tint(Color(uiColor: .systemPurple))
+    }
+
+    private var skipButton: some View {
+        Button {
+            progress.dismiss()
+            dismiss()
+        } label: {
+            Text("Not now")
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+        }
+        .buttonStyle(OnboardingSecondaryButtonStyle())
+        .fixedSize(horizontal: true, vertical: false)
     }
 
     @ViewBuilder private var supportLinks: some View {
@@ -238,5 +256,31 @@ struct LockScreenSetupView: View {
         }
         .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle("Lock Screen widgets").navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// Shared sizing keeps the final action and step navigation in one hierarchy.
+private struct OnboardingPrimaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.body.weight(.semibold))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .frame(minHeight: 44)
+            .foregroundStyle(.white)
+            .background(Color(uiColor: .systemPurple), in: Capsule())
+            .opacity(configuration.isPressed ? 0.7 : 1)
+    }
+}
+
+private struct OnboardingSecondaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.body)
+            .padding(.horizontal, 8)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+            .foregroundStyle(Color(uiColor: .systemPurple))
+            .opacity(configuration.isPressed ? 0.7 : 1)
     }
 }

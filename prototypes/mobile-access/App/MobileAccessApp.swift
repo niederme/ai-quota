@@ -75,8 +75,13 @@ struct ProbeView: View {
                         HStack { ProgressView(); Button("Cancel") { model.cancel() } }
                     } else if model.connected {
                         VStack(alignment: .leading, spacing: 12) {
-                            Button("Refresh quota") { model.refresh() }.buttonStyle(.borderedProminent)
-                            Button("Reconnect Codex") { model.connect() }
+                            if model.connectionFailure == .reconnect {
+                                Button("Reconnect Codex") { model.connect() }.buttonStyle(.borderedProminent)
+                                Button("Retry refresh") { model.refresh() }
+                            } else {
+                                Button("Refresh quota") { model.refresh() }.buttonStyle(.borderedProminent)
+                                Button("Reconnect Codex") { model.connect() }
+                            }
                             if let date = model.renewedAt {
                                 Text("Renewed \(date.formatted(date: .omitted, time: .standard))")
                                     .font(.caption).foregroundStyle(.secondary)

@@ -18,10 +18,12 @@ final class ProbeModel {
     private(set) var message = "Connect Codex to see your usage."
     private(set) var error: String?
     private(set) var renewedAt: Date?
+    private(set) var connectionFailure: SharedQuotaStore.Failure?
     var connected: Bool { tokens != nil }
     private let cacheKey = "mobileProbe.codexReading"
 
     init() {
+        connectionFailure = shared.failure()
         do {
             tokens = try shared.load(CodexTokens.self) ?? TokenStore.load()
             if tokens != nil {
@@ -89,11 +91,12 @@ final class ProbeModel {
             try TokenStore.clear()
             try WidgetStore.clearAccess()
         }
-        message = "Updating allowance…"
+        message = "Refreshing…"
         let value = try await shared.fetch(source: "app", forceRenewal: forceRenewal)
         try Task.checkCancellation()
         tokens = try shared.load(CodexTokens.self)
         reading = value
+        connectionFailure = nil
         UserDefaults.standard.set(try JSONEncoder().encode(value), forKey: cacheKey)
         if forceRenewal { renewedAt = .now }
         WidgetCenter.shared.reloadAllTimelines()
@@ -112,6 +115,7 @@ final class ProbeModel {
                 // Never surface raw response bodies, tokens, or provider error URLs.
                 self.error = (error as? AccessError)?.errorDescription
                     ?? "The request did not complete. Check your connection and try again."
+                self.connectionFailure = SharedQuotaStore.Failure.classify(error)
                 self.message = "Couldn’t update usage. Your last reading is still shown."
             }
             guard let self, self.generation == id else { return }
@@ -153,6 +157,7 @@ final class ProbeModel {
         tokens = nil
         reading = nil
         renewedAt = nil
+        connectionFailure = nil
         error = nil
         message = "Connection removed from this device."
     }
