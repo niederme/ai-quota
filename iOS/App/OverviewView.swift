@@ -352,8 +352,8 @@ struct ProviderDialCardContent: View {
             ZStack(alignment: .topLeading) {
                 VStack(alignment: .leading, spacing: 8) {
                     metadataRow("Plan", value: "Not reported", explanation: .plan, interactive: false)
-                    metadataRow("Balance", value: "$999.99")
-                    metadataRow("Usage credits", value: "$999.99 spent", spending: true, explanation: .claudeSpend, interactive: false)
+                    metadataRow("Credit balance", value: "$999.99")
+                    metadataRow("Credits used", value: "$999.99", spending: true, explanation: .claudeSpend, interactive: false)
                 }.hidden().accessibilityHidden(true).allowsHitTesting(false)
                 reportedMetadata
             }
@@ -369,20 +369,20 @@ struct ProviderDialCardContent: View {
             metadataRow("Plan", value: data?.displayPlan ?? "Not reported",
                 explanation: data?.displayPlan == nil ? .plan : nil)
             if let balance = data?.balanceUSD {
-                metadataRow("Balance", value: balance.formatted(.currency(code: "USD")))
+                metadataRow("Credit balance", value: balance.formatted(.currency(code: "USD")))
             }
             if let spent = data?.usageSpent {
                 let amount = data?.usageCurrency.map { spent.formatted(.currency(code: $0)) }
                     ?? spent.formatted(.number.precision(.fractionLength(0...2))) + " credits"
-                metadataRow(name == "Codex" ? "Spent" : "Usage credits",
-                    value: name == "Codex" ? amount : "\(amount) spent", spending: true,
+                metadataRow("Credits used",
+                    value: amount, spending: true,
                     explanation: name == "Codex" ? .codexSpend : .claudeSpend)
             }
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
     private func metadataRow(_ label: String, value: String, spending: Bool = false,
                              explanation: MetadataExplanation? = nil, interactive: Bool = true) -> some View {
-        let content = VStack(alignment: .leading, spacing: 2) {
+        let fields = Group {
             Group {
                 if explanation != nil {
                     Text("\(label) \(Image(systemName: "info.circle"))")
@@ -395,6 +395,13 @@ struct ProviderDialCardContent: View {
             Text(value).fontWeight(.medium).monospacedDigit()
                 .fixedSize(horizontal: false, vertical: true)
                 .foregroundStyle(spending ? Color(uiColor: .systemOrange) : (value == "Not reported" ? .secondary : .primary))
+        }
+        let content = ViewThatFits(in: .horizontal) {
+            if !spending {
+                HStack(alignment: .firstTextBaseline, spacing: 5) { fields }
+                    .fixedSize(horizontal: true, vertical: false)
+            }
+            VStack(alignment: .leading, spacing: spending ? -2 : 2) { fields }
         }
         .font(.caption)
         .frame(maxWidth: .infinity, minHeight: explanation != nil ? 44 : 32, alignment: .leading)

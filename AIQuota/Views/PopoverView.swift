@@ -230,9 +230,9 @@ struct PopoverView: View {
                 "7-day window: \(u.weeklyUsedPercent)% used",
             ]
         }
-        if let balance = u.creditBalance { lines.append("Credits balance: \(formatCodexDollarAmount(balance))") }
+        if let balance = u.creditBalance { lines.append("Credit balance: \(formatCodexDollarAmount(balance))") }
         if let spent = u.bonusCreditsSpentThisMonth {
-            lines.append("Usage credits spent this month: \(formatCodexDollarAmount(spent))")
+            lines.append("Credits used: \(formatCodexDollarAmount(spent))")
         }
         if let local = u.approxLocalMessages, local.count == 2 {
             lines.append("Local messages: ~\(local[0]) / \(local[1])")
@@ -320,12 +320,13 @@ struct PopoverView: View {
                 }
                 if let spent = usage.bonusCreditsSpentThisMonth, spent > 0 {
                     compactRow(
-                        "Spent",
+                        "Credits used",
                         formatCodexDollarAmount(spent),
                         labelTint: .warningAmber,
                         valueTint: .warningAmber,
                         infoTitle: "Estimated Monthly Spend",
-                        infoHelp: codexSpentHelpText
+                        infoHelp: codexSpentHelpText,
+                        stacked: true
                     )
                 }
             }
@@ -361,22 +362,16 @@ struct PopoverView: View {
                     let tint: Color = credits.limitReached || credits.severity == .critical
                         ? .critical
                         : .warningAmber
-                    VStack(alignment: .leading, spacing: -2) {
-                        Text("Usage credits:")
-                            .font(.caption2)
-                            .foregroundStyle(tint)
-                        HStack(alignment: .center, spacing: 4) {
-                            Text("\(formatUsageCredits(credits)) spent")
-                                .font(.caption2.monospacedDigit())
-                                .foregroundStyle(tint)
-                                .lineLimit(1)
-                            InfoPopoverButton(
-                                title: "Fable 5 & Post-Limit Usage",
-                                text: claudeUsageCreditsHelpText,
-                                tint: tint
-                            )
-                            Spacer(minLength: 0)
-                        }
+                    VStack(alignment: .leading, spacing: 2) {
+                        compactRow(
+                            "Credits used",
+                            formatUsageCredits(credits),
+                            labelTint: tint,
+                            valueTint: tint,
+                            infoTitle: "Fable 5 & Post-Limit Usage",
+                            infoHelp: claudeUsageCreditsHelpText,
+                            stacked: true
+                        )
                         if usage.shouldExplainUsageCreditsSeparation {
                             Text("Separate from plan limits")
                                 .font(.caption2)
@@ -395,7 +390,8 @@ struct PopoverView: View {
         valueTint: Color = .primary,
         suffix: String? = nil,
         infoTitle: String? = nil,
-        infoHelp: String? = nil
+        infoHelp: String? = nil,
+        stacked: Bool = false
     ) -> some View {
         CompactStatRow(
             label: label,
@@ -404,7 +400,8 @@ struct PopoverView: View {
             valueTint: valueTint,
             suffix: suffix,
             infoTitle: infoTitle,
-            infoHelp: infoHelp
+            infoHelp: infoHelp,
+            stacked: stacked
         )
     }
 
@@ -738,16 +735,23 @@ private struct CompactStatRow: View {
     let infoTitle: String?
     let infoHelp: String?
 
+    var stacked: Bool = false
+
     var body: some View {
-        rowContent
+        let layout = stacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: -2))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: 4))
+        layout {
+            Text(label + ":")
+                .font(.caption2)
+                .foregroundStyle(labelTint)
+                .fixedSize(horizontal: false, vertical: true)
+            rowContent
+        }
     }
 
     private var rowContent: some View {
         HStack(alignment: .center, spacing: 4) {
-            Text(label + ":")
-                .font(.caption2)
-                .foregroundStyle(labelTint)
-                .lineLimit(1)
             valueLabel
             if let suffix {
                 Text(suffix)
@@ -931,7 +935,7 @@ private struct CodexCreditsRow: View {
 
     private var balanceAmount: some View {
         HStack(alignment: .firstTextBaseline, spacing: 5) {
-            Text("Balance:").font(.caption2).foregroundStyle(.secondary)
+            Text("Credit balance:").font(.caption2).foregroundStyle(.secondary)
             Text(balanceText).font(.caption2.monospacedDigit()).foregroundStyle(valueTint)
         }.fixedSize()
     }
