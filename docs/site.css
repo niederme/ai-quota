@@ -412,11 +412,14 @@ html[data-theme="light"] .button-primary:focus-visible {
 }
 
 .visual-card {
+  --visual-radius: 40px;
+  --visual-padding: 18px;
+  --visual-inner-radius: calc(var(--visual-radius) - var(--visual-padding) - 1px);
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  padding: 18px;
-  border-radius: 40px;
+  padding: var(--visual-padding);
+  border-radius: var(--visual-radius);
   -webkit-mask-image: -webkit-radial-gradient(white, black);
   mask-image: radial-gradient(white, black);
   background:
@@ -457,7 +460,7 @@ html[data-theme="light"] .visual-card::before {
   position: relative;
   overflow: hidden;
   isolation: isolate;
-  border-radius: 34px;
+  border-radius: var(--visual-inner-radius);
   -webkit-mask-image: -webkit-radial-gradient(white, black);
   mask-image: radial-gradient(white, black);
   border: 1px solid rgba(255, 255, 255, 0.07);
@@ -515,7 +518,7 @@ html[data-theme="light"] .visual-frame {
   border-radius: inherit;
   background: #000;
   -webkit-mask-image: -webkit-radial-gradient(white, black);
-  clip-path: inset(0 round 34px);
+  clip-path: inset(0 round calc(var(--visual-inner-radius) - 1px));
   mask-image: radial-gradient(white, black);
 }
 
@@ -529,7 +532,7 @@ html[data-theme="light"] .visual-frame {
   background: #000;
   cursor: pointer;
   transition: filter 0.24s ease;
-  clip-path: inset(0 round 34px);
+  clip-path: inset(0 round calc(var(--visual-inner-radius) - 1px));
 }
 
 .hero-demo-video.is-paused {
@@ -1090,6 +1093,10 @@ html[data-theme="light"] .policy-lede {
     padding-bottom: 0;
     width: 100%;
     max-width: none;
+  }
+
+  .visual-card {
+    --visual-radius: var(--radius-lg);
   }
 
   .visual-card,
