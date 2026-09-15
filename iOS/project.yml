@@ -24,14 +24,11 @@ targets:
       - target: AIQuotaWidget-iOS
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.niederme.AIQuota.MobileAccessProbe
+        PRODUCT_BUNDLE_IDENTIFIER: com.niederme.AIQuota
         TARGETED_DEVICE_FAMILY: "1,2"
         CODE_SIGN_ENTITLEMENTS: iOS/Shared/Mobile.entitlements
         GENERATE_INFOPLIST_FILE: YES
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
-      configs:
-        Release:
-          PRODUCT_BUNDLE_IDENTIFIER: com.niederme.AIQuota
     info:
       path: App/Info.plist
       properties:
@@ -62,12 +59,9 @@ targets:
       - package: MobileAccessCore
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.niederme.AIQuota.MobileAccessProbe.Widget
+        PRODUCT_BUNDLE_IDENTIFIER: com.niederme.AIQuota.mobilewidget
         CODE_SIGN_ENTITLEMENTS: iOS/Shared/Widget.entitlements
         TARGETED_DEVICE_FAMILY: "1,2"
-      configs:
-        Release:
-          PRODUCT_BUNDLE_IDENTIFIER: com.niederme.AIQuota.mobilewidget
     info:
       path: Widget/Info.plist
       properties:

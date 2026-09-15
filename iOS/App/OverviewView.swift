@@ -382,20 +382,19 @@ struct ProviderDialCardContent: View {
     }
     private func metadataRow(_ label: String, value: String, spending: Bool = false,
                              explanation: MetadataExplanation? = nil, interactive: Bool = true) -> some View {
-        let content = HStack(alignment: .center, spacing: 8) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(label).fixedSize(horizontal: false, vertical: true)
-                    .foregroundStyle(spending ? Color(uiColor: .systemOrange) : .secondary)
-                Text(value).fontWeight(.medium).monospacedDigit()
-                    .fixedSize(horizontal: false, vertical: true)
-                    .foregroundStyle(spending ? Color(uiColor: .systemOrange) : (value == "Not reported" ? .secondary : .primary))
+        let content = VStack(alignment: .leading, spacing: 2) {
+            Group {
+                if explanation != nil {
+                    Text("\(label) \(Image(systemName: "info.circle"))")
+                } else {
+                    Text(label)
+                }
             }
-            Spacer(minLength: 0)
-            if explanation != nil {
-                Image(systemName: "info.circle")
-                    .foregroundStyle(spending ? Color(uiColor: .systemOrange) : .secondary)
-                    .accessibilityHidden(true)
-            }
+            .fixedSize(horizontal: false, vertical: true)
+            .foregroundStyle(spending ? Color(uiColor: .systemOrange) : .secondary)
+            Text(value).fontWeight(.medium).monospacedDigit()
+                .fixedSize(horizontal: false, vertical: true)
+                .foregroundStyle(spending ? Color(uiColor: .systemOrange) : (value == "Not reported" ? .secondary : .primary))
         }
         .font(.caption)
         .frame(maxWidth: .infinity, minHeight: explanation != nil ? 44 : 32, alignment: .leading)
