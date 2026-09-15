@@ -1,5 +1,8 @@
 name: AIQuota
 
+include:
+  - iOS/project.yml
+
 options:
   bundleIdPrefix: com.niederme
   deploymentTarget:
@@ -153,6 +156,7 @@ targets:
   # Store targets share sources, but never link or embed Sparkle.
 
   AIQuotaStore:
+    productName: AIQuota
     templates: [StoreDistribution]
     type: application
     platform: macOS
@@ -181,6 +185,7 @@ targets:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
   AIQuotaWidgetStore:
+    productName: AIQuotaWidget
     templates: [StoreDistribution]
     type: app-extension
     platform: macOS

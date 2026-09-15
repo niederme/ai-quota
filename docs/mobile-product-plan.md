@@ -140,7 +140,7 @@ Richer historical comparisons, StandBy-specific presentation, Apple Watch, and l
 
 ## Current scope
 
-The user has authorized proceeding with a personal mobile feasibility build despite unresolved distribution risk. The first technical slice is the separate [Codex mobile access probe](../prototypes/mobile-access/README.md). This does not clear provider permission, authorize a lengthy device-testing session, or authorize submission.
+The user has authorized proceeding with a personal mobile feasibility build despite unresolved distribution risk. The first technical slice is the separate [Codex mobile access probe](../iOS/README.md). This does not clear provider permission, authorize a lengthy device-testing session, or authorize submission.
 
 Competitor research is maintained separately outside this public repository.
 
@@ -159,7 +159,7 @@ Provider rules and platform behavior must be rechecked at the relevant feasibili
 
 Codex: the owner's recording shows successful independent phone sign-in and a fresh reading. The owner subsequently confirmed session renewal and successful fresh retrieval after force-closing and reopening the app with the Mac asleep. This clears the bounded technical access check, not distribution permission, long-term session reliability, or widget freshness.
 
-Claude: the Safari authorization-code candidate and the limitations of the documented organization usage API are recorded in the [probe investigation](../prototypes/mobile-access/README.md#claude-access-investigation--september-11-2026). Independent supported mobile subscription-quota access remains unresolved; no Claude credentials were collected or requests made in this investigation.
+Claude: the Safari authorization-code candidate and the limitations of the documented organization usage API are recorded in the [probe investigation](../iOS/README.md#claude-access-investigation--september-11-2026). Independent supported mobile subscription-quota access remains unresolved; no Claude credentials were collected or requests made in this investigation.
 
 The owner subsequently authorized implementing the personal Claude technical probe. Browser authorization-code exchange, separate secure storage, two-window quota parsing, and forced renewal are now implemented; live provider acceptance is still unverified. This does not resolve the permission gate or change distribution scope. See the probe README for the bounded phone check.
 

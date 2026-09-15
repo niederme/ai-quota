@@ -15,10 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "6E313A836C3FCD4ABA1E2F39"
+               BlueprintIdentifier = "0942446F5C197BA65ABBE6AD"
                BuildableName = "AIQuota-iOS.app"
                BlueprintName = "AIQuota-iOS"
-               ReferencedContainer = "container:AIQuota-iOS.xcodeproj">
+               ReferencedContainer = "container:AIQuota.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -32,10 +32,10 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "6E313A836C3FCD4ABA1E2F39"
+            BlueprintIdentifier = "0942446F5C197BA65ABBE6AD"
             BuildableName = "AIQuota-iOS.app"
             BlueprintName = "AIQuota-iOS"
-            ReferencedContainer = "container:AIQuota-iOS.xcodeproj">
+            ReferencedContainer = "container:AIQuota.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -44,10 +44,10 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "5FB4B62648D86D06628ACAF1"
-               BuildableName = "MobileAccessHostTests.xctest"
-               BlueprintName = "MobileAccessHostTests"
-               ReferencedContainer = "container:AIQuota-iOS.xcodeproj">
+               BlueprintIdentifier = "676E4E1DF50D8B30B82B95E2"
+               BuildableName = "AIQuota-iOSTests.xctest"
+               BlueprintName = "AIQuota-iOSTests"
+               ReferencedContainer = "container:AIQuota.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -68,10 +68,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "6E313A836C3FCD4ABA1E2F39"
+            BlueprintIdentifier = "0942446F5C197BA65ABBE6AD"
             BuildableName = "AIQuota-iOS.app"
             BlueprintName = "AIQuota-iOS"
-            ReferencedContainer = "container:AIQuota-iOS.xcodeproj">
+            ReferencedContainer = "container:AIQuota.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
@@ -87,10 +87,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "6E313A836C3FCD4ABA1E2F39"
+            BlueprintIdentifier = "0942446F5C197BA65ABBE6AD"
             BuildableName = "AIQuota-iOS.app"
             BlueprintName = "AIQuota-iOS"
-            ReferencedContainer = "container:AIQuota-iOS.xcodeproj">
+            ReferencedContainer = "container:AIQuota.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

@@ -1,14 +1,12 @@
 # AI Quota for iOS
 
-The iPhone/iPad app lives in this directory for historical reasons; it is no longer
-just an access probe. Its separate Xcode project shares the Mac app's App Store
-Connect record. The Mac remains the design reference for typography, system colors,
+The iPhone/iPad app lives in `iOS/` and builds from the root `AIQuota.xcodeproj`
+using the `AIQuota-iOS` scheme. It shares the Mac app's App Store Connect record. The Mac remains the design reference for typography, system colors,
 materials, gauge proportions, and Settings language.
 
-## Current release
+## Build 13 release history
 
-**TestFlight 0.1.0 (13)** is valid and available for internal testing. The local
-app, widget, and XcodeGen configuration all use build 13. The owner reviewed the
+**TestFlight 0.1.0 (13)** was confirmed valid and available for internal testing. The owner reviewed the
 build and confirmed Claude stayed connected through its next token renewal.
 This confirms one successful device renewal, not every long-running recovery case.
 
@@ -29,7 +27,12 @@ This confirms one successful device renewal, not every long-running recovery cas
 
 ## Project and identities
 
-Open `AIQuota-iOS.xcodeproj` and select the `AIQuota-iOS` scheme.
+Open [`AIQuota.xcodeproj`](../AIQuota.xcodeproj) from the repository root and select the `AIQuota-iOS` scheme.
+
+The scheme builds `AIQuota-iOS` and its `AIQuotaWidget-iOS` extension, and runs
+`AIQuota-iOSTests`. Shared iOS models and networking live in
+[`Packages/MobileAccessCore`](../Packages/MobileAccessCore). The `iOS/project.yml`
+file is included by the root spec; it is not a standalone project.
 
 | Configuration | App identifier | Widget identifier |
 | --- | --- | --- |
@@ -107,10 +110,10 @@ availability across other plans needs further validation.
 Run from the repository root using the installed Xcode release candidate:
 
 ```sh
-DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --package-path prototypes/mobile-access/Core
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer swift test --package-path Packages/MobileAccessCore
 
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
-  -project prototypes/mobile-access/AIQuota-iOS.xcodeproj \
+  -project AIQuota.xcodeproj \
   -scheme AIQuota-iOS \
   -destination 'platform=iOS Simulator,name=AI Quota Access Check' test
 ```
@@ -148,7 +151,8 @@ From the active worktree, run `python3 scripts/testflight.py release`.
 The command checks App Store Connect for this iOS version, advances and synchronizes
 all app/widget build settings, archives, uploads, and waits up to ten minutes for
 internal TestFlight availability. It never submits an App Store or external beta review.
-Review and test changes before running it. Python 3 and `cryptography` are required.
+Review and test changes before running it. Python 3, `cryptography`, and XcodeGen are required. iOS version/build settings live in
+`iOS/project.yml`; the script updates only iOS targets in the shared project.
 
 Credentials come from `ASC_KEY_ID`, `ASC_ISSUER_ID`, and optional `ASC_KEY_PATH`,
 or the existing local `~/.appstoreconnect/sendmoi.env` configuration. Override that
@@ -418,4 +422,4 @@ Lock Screen layouts, already reviewed by the owner in build 16.
 
 ## Deferred App Intents plan
 
-See the shared [Mac + iOS App Intents backlog](../../README.md#app-intents-backlog-mac--ios) for scope, acceptance criteria, and later integrations. This is planned work, not a shipped feature or scheduled task.
+See the shared [Mac + iOS App Intents backlog](../README.md#app-intents-backlog-mac--ios) for scope, acceptance criteria, and later integrations. This is planned work, not a shipped feature or scheduled task.

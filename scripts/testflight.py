@@ -19,7 +19,8 @@ import urllib.request
 import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
-MOBILE = ROOT / 'prototypes/mobile-access'
+MOBILE = ROOT / 'iOS'
+IOS_TARGETS = {'AIQuota-iOS', 'AIQuotaWidget-iOS', 'AIQuota-iOSTests'}
 BUNDLE = 'com.niederme.AIQuota'
 TEAM = '289GY9L343'
 XCODE = '/Applications/Xcode.app/Contents/Developer'
@@ -94,13 +95,29 @@ class ASC:
             page = self.get(nxt)
 
 
+def ios_build_settings():
+    project = ROOT / 'AIQuota.xcodeproj/project.pbxproj'
+    objects = json.loads(subprocess.check_output(
+        ['/usr/bin/plutil', '-convert', 'json', '-o', '-', str(project)], text=True))['objects']
+    targets = {obj['name']: obj for obj in objects.values()
+               if obj.get('isa') == 'PBXNativeTarget' and obj.get('name') in IOS_TARGETS}
+    if set(targets) != IOS_TARGETS:
+        raise RuntimeError('Expected iOS targets are missing from the shared project.')
+    return [objects[config]['buildSettings']
+            for target in targets.values()
+            for config in objects[target['buildConfigurationList']]['buildConfigurations']]
+
+
 def project_numbers():
     yaml = (MOBILE / 'project.yml').read_text()
     version = re.search(r'MARKETING_VERSION:\s*"([^"]+)"', yaml).group(1)
     builds = re.findall(r'CURRENT_PROJECT_VERSION:\s*"(\d+)"', yaml)
-    builds += re.findall(r'CURRENT_PROJECT_VERSION = (\d+);', (MOBILE / 'AIQuota-iOS.xcodeproj/project.pbxproj').read_text())
-    if not builds or len(set(builds)) != 1:
+    settings = ios_build_settings()
+    builds += [str(setting.get('CURRENT_PROJECT_VERSION', '')) for setting in settings]
+    if not builds or len(set(builds)) != 1 or not builds[0].isdigit():
         raise RuntimeError('Project and YAML build numbers are out of sync.')
+    if any(setting.get('MARKETING_VERSION') != version for setting in settings):
+        raise RuntimeError('Project and YAML marketing versions are out of sync.')
     return version, int(builds[0])
 
 
@@ -112,14 +129,16 @@ def next_build(local, builds):
 
 
 def sync_build(number):
-    for path, pattern, replacement in [
-        (MOBILE / 'project.yml', r'CURRENT_PROJECT_VERSION:\s*"\d+"', f'CURRENT_PROJECT_VERSION: "{number}"'),
-        (MOBILE / 'AIQuota-iOS.xcodeproj/project.pbxproj', r'CURRENT_PROJECT_VERSION = \d+;', f'CURRENT_PROJECT_VERSION = {number};'),
-    ]:
-        content, count = re.subn(pattern, replacement, path.read_text())
-        if not count:
-            raise RuntimeError(f'No build setting found in {path}')
-        path.write_text(content)
+    path = MOBILE / 'project.yml'
+    content, count = re.subn(r'CURRENT_PROJECT_VERSION:\s*"\d+"',
+                             f'CURRENT_PROJECT_VERSION: "{number}"', path.read_text())
+    if count != 1:
+        raise RuntimeError('Expected one iOS build number in the iOS distribution template.')
+    path.write_text(content)
+    subprocess.run(['xcodegen', 'generate', '--spec', str(ROOT / 'project.yml')],
+                   cwd=ROOT, check=True)
+    if project_numbers()[1] != number:
+        raise RuntimeError('Regenerated iOS build number does not match the release.')
 
 
 def save(run, state):
@@ -211,8 +230,8 @@ def main():
             save(run, state)
             print(f'Release record: {run}', flush=True)
             sync_build(number)
-            workspace = MOBILE / 'AIQuota-iOS.xcworkspace'
-            container = ['-workspace', str(workspace)] if workspace.exists() else ['-project', str(MOBILE / 'AIQuota-iOS.xcodeproj')]
+            workspace = ROOT / 'AIQuota.xcworkspace'
+            container = ['-workspace', str(workspace)] if workspace.exists() else ['-project', str(ROOT / 'AIQuota.xcodeproj')]
             execute(run, 'archive', container + ['-scheme', 'AIQuota-iOS', '-configuration', 'Release', '-destination', 'generic/platform=iOS', '-archivePath', str(archive), 'archive'], creds)
             verify_archive(state)
             state['phase'] = 'archived'
@@ -251,7 +270,7 @@ def main():
 if __name__ == '__main__':
     try:
         main()
-    except (RuntimeError, OSError, ValueError, ImportError) as error:
+    except (RuntimeError, OSError, ValueError, ImportError, subprocess.CalledProcessError) as error:
         print(f'Error: {error}', file=sys.stderr)
         sys.exit(1)
     except KeyboardInterrupt:

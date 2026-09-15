@@ -2,6 +2,8 @@ import importlib.util
 from pathlib import Path
 import plistlib
 import tempfile
+import subprocess
+import json
 import unittest
 from unittest.mock import patch
 
@@ -33,18 +35,35 @@ class ReleaseTests(unittest.TestCase):
         api.get = get
         self.assertEqual([b['attributes']['version'] for b in api.builds('0.1.0')], ['12'])
 
-    def test_sync_all_overrides_and_detect_drift(self):
+    def test_sync_ios_without_changing_mac_and_detect_drift(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / 'AIQuota-iOS.xcodeproj').mkdir()
-            (root / 'project.yml').write_text('MARKETING_VERSION: "0.1.0"\nCURRENT_PROJECT_VERSION: "11"\n')
-            pbx = root / 'AIQuota-iOS.xcodeproj/project.pbxproj'
-            pbx.write_text('CURRENT_PROJECT_VERSION = 11;\n' * 4)
-            with patch.object(m, 'MOBILE', root):
+            mobile = root / 'iOS'
+            mobile.mkdir()
+            (root / 'project.yml').write_text(
+                'name: AIQuota\ninclude: [iOS/project.yml]\n'
+                'settings:\n  base:\n    CURRENT_PROJECT_VERSION: "387"\n'
+                '    MARKETING_VERSION: "1.9.27"\n'
+                'targets:\n  Mac:\n    type: application\n    platform: macOS\n')
+            (mobile / 'project.yml').write_text(
+                'targetTemplates:\n  iOSDistribution:\n    settings:\n      base:\n'
+                '        MARKETING_VERSION: "0.1.0"\n        CURRENT_PROJECT_VERSION: "11"\n'
+                'targets:\n' + ''.join(
+                    f'  {name}:\n    type: application\n    platform: iOS\n'
+                    '    templates: [iOSDistribution]\n' for name in sorted(m.IOS_TARGETS)))
+            with patch.object(m, 'ROOT', root), patch.object(m, 'MOBILE', mobile):
                 m.sync_build(12)
                 self.assertEqual(m.project_numbers(), ('0.1.0', 12))
-                self.assertEqual(pbx.read_text().count('= 12;'), 4)
-                pbx.write_text('CURRENT_PROJECT_VERSION = 13;')
+                pbx = root / 'AIQuota.xcodeproj/project.pbxproj'
+                objects = json.loads(subprocess.check_output(
+                    ['plutil', '-convert', 'json', '-o', '-', str(pbx)], text=True))['objects']
+                mac = next(o for o in objects.values() if o.get('isa') == 'PBXProject')
+                for config in objects[mac['buildConfigurationList']]['buildConfigurations']:
+                    settings = objects[config]['buildSettings']
+                    self.assertEqual(str(settings['CURRENT_PROJECT_VERSION']), '387')
+                    self.assertEqual(settings['MARKETING_VERSION'], '1.9.27')
+                pbx.write_text(pbx.read_text().replace('CURRENT_PROJECT_VERSION = 12;',
+                                                      'CURRENT_PROJECT_VERSION = 13;', 1))
                 with self.assertRaises(RuntimeError):
                     m.project_numbers()
 

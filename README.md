@@ -176,7 +176,18 @@ xcodegen generate
 open AIQuota.xcodeproj
 ```
 
-Build and run the `AIQuota` scheme targeting **My Mac**.
+Choose a scheme in the shared `AIQuota.xcodeproj`:
+
+| Scheme | Platform and distribution |
+| --- | --- |
+| `AIQuota` | macOS, direct distribution |
+| `AIQuota-TestFlight` | macOS, App Store / TestFlight |
+| `AIQuota-Demo` | macOS, demo data |
+| `AIQuota-iOS` | iPhone/iPad, including widgets and hosted tests |
+
+The root `project.yml` includes `iOS/project.yml`. Run `xcodegen generate` from
+this directory to regenerate the project for both platforms. iOS keeps its own
+version and build numbers. See [iOS development and testing](iOS/README.md).
 
 If you are iterating on widgets, launching the built app once after install helps WidgetKit pick up new timelines and layouts.
 
@@ -195,13 +206,15 @@ If you are iterating on widgets, launching the built app once after install help
 ```
 ai-quota/
 ├── Packages/
+│   ├── MobileAccessCore/    # iOS models, networking, and alert rules
 │   └── AIQuotaKit/          # Shared Swift Package (models, networking, storage)
 │       └── Sources/AIQuotaKit/
 │           ├── Models/      # CodexUsage, ClaudeUsage, AppSettings
 │           ├── Networking/  # OpenAIClient, ClaudeClient, AuthManagers, NetworkError
 │           ├── Notifications/ # NotificationManager
 │           └── Storage/     # KeychainStore, SharedDefaults
-├── AIQuota/                 # Main app target (MenuBarExtra)
+├── iOS/                     # iPhone/iPad app, widgets, shared UI, and hosted tests
+├── AIQuota/                 # macOS app target (MenuBarExtra)
 │   ├── Views/               # PopoverView, MenuBarIconView, SettingsView
 │   └── ViewModels/          # QuotaViewModel
 └── AIQuotaWidget/           # WidgetKit extension
@@ -214,7 +227,7 @@ ai-quota/
 
 ## Releasing
 
-For iOS TestFlight builds, use the [iOS release workflow](prototypes/mobile-access/README.md#testflight-release-workflow). The following steps are for direct Mac releases.
+For iOS TestFlight builds, use the [iOS release workflow](iOS/README.md#testflight-release-workflow). The following steps are for direct Mac releases.
 
 See the pre-release checklist at the top of [`scripts/release.sh`](scripts/release.sh). The short version:
 
@@ -300,7 +313,7 @@ The Mac app is the design reference for iOS: gauge proportions, typography, syst
 - [x] Implement Mac-style Reset All Settings and separate Guided Setup replay (TestFlight build 13).
 - [x] Owner confirmed Claude remained connected through its next token renewal on build 13.
 - [ ] Confirm physical-device reinstall/reset behavior and finish onboarding visual and interaction checks.
-- [x] Scripted TestFlight release with live build numbering, synchronized project settings, saved archives/logs, and processing/status checks. See the [release workflow](prototypes/mobile-access/README.md#testflight-release-workflow).
+- [x] Scripted TestFlight release with live build numbering, synchronized project settings, saved archives/logs, and processing/status checks. See the [release workflow](iOS/README.md#testflight-release-workflow).
 
 **Next**
 
@@ -347,7 +360,7 @@ Existing widget configuration intents do not complete this backlog.
 - [ ] Explore Spotlight and Siri search/open integration for service accounts.
 - [ ] After public release and verified support, submit to [Siri AI Apps](https://siriaiapps.com/submit). Its [review criteria](https://siriaiapps.com/how-we-review) distinguish Shortcuts from Siri AI support and TestFlight from public-release availability.
 
-Implementation notes: [iOS development and testing](prototypes/mobile-access/README.md) and [Mac distribution](docs/mac-distribution.md).
+Implementation notes: [iOS development and testing](iOS/README.md) and [Mac distribution](docs/mac-distribution.md).
 
 ---
 
