@@ -40,14 +40,15 @@ file is included by the root spec; it is not a standalone project.
 
 | Configuration | App identifier | Widget identifier |
 | --- | --- | --- |
-| Debug | `com.niederme.AIQuota.MobileAccessProbe` | `com.niederme.AIQuota.MobileAccessProbe.Widget` |
+| Debug | `com.niederme.AIQuota` | `com.niederme.AIQuota.mobilewidget` |
 | Release | `com.niederme.AIQuota` | `com.niederme.AIQuota.mobilewidget` |
 
 Release belongs to the same App Store Connect app as macOS. Preserve the existing
 App Group, shared Keychain groups, and legacy `aiquota-probe` URL scheme so updates
-retain connections and widget routing. Debug and Release coexistence still needs
-care when checking which installed app a widget opens. The iOS app uses the Mac's
-native Icon Composer asset.
+retain connections and widget routing. Debug and Release use the same identifiers,
+so running from Xcode replaces the TestFlight app instead of installing a second
+copy. The old prototype installation can be removed separately. The iOS app uses
+the Mac's native Icon Composer asset.
 
 ## Authentication and recovery
 
@@ -437,8 +438,13 @@ See the shared [Mac + iOS App Intents backlog](../README.md#app-intents-backlog-
 
 - Native inline large navigation title; freshness shares a baseline with the 5h/7d key.
 - Two-thirds allowance column and one-third account metadata column, with a centered divider and equal gutters.
-- Reset captions use “5h resets” / “7d resets”; unreported windows use secondary gray.
+- Reset captions use “5h resets” / “7d resets”; unreported windows show N/A in secondary gray across app and widget values, with “not reported” reset captions.
 - Card footer dividers and repeated timestamps are removed. Connection recovery remains available in each card.
-- Spending rows include native information popovers. Claude uses “Usage credits” and “spent” to match the Mac.
+- Entire spending rows are tappable, with the info icon inline beside the label and the value using the full column width. Native popovers use a top arrow and the same title and copy as Mac. Claude uses “Usage credits” and “spent”.
 - Card height stays stable through refresh, missing metadata, and connection states at normal and accessibility text sizes.
 - Profile transition tests cover Pro → Max → Pro, profile failures, unknown plans, and recovery. Live plan-change verification remains a device check.
+
+Validation: the unified-identifier iOS device build passed with code signing disabled.
+After the inline-info correction, all four overview layout tests passed and the
+simulator popover screenshot was reviewed. Replacing a TestFlight installation and
+tapping the updated rows on a physical device remain manual checks.

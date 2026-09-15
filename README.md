@@ -187,7 +187,9 @@ Choose a scheme in the shared `AIQuota.xcodeproj`:
 
 The root `project.yml` includes `iOS/project.yml`. Run `xcodegen generate` from
 this directory to regenerate the project for both platforms. iOS keeps its own
-version and build numbers. See [iOS development and testing](iOS/README.md).
+version and build numbers. iOS Debug and TestFlight share app and widget identifiers,
+so Command+R replaces the TestFlight installation. Remove any old prototype copy
+separately. See [iOS development and testing](iOS/README.md).
 
 If you are iterating on widgets, launching the built app once after install helps WidgetKit pick up new timelines and layouts.
 
@@ -288,6 +290,7 @@ is not currently listed here.
 
 - [x] Independent Codex and Claude sign-in, device-only credential storage, session renewal, and reconnect flows.
 - [x] Dual-ring service cards with percentages, reset times, reading age, and reported account metadata.
+- [x] Missing quota values use secondary-gray N/A across apps and widgets. Spending rows are fully tappable, with inline info icons and Mac-matching popover copy.
 - [x] Configurable Lock Screen widgets and four Home Screen layouts for individual or paired services.
 - [x] Foreground refresh controls, pull-to-refresh, and background widget refresh requests, subject to iOS scheduling.
 - [x] Per-service and per-window alert controls, including approaching-limit alerts, limit-reached alerts, and estimated reset reminders.
