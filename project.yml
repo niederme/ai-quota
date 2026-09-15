@@ -17,8 +17,8 @@ options:
 # CURRENT_PROJECT_VERSION = Sparkle / bundle build number — bump for every release.
 settings:
   base:
-    MARKETING_VERSION: "1.9.27"
-    CURRENT_PROJECT_VERSION: "387"
+    MARKETING_VERSION: "1.9.28"
+    CURRENT_PROJECT_VERSION: "388"
 
 packages:
   AIQuotaKit:

@@ -211,7 +211,7 @@
 		59F4F1B59FFE30E899E31F8D /* ProbeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProbeModel.swift; sourceTree = "<group>"; };
 		5AD1CC15EEE16B262B2BBC8D /* DemoAutoOpen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoAutoOpen.swift; sourceTree = "<group>"; };
 		64469AA7AC51D1904D08039F /* ClaudeProbeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeProbeView.swift; sourceTree = "<group>"; };
-		652482B3FBA0A241F21DF910 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		652482B3FBA0A241F21DF910 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		667DECCAD3629416AE8E1184 /* MobileAccessApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileAccessApp.swift; sourceTree = "<group>"; };
 		6AFDFAA7F9E0650962EC80DC /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		716B00F14F1370CDAC33B5EB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -1032,7 +1032,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 387;
+				CURRENT_PROJECT_VERSION = 388;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1045,7 +1045,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.9.27;
+				MARKETING_VERSION = 1.9.28;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1062,12 +1062,18 @@
 				CODE_SIGN_ENTITLEMENTS = AIQuota/Resources/AIQuota.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 388;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = AIQuota/Resources/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.9.28;
 				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota;
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG DEMO_MODE";
@@ -1201,7 +1207,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 387;
+				CURRENT_PROJECT_VERSION = 388;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -1220,7 +1226,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.9.27;
+				MARKETING_VERSION = 1.9.28;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1242,7 +1248,10 @@
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuota/Resources/Info-TestFlight.plist";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota;
 				PRODUCT_NAME = AIQuota;
 				SDKROOT = macosx;
@@ -1352,7 +1361,10 @@
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuota/Resources/Info-TestFlight.plist";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota;
 				PRODUCT_NAME = AIQuota;
 				SDKROOT = macosx;
@@ -1417,7 +1429,10 @@
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuota/Resources/Info-TestFlight.plist";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota;
 				PRODUCT_NAME = AIQuota;
 				SDKROOT = macosx;
@@ -1456,12 +1471,18 @@
 				CODE_SIGN_ENTITLEMENTS = AIQuota/Resources/AIQuota.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 388;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = AIQuota/Resources/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.9.28;
 				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 6.0;
@@ -1591,7 +1612,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 387;
+				CURRENT_PROJECT_VERSION = 388;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -1610,7 +1631,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.9.27;
+				MARKETING_VERSION = 1.9.28;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1628,12 +1649,18 @@
 				CODE_SIGN_ENTITLEMENTS = AIQuota/Resources/AIQuota.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 388;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = AIQuota/Resources/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.9.28;
 				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota;
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
