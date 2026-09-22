@@ -205,3 +205,11 @@ private actor ChangingClaudeProfile: HTTPTransport {
     #expect(reading.shortTerm?.usedPercent == 8)
     #expect(reading.metadata?.plan == nil)
 }
+
+@Test func claudeSingleWindowDoesNotInventWeeklyAllowance() throws {
+    let reading = try ClaudeAPI.decodeUsage(Data(#"{"five_hour":{"utilization":4,"resets_at":"2026-09-22T20:00:00Z"},"seven_day":null}"#.utf8), now: timestamp)
+    #expect(reading.primaryWindow?.compactLabel == "5h")
+    #expect(reading.primaryWindow?.usedPercent == 4)
+    #expect(reading.secondaryWindow == nil)
+    #expect(reading.accessibilitySummary == "5 hours: 4 percent used")
+}

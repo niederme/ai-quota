@@ -114,3 +114,40 @@ private let now = Date(timeIntervalSince1970: 1_800_000_000)
     let tokens = CodexTokens(accessToken: "test", refreshToken: "revoked", accountID: nil, expiresAt: now)
     await #expect(throws: AccessError.expired) { try await api.renew(tokens, now: now) }
 }
+
+@Test func freeMonthlyAllowanceIsThePrimaryDisplayWindow() throws {
+    let data = Data(#"{"plan_type":"free","rate_limit":{"primary_window":{"used_percent":4,"limit_window_seconds":2592000,"reset_at":1802592000}}}"#.utf8)
+    let reading = try QuotaReading.decode(data, now: now)
+    #expect(reading.shortTerm == nil)
+    #expect(reading.windows.count == 1)
+    #expect(reading.primaryWindow?.label == "Monthly")
+    #expect(reading.primaryWindow?.compactLabel == "m")
+    #expect(reading.primaryWindow?.usedPercent == 4)
+    #expect(reading.secondaryWindow == nil)
+    #expect(reading.accessibilitySummary == "Monthly: 4 percent used")
+    // Existing installations persist long allowances under the legacy weekly key.
+    let restored = try JSONDecoder().decode(QuotaReading.self, from: JSONEncoder().encode(reading))
+    #expect(restored == reading)
+    #expect(restored.primaryWindow?.resetsAt == Date(timeIntervalSince1970: 1802592000))
+}
+
+@Test func labelsFollowDurationsRatherThanPlanNames() throws {
+    for (seconds, label, compact) in [(18000, "5 hours", "5h"), (604800, "Weekly", "7d"),
+                                      (2592000, "Monthly", "m"), (1209600, "14 days", "14d")] {
+        let data = Data("{\"plan_type\":\"free\",\"rate_limit\":{\"primary_window\":{\"used_percent\":0,\"limit_window_seconds\":\(seconds)}}}".utf8)
+        let reading = try QuotaReading.decode(data, now: now)
+        #expect(reading.primaryWindow?.label == label)
+        #expect(reading.primaryWindow?.compactLabel == compact)
+        #expect(reading.windows.count == 1)
+    }
+}
+
+@Test func monthlyResetIncludesCalendarDateAndRetainsUnavailableStates() {
+    let reset = now.addingTimeInterval(30 * 86400)
+    let monthly = QuotaWindow(usedPercent: 4, durationSeconds: 2592000, resetsAt: reset)
+    #expect(monthly.resetDescription(relativeTo: now) == "resets \(reset.formatted(.dateTime.month(.abbreviated).day().hour().minute()))")
+    #expect(monthly.resetDescription(relativeTo: now, compact: true) == "resets \(reset.formatted(.dateTime.month(.abbreviated).day()))")
+    #expect(monthly.resetDescription(relativeTo: reset) == "reset unconfirmed")
+    let unavailable = QuotaWindow(usedPercent: 4, durationSeconds: 2592000, resetsAt: nil)
+    #expect(unavailable.resetDescription(relativeTo: now) == "reset unavailable")
+}

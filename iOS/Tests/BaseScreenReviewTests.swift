@@ -71,10 +71,14 @@ final class BaseScreenReviewTests: XCTestCase {
         """.utf8), now: now)
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
         let previous = scene.windows.first(where: \.isKeyWindow)
-        for (name, scheme, size) in [("dark", ColorScheme.dark, DynamicTypeSize.large), ("light", .light, .large), ("accessible", .dark, .accessibility3)] {
+        for (name, scheme, size) in [("dark", ColorScheme.dark, DynamicTypeSize.large), ("light", .light, .large), ("accessible", .dark, .accessibility3), ("empty", .dark, .large)] {
+            let displayedReading = name == "empty"
+                ? QuotaReading(fetchedAt: now, shortTerm: nil, weekly: reading.weekly) : reading
+            let displayedHistory = name == "empty"
+                ? try CodexUsageHistory.decode(Data("{\"data\":[]}".utf8), now: now) : history
             let content = ServiceAccountSheet(showsClose: false) {
-                ServiceDetailContent(name: "Codex", icon: "logo-openai", reading: reading,
-                    connected: true, busy: false, error: nil, failure: nil, history: history, refresh: {}) { Text("Account") }
+                ServiceDetailContent(name: "Codex", icon: "logo-openai", reading: displayedReading,
+                    connected: true, busy: false, error: nil, failure: nil, history: displayedHistory, refresh: {}) { Text("Account") }
             }.environment(\.colorScheme, scheme).environment(\.dynamicTypeSize, size)
             let window = UIWindow(windowScene: scene)
             window.rootViewController = UIHostingController(rootView: content)
@@ -219,6 +223,9 @@ final class BaseScreenReviewTests: XCTestCase {
                 window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
             }
             let attachment = XCTAttachment(image: image)
+            let path = FileManager.default.temporaryDirectory.appendingPathComponent("account-\(service).png")
+            try image.pngData()?.write(to: path)
+            print("ACCOUNT_REVIEW " + path.path)
             attachment.name = "\(service) account sheet"
             attachment.lifetime = .keepAlways
             add(attachment)
@@ -228,4 +235,139 @@ final class BaseScreenReviewTests: XCTestCase {
         }
     }
 
+}
+
+
+extension BaseScreenReviewTests {
+    @MainActor func testAccountRowHierarchyReview() async throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let content = ServiceAccountSheet {
+            Form {
+                Section("Accounts") {
+                    MobileAccountRow(name: "Codex", connected: true, error: nil, updated: .now, busy: false)
+                    MobileAccountRow(name: "Claude Code", connected: true, error: nil, updated: .now, busy: false)
+                }
+                Section("Not connected") {
+                    MobileAccountRow(name: "Claude Code", connected: false, error: nil, updated: nil, busy: false)
+                }
+            }
+            .scrollContentBackground(.hidden)
+            .background { BrandSurfaceBackground().ignoresSafeArea() }
+            .navigationTitle("Settings").navigationBarTitleDisplayMode(.inline)
+        }.environment(\.colorScheme, .dark)
+        let window = UIWindow(windowScene: scene)
+        window.rootViewController = UIHostingController(rootView: content)
+        window.makeKeyAndVisible()
+        defer { window.isHidden = true; previous?.makeKey() }
+        try await Task.sleep(for: .milliseconds(800))
+        let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        let path = FileManager.default.temporaryDirectory.appendingPathComponent("account-hierarchy.png")
+        try image.pngData()?.write(to: path)
+        print("ACCOUNT_REVIEW " + path.path)
+    }
+    @MainActor func testNotificationFormReview() async throws {
+        let defaults = MobileResetNotifications.defaults
+        let priorEnabled = defaults.object(forKey: "notifications.enabled")
+        defaults.set(true, forKey: "notifications.enabled")
+        defer {
+            if let priorEnabled { defaults.set(priorEnabled, forKey: "notifications.enabled") }
+            else { defaults.removeObject(forKey: "notifications.enabled") }
+        }
+        let monthly = try QuotaReading.decode(Data("""
+        {"plan_type":"free","rate_limit":{"primary_window":{"used_percent":4,"limit_window_seconds":2592000}}}
+        """.utf8), now: .now)
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        defer { previous?.makeKey() }
+        for (name, readings, size) in [
+            ("disconnected", [QuotaService: QuotaReading](), DynamicTypeSize.large),
+            ("monthly", [.codex: monthly], .large),
+            ("accessible", [.codex: monthly], .accessibility3)
+        ] {
+            let content = ServiceAccountSheet {
+                MobileNotificationControls(readings: readings)
+                    .navigationTitle("Notifications").navigationBarTitleDisplayMode(.inline)
+                    .background { BrandSurfaceBackground().ignoresSafeArea() }
+                    .tint(OverviewStyle.accent)
+            }.environment(\.colorScheme, .dark).environment(\.dynamicTypeSize, size)
+            let window = UIWindow(windowScene: scene)
+            window.rootViewController = UIHostingController(rootView: content)
+            window.makeKeyAndVisible()
+            try await Task.sleep(for: .milliseconds(800))
+            let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+            }
+            let path = FileManager.default.temporaryDirectory.appendingPathComponent("notifications-\(name).png")
+            try image.pngData()?.write(to: path)
+            print("NOTIFICATIONS_REVIEW " + path.path)
+            window.isHidden = true
+        }
+    }
+}
+
+@MainActor
+private final class ConnectionModalState: ObservableObject {
+    @Published var showsOrigin = true
+    @Published var showsConnection = false
+    @Published var showsBrowser = false
+    @Published var completionID: UUID? = UUID()
+}
+
+private struct ConnectionModalHarness: View {
+    @ObservedObject var state: ConnectionModalState
+    var body: some View {
+        Text("Overview")
+            .sheet(isPresented: $state.showsOrigin) {
+                ServiceAccountSheet {
+                    Text("Accounts").navigationTitle("Set up AIQuota")
+                        .sheet(isPresented: $state.showsConnection) {
+                            ServiceAccountSheet {
+                                Text("Connect account").navigationTitle("Codex account")
+                                    .modifier(DismissAfterAccountConnection(completionID: state.completionID))
+                                    .sheet(isPresented: $state.showsBrowser) { Text("Sign-in browser") }
+                            }
+                        }
+                }
+            }
+    }
+}
+
+extension BaseScreenReviewTests {
+    @MainActor func testConfirmedConnectionDismissesStackedSheetsAndPreservesOrigin() async throws {
+        let state = ConnectionModalState()
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let host = UIHostingController(rootView: ConnectionModalHarness(state: state))
+        let window = UIWindow(windowScene: scene)
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        defer { window.isHidden = true; previous?.makeKey() }
+        try await Task.sleep(for: .milliseconds(800))
+        let origin = try XCTUnwrap(host.presentedViewController)
+        state.showsConnection = true
+        try await Task.sleep(for: .milliseconds(800))
+        let connection = try XCTUnwrap(origin.presentedViewController,
+            "A prior completion must not dismiss a newly opened connection sheet")
+        state.showsBrowser = true
+        try await Task.sleep(for: .milliseconds(800))
+        XCTAssertNotNil(connection.presentedViewController)
+        state.completionID = UUID()
+        try await Task.sleep(for: .milliseconds(1200))
+        XCTAssertNil(origin.presentedViewController, "Success must dismiss both account and browser sheets")
+        XCTAssertTrue(host.presentedViewController === origin, "Keep the original Settings or onboarding sheet open")
+        XCTAssertTrue(state.showsOrigin)
+        XCTAssertFalse(state.showsConnection)
+        // Canceling a subsequent account presentation must also leave the origin in place.
+        state.showsBrowser = false
+        state.showsConnection = true
+        try await Task.sleep(for: .milliseconds(800))
+        XCTAssertNotNil(origin.presentedViewController)
+        state.showsConnection = false
+        try await Task.sleep(for: .milliseconds(800))
+        XCTAssertNil(origin.presentedViewController)
+        XCTAssertTrue(host.presentedViewController === origin)
+    }
 }

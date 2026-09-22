@@ -29,10 +29,10 @@ struct MobileSettingsView: View {
             }.listRowBackground(OverviewStyle.track)
             Section {
                 Button { destination = .codex } label: {
-                    account("Codex", connected: codex.connected, error: codex.error, updated: codex.reading?.fetchedAt, busy: codex.busy)
+                    MobileAccountRow(name: "Codex", connected: codex.connected, error: codex.error, updated: codex.reading?.fetchedAt, busy: codex.busy)
                 }
                 Button { destination = .claude } label: {
-                    account("Claude Code", connected: claude.connected, error: claude.error, updated: claude.reading?.fetchedAt, busy: claude.busy)
+                    MobileAccountRow(name: "Claude Code", connected: claude.connected, error: claude.error, updated: claude.reading?.fetchedAt, busy: claude.busy)
                 }
             } header: { Text("Accounts") } footer: {
                 Text("Manage accounts, reconnect, and check when usage last updated.")
@@ -100,17 +100,41 @@ struct MobileSettingsView: View {
             OnboardingView(codex: codex, claude: claude, progress: onboarding)
         }
     }
-    private func account(_ name: String, connected: Bool, error: String?, updated: Date?, busy: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            LabeledContent(name) {
-                Text(busy ? "Refreshing…" : !connected ? "Connect" : error == nil ? "Connected" : "Needs attention")
-                    .foregroundStyle(OverviewStyle.secondary)
+}
+
+struct MobileAccountRow: View {
+    let name: String
+    let connected: Bool
+    let error: String?
+    let updated: Date?
+    let busy: Bool
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(name).fontWeight(.semibold).foregroundStyle(.primary)
+                    Spacer()
+                    if !connected && !busy {
+                        Text("Connect").foregroundStyle(OverviewStyle.accent)
+                    } else {
+                        Text(busy ? "Refreshing…" : error == nil ? "Connected" : "Needs attention")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                if let updated {
+                    Text("Updated \(updated.formatted(date: .abbreviated, time: .shortened))")
+                        .foregroundStyle(.secondary)
+                }
             }
-            if let updated {
-                Text("Last updated \(updated.formatted(date: .abbreviated, time: .shortened))")
-                    .font(.caption).foregroundStyle(OverviewStyle.secondary)
+            if connected || busy {
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+                    .accessibilityHidden(true)
             }
         }
+        .font(.body)
     }
 }
 
@@ -119,10 +143,9 @@ import UserNotifications
 
 struct MobileNotificationsView: View {
     var body: some View {
-        ScrollView { MobileNotificationControls().padding(24) }
+        MobileNotificationControls()
             .background { BrandSurfaceBackground().ignoresSafeArea() }
-        .toolbarBackground(.hidden, for: .navigationBar)
-            .foregroundStyle(OverviewStyle.primary)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .tint(OverviewStyle.accent)
             .navigationTitle("Notifications").navigationBarTitleDisplayMode(.inline)
     }
@@ -136,49 +159,69 @@ struct MobileNotificationControls: View {
     @State private var requesting = false
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var phase
+    var readings: [QuotaService: QuotaReading] = Dictionary(uniqueKeysWithValues: QuotaService.allCases.compactMap { service in
+        SharedQuotaStore(service).reading().map { (service, $0) }
+    })
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Notifications").font(.title.bold())
-            Text("Choose which alerts you’d like to receive.").foregroundStyle(OverviewStyle.secondary)
-            Toggle("Enable notifications", isOn: Binding(get: { enabled }, set: { value in
-                enabled = value
-                Task {
-                    if value {
-                        requesting = true
-                        do { enabled = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) }
-                        catch { enabled = false; schedulingError = "Couldn’t enable notifications. Try again." }
-                        requesting = false
+        Form {
+            Section {
+                Toggle("Enable notifications", isOn: Binding(get: { enabled }, set: { value in
+                    enabled = value
+                    Task {
+                        if value {
+                            requesting = true
+                            do { enabled = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) }
+                            catch { enabled = false; schedulingError = "Couldn’t enable notifications. Try again." }
+                            requesting = false
+                        }
+                        await check()
                     }
-                    await check()
+                })).disabled(requesting)
+            } footer: {
+                if readings.values.allSatisfy({ $0.windows.isEmpty }) {
+                    Text("Connect an account to configure alerts. Notifications will be ready when you connect.")
+                } else {
+                    Text("Choose which alerts you’d like to receive.")
                 }
-            })).disabled(requesting)
+            }
             if enabled {
                 serviceGroup("Codex", service: .codex, enabled: $codex)
                 serviceGroup("Claude Code", service: .claude, enabled: $claude)
-                Text("Usage alerts are checked when the app or widgets update. Reset reminders use your last fresh reading and are estimates; open the app to confirm availability.")
-                    .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                if readings.values.contains(where: { !$0.windows.isEmpty }) {
+                    Section {} footer: {
+                        Text("Usage alerts are checked when the app or widgets update. Reset reminders use your last fresh reading and are estimates; open the app to confirm availability.")
+                    }
+                }
             }
             if denied {
-                Text("Notifications are disabled in iOS Settings.").font(.callout)
-                Button("Open notification settings") { openURL(URL(string: UIApplication.openNotificationSettingsURLString)!) }
+                Section {
+                    Button("Open notification settings") { openURL(URL(string: UIApplication.openNotificationSettingsURLString)!) }
+                } footer: { Text("Notifications are disabled in iOS Settings.") }
             }
-            if !schedulingError.isEmpty { Text(schedulingError).font(.callout).foregroundStyle(OverviewStyle.warning) }
+            if !schedulingError.isEmpty {
+                Section { Text(schedulingError).foregroundStyle(OverviewStyle.warning) }
+            }
         }
+        .scrollContentBackground(.hidden)
         .onChange(of: codex) { Task { await MobileResetNotifications.reconcile() } }
         .onChange(of: claude) { Task { await MobileResetNotifications.reconcile() } }
         .task(id: phase) { if phase == .active { await check() } }
     }
+    @ViewBuilder
     private func serviceGroup(_ name: String, service: QuotaService, enabled: Binding<Bool>) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Toggle(isOn: enabled) { Text(name).font(.headline) }
-            if enabled.wrappedValue {
-                Divider()
-                MobileServiceAlertControls(service: service)
+        if let reading = readings[service], !reading.windows.isEmpty {
+            Section {
+                Toggle(name, isOn: enabled)
+                if enabled.wrappedValue {
+                    if let window = reading.shortTerm {
+                        MobileWindowAlertControls(service: service, window: "5h", title: window.label + " window")
+                    }
+                    if let window = reading.weekly {
+                        MobileWindowAlertControls(service: service, window: "7d", title: window.label + " window")
+                    }
+                }
             }
         }
-        .padding(16)
-        .background(OverviewStyle.track,
-                    in: RoundedRectangle(cornerRadius: OverviewStyle.radius, style: .continuous))
     }
 
     private func check() async {
@@ -210,17 +253,8 @@ enum MobileSettingsReset {
     }
 }
 
-struct MobileServiceAlertControls: View {
-    let service: QuotaService
-    var body: some View {
-        VStack(spacing: 16) {
-            MobileWindowAlertControls(service: service, window: "5h", title: "5-hour window")
-            Divider()
-            MobileWindowAlertControls(service: service, window: "7d", title: "7-day window")
-        }
-    }
-}
 struct MobileWindowAlertControls: View {
+    @State private var expanded = true
     @AppStorage private var mode: String
     @AppStorage private var threshold: Double
     @AppStorage private var usageEnabled: Bool
@@ -232,34 +266,25 @@ struct MobileWindowAlertControls: View {
         let prefix = "notifications.\(service.rawValue).\(window)."
         _mode = AppStorage(wrappedValue: "nearLimit", prefix + "resetMode", store: MobileResetNotifications.defaults)
         _threshold = AppStorage(wrappedValue: 90, prefix + "resetThreshold", store: MobileResetNotifications.defaults)
-        _usageEnabled = AppStorage(wrappedValue: false, prefix + "usageEnabled", store: MobileResetNotifications.defaults)
+        _usageEnabled = AppStorage(wrappedValue: true, prefix + "usageEnabled", store: MobileResetNotifications.defaults)
         _usageThreshold = AppStorage(wrappedValue: 85, prefix + "usageThreshold", store: MobileResetNotifications.defaults)
-        _limitEnabled = AppStorage(wrappedValue: false, prefix + "limitEnabled", store: MobileResetNotifications.defaults)
+        _limitEnabled = AppStorage(wrappedValue: true, prefix + "limitEnabled", store: MobileResetNotifications.defaults)
     }
     var body: some View {
-        DisclosureGroup {
-            VStack(alignment: .leading, spacing: 12) {
-                Toggle("Approaching the limit", isOn: $usageEnabled)
-                if usageEnabled { Stepper("At least \(Int(usageThreshold))% used", value: $usageThreshold, in: 5...95, step: 5) }
-                Toggle("Limit reached", isOn: $limitEnabled)
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Reset reminders").font(.subheadline.weight(.semibold))
-                    Picker("Reset reminders", selection: $mode) {
-                        Text("Off").tag("off")
-                        Text("Only near the limit").tag("nearLimit")
-                        Text("Every reset").tag("everyReset")
-                    }.pickerStyle(.menu).labelsHidden()
-                    if mode == "nearLimit" {
-                        Stepper("At least \(Int(threshold))% used", value: $threshold, in: 5...100, step: 5)
-                    }
-                }.padding(.top, 8)
+        DisclosureGroup(title, isExpanded: $expanded) {
+            Toggle("Approaching the limit", isOn: $usageEnabled)
+            if usageEnabled {
+                Stepper("Alert at \(Int(usageThreshold))% used", value: $usageThreshold, in: 5...95, step: 5)
             }
-            .padding(.leading, 12)
-            .padding(.top, 16)
-            .padding(.bottom, 8)
-        } label: {
-            Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(OverviewStyle.primary)
-                .padding(.vertical, 6)
+            Toggle("Limit reached", isOn: $limitEnabled)
+            Picker("Reset reminders", selection: $mode) {
+                Text("Off").tag("off")
+                Text("Near the limit").tag("nearLimit")
+                Text("Every reset").tag("everyReset")
+            }
+            if mode == "nearLimit" {
+                Stepper("Remind at \(Int(threshold))% used", value: $threshold, in: 5...100, step: 5)
+            }
         }
         .onChange(of: mode) { Task { await MobileResetNotifications.reconcile() } }
         .onChange(of: threshold) { Task { await MobileResetNotifications.reconcile() } }

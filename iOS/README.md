@@ -81,10 +81,12 @@ State must match the current attempt, which expires after 15 minutes. The app
 requests `org:create_api_key user:profile`; it does not request inference scope,
 create API keys, send prompts, purchase credits, or redeem resets.
 
-During onboarding, successful sign-in and the initial usage check automatically
-return to the service list so the user can connect the other service. This applies
-to both Codex and Claude. Failed or canceled attempts stay on the account screen;
-account screens opened outside onboarding retain their normal navigation.
+Account connection opens in a sheet from onboarding, Settings, or service details,
+with the sign-in browser presented above it. For both Codex and Claude, successful
+sign-in and the initial usage check dismiss the connection flow and return to the
+updated originating screen. A prior connection does not auto-dismiss a newly opened
+account sheet, and failed attempts remain available for retry. Closing the account
+sheet returns to its origin without dismissing Settings or onboarding.
 
 These connections use first-party public client identities, not an AIQuota provider
 registration. Technical success and TestFlight availability do not establish
@@ -222,3 +224,24 @@ The browser toolbar action uses a bundled action extension with a separate Keych
 access group containing only the current device code and its expiry. Account tokens
 are not accessible to that extension. Codes expire after 15 minutes and are cleared
 when the sign-in attempt ends. The TestFlight script validates both bundled extensions.
+
+## Free plans and variable allowance windows
+
+The overview, service details, widgets, and alert copy use each returned window's
+actual duration. A sole weekly or monthly allowance occupies the primary gauge;
+missing windows are omitted rather than displayed as zero. Long-range reset
+estimates include a calendar date. The persisted `weekly` field and notification
+preference keys are retained for compatibility, but the long-window field can
+also contain a monthly allowance.
+
+A free Codex account was observed returning 4% usage while its provider dashboard
+showed a monthly allowance with 96% remaining. A free Claude account was also tested: the current Claude Code authorization
+flow stops at a provider page requiring Max or Pro. Free Claude accounts therefore
+cannot connect through this flow. Supporting a single Claude quota window in the
+model does not bypass that provider restriction.
+
+Single-window gauges use a wider track and compact duration labels (`m` for a
+monthly allowance), while reset text and accessibility labels retain the full
+meaning. The overview omits daily history until positive usage is reported. It
+starts at the first usage day within the returned 30-day range and fills fixed
+slots from left to right, preserving subsequent zero days and unreported gaps.

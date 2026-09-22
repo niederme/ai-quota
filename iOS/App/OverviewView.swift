@@ -32,9 +32,11 @@ struct OverviewView: View {
                                          history: codex.history, historyUnavailable: codex.historyUnavailable) {
                             selectedService = .codex
                         }
-                        ProviderDialCard(name: "Claude", icon: "logo-claude", availableWidth: min(geometry.size.width, 780) - 32, reading: claude.reading,
-                                         connected: claude.connected, busy: claude.busy, error: claude.error, failure: claude.connectionFailure) {
-                            selectedService = .claude
+                        if claude.connected {
+                            ProviderDialCard(name: "Claude", icon: "logo-claude", availableWidth: min(geometry.size.width, 780) - 32, reading: claude.reading,
+                                             connected: claude.connected, busy: claude.busy, error: claude.error, failure: claude.connectionFailure) {
+                                selectedService = .claude
+                            }
                         }
                         overviewFreshness.frame(maxWidth: .infinity)
 
@@ -233,6 +235,19 @@ struct AccountConnectionForm: View {
     }
 }
 
+/// Close only after this presentation observes a new, confirmed sign-in.
+/// Existing accounts and unsuccessful attempts remain available for inspection or retry.
+struct DismissAfterAccountConnection: ViewModifier {
+    let completionID: UUID?
+    @Environment(\.dismiss) private var dismiss
+
+    func body(content: Content) -> some View {
+        content.onChange(of: completionID) { _, completed in
+            if completed != nil { dismiss() }
+        }
+    }
+}
+
 struct ServiceAccountSheet<Content: View>: View {
     @Environment(\.dismiss) private var dismiss
     var showsClose = true
@@ -397,22 +412,23 @@ private struct ClaudeDetailInformation: View {
                         .font(.system(size: amountSize, weight: .semibold))
                         .lineLimit(1).minimumScaleFactor(0.5)
                     Text("Beyond your subscription · \(reading?.fetchedAt.formatted(.dateTime.month(.wide)) ?? Date.now.formatted(.dateTime.month(.wide)))")
-                        .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                        .font(.body).foregroundStyle(OverviewStyle.secondary)
                     Text("Fable 5 and post-limit usage. Claude reports both as one monthly total and doesn’t provide a reliable breakdown. Your subscription price is separate.")
-                        .font(.footnote).foregroundStyle(OverviewStyle.secondary).padding(.top, 4)
+                        .font(.body).foregroundStyle(OverviewStyle.secondary).padding(.top, 4)
                 }
                 Divider()
             } else if reading?.metadata?.usageSpent == nil {
-                Text("Spending not reported").font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                Text("Spending not reported").font(.body).foregroundStyle(OverviewStyle.secondary)
             }
             VStack(alignment: .leading, spacing: 16) {
                 Text("Resets").font(.headline)
-                reset("5-hour", window: reading?.shortTerm)
-                reset("7-day", window: reading?.weekly)
+                ForEach(reading?.windows ?? []) { window in
+                    reset(window.label, window: window)
+                }
             }
             if let reading {
                 Text("Updated \(reading.fetchedAt.formatted(date: .abbreviated, time: .shortened))")
-                    .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                    .font(.body).foregroundStyle(OverviewStyle.secondary)
             }
         }
         .foregroundStyle(OverviewStyle.primary)
@@ -423,8 +439,8 @@ private struct ClaudeDetailInformation: View {
         LabeledContent(title) {
             Text(window?.resetsAt?.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute())
                  ?? "Not reported")
-                .foregroundStyle(OverviewStyle.secondary).multilineTextAlignment(.trailing)
-        }.font(.subheadline)
+                .foregroundStyle(OverviewStyle.primary).multilineTextAlignment(.trailing)
+        }.font(.body).foregroundStyle(OverviewStyle.secondary)
     }
 }
 
@@ -436,7 +452,7 @@ private struct CodexDetailInformation: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .largeTitle) private var amountSize = 44.0
 
-    @ScaledMetric(relativeTo: .subheadline) private var legendCapMidpoint = 5.5
+    @ScaledMetric(relativeTo: .body) private var legendCapMidpoint = 6.5
 
     private var days: [CodexUsageHistory.Day] { Array((history?.days ?? []).suffix(period)) }
     private func totals(_ key: KeyPath<CodexUsageHistory.Day, [String: Double]?>) -> [(String, Double)] {
@@ -457,13 +473,13 @@ private struct CodexDetailInformation: View {
                 Text(spending).font(.system(size: amountSize, weight: .semibold))
                     .lineLimit(1).minimumScaleFactor(0.5)
                 Text("Beyond your subscription · \(reading?.fetchedAt.formatted(.dateTime.month(.wide)) ?? Date.now.formatted(.dateTime.month(.wide)))")
-                    .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                    .font(.body).foregroundStyle(OverviewStyle.secondary)
                 Text("Credit usage reported for this month, converted at 25 credits = $1. This excludes your subscription price and is not a record of credit purchases.")
-                    .font(.footnote).foregroundStyle(OverviewStyle.secondary).padding(.top, 4)
+                    .font(.body).foregroundStyle(OverviewStyle.secondary).padding(.top, 4)
             }
             Divider()
             } else if reading?.metadata?.usageSpent == nil {
-                Text("Spending not reported").font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                Text("Spending not reported").font(.body).foregroundStyle(OverviewStyle.secondary)
             }
             VStack(alignment: .leading, spacing: 16) {
                 let headingLayout = typeSize.isAccessibilitySize
@@ -478,30 +494,32 @@ private struct CodexDetailInformation: View {
                     }.pickerStyle(.menu)
                 }
                 Text("Share of usage credits, including your plan. Not a breakdown of extra charges.")
-                    .font(.footnote).foregroundStyle(OverviewStyle.secondary)
-                VStack(alignment: .leading, spacing: 16) {
+                    .font(.body).foregroundStyle(OverviewStyle.secondary)
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Models").font(.headline)
                     breakdown(totals(\.models))
-                }.padding(.top, 12)
-                VStack(alignment: .leading, spacing: 16) {
+                    if !totals(\.models).isEmpty,
+                       days.contains(where: { ($0.credits ?? 0) > 0 && ($0.models?.isEmpty ?? true) }) {
+                        Text("Model breakdown is missing for some reported days.")
+                            .font(.body).foregroundStyle(OverviewStyle.secondary)
+                    }
+                }.padding(.top, 8)
+                VStack(alignment: .leading, spacing: 8) {
                     Text("Apps and tools").font(.headline)
                     breakdown(totals(\.surfaces))
-                }.padding(.top, 16)
-                if days.contains(where: { $0.credits != nil && $0.models == nil }) {
-                    Text("Model breakdown is missing for some reported days.")
-                        .font(.footnote).foregroundStyle(OverviewStyle.secondary)
-                }
+                }.padding(.top, 8)
                 if let history {
                     Text("Updated \(history.fetchedAt.formatted(date: .abbreviated, time: .shortened))")
-                        .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                        .font(.body).foregroundStyle(OverviewStyle.secondary)
                         .padding(.top, 8)
                 }
             }
             Divider()
             VStack(alignment: .leading, spacing: 16) {
                 Text("Resets").font(.headline)
-                reset("5-hour", window: reading?.shortTerm)
-                reset("7-day", window: reading?.weekly)
+                ForEach(reading?.windows ?? []) { window in
+                    reset(window.label, window: window)
+                }
             }
         }
         .foregroundStyle(OverviewStyle.primary)
@@ -525,6 +543,7 @@ private struct CodexDetailInformation: View {
     }
     @ViewBuilder private func breakdown(_ values: [(String, Double)]) -> some View {
         let total = values.reduce(0) { $0 + $1.1 }
+        let capMidpoint = legendCapMidpoint
         if total > 0 {
             let leading = Array(values.filter { $0.1 / total >= 0.01 }.prefix(3))
             let remaining = values.filter { item in !leading.contains(where: { $0.0 == item.0 }) }
@@ -554,13 +573,13 @@ private struct CodexDetailInformation: View {
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Circle().fill(colors[index]).frame(width: 8, height: 8)
                                 .alignmentGuide(.firstTextBaseline) { dimensions in
-                                    dimensions[VerticalAlignment.center] + legendCapMidpoint
+                                    dimensions[VerticalAlignment.center] + capMidpoint
                                 }
                             (Text(displayName(row.0)) + Text(" " + shareLabel(row.1 / total))
-                                .foregroundColor(OverviewStyle.secondary))
+                                .foregroundColor(OverviewStyle.primary))
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                        .font(.subheadline)
+                        .font(.body)
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel(displayName(row.0))
                         .accessibilityValue(shareLabel(row.1 / total))
@@ -568,12 +587,12 @@ private struct CodexDetailInformation: View {
                 }
                 if !remaining.isEmpty {
                     Text("Other: " + remaining.map { displayName($0.0) }.joined(separator: ", "))
-                        .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                        .font(.body).foregroundStyle(OverviewStyle.secondary)
                 }
             }
         } else {
             Text("No breakdown reported for this period.")
-                .font(.subheadline).foregroundStyle(OverviewStyle.secondary)
+                .font(.body).foregroundStyle(OverviewStyle.secondary)
         }
     }
 
@@ -581,8 +600,8 @@ private struct CodexDetailInformation: View {
         LabeledContent(title) {
             Text(window?.resetsAt?.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute())
                  ?? "Not reported")
-                .foregroundStyle(OverviewStyle.secondary).multilineTextAlignment(.trailing)
-        }.font(.subheadline)
+                .foregroundStyle(OverviewStyle.primary).multilineTextAlignment(.trailing)
+        }.font(.body).foregroundStyle(OverviewStyle.secondary)
     }
 }
 
@@ -730,16 +749,10 @@ struct ProviderDialCardContent: View {
     private var cardContent: some View {
         VStack(alignment: .leading, spacing: 16) {
             summary
-            if name == "Codex", connected {
+            if name == "Codex", connected, let history, history.hasChartData {
                 Divider()
-                if let history {
-                    OverviewHistoryStrip(history: history, unavailable: historyUnavailable)
-                        .modifier(ChartLoadingState(loading: busy, history: true))
-                } else {
-                    Text(busy && !historyUnavailable ? "Loading daily history…" : "Daily history unavailable")
-                        .font(.caption).foregroundStyle(OverviewStyle.secondary)
-                        .frame(maxWidth: .infinity, minHeight: 64)
-                }
+                OverviewHistoryStrip(history: history, unavailable: historyUnavailable)
+                    .modifier(ChartLoadingState(loading: busy, history: true))
             }
         }
         .modifier(UsageLoadingState(loading: busy))
@@ -780,8 +793,9 @@ struct ProviderDialCardContent: View {
             }
             if connected {
                 VStack(alignment: .leading, spacing: 4) {
-                    resetCaption(reading?.shortTerm, label: "5h")
-                    resetCaption(reading?.weekly, label: "7d").opacity(secondaryOpacity)
+                    ForEach(reading?.windows ?? []) { window in
+                        resetCaption(window, label: window.resetLabel)
+                    }
                 }
                 if failure != nil || error != nil || reading == nil || worst >= 100 {
                     Text(statusText).font(.footnote).foregroundStyle(OverviewStyle.secondary)
@@ -808,15 +822,21 @@ struct ProviderDialCardContent: View {
             .accessibilityLabel("Credits used: \(value)")
     }
 
+    private var hasSingleWindow: Bool { reading?.windows.count == 1 }
     var dial: some View {
         ZStack {
-            arc(reading?.shortTerm, opacity: 1)
-            arc(reading?.weekly, opacity: secondaryOpacity).padding(largeDial ? 20 : 10)
+            arc(reading?.primaryWindow, opacity: 1)
+                .padding(hasSingleWindow ? (largeDial ? 7 : 3.5) : 0)
+            if let secondary = reading?.secondaryWindow {
+                arc(secondary, opacity: secondaryOpacity).padding(largeDial ? 20 : 10)
+            }
             VStack(spacing: largeDial ? 16 : 6) {
                 Image(icon).resizable().scaledToFit().frame(width: largeDial ? 36 : 18, height: largeDial ? 36 : 18)
                 VStack(spacing: 2) {
-                    dialValue(reading?.shortTerm, label: "5h")
-                    dialValue(reading?.weekly, label: "7d").opacity(secondaryOpacity)
+                    dialValue(reading?.primaryWindow, label: reading?.primaryWindow?.compactLabel ?? "")
+                    if let secondary = reading?.secondaryWindow {
+                        dialValue(secondary, label: secondary.compactLabel).opacity(secondaryOpacity)
+                    }
                 }
             }.foregroundStyle(tint)
         }
@@ -824,31 +844,25 @@ struct ProviderDialCardContent: View {
         .frame(width: largeDial ? 248 : min(dialSize, 200), height: largeDial ? 248 : min(dialSize, 200))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(name) allowance used")
-        .accessibilityValue("5 hours: \(accessibleValue(reading?.shortTerm)). 7 days: \(accessibleValue(reading?.weekly)).")
+        .accessibilityValue(reading?.accessibilitySummary ?? "Allowance unavailable")
     }
     private func dialValue(_ window: QuotaWindow?, label: String) -> some View {
         Text(window.map { "\(Int($0.usedPercent.rounded()))% \(label)" } ?? "— \(label)")
             .font(largeDial ? .system(size: 32, weight: .medium).monospacedDigit() : .system(.subheadline, design: .default, weight: .medium).monospacedDigit())
             .foregroundStyle(window == nil ? OverviewStyle.secondary : tint)
     }
-    private func accessibleValue(_ window: QuotaWindow?) -> String {
-        window.map { "\(Int($0.usedPercent.rounded())) percent" } ?? "not reported"
-    }
+
     private func resetCaption(_ window: QuotaWindow?, label: String) -> some View {
         let text: String = {
             guard let window else { return "\(label) not reported" }
-            guard let reset = window.resetsAt else { return "\(label) reset unavailable" }
-            if reset <= .now { return "\(label) reset unconfirmed" }
-            let format: Date.FormatStyle = Calendar.current.isDateInToday(reset)
-                ? .dateTime.hour().minute() : .dateTime.weekday(.abbreviated).hour().minute()
-            return "\(label) resets \(reset.formatted(format))"
+            return "\(label) \(window.resetDescription())"
         }()
         return Text(text).modifier(OverviewDetailType())
             .foregroundStyle(window == nil ? OverviewStyle.secondary : tint)
             .fixedSize(horizontal: false, vertical: true)
     }
     private func arc(_ window: QuotaWindow?, opacity: Double) -> some View {
-        let width = largeDial ? 16.0 : OverviewStyle.ringWidth
+        let width = hasSingleWindow ? (largeDial ? 30.0 : 15.0) : (largeDial ? 16.0 : OverviewStyle.ringWidth)
         let tickScale = largeDial ? 2.0 : min(dialSize, 200) / 124
         return ZStack {
             Circle().trim(from: 0, to: 0.75)
@@ -857,7 +871,7 @@ struct ProviderDialCardContent: View {
                     dash: window == nil && !busy ? [4 * tickScale, 5 * tickScale] : []))
             if connected, !busy, let window {
                 Circle().trim(from: 0, to: 0.75 * min(100, max(0, window.usedPercent)) / 100)
-                    .stroke(tint.opacity(opacity), style: StrokeStyle(lineWidth: largeDial ? 16 : OverviewStyle.ringWidth, lineCap: .butt))
+                    .stroke(tint.opacity(opacity), style: StrokeStyle(lineWidth: width, lineCap: .butt))
             }
         }.rotationEffect(.degrees(135))
     }
@@ -869,29 +883,23 @@ struct OverviewHistoryStrip: View {
     private var maximum: Double { max(1, history.days.compactMap(\.credits).max() ?? 0) }
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            if history.days.contains(where: { $0.credits != nil }) {
-                Chart(history.days) { day in
+            if history.hasChartData {
+                Chart(Array(history.chartDays.enumerated()), id: \.element.id) { index, day in
                     if let credits = day.credits {
-                        BarMark(x: .value("Date", day.date), y: .value("Usage credits", credits))
+                        BarMark(x: .value("Day", String(index)), y: .value("Usage credits", credits))
                             .foregroundStyle(OverviewStyle.accent)
                             .cornerRadius(2)
                             .accessibilityLabel(day.date)
                             .accessibilityValue("\(credits.formatted(.number.precision(.fractionLength(0...2)))) usage credits")
                     }
                 }
-                .chartXScale(domain: history.days.map(\.date))
+                .chartXScale(domain: (0..<30).map { String($0) })
                 .chartYScale(domain: 0...maximum)
                 .chartXAxis(.hidden).chartYAxis(.hidden).chartLegend(.hidden)
                 .frame(height: 44)
-            } else {
-                Text("No daily history reported").font(.caption).foregroundStyle(OverviewStyle.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 44)
             }
-            HStack {
-                Text(history.startLabel)
-                Spacer()
-                Text(history.endLabel)
-            }.font(.caption2).foregroundStyle(OverviewStyle.secondary)
+            Text(history.chartRangeLabel)
+                .font(.caption2).foregroundStyle(OverviewStyle.secondary)
             if unavailable || Date.now.timeIntervalSince(history.fetchedAt) > 1800 {
                 Text("Saved history · \(history.fetchedAt.formatted(date: .abbreviated, time: .shortened))")
                     .font(.caption2).foregroundStyle(OverviewStyle.secondary)

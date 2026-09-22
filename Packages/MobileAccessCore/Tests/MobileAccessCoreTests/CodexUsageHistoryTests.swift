@@ -72,3 +72,35 @@ private struct HistoryTransport: HTTPTransport {
     #expect(history.days.first?.models == nil)
     #expect(history.days.first?.surfaces == nil)
 }
+
+@Test func emptyOrZeroHistoryHidesChart() throws {
+    for json in [#"{"data":[]}"#, "{\"data\":[{\"date\":\"\(CodexUsageHistory.dateString(historyDate))\",\"product_surface_usage_values\":{\"cli\":0}}]}"] {
+        let history = try CodexUsageHistory.decode(Data(json.utf8), now: historyDate)
+        #expect(!history.hasChartData)
+        #expect(history.chartDays.isEmpty)
+        #expect(history.chartRangeLabel.isEmpty)
+    }
+}
+
+@Test func newHistoryStartsAtLeftAndRetainsCalendarGaps() throws {
+    let firstDate = CodexUsageHistory.dateString(historyDate.addingTimeInterval(-3 * 86400))
+    let yesterday = CodexUsageHistory.dateString(historyDate.addingTimeInterval(-86400))
+    let today = CodexUsageHistory.dateString(historyDate)
+    let history = try CodexUsageHistory.decode(Data("""
+    {"data":[{"date":"\(firstDate)","product_surface_usage_values":{"cli":2}},
+             {"date":"\(yesterday)","product_surface_usage_values":{"cli":0}},
+             {"date":"\(today)","product_surface_usage_values":{"cli":4}}]}
+    """.utf8), now: historyDate)
+    #expect(history.hasChartData)
+    #expect(history.chartDays.count == 4)
+    #expect(history.chartDays.first?.date == firstDate)
+    #expect(history.chartDays.map(\.credits) == [2, nil, 0, 4])
+    #expect(history.days.count == 30)
+}
+
+@Test func firstUsageDayOccupiesOnlyFirstSlot() throws {
+    let today = CodexUsageHistory.dateString(historyDate)
+    let history = try CodexUsageHistory.decode(Data("{\"data\":[{\"date\":\"\(today)\",\"product_surface_usage_values\":{\"cli\":4}}]}".utf8), now: historyDate)
+    #expect(history.chartDays.count == 1)
+    #expect(history.chartDays[0].credits == 4)
+}

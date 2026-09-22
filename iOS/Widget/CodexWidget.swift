@@ -9,7 +9,7 @@ extension QuotaService: AppEnum {
 }
 struct QuotaConfiguration: WidgetConfigurationIntent {
     static let title: LocalizedStringResource = "AI allowance"
-    static let description = IntentDescription("Five-hour and weekly allowance used.")
+    static let description = IntentDescription("Your available allowance windows.")
     @Parameter(title: "Service", default: .codex) var service: QuotaService
 }
 struct QuotaEntry: TimelineEntry {
@@ -83,7 +83,7 @@ struct SingleLockScreenWidget: Widget {
             }
         }
         .configurationDisplayName("AI allowance")
-        .description("Choose Codex or Claude. Outer ring: 5 hours. Inner ring: 7 days.")
+        .description("Choose Codex or Claude. Shows the allowance windows reported by your account.")
         .supportedFamilies([.accessoryCircular])
     }
 }
@@ -104,7 +104,7 @@ struct BothLockScreenWidget: Widget {
             .containerBackground(for: .widget) { Color.clear }
         }
         .configurationDisplayName("Codex and Claude")
-        .description("Both services. Outer rings: 5 hours. Inner rings: 7 days.")
+        .description("Both services, with the allowance windows reported by each account.")
         .supportedFamilies([.accessoryRectangular])
     }
 }
@@ -146,7 +146,7 @@ struct CompactLockScreenWidget: Widget {
             .containerBackground(for: .widget) { Color.clear }
         }
         .configurationDisplayName("Allowance details")
-        .description("Gauges and percentages for Codex, Claude, or both. 5h in primary text; 7d in secondary text.")
+        .description("Gauges and percentages for Codex, Claude, or both, including monthly allowances.")
         .supportedFamilies([.accessoryRectangular])
     }
 }
