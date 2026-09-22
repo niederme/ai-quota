@@ -9,6 +9,7 @@ see the [project README](../README.md#ios).
 - [Remaining work](../docs/roadmap.md#ios)
 - [Planned Shortcuts and App Intents](../docs/roadmap.md#app-intents-backlog-mac--ios)
 - [Historical build and validation notes](HISTORY.md)
+- [iOS v1 pause checkpoint and next steps](docs/IOS_V1_HANDOFF.md)
 
 Commands below run from the repository root. The Mac app is the design reference
 for typography, colors, materials, and gauge proportions.
