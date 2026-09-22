@@ -720,6 +720,7 @@ enum OverviewStyle {
     static let base = Color("OverviewBase")
     static let radius: CGFloat = 28
     static let ringWidth: CGFloat = 8
+    static let singleRingWidth: CGFloat = 12
 }
 
 struct OverviewBackground: View {
@@ -893,11 +894,13 @@ struct ProviderDialCardContent: View {
             .accessibilityLabel("Credits used: \(value)")
     }
 
-    private var hasSingleWindow: Bool { reading?.windows.count == 1 }
+    private var ringWidth: CGFloat {
+        (reading?.windows.count == 1 ? OverviewStyle.singleRingWidth : OverviewStyle.ringWidth) * (largeDial ? 2 : 1)
+    }
     var dial: some View {
         ZStack {
             arc(reading?.primaryWindow, opacity: 1)
-                .padding(hasSingleWindow ? (largeDial ? 7 : 3.5) : 0)
+                .padding((ringWidth - OverviewStyle.ringWidth * (largeDial ? 2 : 1)) / 2)
             if let secondary = reading?.secondaryWindow {
                 arc(secondary, opacity: secondaryOpacity).padding(largeDial ? 20 : 10)
             }
@@ -933,7 +936,7 @@ struct ProviderDialCardContent: View {
             .fixedSize(horizontal: false, vertical: true)
     }
     private func arc(_ window: QuotaWindow?, opacity: Double) -> some View {
-        let width = hasSingleWindow ? (largeDial ? 30.0 : 15.0) : (largeDial ? 16.0 : OverviewStyle.ringWidth)
+        let width = ringWidth
         let tickScale = largeDial ? 2.0 : min(dialSize, 200) / 124
         return ZStack {
             Circle().trim(from: 0, to: 0.75)

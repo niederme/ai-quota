@@ -73,8 +73,8 @@ struct HomeQuotaView: View {
     private func gauge(_ value: ProviderReading, size: CGFloat) -> some View {
         VStack(spacing: 3) {
             ZStack {
-                ring(value.reading?.primaryWindow, width: size * (value.reading?.windows.count == 1 ? 0.13 : 0.09), color: tint(value))
-                    .padding(value.reading?.windows.count == 1 ? size * 0.02 : 0)
+                ring(value.reading?.primaryWindow, width: size * (value.reading?.windows.count == 1 ? 0.11 : 0.09), color: tint(value))
+                    .padding(value.reading?.windows.count == 1 ? size * 0.01 : 0)
                 if let secondary = value.reading?.secondaryWindow {
                     ring(secondary, width: size * 0.07, color: tint(value).opacity(0.5)).padding(size * 0.1)
                 }
