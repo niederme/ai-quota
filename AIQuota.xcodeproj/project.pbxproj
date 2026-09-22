@@ -58,6 +58,7 @@
 		680EFCF800A5D00C499B9858 /* CopySignInCodeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5AA4AC3B53857352A4672A2 /* CopySignInCodeViewController.swift */; };
 		6C522866B159D2A3FE422C0D /* UsageGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 521E05B6030711C7B85B8092 /* UsageGaugeView.swift */; };
 		6DEA77E87281F6D56AD31657 /* ServicesStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C66610C3B005AD239F7EDE75 /* ServicesStepView.swift */; };
+		6E46AF36AA18BA33526FC6E7 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BE8ADE851C1D83398F38FC6A /* SplashScreen.storyboard */; };
 		6F44F52DD00584662FE36290 /* ClaudeTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 126972287BBBDE180220E188 /* ClaudeTokenStore.swift */; };
 		70C41E7913EC6AF154B3961A /* CountdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D136AA90C5E64F0E69E5B51 /* CountdownView.swift */; };
 		7264701CDFFD31E6E42BAB6A /* HomeQuotaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39129D16B4B1A86FA705A17C /* HomeQuotaView.swift */; };
@@ -70,7 +71,6 @@
 		7804C0D72C84FB4E3C150FD2 /* AIQuotaKit in Frameworks */ = {isa = PBXBuildFile; productRef = FDE48747144C193C30BDEB55 /* AIQuotaKit */; };
 		79ABA17A6898FB25ACBF5812 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 033BEE818868F742F0C74E02 /* Assets.xcassets */; };
 		7C3015F3AC3BBE6C797538DF /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = CE9CEC32F8358117242A269F /* FirebaseAnalyticsCore */; };
-		8147126D5D0C9B128A3DE547 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = B9D34DB72575028B1A13707F /* LaunchScreen.storyboard */; };
 		8216D0F3164D0E0251628667 /* DemoQuotaData.swift in Sources */ = {isa = PBXBuildFile; fileRef = F67E72577EE3060D479BB8A0 /* DemoQuotaData.swift */; };
 		8345576EE21F0AB14ECE70BD /* MobileAnalyticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEF02E14FDE3406AB3CFB999 /* MobileAnalyticsTests.swift */; };
 		8A411DE18F08C54C94DD92E6 /* MobileAnalytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D95553FAC04DFF7EC1268BF /* MobileAnalytics.swift */; };
@@ -277,9 +277,9 @@
 		B298FC20B9D43BA1C027CE6E /* DemoViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoViews.swift; sourceTree = "<group>"; };
 		B2B4A02F2F3618A00A9FE938 /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
 		B2DD6DC0C92D6E6CBCA60A64 /* WidgetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetStore.swift; sourceTree = "<group>"; };
-		B9D34DB72575028B1A13707F /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		BC43070E1A6F758DB7AF31A6 /* CodexWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexWidget.swift; sourceTree = "<group>"; };
 		BE646C3065C7605692946277 /* AIQuota.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AIQuota.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BE8ADE851C1D83398F38FC6A /* SplashScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = SplashScreen.storyboard; sourceTree = "<group>"; };
 		C1E24D8AE870084C7D061ADA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		C4A665A3F6E10210205651C1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C4CC237C662A19D0C0A77A43 /* DemoDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoDriver.swift; sourceTree = "<group>"; };
@@ -437,7 +437,6 @@
 				447D727A548E73A82C29281D /* CodexResetNotice.swift */,
 				B298FC20B9D43BA1C027CE6E /* DemoViews.swift */,
 				23DBF6CBC5AEF8D221D5EA51 /* Info.plist */,
-				B9D34DB72575028B1A13707F /* LaunchScreen.storyboard */,
 				667DECCAD3629416AE8E1184 /* MobileAccessApp.swift */,
 				8D95553FAC04DFF7EC1268BF /* MobileAnalytics.swift */,
 				EC6483FA9D6F3174B3E47F3D /* MobileSettingsView.swift */,
@@ -445,6 +444,7 @@
 				544AA7837A218AFDE7979ECA /* OverviewView.swift */,
 				652482B3FBA0A241F21DF910 /* PrivacyInfo.xcprivacy */,
 				59F4F1B59FFE30E899E31F8D /* ProbeModel.swift */,
+				BE8ADE851C1D83398F38FC6A /* SplashScreen.storyboard */,
 				0FFBABD81D84B816E058A18A /* TokenStore.swift */,
 			);
 			path = App;
@@ -973,8 +973,8 @@
 			files = (
 				3613E6EC6F19D0D27161FD72 /* AppIcon.icon in Resources */,
 				79ABA17A6898FB25ACBF5812 /* Assets.xcassets in Resources */,
-				8147126D5D0C9B128A3DE547 /* LaunchScreen.storyboard in Resources */,
 				D3654F8B19B2D5B199379F3D /* PrivacyInfo.xcprivacy in Resources */,
+				6E46AF36AA18BA33526FC6E7 /* SplashScreen.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1261,7 +1261,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 34;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1306,7 +1306,7 @@
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Mobile.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 34;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iOS/App/Info.plist;
@@ -1330,7 +1330,7 @@
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Mobile.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 34;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iOS/App/Info.plist;
@@ -1373,7 +1373,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 34;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1482,7 +1482,7 @@
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Mobile.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 34;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iOS/App/Info.plist;
@@ -1504,7 +1504,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 34;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1527,7 +1527,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Widget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 34;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/Widget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1636,7 +1636,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Widget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 34;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/Widget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1678,7 +1678,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/CopySignInCode/CopySignInCode.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 34;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/CopySignInCode/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1700,7 +1700,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 34;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1742,7 +1742,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 34;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1765,7 +1765,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/CopySignInCode/CopySignInCode.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 34;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/CopySignInCode/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1810,7 +1810,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 34;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1854,7 +1854,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Widget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 34;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/Widget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1876,7 +1876,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/CopySignInCode/CopySignInCode.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 31;
+				CURRENT_PROJECT_VERSION = 34;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/CopySignInCode/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;

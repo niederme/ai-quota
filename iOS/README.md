@@ -16,21 +16,24 @@ for typography, colors, materials, and gauge proportions.
 
 ## Project and identities
 
-The native launch screen centers a 112-point Icon Composer rendition on the app's
-adaptive `OverviewBase` background. `App/LaunchScreen.storyboard` controls the
-layout on iPhone and iPad. Light and dark `LaunchIcon` images are generated from
-`AIQuota/AppIcon.icon` using Icon Composer's design-generation 27 renderer (the
-2026 material style). Re-export after changing the layered icon:
+The native launch screen places the standalone gauge arcs, enlarged round
+indicators, and sparkle directly on the app's adaptive purple gradient. There is
+no rounded-square icon backing. `App/SplashScreen.storyboard` uses transparent
+`LaunchArtwork` and full-screen `LaunchBackground` PNG assets.
+
+The approved foreground is exported from [Figma icon-1](https://www.figma.com/design/cja43k0cJmCFUnGctkDuJ2/AIQuota?node-id=502-17), including its glass highlights and shading. Export details and the transparent master are in `Design/Splash`. Both appearances use the approved artwork unchanged.
+
+`python3 scripts/generate-ios-splash.py` rebuilds only the adaptive gradient backgrounds. It preserves the Figma artwork.
+
+To also refresh the native Icon Composer onboarding images, run:
 
 ```sh
 DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer bash scripts/export-ios-launch-icon.sh
 ```
 
-iOS displays the static launch screen during startup; there is no added timer or
-wait for network refresh before onboarding or the dashboard appears.
-The same export command refreshes `onboarding-icon`. The obsolete iOS `AppIcon`
-asset-catalog entry is removed; `AIQuota/AppIcon.icon` is the app icon source,
-and Xcode generates the required platform renditions from it.
+There is no added timer or network gate. Xcode generates the app's system icon
+renditions from `AIQuota/AppIcon.icon`; obsolete app-icon and launch-tile asset
+catalog entries have been removed.
 
 Open [`AIQuota.xcodeproj`](../AIQuota.xcodeproj) from the repository root and select the `AIQuota-iOS` scheme.
 

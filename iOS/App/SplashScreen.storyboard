@@ -15,17 +15,24 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="LaunchIcon" translatesAutoresizingMaskIntoConstraints="NO" id="launch-icon">
-                                <rect key="frame" x="140.5" y="370" width="112" height="112"/>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" image="LaunchBackground" translatesAutoresizingMaskIntoConstraints="NO" id="launch-background">
+                                <rect key="frame" x="0" y="0" width="393" height="852"/>
+                            </imageView>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" image="LaunchArtwork" translatesAutoresizingMaskIntoConstraints="NO" id="launch-icon">
+                                <rect key="frame" x="124.5" y="354" width="144" height="144"/>
                                 <constraints>
-                                    <constraint firstAttribute="width" constant="112" id="icon-width"/>
-                                    <constraint firstAttribute="height" constant="112" id="icon-height"/>
+                                    <constraint firstAttribute="width" constant="144" id="icon-width"/>
+                                    <constraint firstAttribute="height" constant="144" id="icon-height"/>
                                 </constraints>
                             </imageView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="launch-safe-area"/>
                         <color key="backgroundColor" name="OverviewBase"/>
                         <constraints>
+                            <constraint firstItem="launch-background" firstAttribute="top" secondItem="launch-view" secondAttribute="top" id="background-top"/>
+                            <constraint firstItem="launch-background" firstAttribute="bottom" secondItem="launch-view" secondAttribute="bottom" id="background-bottom"/>
+                            <constraint firstItem="launch-background" firstAttribute="leading" secondItem="launch-view" secondAttribute="leading" id="background-leading"/>
+                            <constraint firstItem="launch-background" firstAttribute="trailing" secondItem="launch-view" secondAttribute="trailing" id="background-trailing"/>
                             <constraint firstItem="launch-icon" firstAttribute="centerX" secondItem="launch-view" secondAttribute="centerX" id="icon-center-x"/>
                             <constraint firstItem="launch-icon" firstAttribute="centerY" secondItem="launch-view" secondAttribute="centerY" id="icon-center-y"/>
                         </constraints>
@@ -36,7 +43,8 @@
         </scene>
     </scenes>
     <resources>
-        <image name="LaunchIcon" width="112" height="112"/>
+        <image name="LaunchBackground" width="1000" height="2000"/>
+        <image name="LaunchArtwork" width="144" height="144"/>
         <namedColor name="OverviewBase">
             <color red="0.956863" green="0.945098" blue="0.968627" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>

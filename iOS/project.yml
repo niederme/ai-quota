@@ -11,7 +11,7 @@ targetTemplates:
         DEVELOPMENT_TEAM: 289GY9L343
         CODE_SIGN_STYLE: Automatic
         MARKETING_VERSION: "0.1.0"
-        CURRENT_PROJECT_VERSION: "31"
+        CURRENT_PROJECT_VERSION: "34"
 targets:
   AIQuota-iOS:
     type: application
@@ -68,7 +68,7 @@ targets:
         GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_PERSONALIZATION_SIGNALS: false
         GOOGLE_ANALYTICS_IDFV_COLLECTION_ENABLED: false
         FirebaseAutomaticScreenReportingEnabled: false
-        UILaunchStoryboardName: LaunchScreen
+        UILaunchStoryboardName: SplashScreen
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationLandscapeLeft

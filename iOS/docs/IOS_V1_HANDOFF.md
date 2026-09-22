@@ -1,49 +1,35 @@
 # iOS v1 handoff, September 22, 2026
 
-Paused at the owner's request until usage resets. Do not resume work automatically.
+## Updated splash implementation
 
-## Working checkpoint
+The owner resumed splash work after the initial checkpoint. The native launch
+screen now puts the standalone gauge arcs, enlarged round indicators, and
+sparkle directly on the app's purple gradient, with no rounded-square icon tile.
 
-- Native `App/LaunchScreen.storyboard` centers a 112-point icon on adaptive
-  `OverviewBase`. No artificial delay or network gate was added.
-- `Assets.xcassets/LaunchIcon.imageset` contains light/dark 1x, 2x, and 3x
-  renditions exported directly from `AIQuota/AppIcon.icon`, using Icon Composer's
-  design-generation 27 renderer. Regenerate with
-  `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer bash scripts/export-ios-launch-icon.sh`.
-- The launch branch was rebased onto `2e3fde2`, which includes PR #70's iOS
-  surfaces, gauge weights, and icon indicators. Exports were then refreshed.
-- PR #70 enlarged both round indicator radii from 44 to 51 source units (about
-  16% larger diameter). Launch and onboarding exports now both reflect that
-  source. The old one-ring iOS `AppIcon.appiconset` was removed so the layered
-  `AIQuota/AppIcon.icon` is authoritative. The export script updates launch and
-  onboarding together. Any further indicator-size adjustment belongs in the
-  source SVGs, followed by the export command.
-- Simulator Debug build passed. Native light/dark launch screens were visually
-  checked on iPhone Duo, and a normal launch reached the dashboard. The owner
-  ran on Karin Air and reported that the icon looked good on the splash.
-- This is local build/device work. No TestFlight upload or App Store submission.
+- `App/SplashScreen.storyboard` uses `LaunchArtwork` and `LaunchBackground`.
+- Foreground assets now use the approved Figma `icon-1` glass artwork, exported
+  as transparent 144/288/432px PNGs. Both appearances use the approved export.
+  Source link and 1024px master are in `iOS/Design/Splash`.
+- `scripts/generate-ios-splash.py` regenerates only gradient backgrounds,
+  preserving the approved Figma foreground.
+- The round indicators retain the source radius of 51, enlarged from 44 in PR #70.
+- `scripts/export-ios-launch-icon.sh` regenerates this splash and the native
+  onboarding icon images. The old launch-tile asset is removed.
+- The initial tile checkpoint was merged in PR #71. No startup delay, TestFlight
+  upload, or App Store submission is part of either splash change.
 
-## Next visual change, requested but not implemented
+## Verification
 
-Put the standalone gauge-and-spark artwork directly over the app's purple
-gradient, removing the rounded-square icon tile. Keep the Icon Composer file as
-the artwork source and preserve the current restrained 2026 appearance.
+The latest Figma exports were checked for dimensions and transparency and copied
+into the open checkout. This asset replacement has not been run on Karin Air.
+The device run and simulator observations below refer to the prior artwork.
 
-The native `ictool --export-image` command includes the icon enclosure. Trials
-using a temporary `.icon` copy with transparent solid fill and `fill: none`
-still produced the rounded-square backing. No experimental icon source or
-foreground assets were added to the repository. The current working splash
-still intentionally has the icon tile.
-
-Next investigate an export of just the foreground. A possible fallback is to
-compose the same source SVG layers as transparent vector artwork, with an
-explicitly static highlight treatment. Do not describe that as native or live
-Liquid Glass. The proposed generator/storyboard patch was not applied.
-
-Reuse `OverviewBackground` in `App/OverviewView.swift` as the color/gradient
-reference: adaptive base, top-to-bottom purple fade, upper-right radial glow.
-Check light/dark contrast, especially the sparkle on the light background, and
-iPhone/iPad portrait and landscape before replacing the working checkpoint.
+The Debug simulator build passed. Native launch screenshots were inspected in
+light and dark appearances on a fresh iPhone simulator. The storyboard was
+renamed to `SplashScreen` after a reused simulator retained a blank launch
+snapshot. The existing Xcode instance built, installed, and reported running
+`AIQuota-iOS` on Karin Air. Physical-device visual confirmation remains with
+the owner.
 
 ## Reliability work remains open
 
@@ -69,3 +55,14 @@ The review-account notes are a draft. Real passwords and unused backup codes
 belong only in App Store Connect. Free Codex usage was observed working; the
 tested free Claude account was blocked by the provider's Pro/Max requirement.
 Demo coverage does not establish live reviewer access or App Review approval.
+
+## TestFlight build 34
+
+Version 0.1.0 (34) archived and uploaded successfully on September 22, 2026,
+from codex/ios-gradient-splash with the approved Figma artwork. The archive
+contains SplashScreen.storyboardc and selects it in Info.plist. Apple had not
+yet exposed build 34 at the initial processing check. Upload reported a missing
+GoogleAppMeasurement dSYM warning but completed successfully.
+
+Release record: `/Users/niederme/Library/Logs/AIQuota/TestFlight/2026-09-22-170055-996e87`.
+Resume status checks with `python3 scripts/testflight.py status --run /Users/niederme/Library/Logs/AIQuota/TestFlight/2026-09-22-170055-996e87 --wait 0`. Do not upload again for processing delays.
