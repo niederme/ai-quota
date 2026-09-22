@@ -140,6 +140,7 @@ struct MobileAccountRow: View {
                 }
                 if let updated {
                     Text("Updated \(updated.formatted(date: .abbreviated, time: .shortened))")
+                        .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -200,7 +201,7 @@ struct MobileNotificationControls: View {
                 } else {
                     Text("Choose which alerts you’d like to receive.")
                 }
-            }
+            }.listRowBackground(OverviewStyle.track)
             if enabled {
                 serviceGroup("Codex", service: .codex, enabled: $codex)
                 serviceGroup("Claude Code", service: .claude, enabled: $claude)
@@ -214,9 +215,11 @@ struct MobileNotificationControls: View {
                 Section {
                     Button("Open notification settings") { openURL(URL(string: UIApplication.openNotificationSettingsURLString)!) }
                 } footer: { Text("Notifications are disabled in iOS Settings.") }
+                    .listRowBackground(OverviewStyle.track)
             }
             if !schedulingError.isEmpty {
                 Section { Text(schedulingError).foregroundStyle(OverviewStyle.warning) }
+                    .listRowBackground(OverviewStyle.track)
             }
         }
         .scrollContentBackground(.hidden)
@@ -238,7 +241,7 @@ struct MobileNotificationControls: View {
                         MobileWindowAlertControls(service: service, window: "7d", title: window.label + " window")
                     }
                 }
-            }
+            }.listRowBackground(OverviewStyle.track)
         }
     }
 

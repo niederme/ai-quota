@@ -39,8 +39,8 @@ struct CompactQuotaView: View {
     }
     private var miniGauge: some View {
         ZStack {
-            ring(reading?.primaryWindow, width: reading?.windows.count == 1 ? 5.04 : 3.36, opacity: 1)
-                .padding(reading?.windows.count == 1 ? 0.84 : 0)
+            ring(reading?.primaryWindow, width: reading?.windows.count == 1 ? 4.2 : 3.36, opacity: 1)
+                .padding(reading?.windows.count == 1 ? 0.42 : 0)
             if let secondary = reading?.secondaryWindow {
                 ring(secondary, width: 3.36, opacity: 0.6).padding(4.36)
             }
@@ -79,8 +79,8 @@ struct CodexDial: View {
         GeometryReader { geometry in
             let size = min(geometry.size.width, geometry.size.height)
             ZStack {
-                ring(value.reading?.primaryWindow, width: value.reading?.windows.count == 1 ? size * 0.14 : size * 0.12, opacity: 1)
-                    .padding(value.reading?.windows.count == 1 ? size * 0.10 : size * 0.09)
+                ring(value.reading?.primaryWindow, width: value.reading?.windows.count == 1 ? size * 0.13 : size * 0.12, opacity: 1)
+                    .padding(value.reading?.windows.count == 1 ? size * 0.095 : size * 0.09)
                 if let secondary = value.reading?.secondaryWindow {
                     ring(secondary, width: size * 0.12, opacity: 0.6)
                         .padding(size * 0.21 + 1)
