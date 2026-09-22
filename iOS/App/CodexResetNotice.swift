@@ -69,8 +69,11 @@ struct CodexResetNoticeBanner: View {
                 VStack(alignment: .leading, spacing: 6) {
                     Text(announcement.title).fontWeight(.semibold)
                         .foregroundStyle(OverviewStyle.primary)
-                    Label("Read more on Codex Resets", systemImage: "arrow.up.right")
-                        .foregroundStyle(OverviewStyle.accent)
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("Read more on Codex Resets")
+                        Image(systemName: "arrow.up.right").accessibilityHidden(true)
+                    }
+                    .foregroundStyle(OverviewStyle.accent)
                 }
                 .font(.body)
                 .frame(maxWidth: .infinity, alignment: .leading)
