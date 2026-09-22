@@ -452,7 +452,6 @@
 			children = (
 				52109C9838692B9BDE590491 /* App */,
 				02A9AE31929B588EE60C1936 /* CopySignInCode */,
-				70D6121F028B992476E35A16 /* Resources */,
 				94992070252EBE32AF7B68A3 /* Shared */,
 				E7939C8977A3181001BBF38F /* SignInSupport */,
 				93C3533137E35584B6D3FC89 /* Tests */,
@@ -460,13 +459,6 @@
 				7D5E72A5AABCB0D642AE3394 /* Widget */,
 			);
 			path = iOS;
-			sourceTree = "<group>";
-		};
-		70D6121F028B992476E35A16 /* Resources */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Resources;
 			sourceTree = "<group>";
 		};
 		73E63A572CB10888DE4E9FBA /* AIQuota */ = {
@@ -665,6 +657,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = B6A5EB8E10049A45B2B6B34F /* Build configuration list for PBXNativeTarget "AIQuota-iOS" */;
 			buildPhases = (
+				7F451EEA869DE82AE315B5CB /* Copy local Firebase configuration */,
 				E9CE717EBDF45C515D908869 /* Sources */,
 				EA6FF11AD7547991A8E026E2 /* Resources */,
 				AFD2BA1C2124D0D8C12998E3 /* Frameworks */,
@@ -982,6 +975,30 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		7F451EEA869DE82AE315B5CB /* Copy local Firebase configuration */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/iOS/Resources",
+			);
+			name = "Copy local Firebase configuration";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "config_source=\"$SRCROOT/iOS/Resources/GoogleService-Info.plist\"\nconfig_destination=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/GoogleService-Info.plist\"\nif [ -f \"$config_source\" ]; then\n  mkdir -p \"$(dirname \"$config_destination\")\"\n  cp \"$config_source\" \"$config_destination\"\nelse\n  rm -f \"$config_destination\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		3C07A279E61FDF58AD5102D4 /* Sources */ = {

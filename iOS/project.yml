@@ -24,8 +24,22 @@ targets:
       - SignInSupport
       - ../AIQuota/AppIcon.icon
       - ../AIQuota/Analytics/AnalyticsClient.swift
-      - path: Resources
-        excludes: [README.md]
+    preBuildScripts:
+      - name: Copy local Firebase configuration
+        basedOnDependencyAnalysis: false
+        inputFiles:
+          - $(SRCROOT)/iOS/Resources
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist
+        script: |
+          config_source="$SRCROOT/iOS/Resources/GoogleService-Info.plist"
+          config_destination="$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/GoogleService-Info.plist"
+          if [ -f "$config_source" ]; then
+            mkdir -p "$(dirname "$config_destination")"
+            cp "$config_source" "$config_destination"
+          else
+            rm -f "$config_destination"
+          fi
     dependencies:
       - package: MobileAccessCore
       - package: Firebase

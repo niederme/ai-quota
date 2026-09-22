@@ -55,9 +55,9 @@ diagnostics for analytics, without linking to an account or advertising tracking
 See [Firebase's data disclosure documentation](https://support.google.com/analytics/answer/10285841).
 
 For collection in a release build, place the Firebase Apple app configuration for
-`com.niederme.AIQuota` at `iOS/Resources/GoogleService-Info.plist`, then run
-`xcodegen generate`. The file is gitignored and optional for local/open-source
-builds. It must belong to the intended Firebase reporting app; do not substitute
+`com.niederme.AIQuota` at `iOS/Resources/GoogleService-Info.plist`. The build copies
+it into the app when present and removes any stale bundled copy when absent.
+The file is gitignored and optional for local/open-source builds. It must belong to the intended Firebase reporting app; do not substitute
 an unrelated plist or the Mac Measurement Protocol secret. Without the file,
 events are no-ops. To verify delivery, use Firebase DebugView on a configured
 build with `-FIRAnalyticsDebugEnabled`, explicitly opt in, and exercise setup and
