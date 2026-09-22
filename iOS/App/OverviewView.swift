@@ -6,14 +6,21 @@ struct OverviewView: View {
     @AppStorage("refreshIntervalMinutes") private var refreshMinutes = 0
     @State private var onboarding = OnboardingProgress()
     @State private var showOnboarding = false
-    @State private var codex = ProbeModel()
+    @State private var codex: ProbeModel
     @State private var resetNotice = CodexResetNotice()
     @State private var showResetDetails = false
     @AppStorage(CodexResetNotice.dismissalKey) private var dismissedResetID = ""
     @State private var navigationID = UUID()
     @State private var selectedService: OverviewService?
     @Environment(\.scenePhase) private var scenePhase
-    @State private var claude = ClaudeProbeModel()
+    @State private var claude: ClaudeProbeModel
+    private let isDemo: Bool
+
+    init(isDemo: Bool = false) {
+        self.isDemo = isDemo
+        _codex = State(initialValue: ProbeModel(isDemo: isDemo))
+        _claude = State(initialValue: ClaudeProbeModel(isDemo: isDemo))
+    }
     @State private var existingInstallation = UserDefaults.standard.data(forKey: "mobileProbe.codexReading") != nil
         || UserDefaults.standard.data(forKey: "mobileProbe.claudeReading") != nil
 
@@ -22,7 +29,8 @@ struct OverviewView: View {
             GeometryReader { geometry in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
-                        if codex.connected, let announcement = resetNotice.announcement(dismissedID: dismissedResetID) {
+                        if isDemo { DemoBanner() }
+                        if !isDemo, codex.connected, let announcement = resetNotice.announcement(dismissedID: dismissedResetID) {
                             CodexResetNoticeBanner(announcement: announcement, openDetails: { showResetDetails = true }, dismiss: {
                                 dismissedResetID = announcement.id
                             }, loading: codex.busy || claude.busy || resetNotice.fetching)
@@ -69,7 +77,7 @@ struct OverviewView: View {
                 guard scenePhase == .active else { return }
                 codex.refreshOnOpen()
                 claude.refreshOnOpen()
-                await MobileResetNotifications.reconcile()
+                if !isDemo { await MobileResetNotifications.reconcile() }
             }
             .task(id: "\(scenePhase)-\(refreshMinutes)") {
                 guard scenePhase == .active else { return }
@@ -86,7 +94,7 @@ struct OverviewView: View {
                 }
             }
             .task(id: "\(scenePhase)-\(codex.connected)") {
-                guard scenePhase == .active, codex.connected else { return }
+                guard !isDemo, scenePhase == .active, codex.connected else { return }
                 while !Task.isCancelled {
                     await resetNotice.refresh()
                     do { try await Task.sleep(for: .seconds(60)) }
@@ -116,24 +124,29 @@ struct OverviewView: View {
             }
         }.id(navigationID).tint(OverviewStyle.accent)
         .task {
+            guard !isDemo else { return }
             showOnboarding = onboarding.shouldPresent(
                 hasExistingAccount: codex.connected || claude.connected
                     || codex.reading != nil || claude.reading != nil,
                 hasExistingInstallation: existingInstallation)
         }
         .sheet(item: $selectedService) { service in
-            ServiceAccountSheet(showsClose: service == .settings) {
+            ServiceAccountSheet(showsClose: service == .settings || (service == .codex ? !codex.connected : !claude.connected)) {
                 switch service {
                 case .settings:
                     MobileSettingsView(codex: codex, claude: claude, onboarding: onboarding)
                 case .codex:
+                    if !codex.connected { ProbeView(model: codex) } else {
                     ServiceDetailContent(name: "Codex", icon: "logo-openai", reading: codex.reading,
                         connected: codex.connected, busy: codex.busy, error: codex.error,
                         failure: codex.connectionFailure, history: codex.history, refresh: { codex.refresh() }) { ProbeView(model: codex) }
+                    }
                 case .claude:
+                    if !claude.connected { ClaudeProbeView(model: claude) } else {
                     ServiceDetailContent(name: "Claude", icon: "logo-claude", reading: claude.reading,
                         connected: claude.connected, busy: claude.busy, error: claude.error,
                         failure: claude.connectionFailure, refresh: { claude.refresh() }) { ClaudeProbeView(model: claude) }
+                    }
                 }
             }
         }
@@ -149,7 +162,9 @@ struct OverviewView: View {
             let failed = codex.error != nil || codex.connectionFailure != nil
                 || claude.error != nil || claude.connectionFailure != nil
             VStack(spacing: 4) {
-                if failed {
+                if isDemo {
+                    Text("Sample usage · No live account data").font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                } else if failed {
                     freshness("Codex", reading: codex.reading, connected: codex.connected, busy: codex.busy,
                               failed: codex.error != nil || codex.connectionFailure != nil, at: context.date)
                     freshness("Claude", reading: claude.reading, connected: claude.connected, busy: claude.busy,
@@ -161,7 +176,7 @@ struct OverviewView: View {
                         .replacingOccurrences(of: "Updated", with: "Refreshed")
                         .replacingOccurrences(of: "Older reading ·", with: "Refreshed"))
                 } else {
-                    Text("No usage received yet")
+                    Text("Connect a service to see your usage.")
                 }
             }
             .font(.footnote).foregroundStyle(OverviewStyle.secondary)
@@ -729,7 +744,21 @@ struct ProviderDialCardContent: View {
     }
     private var cardContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            summary
+            if connected {
+                summary
+            } else {
+                HStack(spacing: 16) {
+                    Image(icon).resizable().scaledToFit().frame(width: 36, height: 36)
+                        .foregroundStyle(OverviewStyle.primary)
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Connect \(name)").font(.headline).foregroundStyle(OverviewStyle.primary)
+                        Text("Sign in to see your usage.").font(.subheadline).foregroundStyle(OverviewStyle.secondary)
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                    Image(systemName: "chevron.right").font(.body.weight(.semibold))
+                        .foregroundStyle(OverviewStyle.accent).accessibilityHidden(true)
+                }.padding(.vertical, 8)
+            }
             if name == "Codex", connected {
                 Divider()
                 if let history {

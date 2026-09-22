@@ -26,10 +26,18 @@ final class ProbeModel {
     private(set) var error: String?
     private(set) var renewedAt: Date?
     private(set) var connectionFailure: SharedQuotaStore.Failure?
-    var connected: Bool { tokens != nil }
+    let isDemo: Bool
+    var connected: Bool { isDemo || tokens != nil }
     private let cacheKey = "mobileProbe.codexReading"
 
-    init() {
+    init(isDemo: Bool = false) {
+        self.isDemo = isDemo
+        if isDemo {
+            reading = DemoQuotaData.reading(.codex)
+            history = DemoQuotaData.history()
+            message = "Sample usage. No account connected."
+            return
+        }
         do {
             tokens = try shared.load(CodexTokens.self) ?? TokenStore.load()
             if tokens != nil {
@@ -46,6 +54,7 @@ final class ProbeModel {
         } catch { self.error = "Could not read this device’s saved connection." }
     }
     func connect() {
+        guard !isDemo else { return }
         guard !busy else { return }
         run { [self] in
             let newChallenge = try await api.requestChallenge()
@@ -79,6 +88,10 @@ final class ProbeModel {
         }
     }
     func refresh(forceRenewal: Bool = false) {
+        if isDemo {
+            reading = DemoQuotaData.reading(.codex)
+            return
+        }
         guard !busy, connected else { return }
         run { [self] in try await fetch(forceRenewal: forceRenewal) }
     }
@@ -151,6 +164,7 @@ final class ProbeModel {
         }
     }
     func cancel() {
+        guard !isDemo else { return }
         generation = UUID()
         work?.cancel()
         work = nil
@@ -159,11 +173,13 @@ final class ProbeModel {
         message = "Check cancelled."
     }
     func disconnect() {
+        guard !isDemo else { return }
         guard !busy else { return }
         run { [self] in try await clearConnection() }
     }
     /// Await cancelled requests before clearing so a late response cannot restore credentials.
     func resetForNewUser() async throws {
+        guard !isDemo else { return }
         let pending = work
         cancel()
         busy = true

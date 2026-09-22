@@ -222,3 +222,7 @@ The browser toolbar action uses a bundled action extension with a separate Keych
 access group containing only the current device code and its expiry. Account tokens
 are not accessible to that extension. Codes expire after 15 minutes and are cleared
 when the sign-in attempt ends. The TestFlight script validates both bundled extensions.
+
+## Demo and App Review access
+
+Choose **Try demo** from the welcome screen or Settings to explore labeled sample usage, Codex history, provider details, and widgets without signing in. **Exit demo** restores the normal account flow. Samples are generated in memory and do not overwrite saved accounts or usage. Guided Setup remains available in demo mode with separate, temporary progress. See [App Review access](docs/APP_REVIEW_ACCESS.md) for the live test-mailbox and Google backup-code instructions.

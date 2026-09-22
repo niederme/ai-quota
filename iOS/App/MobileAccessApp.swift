@@ -4,8 +4,16 @@ import MobileAccessCore
 
 @main
 struct MobileAccessApp: App {
+    @State private var demoEnabled = DemoQuotaData.isEnabled
     var body: some Scene {
-        WindowGroup { OverviewView() }
+        WindowGroup {
+            OverviewView(isDemo: demoEnabled).id(demoEnabled)
+                .environment(\.setDemoEnabled) { enabled in
+                    // Update presentation directly; app-group defaults are for persistence and widgets.
+                    demoEnabled = enabled
+                    DemoQuotaData.setEnabled(enabled)
+                }
+        }
     }
 }
 
@@ -19,7 +27,9 @@ struct ProbeView: View {
     @State private var signInBrowser: CodexBrowserSession?
     var body: some View {
         Group {
-            if model.connected && model.challenge == nil {
+            if model.isDemo {
+                DemoAccountView()
+            } else if model.connected && model.challenge == nil {
                 AccountConnectionForm(plan: model.reading?.metadata?.displayPlan,
                     updated: model.reading?.fetchedAt, busy: model.busy,
                     needsReconnect: model.connectionFailure == .reconnect || model.connectionFailure == .renewal,

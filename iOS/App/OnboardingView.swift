@@ -6,18 +6,20 @@ import Observation
 final class OnboardingProgress {
     enum Step: Int, CaseIterable { case welcome = 0, services = 1, widgets = 2, notifications = 3, complete = 4 }
     static let order: [Step] = [.welcome, .services, .notifications, .widgets, .complete]
+    private let isDemo: Bool
     private let defaults: UserDefaults
     private let prefix = "onboarding.v1."
     private(set) var step: Step
     private(set) var completed: Bool
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, isDemo: Bool = false) {
+        self.isDemo = isDemo
         self.defaults = defaults
-        step = Step(rawValue: defaults.integer(forKey: "onboarding.v1.step")) ?? .welcome
-        completed = defaults.bool(forKey: "onboarding.v1.completed")
+        step = isDemo ? .welcome : (Step(rawValue: defaults.integer(forKey: "onboarding.v1.step")) ?? .welcome)
+        completed = !isDemo && defaults.bool(forKey: "onboarding.v1.completed")
     }
     func shouldPresent(hasExistingAccount: Bool, hasExistingInstallation: Bool = false) -> Bool {
-        guard !completed, !defaults.bool(forKey: prefix + "dismissed") else { return false }
+        guard !isDemo, !completed, !defaults.bool(forKey: prefix + "dismissed") else { return false }
         // Preserve pre-onboarding upgrades using local app history. Keychain credentials
         // alone can survive deletion, so a reinstall still gets the welcome flow.
         if !defaults.bool(forKey: prefix + "started"), hasExistingAccount, hasExistingInstallation {
@@ -29,6 +31,7 @@ final class OnboardingProgress {
     }
     func begin() {
         if completed { setStep(.welcome) }
+        guard !isDemo else { return }
         defaults.set(true, forKey: prefix + "started")
         defaults.set(false, forKey: prefix + "dismissed")
     }
@@ -37,6 +40,7 @@ final class OnboardingProgress {
         begin()
     }
     func reset() {
+        if isDemo { step = .welcome; completed = false; return }
         for key in ["step", "completed", "dismissed", "started"] {
             defaults.removeObject(forKey: prefix + key)
         }
@@ -45,22 +49,25 @@ final class OnboardingProgress {
     }
     func setStep(_ next: Step) {
         step = next
-        defaults.set(next.rawValue, forKey: prefix + "step")
+        if !isDemo { defaults.set(next.rawValue, forKey: prefix + "step") }
     }
-    func dismiss() { defaults.set(true, forKey: prefix + "dismissed") }
+    func dismiss() { if !isDemo { defaults.set(true, forKey: prefix + "dismissed") } }
     func finish() {
         completed = true
-        defaults.set(true, forKey: prefix + "completed")
+        if !isDemo { defaults.set(true, forKey: prefix + "completed") }
         dismiss()
     }
 }
 
 struct OnboardingView: View {
+    @Environment(\.setDemoEnabled) private var setDemoEnabled
     let codex: ProbeModel
     let claude: ClaudeProbeModel
     let progress: OnboardingProgress
     @AppStorage("refreshIntervalMinutes") private var refreshMinutes = 0
     @Environment(\.dismiss) private var dismiss
+    @State private var demoRefreshMinutes = 0
+    private var refreshSelection: Binding<Int> { codex.isDemo ? $demoRefreshMinutes : $refreshMinutes }
 
     var body: some View {
         NavigationStack {
@@ -69,6 +76,15 @@ struct OnboardingView: View {
                     switch progress.step {
                     case .welcome:
                         OnboardingWelcome()
+                        if !codex.isDemo {
+                        Button("Try demo") {
+                            progress.dismiss()
+                            dismiss()
+                            setDemoEnabled(true)
+                        }.modifier(OnboardingSecondaryButtonStyle())
+                        Text("Explore sample usage without signing in.")
+                            .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                        }
                     case .services:
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Connect your services").font(.title.bold())
@@ -90,7 +106,7 @@ struct OnboardingView: View {
                             Divider()
                             VStack(alignment: .leading, spacing: 10) {
                                 Text("How often should AIQuota refresh?").font(.subheadline.weight(.medium))
-                                Picker("Refresh every", selection: $refreshMinutes) {
+                                Picker("Refresh every", selection: refreshSelection) {
                                     Text("Auto").tag(0)
                                     ForEach([1, 5, 10, 30], id: \.self) { Text("\($0) min").tag($0) }
                                 }.pickerStyle(.menu)
@@ -100,14 +116,14 @@ struct OnboardingView: View {
                         }
                         Text("You can connect more services later in Settings.").font(.footnote).foregroundStyle(OverviewStyle.secondary)
                     case .notifications:
-                        MobileNotificationControls()
+                        if codex.isDemo { DemoNotificationControls() } else { MobileNotificationControls() }
                     case .widgets:
                         LockScreenSetupContent()
                     case .complete:
                         VStack(spacing: 24) {
                             Image(systemName: "checkmark.circle.fill").font(.system(size: 64)).foregroundStyle(OverviewStyle.accent)
                             Text("You’re all set!").font(.title.bold())
-                            Button("Start using AIQuota") { progress.finish(); dismiss() }
+                            Button(codex.isDemo ? "Return to demo" : "Start using AIQuota") { progress.finish(); dismiss() }
                                 .modifier(OnboardingPrimaryButtonStyle())
                             VStack(spacing: 6) {
                                 let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
@@ -154,7 +170,7 @@ struct OnboardingView: View {
             }
             .background { BrandSurfaceBackground().ignoresSafeArea() }
         .toolbarBackground(.hidden, for: .navigationBar)
-            .navigationTitle("Set up AIQuota")
+            .navigationTitle(codex.isDemo ? "Demo setup" : "Set up AIQuota")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if progress.step != .complete {
@@ -204,7 +220,7 @@ struct OnboardingView: View {
                 }
                 Spacer(minLength: 0)
                 if connected && error == nil {
-                    Label("Connected", systemImage: "checkmark.circle.fill").font(.caption.weight(.medium)).foregroundStyle(OverviewStyle.accent)
+                    Label(codex.isDemo ? "Sample" : "Connected", systemImage: "checkmark.circle.fill").font(.caption.weight(.medium)).foregroundStyle(OverviewStyle.accent)
                 } else {
                     Text(error == nil ? "Sign In" : "Reconnect").font(.callout.weight(.semibold))
                         .padding(.horizontal, 12).padding(.vertical, 8)

@@ -2,8 +2,13 @@ import SwiftUI
 import MobileAccessCore
 
 struct MobileSettingsView: View {
+    @Environment(\.setDemoEnabled) private var setDemoEnabled
     @AppStorage("refreshIntervalMinutes") private var refreshMinutes = 0
     @State private var showOnboarding = false
+    @State private var demoOnboarding = OnboardingProgress(isDemo: true)
+    @State private var demoRefreshMinutes = 0
+    private var setupProgress: OnboardingProgress { codex.isDemo ? demoOnboarding : onboarding }
+    private var refreshSelection: Binding<Int> { codex.isDemo ? $demoRefreshMinutes : $refreshMinutes }
     @State private var destination: SettingsDestination?
     private enum SettingsDestination: String, Identifiable {
         case codex, claude, notifications, widgets
@@ -18,7 +23,14 @@ struct MobileSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Picker("Refresh every", selection: $refreshMinutes) {
+                Button(codex.isDemo ? "Exit demo" : "Try demo") {
+                    setDemoEnabled(!codex.isDemo)
+                }
+            } header: { Text("Demo") } footer: {
+                Text(codex.isDemo ? "The app and widgets show sample usage. Exit to connect your accounts or return to your saved connections." : "Explore sample usage without signing in. Your saved accounts are preserved.")
+            }.listRowBackground(OverviewStyle.track)
+            Section {
+                Picker("Refresh every", selection: refreshSelection) {
                     Text("Auto").tag(0)
                     ForEach([1, 5, 10, 30], id: \.self) { minutes in
                         Text("\(minutes) min").tag(minutes)
@@ -40,11 +52,11 @@ struct MobileSettingsView: View {
             Section { Button("Notifications") { destination = .notifications } }.listRowBackground(OverviewStyle.track)
             Section("Onboarding") {
                 Button("Guided Setup…") {
-                    onboarding.replay()
+                    setupProgress.replay()
                     showOnboarding = true
                 }
                 Button("Widgets") { destination = .widgets }
-                Button("Reset All Settings…", role: .destructive) { confirmReset = true }
+                Button("Reset All Settings…", role: .destructive) { confirmReset = true }.disabled(codex.isDemo)
                 if resetting { ProgressView("Resetting…") }
                 if let resetError { Text(resetError).font(.callout).foregroundStyle(OverviewStyle.critical) }
             }.listRowBackground(OverviewStyle.track)
@@ -91,19 +103,20 @@ struct MobileSettingsView: View {
                 switch destination {
                 case .codex: ProbeView(model: codex)
                 case .claude: ClaudeProbeView(model: claude)
-                case .notifications: MobileNotificationsView()
+                case .notifications:
+                    if codex.isDemo { DemoNotificationsView() } else { MobileNotificationsView() }
                 case .widgets: LockScreenSetupView()
                 }
             }
         }
-        .sheet(isPresented: $showOnboarding, onDismiss: { onboarding.dismiss() }) {
-            OnboardingView(codex: codex, claude: claude, progress: onboarding)
+        .sheet(isPresented: $showOnboarding, onDismiss: { setupProgress.dismiss() }) {
+            OnboardingView(codex: codex, claude: claude, progress: setupProgress)
         }
     }
     private func account(_ name: String, connected: Bool, error: String?, updated: Date?, busy: Bool) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             LabeledContent(name) {
-                Text(busy ? "Refreshing…" : !connected ? "Connect" : error == nil ? "Connected" : "Needs attention")
+                Text(codex.isDemo ? "Sample account" : busy ? "Refreshing…" : !connected ? "Connect" : error == nil ? "Connected" : "Needs attention")
                     .foregroundStyle(OverviewStyle.secondary)
             }
             if let updated {
@@ -128,6 +141,7 @@ struct MobileNotificationsView: View {
     }
 }
 struct MobileNotificationControls: View {
+    @AppStorage(DemoQuotaData.enabledKey, store: DemoQuotaData.defaults) private var isDemo = false
     @AppStorage("notifications.enabled", store: MobileResetNotifications.defaults) private var enabled = false
     @AppStorage("notifications.codex", store: MobileResetNotifications.defaults) private var codex = true
     @AppStorage("notifications.claude", store: MobileResetNotifications.defaults) private var claude = true
@@ -140,6 +154,7 @@ struct MobileNotificationControls: View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Notifications").font(.title.bold())
             Text("Choose which alerts you’d like to receive.").foregroundStyle(OverviewStyle.secondary)
+            if isDemo { Text("Exit demo to enable alerts for your accounts.").font(.footnote).foregroundStyle(OverviewStyle.secondary) }
             Toggle("Enable notifications", isOn: Binding(get: { enabled }, set: { value in
                 enabled = value
                 Task {
@@ -164,6 +179,7 @@ struct MobileNotificationControls: View {
             }
             if !schedulingError.isEmpty { Text(schedulingError).font(.callout).foregroundStyle(OverviewStyle.warning) }
         }
+        .disabled(isDemo)
         .onChange(of: codex) { Task { await MobileResetNotifications.reconcile() } }
         .onChange(of: claude) { Task { await MobileResetNotifications.reconcile() } }
         .task(id: phase) { if phase == .active { await check() } }
@@ -182,6 +198,7 @@ struct MobileNotificationControls: View {
     }
 
     private func check() async {
+        guard !isDemo else { return }
         denied = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus == .denied
         await MobileResetNotifications.reconcile()
     }
