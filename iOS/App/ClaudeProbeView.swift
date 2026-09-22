@@ -9,7 +9,9 @@ struct ClaudeProbeView: View {
 
     var body: some View {
         Group {
-        if model.connected && model.challenge == nil {
+        if model.isDemo {
+            DemoAccountView()
+        } else if model.connected && model.challenge == nil {
             AccountConnectionForm(plan: model.reading?.metadata?.displayPlan,
                 updated: model.reading?.fetchedAt, busy: model.busy,
                 needsReconnect: model.connectionFailure == .reconnect || model.connectionFailure == .renewal,

@@ -89,7 +89,7 @@ struct HomeQuotaView: View {
                 }.foregroundStyle(tint(value)).monospacedDigit()
             }.frame(width: size, height: size)
                 .padding(.bottom, -size * 0.08)
-            Text(name(value)).font(.system(size: 12, weight: .bold)).lineLimit(1)
+            Text(value.reading?.metadata?.plan == "Demo" ? name(value) + " · Demo" : name(value)).font(.system(size: 12, weight: .bold)).lineLimit(1)
             if value.needsApp {
                 Text("Reconnect in app").foregroundStyle(.secondary)
             } else if value.reading == nil {

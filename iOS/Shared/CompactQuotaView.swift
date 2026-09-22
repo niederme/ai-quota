@@ -13,7 +13,7 @@ struct CompactQuotaView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 4) {
                 miniGauge.frame(width: 28, height: 28)
-                Text(service.name).font(.system(size: compact ? 11 : 13, weight: .medium))
+                Text(reading?.metadata?.plan == "Demo" ? "Demo" : service.name).font(.system(size: compact ? 11 : 13, weight: .medium))
                     .lineLimit(1).minimumScaleFactor(0.8)
             }
             VStack(alignment: .leading, spacing: 0) {
@@ -25,7 +25,7 @@ struct CompactQuotaView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(service.name) allowance used")
+        .accessibilityLabel("\(service.name) \(reading?.metadata?.plan == "Demo" ? "sample" : "allowance") used")
         .accessibilityValue("Five hours: \(spoken(reading?.shortTerm)). Seven days: \(spoken(reading?.weekly)). \(stale ? "Reading needs refreshing." : "")")
         .accessibilityHint("Opens AI Quota")
     }
@@ -81,7 +81,9 @@ struct CodexDial: View {
                     .padding(size * 0.09)
                 ring(value.reading?.weekly, width: size * 0.12, opacity: 0.6)
                     .padding(size * 0.21 + 1)
-                if value.needsApp {
+                if value.reading?.metadata?.plan == "Demo" {
+                    Text("Demo").font(.system(size: size * 0.16, weight: .semibold))
+                } else if value.needsApp {
                     Image(systemName: "exclamationmark").font(.system(size: size * 0.3, weight: .bold))
                 } else {
                 Image(value.service.logo)
@@ -97,7 +99,7 @@ struct CodexDial: View {
         }
         .padding(3)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(value.service.name) allowance used")
+        .accessibilityLabel("\(value.service.name) \(value.reading?.metadata?.plan == "Demo" ? "sample" : "allowance") used")
         .accessibilityValue("Five hours: \(formatted(value.reading?.shortTerm)). Seven days: \(formatted(value.reading?.weekly)). \(stale ? "Reading needs refreshing." : "") \(warning ? "An allowance limit is reached." : "")")
         .accessibilityHint("Opens AI Quota")
     }

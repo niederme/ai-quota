@@ -109,7 +109,25 @@ targets:
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+  AIQuota-iOSUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "17.0"
+    templates: [iOSDistribution]
+    sources: [UITests]
+    dependencies:
+      - target: AIQuota-iOS
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: AIQuota-iOS
 schemes:
+  AIQuota-iOS-UI-Tests:
+    build:
+      targets:
+        AIQuota-iOS: all
+    test:
+      targets: [AIQuota-iOSUITests]
   AIQuota-iOS:
     build:
       targets:

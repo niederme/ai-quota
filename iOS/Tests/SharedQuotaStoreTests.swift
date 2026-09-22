@@ -217,23 +217,25 @@ final class OverviewLayoutReviewTests: XCTestCase {
             XCTAssertEqual(try size(busy: false), try size(busy: true))
         }
     }
-    @MainActor func testDisconnectedCardsOfferConnectAction() throws {
-        for size in [DynamicTypeSize.large, .accessibility3] {
-            let view = ProviderDialCardContent(name: "Claude Code", icon: "logo-claude", availableWidth: 362,
-                reading: nil, connected: false, busy: false, error: nil,
-                onOpen: {})
-                .frame(width: 362).padding(20)
-                .background(Color(uiColor: .systemGroupedBackground))
-                .environment(\.colorScheme, .dark).environment(\.dynamicTypeSize, size)
-            let renderer = ImageRenderer(content: view)
-            renderer.scale = 2
-            let image = try XCTUnwrap(renderer.uiImage)
-            let attachment = XCTAttachment(image: image)
-            attachment.name = "Disconnected Claude \(size)"; attachment.lifetime = .keepAlways
-            add(attachment)
-            let path = FileManager.default.temporaryDirectory.appendingPathComponent("disconnected-\(size).png")
-            try image.pngData()?.write(to: path)
-            print("DISCONNECTED_REVIEW " + path.path)
+    @MainActor func testDisconnectedAndExpiredCardsOfferConnectionAction() throws {
+        for expired in [false, true] {
+            for size in [DynamicTypeSize.large, .accessibility3] {
+                let view = ProviderDialCardContent(name: "Claude Code", icon: "logo-claude", availableWidth: 362,
+                    reading: expired ? try sample() : nil, connected: expired, busy: false, error: nil,
+                    failure: expired ? .reconnect : nil, onOpen: {}, onReconnect: {})
+                    .frame(width: 362).padding(20)
+                    .background(Color(uiColor: .systemGroupedBackground))
+                    .environment(\.colorScheme, .dark).environment(\.dynamicTypeSize, size)
+                let renderer = ImageRenderer(content: view)
+                renderer.scale = 2
+                let image = try XCTUnwrap(renderer.uiImage)
+                let attachment = XCTAttachment(image: image)
+                attachment.name = "Connection Claude expired=\(expired) \(size)"; attachment.lifetime = .keepAlways
+                add(attachment)
+                let path = FileManager.default.temporaryDirectory.appendingPathComponent("connection-expired-\(expired)-\(size).png")
+                try image.pngData()?.write(to: path)
+                print("DISCONNECTED_REVIEW " + path.path)
+            }
         }
     }
     @MainActor func testOverviewAppearances() throws {
