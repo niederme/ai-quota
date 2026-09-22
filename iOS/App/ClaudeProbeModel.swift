@@ -20,12 +20,19 @@ final class ClaudeProbeModel {
     private(set) var error: String?
     private(set) var connectionFailure: SharedQuotaStore.Failure?
     private(set) var renewedAt: Date?
-    var connected: Bool { tokens != nil }
+    let isDemo: Bool
+    var connected: Bool { isDemo || tokens != nil }
     private let cacheKey = "mobileProbe.claudeReading"
 
-    init(api: ClaudeAPI = ClaudeAPI(), shared: SharedQuotaStore = SharedQuotaStore(.claude), restore: Bool = true) {
+    init(api: ClaudeAPI = ClaudeAPI(), shared: SharedQuotaStore = SharedQuotaStore(.claude), restore: Bool = true, isDemo: Bool = false) {
+        self.isDemo = isDemo
         self.api = api
         self.shared = shared
+        if isDemo {
+            reading = DemoQuotaData.reading(.claude)
+            message = "Sample usage. No account connected."
+            return
+        }
         guard restore else { return }
         do {
             tokens = try shared.load(ClaudeTokens.self) ?? ClaudeTokenStore.load()
@@ -40,6 +47,7 @@ final class ClaudeProbeModel {
         } catch { self.error = "Could not read this device’s saved connection." }
     }
     func connect() {
+        guard !isDemo else { return }
         guard !busy else { return }
         do {
             challenge = try ClaudeChallenge()
@@ -64,6 +72,10 @@ final class ClaudeProbeModel {
         }
     }
     func refresh(forceRenewal: Bool = false) {
+        if isDemo {
+            reading = DemoQuotaData.reading(.claude)
+            return
+        }
         guard !busy, connected, challenge == nil else { return }
         run { [self] in try await fetch(forceRenewal: forceRenewal) }
     }
@@ -124,6 +136,7 @@ final class ClaudeProbeModel {
         }
     }
     func cancel() {
+        guard !isDemo else { return }
         generation = UUID()
         work?.cancel()
         work = nil
@@ -132,11 +145,13 @@ final class ClaudeProbeModel {
         message = "Check cancelled."
     }
     func disconnect() {
+        guard !isDemo else { return }
         guard !busy else { return }
         run { [self] in try await clearConnection() }
     }
     /// Await cancelled requests before clearing so a late response cannot restore credentials.
     func resetForNewUser() async throws {
+        guard !isDemo else { return }
         let pending = work
         cancel()
         busy = true

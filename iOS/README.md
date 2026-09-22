@@ -245,3 +245,7 @@ monthly allowance), while reset text and accessibility labels retain the full
 meaning. The overview omits daily history until positive usage is reported. It
 starts at the first usage day within the returned 30-day range and fills fixed
 slots from left to right, preserving subsequent zero days and unreported gaps.
+
+## Demo and App Review access
+
+Choose **Try demo** from the welcome screen or Settings to explore labeled sample usage, Codex history, provider details, and widgets without signing in. **Exit demo** restores the normal account flow. Samples are generated in memory and do not overwrite saved accounts or usage. Guided Setup remains available in demo mode with separate, temporary progress. See [App Review access](docs/APP_REVIEW_ACCESS.md) for the live test-mailbox and Google backup-code instructions.

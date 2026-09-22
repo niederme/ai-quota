@@ -23,6 +23,9 @@ private func hasSavedCredentials(_ store: SharedQuotaStore) -> Bool {
     }
 }
 private func loadReading(_ service: QuotaService) async -> ProviderReading {
+    if DemoQuotaData.isEnabled {
+        return ProviderReading(service: service, reading: DemoQuotaData.reading(service), needsApp: false)
+    }
     let store = SharedQuotaStore(service)
     do {
         let reading = try await store.fetch(source: "widget", minimumAge: 60)
@@ -34,10 +37,17 @@ private func loadReading(_ service: QuotaService) async -> ProviderReading {
         return ProviderReading(service: service, reading: store.reading(), needsApp: reconnect && (hasSavedCredentials(store) || store.reading() != nil))
     }
 }
+private func snapshotReading(_ service: QuotaService) -> ProviderReading {
+    if DemoQuotaData.isEnabled {
+        return ProviderReading(service: service, reading: DemoQuotaData.reading(service), needsApp: false)
+    }
+    let store = SharedQuotaStore(service)
+    return ProviderReading(service: service, reading: store.reading(), needsApp: store.failure().map { $0 != .temporary } ?? false)
+}
 private func timeline(_ values: [ProviderReading]) -> Timeline<QuotaEntry> {
     let now = Date.now
     let dates = Array(Set([now] + values.flatMap { WidgetFreshness.boundaries($0.reading, after: now) })).sorted()
-    for value in values {
+    for value in values where !DemoQuotaData.isEnabled {
         SharedQuotaStore(value.service).log("widget", "timeline_handoff", reading: value.reading, entryDates: dates)
     }
     return Timeline(entries: dates.map { QuotaEntry(date: $0, values: values) }, policy: .after(now.addingTimeInterval(5 * 60)))
@@ -45,7 +55,7 @@ private func timeline(_ values: [ProviderReading]) -> Timeline<QuotaEntry> {
 struct CodexProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> QuotaEntry { QuotaEntry(date: .now, values: [ProviderReading(service: .codex, reading: nil, needsApp: false)]) }
     func snapshot(for configuration: QuotaConfiguration, in context: Context) async -> QuotaEntry {
-        QuotaEntry(date: .now, values: [ProviderReading(service: configuration.service, reading: SharedQuotaStore(configuration.service).reading(), needsApp: SharedQuotaStore(configuration.service).failure().map { $0 != .temporary } ?? false)])
+        QuotaEntry(date: .now, values: [snapshotReading(configuration.service)])
     }
     func timeline(for configuration: QuotaConfiguration, in context: Context) async -> Timeline<QuotaEntry> {
         await makeTimeline(configuration.service)
@@ -65,7 +75,7 @@ struct BothConfiguration: WidgetConfigurationIntent {
 struct BothProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> QuotaEntry { QuotaEntry(date: .now, values: QuotaService.allCases.map { ProviderReading(service: $0, reading: nil, needsApp: false) }) }
     func snapshot(for configuration: BothConfiguration, in context: Context) async -> QuotaEntry {
-        QuotaEntry(date: .now, values: QuotaService.allCases.map { ProviderReading(service: $0, reading: SharedQuotaStore($0).reading(), needsApp: SharedQuotaStore($0).failure().map { $0 != .temporary } ?? false) })
+        QuotaEntry(date: .now, values: QuotaService.allCases.map { snapshotReading($0) })
     }
     func timeline(for configuration: BothConfiguration, in context: Context) async -> Timeline<QuotaEntry> {
         async let codex = loadReading(.codex)
@@ -123,7 +133,7 @@ struct CompactProvider: AppIntentTimelineProvider {
         QuotaEntry(date: .now, values: [.init(service: .codex, reading: nil, needsApp: false), .init(service: .claude, reading: nil, needsApp: false)])
     }
     func snapshot(for configuration: CompactConfiguration, in context: Context) async -> QuotaEntry {
-        QuotaEntry(date: .now, values: configuration.services.services.map { ProviderReading(service: $0, reading: SharedQuotaStore($0).reading(), needsApp: SharedQuotaStore($0).failure().map { $0 != .temporary } ?? false) })
+        QuotaEntry(date: .now, values: configuration.services.services.map { snapshotReading($0) })
     }
     func timeline(for configuration: CompactConfiguration, in context: Context) async -> Timeline<QuotaEntry> {
         if configuration.services == .both {
