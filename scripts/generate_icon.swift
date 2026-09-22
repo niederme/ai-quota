@@ -1,3 +1,4 @@
+// Legacy artwork generator. Use scripts/export-macos-icon.py for the current shared icon.
 #!/usr/bin/env swift
 // Run: swift scripts/generate_icon.swift
 // Generates gauge+sparkle app icons into AIQuota/Resources/Assets.xcassets/AppIcon.appiconset/

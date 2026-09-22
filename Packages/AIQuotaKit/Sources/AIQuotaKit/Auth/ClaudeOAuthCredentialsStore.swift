@@ -48,7 +48,7 @@ public enum ClaudeOAuthCredentialsError: LocalizedError, Sendable {
 
 public struct ClaudeOAuthKeychainReader: Sendable {
     public static let claudeCodeNoninteractive = ClaudeOAuthKeychainReader {
-        try readClaudeCodeSecurityFramework()
+        try readNoninteractively(service: serviceName)
     }
 
     private static let serviceName = "Claude Code-credentials"
@@ -63,31 +63,39 @@ public struct ClaudeOAuthKeychainReader: Sendable {
         try read()
     }
 
-    private static func readClaudeCodeSecurityFramework() throws -> Data? {
-        if let persistentRef = try newestClaudeCodePersistentRef() {
-            return try readData(persistentRef: persistentRef)
+    // LAContext only suppresses authentication for the data-protection keychain.
+    // Claude Code owns a legacy login-keychain item, so guard the entire lookup
+    // with the legacy interaction switch as well. Keep this synchronous and
+    // serialized: the switch is process-wide, not task-local.
+    static func readNoninteractively(service: String, keychain: SecKeychain? = nil) throws -> Data? {
+        try LegacyKeychainInteraction.withoutUI {
+            var scope: [CFString: Any] = [kSecAttrService: service]
+            if let keychain { scope[kSecMatchSearchList] = [keychain] }
+            if let persistentRef = try newestPersistentRef(scope: scope) {
+                return try readData(persistentRef: persistentRef)
+            }
+            return try copyData(query: nonInteractiveQuery(scope.merging([
+                kSecClass: kSecClassGenericPassword,
+                kSecMatchLimit: kSecMatchLimitOne,
+                kSecReturnData: true,
+            ]) { _, new in new }))
         }
-        return try readData(service: serviceName)
     }
 
-    private static func newestClaudeCodePersistentRef() throws -> Data? {
-        let authContext = LAContext()
-        authContext.interactionNotAllowed = true
-        let query: [CFString: Any] = [
+    private static func newestPersistentRef(scope: [CFString: Any]) throws -> Data? {
+        let query = nonInteractiveQuery(scope.merging([
             kSecClass: kSecClassGenericPassword,
-            kSecAttrService: serviceName,
             kSecMatchLimit: kSecMatchLimitAll,
             kSecReturnAttributes: true,
             kSecReturnPersistentRef: true,
-            kSecUseAuthenticationContext: authContext,
-        ]
+        ]) { _, new in new })
 
         var result: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
         switch status {
         case errSecSuccess:
             break
-        case errSecItemNotFound, errSecInteractionNotAllowed:
+        case errSecItemNotFound, errSecInteractionNotAllowed, errSecUserCanceled, errSecAuthFailed:
             return nil
         default:
             throw ClaudeOAuthKeychainError(status: status)
@@ -122,16 +130,6 @@ public struct ClaudeOAuthKeychainReader: Sendable {
         return try copyData(query: query)
     }
 
-    private static func readData(service: String) throws -> Data? {
-        let query = nonInteractiveQuery([
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecMatchLimit: kSecMatchLimitOne,
-            kSecReturnData: true,
-        ])
-        return try copyData(query: query)
-    }
-
     /// Claude Code owns this item, so background recovery must never ask the
     /// user to grant AIQuota access. A protected item simply falls through to
     /// AIQuota's WebKit sign-in path.
@@ -154,6 +152,23 @@ public struct ClaudeOAuthKeychainReader: Sendable {
         default:
             throw ClaudeOAuthKeychainError(status: status)
         }
+    }
+}
+
+enum LegacyKeychainInteraction {
+    private static let lock = NSLock()
+
+    static func withoutUI<T>(_ operation: () throws -> T) throws -> T {
+        lock.lock()
+        defer { lock.unlock() }
+
+        var previouslyAllowed: DarwinBoolean = false
+        let readStatus = SecKeychainGetUserInteractionAllowed(&previouslyAllowed)
+        guard readStatus == errSecSuccess else { throw ClaudeOAuthKeychainError(status: readStatus) }
+        let disableStatus = SecKeychainSetUserInteractionAllowed(false)
+        guard disableStatus == errSecSuccess else { throw ClaudeOAuthKeychainError(status: disableStatus) }
+        defer { SecKeychainSetUserInteractionAllowed(previouslyAllowed.boolValue) }
+        return try operation()
     }
 }
 

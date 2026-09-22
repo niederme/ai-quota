@@ -50,6 +50,9 @@ public actor ClaudeAuthCoordinator {
     private var capturedCookies: [HTTPCookie] = []
     private var cachedOAuthCredentials: ClaudeOAuthCredentials?
     private var oauthDisabledForSession = false
+    // A failed keychain read is not a reason to retry on every popover open.
+    // File credentials remain discoverable; explicit Sign In permits another read.
+    private var keychainLookupFailed = false
 
     // MARK: Logger
 
@@ -177,6 +180,7 @@ public actor ClaudeAuthCoordinator {
         }
 
         transition(to: .signingIn)
+        keychainLookupFailed = false
 
         if restoreFromOAuthCredentials(allowKeychain: true) {
             UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
@@ -428,13 +432,18 @@ public actor ClaudeAuthCoordinator {
             return cachedOAuthCredentials
         }
 
-        guard allowKeychain else {
+        guard allowKeychain, !keychainLookupFailed else {
             throw fileError ?? ClaudeOAuthCredentialsError.notFound
         }
 
-        let credentials = try oauthCredentialsLoader(true)
-        cachedOAuthCredentials = credentials
-        return credentials
+        do {
+            let credentials = try oauthCredentialsLoader(true)
+            cachedOAuthCredentials = credentials
+            return credentials
+        } catch {
+            keychainLookupFailed = true
+            throw error
+        }
     }
 
     /// Cheap non-interactive check for usable Claude Code credentials (file or

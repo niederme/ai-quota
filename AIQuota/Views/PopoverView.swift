@@ -162,8 +162,35 @@ struct PopoverView: View {
             }
         } else if viewModel.isClaudeRecovering {
             loadingGauge(icon: "logo-claude", label: "Claude Code")
+        } else if let lastUsage = viewModel.claudeUsage {
+            VStack(spacing: 6) {
+                Image("logo-claude")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 22, height: 22)
+                Text("Claude Code").font(.headline)
+                Text("Last known usage")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(lastUsage.primaryMetric.utilization.map {
+                    "\(lastUsage.primaryMetricLabel): \(Int($0.rounded()))% used"
+                } ?? "Usage unavailable")
+                    .font(.subheadline.monospacedDigit())
+                Text("Out of date")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                Text(lastUsage.fetchedAt, format: .dateTime.month(.abbreviated).day().hour().minute())
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Button("Reconnect Claude") { Task { await viewModel.signInClaude() } }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .disabled(viewModel.claudeState == .signingIn)
+            }
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 8)
         } else {
-            connectGauge(icon: "logo-claude", label: "Claude Code") {
+            connectGauge(icon: "logo-claude", label: "Claude Code", buttonTitle: "Reconnect") {
                 Task { await viewModel.signInClaude() }
             }
         }
@@ -188,7 +215,7 @@ struct PopoverView: View {
     private var statsRow: some View {
         let bothEnrolled = viewModel.isCodexEnrolled && viewModel.isClaudeEnrolled
         let hasCodexStats = viewModel.isCodexEnrolled && viewModel.codexUsage != nil
-        let hasClaudeStats = viewModel.isClaudeEnrolled && viewModel.claudeUsage != nil
+        let hasClaudeStats = viewModel.isClaudeEnrolled && viewModel.isClaudeAuthenticated && viewModel.claudeUsage != nil
 
         if hasCodexStats || hasClaudeStats {
             Divider()
@@ -264,7 +291,7 @@ struct PopoverView: View {
         return lines.joined(separator: "\n")
     }
 
-    private func connectGauge(icon: String, label: String, action: @escaping () -> Void) -> some View {
+    private func connectGauge(icon: String, label: String, buttonTitle: String = "Connect", action: @escaping () -> Void) -> some View {
         VStack(spacing: 4) {
             ZStack {
                 Circle()
@@ -288,7 +315,7 @@ struct PopoverView: View {
                 }
                 VStack {
                     Spacer()
-                    Button("Connect", action: action)
+                    Button(buttonTitle, action: action)
                         .buttonStyle(.bordered)
                         .controlSize(.small)
                         .padding(.bottom, 2)
@@ -462,7 +489,7 @@ struct PopoverView: View {
 
     @ViewBuilder private var header: some View {
         HStack(spacing: 8) {
-            Image(nsImage: NSApp.applicationIconImage)
+            Image("AppBrandIcon")
                 .resizable()
                 .frame(width: 20, height: 20)
             Text("AIQuota").font(.headline)
@@ -520,7 +547,7 @@ struct PopoverView: View {
     private var signInContent: some View {
         VStack(spacing: 0) {
             VStack(spacing: 24) {
-                Image(nsImage: NSApp.applicationIconImage)
+                Image("AppBrandIcon")
                     .resizable()
                     .frame(width: 60, height: 60)
                 VStack(spacing: 5) {

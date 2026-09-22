@@ -160,12 +160,14 @@ struct AIQuotaApp: App {
                 worstPercent: max(used, secondary)
             )
         case .claude:
-            let used = viewModel.claudeUsage?.usedPercent ?? 0
-            let secondary = Int(viewModel.claudeUsage?.sevenDayUtilization?.rounded() ?? 0)
+            // Disconnected cached readings are shown only in the stale reconnect card.
+            let usage = viewModel.isClaudeAuthenticated ? viewModel.claudeUsage : nil
+            let used = usage?.usedPercent ?? 0
+            let secondary = Int(usage?.sevenDayUtilization?.rounded() ?? 0)
             return MenuBarGaugeInput(
                 usedPercent: used,
                 secondaryPercent: secondary,
-                limitReached: viewModel.claudeUsage?.limitReached ?? false,
+                limitReached: usage?.limitReached ?? false,
                 isLoading: viewModel.isLoading,
                 worstPercent: max(used, secondary)
             )

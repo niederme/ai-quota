@@ -102,6 +102,63 @@ struct ClaudeAuthCoordinatorTests {
         #expect(credentials.accessToken == "keychain-token")
     }
 
+    @Test("blocked keychain is tried once across repeated recovery and availability checks")
+    func blockedKeychainDoesNotLoop() async throws {
+        let reads = LockIsolated(0)
+        let sut = makeSUT(probe: { .notFound }, oauthCredentialsLoader: { allowKeychain in
+            if allowKeychain { reads.withLock { $0 += 1 } }
+            throw ClaudeOAuthCredentialsError.notFound
+        })
+        await sut.bootstrap()
+        for _ in 0..<3 {
+            #expect(await sut.restoreWithoutPromptIfPossible() == false)
+            #expect(await sut.hasUsableOAuthCredentials() == false)
+        }
+        #expect(reads.value == 1)
+    }
+
+    @Test("explicit reconnect retries keychain once then falls back to web sign-in")
+    func explicitReconnectAfterBlockedKeychain() async throws {
+        let reads = LockIsolated(0)
+        let logins = LockIsolated(0)
+        let sut = makeSUT(
+            probe: { .notFound },
+            oauthCredentialsLoader: { allowKeychain in
+                if allowKeychain { reads.withLock { $0 += 1 } }
+                throw ClaudeOAuthCredentialsError.notFound
+            },
+            loginWindowRunner: {
+                logins.withLock { $0 += 1 }
+                return ("web-org", [])
+            }
+        )
+        await sut.bootstrap()
+        #expect(await sut.restoreWithoutPromptIfPossible() == false)
+        try await sut.signIn()
+        #expect(reads.value == 2)
+        #expect(logins.value == 1)
+        #expect(await sut.state == .authenticated)
+        #expect(try await sut.requestContext().orgId == "web-org")
+    }
+
+    @Test("fresh file credentials remain discoverable after a blocked keychain read")
+    func fileRecoveryAfterBlockedKeychain() async throws {
+        let fileAvailable = LockIsolated(false)
+        let reads = LockIsolated(0)
+        let sut = makeSUT(probe: { .notFound }, oauthCredentialsLoader: { allowKeychain in
+            if allowKeychain { reads.withLock { $0 += 1 } }
+            if fileAvailable.value { return Self.oauthCredentials(accessToken: "new-file-token") }
+            throw ClaudeOAuthCredentialsError.notFound
+        })
+        await sut.bootstrap()
+        #expect(await sut.restoreWithoutPromptIfPossible() == false)
+        fileAvailable.withLock { $0 = true }
+        #expect(await sut.hasUsableOAuthCredentials())
+        #expect(await sut.restoreWithoutPromptIfPossible())
+        #expect(reads.value == 1)
+        #expect(await sut.state == .authenticated)
+    }
+
     @Test("post-bootstrap recovery accepts an already authenticated session")
     func postBootstrapRecoveryAcceptsAuthenticatedSession() async throws {
         let probeCalls = LockIsolated(0)

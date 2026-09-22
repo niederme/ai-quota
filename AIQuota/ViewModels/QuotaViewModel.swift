@@ -252,9 +252,12 @@ final class QuotaViewModel {
                             self.startAutoRefresh()
                         }
                     }
-                    if state == .signedOutByUser ||
-                        (state == .unauthenticated && !self.isClaudeRecoveryPending) {
+                    if state == .signedOutByUser {
                         self.clearClaudeUsageSnapshot()
+                    } else if state == .unauthenticated && !self.isClaudeRecoveryPending {
+                        self.claudeRefreshGeneration += 1
+                        self.isClaudeLoading = false
+                        // Keep the last reading for the explicitly stale reconnect UI.
                     }
                 }
             }
@@ -339,7 +342,7 @@ final class QuotaViewModel {
         guard await claudeCoordinator.restoreWithoutPromptIfPossible(allowSignedOutByUser: true) else {
             logger.notice("[ClaudeRecovery] viewModel restore failed")
             claudeRecoveryExhausted = true
-            clearClaudeUsageSnapshot()
+            isClaudeLoading = false
             return
         }
 
@@ -644,8 +647,8 @@ final class QuotaViewModel {
                 enabled: settings.notifications.enabled && settings.notifications.claudeEnabled)
         } catch let e as NetworkError {
             if e.isAuthError {
-                claudeUsage = nil
-                SharedDefaults.clearClaudeUsage()
+                // Preserve the last reading while reconnecting. Explicit sign-out
+                // still clears it; the popover labels disconnected readings stale.
                 // Session may have expired — sync fresh cookies and retry the fetch
                 // once. Using a direct retry (not recursion) avoids an infinite loop
                 // if the session is genuinely invalid.
@@ -865,6 +868,9 @@ final class QuotaViewModel {
     func signInClaude() async {
         do {
             try await claudeCoordinator.signIn()
+            // A deliberate sign-in may select another account. Do not present the
+            // previous account's cached reading as current while its first fetch runs.
+            clearClaudeUsageSnapshot()
             // Propagate auth state synchronously before refreshClaude() checks isClaudeAuthenticated.
             // The stateStream observer will also fire, but may lag behind by one async hop.
             claudeState = .authenticated
@@ -903,6 +909,9 @@ final class QuotaViewModel {
     func signOutClaude() {
         Task {
             try? await claudeCoordinator.signOut()
+            // signOut is a no-op when the session already expired; still discard
+            // the last-known snapshot on this explicit user action.
+            clearClaudeUsageSnapshot()
             await NotificationManager.shared.clearResetHistory(for: .claude)
             self.enrolledServices.remove(.claude)
             SharedDefaults.unenrollService(.claude)
