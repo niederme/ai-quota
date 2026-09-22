@@ -58,8 +58,10 @@ def artwork(dark):
             if layer.get('hidden'): continue
             for original in ET.parse(ICON/'Assets'/layer['image-name']).getroot():
                 shape = copy.deepcopy(original)
-                if 'Track' in layer['name'] and not dark:
-                    shape.set('fill-opacity','0.55')
+                if 'Track' in layer['name']:
+                    # Resolved UIKit quaternarySystemFill, light and dark.
+                    shape.set('fill', '#767680' if dark else '#747480')
+                    shape.set('fill-opacity', '0.18' if dark else '0.08')
                 if layer['name'] == 'Spark' and not dark:
                     shape.set('fill', color('OverviewAccent',False))
                 result.append(shape)
