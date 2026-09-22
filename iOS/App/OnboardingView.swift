@@ -86,15 +86,6 @@ struct OnboardingView: View {
                     switch progress.step {
                     case .welcome:
                         OnboardingWelcome()
-                        if !codex.isDemo {
-                        Button("Try demo") {
-                            progress.dismiss()
-                            dismiss()
-                            setDemoEnabled(true)
-                        }.modifier(OnboardingSecondaryButtonStyle())
-                        Text("Explore sample usage without signing in.")
-                            .font(.footnote).foregroundStyle(OverviewStyle.secondary)
-                        }
                     case .services:
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Connect your services").font(.title.bold())
@@ -159,27 +150,41 @@ struct OnboardingView: View {
                 .frame(maxWidth: .infinity)
             }
             .safeAreaInset(edge: .bottom) {
-                HStack {
-                    if progress.step != .welcome {
-                        Button("Back", systemImage: "chevron.left") {
-                            let index = OnboardingProgress.order.firstIndex(of: progress.step) ?? 0
-                            progress.setStep(OnboardingProgress.order[max(0, index - 1)])
-                        }.modifier(OnboardingSecondaryButtonStyle())
+                HStack(spacing: 12) {
+                    HStack(spacing: 0) {
+                        if progress.step == .welcome {
+                            if !codex.isDemo {
+                                Button("Try Demo") {
+                                    progress.dismiss()
+                                    dismiss()
+                                    setDemoEnabled(true)
+                                }.modifier(OnboardingSecondaryButtonStyle())
+                            }
+                        } else {
+                            Button("Back", systemImage: "chevron.left") {
+                                let index = OnboardingProgress.order.firstIndex(of: progress.step) ?? 0
+                                progress.setStep(OnboardingProgress.order[max(0, index - 1)])
+                            }.modifier(OnboardingSecondaryButtonStyle())
+                        }
                     }
-                    Spacer()
+                    .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
                     HStack(spacing: 6) {
                         ForEach(OnboardingProgress.order, id: \.rawValue) { step in
                             Circle().fill(step == progress.step ? OverviewStyle.accent : OverviewStyle.track).frame(width: 6, height: 6)
                         }
-                    }.accessibilityLabel("Step \((OnboardingProgress.order.firstIndex(of: progress.step) ?? 0) + 1) of 5")
-                    Spacer()
-                    if progress.step != .complete {
-                    Button("Continue") {
-                        let index = OnboardingProgress.order.firstIndex(of: progress.step) ?? 0
-                        progress.setStep(OnboardingProgress.order[index + 1])
-                    }.modifier(OnboardingPrimaryButtonStyle())
-                        .disabled(!progress.canAdvance(hasConnectedService: codex.connected || claude.connected))
                     }
+                    .fixedSize()
+                    .accessibilityLabel("Step \((OnboardingProgress.order.firstIndex(of: progress.step) ?? 0) + 1) of 5")
+                    HStack(spacing: 0) {
+                        if progress.step != .complete {
+                            Button("Continue") {
+                                let index = OnboardingProgress.order.firstIndex(of: progress.step) ?? 0
+                                progress.setStep(OnboardingProgress.order[index + 1])
+                            }.modifier(OnboardingPrimaryButtonStyle())
+                                .disabled(!progress.canAdvance(hasConnectedService: codex.connected || claude.connected))
+                        }
+                    }
+                    .frame(minWidth: 0, maxWidth: .infinity, alignment: .trailing)
                 }.padding(20)
             }
             .background { BrandSurfaceBackground().ignoresSafeArea() }

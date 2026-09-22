@@ -64,13 +64,15 @@ struct OverviewView: View {
                         if codex.connected {
                             ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 780) - 32, reading: codex.reading,
                                              connected: codex.connected, busy: codex.busy, error: codex.error, failure: codex.connectionFailure,
-                                             history: codex.history, historyUnavailable: codex.historyUnavailable) {
+                                             history: codex.history, historyUnavailable: codex.historyUnavailable,
+                                             onReconnect: { selectedService = .codexAccount }) {
                                 selectedService = .codex
                             }
                         }
                         if claude.connected {
                             ProviderDialCard(name: "Claude", icon: "logo-claude", availableWidth: min(geometry.size.width, 780) - 32, reading: claude.reading,
-                                             connected: claude.connected, busy: claude.busy, error: claude.error, failure: claude.connectionFailure) {
+                                             connected: claude.connected, busy: claude.busy, error: claude.error, failure: claude.connectionFailure,
+                                             onReconnect: { selectedService = .claudeAccount }) {
                                 selectedService = .claude
                             }
                         }
@@ -161,8 +163,10 @@ struct OverviewView: View {
                 hasExistingInstallation: existingInstallation)
         }
         .sheet(item: $selectedService) { service in
-            ServiceAccountSheet(showsClose: service == .settings || (service == .codex ? !codex.connected : !claude.connected)) {
+            ServiceAccountSheet(showsClose: service == .settings || service == .codexAccount || service == .claudeAccount || (service == .codex ? !codex.connected : !claude.connected)) {
                 switch service {
+                case .codexAccount: ProbeView(model: codex)
+                case .claudeAccount: ClaudeProbeView(model: claude)
                 case .settings:
                     MobileSettingsView(codex: codex, claude: claude, onboarding: onboarding)
                 case .codex:
@@ -232,7 +236,7 @@ struct OverviewView: View {
 }
 
 private enum OverviewService: String, Identifiable {
-    case codex, claude, settings
+    case codex, claude, settings, codexAccount, claudeAccount
     var id: String { rawValue }
 }
 
@@ -661,11 +665,12 @@ struct ProviderDialCard: View {
     var failure: SharedQuotaStore.Failure? = nil
     var history: CodexUsageHistory? = nil
     var historyUnavailable = false
+    var onReconnect: (() -> Void)? = nil
     let onOpen: () -> Void
     var body: some View {
         ProviderDialCardContent(name: name, icon: icon, availableWidth: availableWidth,
             reading: reading, connected: connected, busy: busy, error: error, failure: failure,
-            onOpen: onOpen, history: history, historyUnavailable: historyUnavailable)
+            onOpen: onOpen, onReconnect: onReconnect, history: history, historyUnavailable: historyUnavailable)
     }
 }
 
@@ -747,12 +752,14 @@ struct ProviderDialCardContent: View {
     let error: String?
     var failure: SharedQuotaStore.Failure? = nil
     var onOpen: (() -> Void)? = nil
+    var onReconnect: (() -> Void)? = nil
     var history: CodexUsageHistory? = nil
     var historyUnavailable = false
     var largeDial = false
     @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .body) private var dialSize = 124.0
+    private var needsReconnect: Bool { !connected || failure == .reconnect || failure == .renewal }
     private var worst: Double { max(reading?.shortTerm?.usedPercent ?? 0, reading?.weekly?.usedPercent ?? 0) }
     private var tint: Color {
         if !connected || failure != nil || error != nil { return OverviewStyle.secondary }
@@ -764,7 +771,7 @@ struct ProviderDialCardContent: View {
     private var usesColumns: Bool { !typeSize.isAccessibilitySize && availableWidth >= min(dialSize, 200) + 180 }
 
     var body: some View {
-        if let onOpen {
+        if let onOpen, !needsReconnect {
             Button(action: onOpen) { cardContent }
                 .buttonStyle(.plain)
                 .accessibilityHint("Opens \(name) service sheet")
@@ -817,8 +824,10 @@ struct ProviderDialCardContent: View {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(name).unredacted().modifier(OverviewDetailType(title: true)).foregroundStyle(OverviewStyle.primary)
                 Spacer(minLength: 0)
-                OverviewCircularSymbol(systemName: "chevron.right.circle.fill")
-                    .foregroundStyle(OverviewStyle.tertiary).accessibilityHidden(true)
+                if !needsReconnect {
+                    OverviewCircularSymbol(systemName: "chevron.right.circle.fill")
+                        .foregroundStyle(OverviewStyle.tertiary).accessibilityHidden(true)
+                }
             }
             Text(connected ? (reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported") : "Not connected")
                 .modifier(OverviewDetailType(weight: .regular)).foregroundStyle(OverviewStyle.secondary)
@@ -832,9 +841,12 @@ struct ProviderDialCardContent: View {
                     Text(statusText).font(.footnote).foregroundStyle(OverviewStyle.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-            } else {
-                Label("Connect", systemImage: "plus.circle")
-                    .font(.subheadline.weight(.semibold)).foregroundStyle(OverviewStyle.accent)
+            }
+            if needsReconnect, let reconnect = onReconnect ?? onOpen {
+                Button(connected ? "Reconnect" : "Connect", action: reconnect)
+                    .modifier(OnboardingPrimaryButtonStyle())
+                    .disabled(busy)
+                    .accessibilityHint("Opens \(name) account and connection")
             }
         }.frame(maxWidth: .infinity, alignment: .leading)
     }

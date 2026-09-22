@@ -9,7 +9,7 @@ final class DemoFlowTests: XCTestCase {
         if app.buttons["Exit demo"].firstMatch.waitForExistence(timeout: 3) {
             app.buttons["Exit demo"].firstMatch.tap()
         }
-        let tryDemo = app.buttons["Try demo"].firstMatch
+        let tryDemo = app.buttons["Try Demo"].firstMatch
         XCTAssertTrue(tryDemo.waitForExistence(timeout: 10))
         // Verify the real onboarding controls before entering the demo.
         app.buttons["Continue"].tap()
