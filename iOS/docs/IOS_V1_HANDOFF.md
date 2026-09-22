@@ -55,3 +55,14 @@ The review-account notes are a draft. Real passwords and unused backup codes
 belong only in App Store Connect. Free Codex usage was observed working; the
 tested free Claude account was blocked by the provider's Pro/Max requirement.
 Demo coverage does not establish live reviewer access or App Review approval.
+
+## TestFlight build 34
+
+Version 0.1.0 (34) archived and uploaded successfully on September 22, 2026,
+from codex/ios-gradient-splash with the approved Figma artwork. The archive
+contains SplashScreen.storyboardc and selects it in Info.plist. Apple had not
+yet exposed build 34 at the initial processing check. Upload reported a missing
+GoogleAppMeasurement dSYM warning but completed successfully.
+
+Release record: `/Users/niederme/Library/Logs/AIQuota/TestFlight/2026-09-22-170055-996e87`.
+Resume status checks with `python3 scripts/testflight.py status --run /Users/niederme/Library/Logs/AIQuota/TestFlight/2026-09-22-170055-996e87 --wait 0`. Do not upload again for processing delays.
