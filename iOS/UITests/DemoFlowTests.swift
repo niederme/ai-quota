@@ -38,6 +38,16 @@ final class DemoFlowTests: XCTestCase {
         app.buttons["Continue"].tap()
         let finish = app.buttons["Return to demo"]
         XCTAssertTrue(finish.waitForExistence(timeout: 5))
+        let consent = app.switches["analyticsConsent"].firstMatch
+        XCTAssertTrue(consent.exists)
+        XCTAssertEqual(consent.value as? String, "0")
+        consent.tap()
+        XCTAssertEqual(consent.value as? String, "1")
+        XCTAssertTrue(app.staticTexts["Demo settings are temporary. No usage data will be sent."].exists)
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "Analytics consent in guided setup"
+        attachment.lifetime = .keepAlways
+        add(attachment)
         finish.tap()
         let exit = app.buttons["Exit demo"].firstMatch
         XCTAssertTrue(exit.waitForExistence(timeout: 5))

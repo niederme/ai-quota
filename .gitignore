@@ -37,3 +37,6 @@ AIQuota/Resources/Analytics.plist
 
 # Firebase app config (local-only even though the values are non-secret)
 AIQuota/Resources/GoogleService-Info.plist
+
+# iOS Firebase configuration is provided locally for release builds.
+iOS/Resources/GoogleService-Info.plist

@@ -69,7 +69,7 @@ history lives in the [iOS development history](../iOS/HISTORY.md).
 
 **Later**
 
-- [ ] Optional analytics with explicit consent; no iOS collection is implemented.
+- [x] Optional anonymous analytics with explicit consent in Settings and guided setup, matching Mac. Release builds require the local Firebase configuration.
 
 ### Shared exploration
 
