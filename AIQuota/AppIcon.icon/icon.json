@@ -1,40 +1,107 @@
 {
-  "fill-specializations" : [
+  "fill-specializations": [
     {
-      "value" : {
-        "solid" : "display-p3:0.08235,0.06667,0.16078,1.00000"
+      "value": {
+        "automatic-gradient": "display-p3:0.16000,0.12000,0.29000,1.00000"
       }
     },
     {
-      "appearance" : "dark",
-      "value" : {
-        "automatic-gradient" : "display-p3:0.08235,0.06667,0.16078,1.00000"
+      "appearance": "dark",
+      "value": {
+        "automatic-gradient": "display-p3:0.06500,0.05000,0.13000,1.00000"
       }
     }
   ],
-  "groups" : [
+  "groups": [
     {
-      "layers" : [
+      "name": "Indicators",
+      "layers": [
         {
-          "glass" : false,
-          "image-name" : "AiQuota Icon.svg",
-          "name" : "AiQuota Icon"
+          "glass": true,
+          "image-name": "Outer Indicator.svg",
+          "name": "Outer Indicator"
+        },
+        {
+          "glass": true,
+          "image-name": "Inner Indicator.svg",
+          "name": "Inner Indicator"
         }
       ],
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.5
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.16
       },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.5
+      "translucency": {
+        "enabled": true,
+        "value": 0.85
+      }
+    },
+    {
+      "name": "Spark",
+      "layers": [
+        {
+          "glass": true,
+          "image-name": "Spark.svg",
+          "name": "Spark"
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.16
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.12
+      }
+    },
+    {
+      "name": "Quota Arcs",
+      "layers": [
+        {
+          "glass": true,
+          "image-name": "Outer Quota.svg",
+          "name": "Outer Quota"
+        },
+        {
+          "glass": true,
+          "image-name": "Inner Quota.svg",
+          "name": "Inner Quota"
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.16
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.85
+      }
+    },
+    {
+      "name": "Track Beds",
+      "layers": [
+        {
+          "glass": false,
+          "image-name": "Outer Track.svg",
+          "name": "Outer Track"
+        },
+        {
+          "glass": false,
+          "image-name": "Inner Track.svg",
+          "name": "Inner Track"
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0
       }
     }
   ],
-  "supported-platforms" : {
-    "circles" : [
-      "watchOS"
-    ],
-    "squares" : "shared"
+  "supported-platforms": {
+    "squares": "shared"
   }
 }
