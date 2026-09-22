@@ -33,7 +33,7 @@
       },
       "translucency": {
         "enabled": true,
-        "value": 0.85
+        "value": 1.0
       }
     },
     {
@@ -51,30 +51,30 @@
       },
       "translucency": {
         "enabled": true,
-        "value": 0.12
+        "value": 0.65
       }
     },
     {
       "name": "Quota Arcs",
       "layers": [
         {
-          "glass": true,
+          "glass": false,
           "image-name": "Outer Quota.svg",
           "name": "Outer Quota"
         },
         {
-          "glass": true,
+          "glass": false,
           "image-name": "Inner Quota.svg",
           "name": "Inner Quota"
         }
       ],
       "shadow": {
         "kind": "neutral",
-        "opacity": 0.16
+        "opacity": 0
       },
       "translucency": {
-        "enabled": true,
-        "value": 0.85
+        "enabled": false,
+        "value": 0
       }
     },
     {
