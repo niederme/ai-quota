@@ -71,6 +71,36 @@ final class SharedQuotaStoreTests: XCTestCase {
         XCTAssertNil(store.failure())
         try await clean(store)
     }
+    func testResetClearsClaudeCooldownAndWidgetCannotRestoreFailure() async throws {
+        let store = store(.claude)
+        try await store.withLease { try store.saveCredentials(credentials()) }
+        do {
+            _ = try await store.fetch(CodexTokens.self, source: "app", renew: { $0 }, usage: { _ in
+                throw ClaudeAccessError.requestFailed(stage: "usage update", status: 429)
+            })
+            XCTFail("Expected rate limit")
+        } catch { }
+        XCTAssertTrue(store.updatesPaused)
+        try await store.withLease { try store.clear() }
+        XCTAssertFalse(store.updatesPaused)
+        XCTAssertNil(store.failure())
+        do {
+            _ = try await store.fetch(CodexTokens.self, source: "widget", renew: { $0 }, usage: { _ in
+                XCTFail("Signed-out refresh must not call the provider")
+                return try sample()
+            })
+            XCTFail("Expected signed-out refresh to stop")
+        } catch { }
+        XCTAssertNil(store.failure())
+        XCTAssertNil(try store.load(CodexTokens.self))
+        let restored = await ClaudeProbeModel(shared: store)
+        let failure = await restored.connectionFailure
+        let connected = await restored.connected
+        XCTAssertNil(failure)
+        XCTAssertFalse(connected)
+        try await clean(store)
+    }
+
     func testUnexpiredTokenRenewsOnceAfter401() async throws {
         let store = store(), calls = UnauthorizedCalls()
         try await store.withLease { try store.saveCredentials(credentials()) }

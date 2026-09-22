@@ -330,7 +330,7 @@ struct LockScreenSetupView: View {
 }
 
 // Native controls inherit the brand tint and system Liquid Glass appearance.
-private struct OnboardingPrimaryButtonStyle: ViewModifier {
+struct OnboardingPrimaryButtonStyle: ViewModifier {
     func body(content: Content) -> some View {
         if #available(iOS 26.0, *) {
             content.buttonStyle(.glassProminent).controlSize(.large)
@@ -340,7 +340,7 @@ private struct OnboardingPrimaryButtonStyle: ViewModifier {
     }
 }
 
-private struct OnboardingSecondaryButtonStyle: ViewModifier {
+struct OnboardingSecondaryButtonStyle: ViewModifier {
     func body(content: Content) -> some View {
         if #available(iOS 26.0, *) {
             content.buttonStyle(.glass).controlSize(.large)

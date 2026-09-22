@@ -16,8 +16,8 @@ for typography, colors, materials, and gauge proportions.
 
 Open [`AIQuota.xcodeproj`](../AIQuota.xcodeproj) from the repository root and select the `AIQuota-iOS` scheme.
 
-The scheme builds `AIQuota-iOS` and its `AIQuotaWidget-iOS` extension, and runs
-`AIQuota-iOSTests`. Shared iOS models and networking live in
+The scheme builds `AIQuota-iOS`, the `AIQuotaWidget-iOS` widget extension, and
+the `AIQuotaCopySignInCode-iOS` action extension, and runs `AIQuota-iOSTests`. Shared iOS models and networking live in
 [`Packages/MobileAccessCore`](../Packages/MobileAccessCore). The `iOS/project.yml`
 file is included by the root spec; it is not a standalone project.
 
@@ -34,19 +34,47 @@ copy. The old prototype installation can be removed separately. The iOS app uses
 the Mac's native Icon Composer asset.
 
 
+## Codex reset announcements
+
+The overview shows a dismissible notice above a connected Codex account when the
+[Codex Resets public API](https://codex-resets.com/api/docs) reports a current
+announcement or hint sourced to a `thsottiaux` X post. Explicit announcements,
+possible resets, and banked reset credits have different wording. Each notice
+opens Codex Resets in an in-app browser for attribution and details. The copy is
+“Codex usage reset announced,” “Codex usage may reset soon,” or “Codex reset credit
+announced,” depending on the source. Historical averages and probabilities never
+trigger a notice or appear in the UI. The banner uses the same Liquid Glass
+material as quota cards, with a matching circular dismiss icon. Existing notices
+show a skeleton while usage or the announcement feed refreshes; unknown or
+ineligible announcements do not create placeholder cards.
+
+The app checks the public status endpoint at most every 15 minutes while active,
+honors rate-limit backoff, and sends no account credentials. Notices disappear on
+fetch failure, after the source data is 30 minutes old, at the reported deadline,
+or when the feed reports execution. A missing deadline expires after 24 hours;
+all notices have a 72-hour maximum age. Expiry is not proof of a completed reset.
+Dismissal persists for that announcement and clears with Reset All Settings.
+This feature does not change quota readings or schedule notifications.
+
 ## Authentication and recovery
 
 Codex uses device-code sign-in. The user may need to enable device-code authorization
-on the ChatGPT website under Security and login. The app links to that website in
-an in-app browser; the corresponding control may not appear in the ChatGPT iOS app.
-The Codex code-entry page uses a retained WebKit view and persistent website
-storage. Closing and reopening the sheet during an active attempt resumes the
-same page without loading the sign-in URL again. The code and a labeled Copy code
-button sit above the page and keyboard. OpenAI still controls cookie expiration
-and reauthentication. Disconnect and Reset All Settings clear this website data.
-A system-browser fallback remains available for Google sign-in, which does not
-support embedded WebKit authorization; that fallback uses the copy-code extension.
-Real provider login, reopening, and keyboard layout remain device checks.
+on the ChatGPT website under Security and login. The settings button opens
+`https://chatgpt.com/#settings/Security` externally via the system URL handler.
+The user verified that link in regular Safari; it opened only the homepage in the
+in-app browser. The corresponding control may not appear in the ChatGPT iOS app.
+The Codex intro prepares and displays a device code. Only tapping **Copy code and
+continue** copies it and opens the sign-in modal; preparing a code never launches
+the browser automatically. Closing and reopening the same attempt retains its
+`SFSafariViewController`, supporting system-browser Apple sign-in, Google sign-in,
+and passkeys. Copying the code first lets users paste it even when the keyboard
+hides Safari's toolbar. The toolbar action displays the code and the Share menu
+offers another copy action. The toolbar extension is a non-UI action with haptic
+and accessibility feedback, so copying does not open a blank confirmation modal. Safari owns website credentials and cookies;
+clearing AIQuota's connection does not clear Safari's website session.
+Closing, copying, and reopening the same attempt have been exercised on the
+owner's phone. Face ID, every provider login variant, and the non-UI copy action
+still require end-to-end device coverage before release.
 
 Claude uses browser authorization, PKCE, and manually pasted `code#state`.
 State must match the current attempt, which expires after 15 minutes. The app
@@ -68,6 +96,12 @@ usage request fails. Reconnect retains the old credentials and reading until a n
 sign-in succeeds. Disconnect explicitly removes the local connection and reading;
 it does not revoke authorization at the provider.
 
+Reset All Settings also clears shared refresh cooldowns, saved failure states,
+notification preferences, and the reset-banner dismissal. Models return to fresh
+setup messaging. A widget refresh after reset cannot recreate a reconnect warning
+when credentials are absent. Browser-owned website sessions and system notification
+permission are outside the app's local settings reset.
+
 Claude errors distinguish sign-in, renewal, and usage requests. A known
 `invalid_grant` renewal response requests reconnection; other HTTP 400 responses
 are not assumed to mean expired credentials. Raw response bodies and tokens are
@@ -88,6 +122,11 @@ App and widgets preserve the last successful reading and its original timestamp
 after failures. Old readings retain normal Lock Screen styling. Reading age and
 errors remain available in the app and accessibility descriptions. Missing windows
 stay unavailable; no reset is inferred merely because an expected reset time passes.
+
+Quota cards and the reset banner use skeleton loading states. Circular close and
+chevron symbols retain circular placeholders, native symbol size, and alignment.
+The loading banner disables its actions and is exposed to accessibility as an
+updating state.
 
 Shared diagnostic records cover attempts, results, and timeline handoff. They do
 not measure when someone looks at a widget or prove exactly when iOS displayed an entry.

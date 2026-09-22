@@ -149,6 +149,23 @@ private struct RejectedCodeTransport: HTTPTransport {
     }
 }
 @MainActor final class ClaudeSignInStateTests: XCTestCase {
+    func testClaudeResetReturnsToFreshSetupState() async throws {
+        let id = UUID().uuidString
+        let store = SharedQuotaStore(.claude, root: FileManager.default.temporaryDirectory.appendingPathComponent(id), namespace: id)
+        let model = ClaudeProbeModel(shared: store, restore: false)
+        model.connect()
+        XCTAssertNotNil(model.challenge)
+        try await model.resetForNewUser()
+        XCTAssertEqual(model.message, "Connect Claude to see your usage.")
+        XCTAssertNil(model.challenge)
+        XCTAssertNil(model.signInCompletionID)
+        XCTAssertNil(model.connectionFailure)
+        XCTAssertNil(model.error)
+        XCTAssertFalse(model.connected)
+        XCTAssertFalse(model.busy)
+        if let root = store.root { try? FileManager.default.removeItem(at: root) }
+    }
+
     func testFailedCodeSubmissionKeepsAttemptForCorrection() async throws {
         let id = UUID().uuidString
         let store = SharedQuotaStore(.claude, root: FileManager.default.temporaryDirectory.appendingPathComponent(id), namespace: id)

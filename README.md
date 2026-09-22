@@ -42,6 +42,16 @@ listed here.
 
 The app includes independent Codex and Claude sign-in, guided onboarding,
 Home Screen and Lock Screen widgets, refresh controls, and per-service alerts.
+Codex sign-in uses one **Copy code and continue** action and retains the browser
+when you close and reopen the same attempt. **Reset All Settings** clears local
+connections, cached usage, and preferences so setup starts fresh.
+
+A dismissible notice highlights current Codex reset announcements and hints,
+with details from [Codex Resets](https://codex-resets.com/) opening in the app.
+These notices are separate from your account's actual quota and do not send
+notifications. Cards share the same Liquid Glass treatment and show skeletons
+while refreshing.
+
 Connections are stored on the device. Device testing continues for session
 recovery, background refresh, accessibility, and notification delivery.
 

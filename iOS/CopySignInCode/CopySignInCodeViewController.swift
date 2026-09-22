@@ -1,32 +1,31 @@
 import UIKit
 
-/// Safari invokes this extension directly from its toolbar, leaving the page open.
-final class CopySignInCodeViewController: UIViewController {
-    private var attempted = false
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        guard !attempted else { return }
-        attempted = true
+/// A non-UI action copies the code without asking Safari to present a view controller.
+@MainActor
+final class CopySignInCodeRequestHandler: NSObject, @preconcurrency NSExtensionRequestHandling {
+    private var request: NSExtensionContext?
+
+    func beginRequest(with context: NSExtensionContext) {
+        request = context
         do {
             guard let entry = try SignInCodeStore.load() else {
-                showError("This sign-in code has expired. Return to AIQuota and start sign-in again.")
+                finish("Code unavailable. Start sign-in again in AIQuota.", success: false)
                 return
             }
             UIPasteboard.general.setItems(
                 [[UIPasteboard.typeAutomatic: entry.code]],
                 options: [.localOnly: true, .expirationDate: entry.expiresAt]
             )
-            extensionContext?.completeRequest(returningItems: nil)
+            finish("Code copied", success: true)
         } catch {
-            showError("Couldn’t copy the sign-in code. Return to AIQuota and try again.")
+            finish("Couldn’t copy. Try again in AIQuota.", success: false)
         }
     }
-    private func showError(_ message: String) {
-        view.backgroundColor = .systemBackground
-        let alert = UIAlertController(title: "Copy sign-in code", message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Done", style: .default) { [weak self] _ in
-            self?.extensionContext?.completeRequest(returningItems: nil)
-        })
-        present(alert, animated: true)
+
+    private func finish(_ text: String, success: Bool) {
+        UINotificationFeedbackGenerator().notificationOccurred(success ? .success : .warning)
+        UIAccessibility.post(notification: .announcement, argument: text)
+        request?.completeRequest(returningItems: nil)
+        request = nil
     }
 }

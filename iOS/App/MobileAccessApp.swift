@@ -1,6 +1,5 @@
 import SwiftUI
 import SafariServices
-import WebKit
 import MobileAccessCore
 
 @main
@@ -12,10 +11,11 @@ struct MobileAccessApp: App {
 
 struct ProbeView: View {
     let model: ProbeModel
+    @Environment(\.openURL) private var openURL
+    @State private var preparedSignIn = false
+    @State private var requestedSignIn = false
     @State private var confirmDisconnect = false
-    @State private var showSecuritySettings = false
     @State private var signInPresentation: CodexSignInPresentation?
-    @State private var didCopyCode = false
     @State private var signInBrowser: CodexBrowserSession?
     var body: some View {
         Group {
@@ -23,91 +23,39 @@ struct ProbeView: View {
                 AccountConnectionForm(plan: model.reading?.metadata?.displayPlan,
                     updated: model.reading?.fetchedAt, busy: model.busy,
                     needsReconnect: model.connectionFailure == .reconnect || model.connectionFailure == .renewal,
-                    error: model.error, retry: { model.refresh() }, reconnect: { model.connect() },
+                    error: model.error, retry: { model.refresh() }, reconnect: { beginSignIn() },
                     disconnect: { confirmDisconnect = true })
             } else {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(model.message).font(.callout).accessibilityIdentifier("probe.status")
-                    }
-                    if !model.connected {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Enable device-code sign-in").font(.headline)
-                            Text("Turn on device-code authorization in ChatGPT’s Security settings, then return here to sign in.")
-                                .font(.callout)
-                            Button("Open ChatGPT security settings") {
-                                showSecuritySettings = true
-                            }
-
-                        }
-                    }
-                    if let challenge = model.challenge {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        Text("Sign in to Codex").font(.title2.bold())
                         VStack(alignment: .leading, spacing: 12) {
-                            Text(challenge.userCode).font(.title.monospaced().bold()).textSelection(.enabled)
-                            Button {
-                                UIPasteboard.general.setItems(
-                                    [[UIPasteboard.typeAutomatic: challenge.userCode]],
-                                    options: [.localOnly: true, .expirationDate: Date.now.addingTimeInterval(15 * 60)]
-                                )
-                                didCopyCode = true
-                            } label: {
-                                Label(didCopyCode ? "Copied" : "Copy code",
-                                      systemImage: didCopyCode ? "checkmark" : "doc.on.doc")
+                            Text("Enable device-code authorization in ChatGPT’s Security settings, then return here.")
+                                .font(.body)
+                            Button("Open security settings") {
+                                openURL(URL(string: "https://chatgpt.com/#settings/Security")!)
                             }
-                            .buttonStyle(.bordered)
-                            .accessibilityLabel(didCopyCode ? "Code copied. Copy again" : "Copy sign-in code")
-                            Button("Open OpenAI sign-in") {
-                                if signInBrowser == nil {
-                                    signInBrowser = CodexBrowserSession(url: challenge.verificationURL)
-                                }
-                                if let signInBrowser {
-                                    signInPresentation = CodexSignInPresentation(
-                                        id: challenge.deviceAuthID, session: signInBrowser, code: challenge.userCode)
-                                }
+                                .modifier(OnboardingSecondaryButtonStyle())
+                        }
+                        VStack(alignment: .leading, spacing: 16) {
+                            if let challenge = model.challenge {
+                                Text(challenge.userCode).font(.title.monospaced().bold())
+                                    .textSelection(.enabled)
                             }
-                                .buttonStyle(.borderedProminent)
-                            Text("The sign-in page keeps your code and a Copy code button at the top. You can close and reopen it to resume this attempt.")
-                                .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                            Button("Copy code and continue") { beginSignIn() }
+                                .modifier(OnboardingPrimaryButtonStyle())
+                                .disabled(model.busy && model.challenge == nil)
+                        }
+                        if let error = model.error {
+                            Text(error).font(.footnote).foregroundStyle(OverviewStyle.critical)
                         }
                     }
-
-                    if let error = model.error {
-                        Label(error, systemImage: "exclamationmark.triangle")
-                            .foregroundStyle(OverviewStyle.critical).font(.callout)
-                    }
-                    if model.busy {
-                        HStack { ProgressView(); Button("Cancel") { model.cancel() } }
-                    } else if model.connected {
-                        VStack(alignment: .leading, spacing: 12) {
-                            if model.connectionFailure == .reconnect {
-                                Button("Reconnect Codex") { model.connect() }.buttonStyle(.borderedProminent)
-                                Button("Retry refresh") { model.refresh() }
-                            } else {
-                                Button("Refresh quota") { model.refresh() }.buttonStyle(.borderedProminent)
-                                Button("Reconnect Codex") { model.connect() }
-                            }
-                            if let date = model.renewedAt {
-                                Text("Renewed \(date.formatted(date: .omitted, time: .standard))")
-                                    .font(.caption).foregroundStyle(OverviewStyle.secondary)
-                            }
-                        }
-                    } else {
-                        Button("Connect Codex") { model.connect() }.buttonStyle(.borderedProminent)
-                    }
-                    if model.connected {
-                        Divider().padding(.top, 12)
-                        Button("Disconnect", role: .destructive) { confirmDisconnect = true }
-                            .tint(OverviewStyle.critical).foregroundStyle(OverviewStyle.critical)
-                            .frame(minHeight: 44).disabled(model.busy)
-                    }
+                    .frame(maxWidth: 700, alignment: .leading)
+                    .padding(24)
+                    .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: 700, alignment: .leading)
-                .padding(24)
-                .frame(maxWidth: .infinity)
             }
-            }
-            }
+        }
             .foregroundStyle(OverviewStyle.primary)
             .background(OverviewStyle.base)
             .navigationTitle("Codex account")
@@ -117,16 +65,42 @@ struct ProbeView: View {
             } message: {
                 Text("Removes the local token and saved reading. It does not revoke the connection at OpenAI.")
             }
+        .task {
+            guard !preparedSignIn, !model.connected else { return }
+            preparedSignIn = true
+            // Prepare the displayed code, but leave browser presentation to the button.
+            if model.challenge == nil && !model.busy { model.connect() }
+        }
         .onChange(of: model.challenge?.deviceAuthID) { _, _ in
-            didCopyCode = false
             signInBrowser = nil
             signInPresentation = nil
-        }.sheet(item: $signInPresentation) { presentation in
+            if model.challenge != nil && requestedSignIn { presentSignIn() }
+            if model.challenge == nil { requestedSignIn = false }
+        }.onDisappear { requestedSignIn = false }
+        .sheet(item: $signInPresentation) { presentation in
             CodexSignInSheet(session: presentation.session, code: presentation.code)
-        }.sheet(isPresented: $showSecuritySettings) {
-            ProbeBrowser(url: URL(string: "https://chatgpt.com/#settings/Security")!)
         }.tint(OverviewStyle.accent)
     }
+    private func beginSignIn() {
+        requestedSignIn = true
+        if model.challenge != nil { presentSignIn() }
+        else if !model.busy { model.connect() }
+    }
+
+    private func presentSignIn() {
+        guard requestedSignIn, let challenge = model.challenge else { return }
+        requestedSignIn = false
+        UIPasteboard.general.setItems([[UIPasteboard.typeAutomatic: challenge.userCode]],
+            options: [.localOnly: true, .expirationDate: Date.now.addingTimeInterval(15 * 60)])
+        if signInBrowser == nil {
+            signInBrowser = CodexBrowserSession(url: challenge.verificationURL, code: challenge.userCode)
+        }
+        if let signInBrowser {
+            signInPresentation = CodexSignInPresentation(
+                id: challenge.deviceAuthID, session: signInBrowser, code: challenge.userCode)
+        }
+    }
+
     @ViewBuilder private func windows(_ reading: QuotaReading) -> some View {
         window(reading.shortTerm, unavailableLabel: "Short-term")
         window(reading.weekly, unavailableLabel: "Weekly")
@@ -152,7 +126,7 @@ struct ProbeView: View {
     }
 }
 
-/// Present sign-in and settings pages in the app instead of dispatching external links.
+/// Present sign-in and settings pages in the app.
 /// Safari owns the page and credentials; the probe does not inspect its contents.
 struct ProbeBrowser: UIViewControllerRepresentable {
     let url: URL
@@ -209,62 +183,40 @@ final class CopyCodexSignInCodeActivity: UIActivity {
 }
 
 
-/// Retained across sheet dismissal: reopening does not reload the login page.
+/// Use Safari for third-party passkeys and federated sign-in. A custom WKWebView
+/// requires a relying-party domain association that AIQuota cannot provide.
 @MainActor
-final class CodexBrowserSession: NSObject, ObservableObject, WKNavigationDelegate, WKUIDelegate {
-    let webView: WKWebView
+final class CodexBrowserSession: ObservableObject {
+    let controller: SFSafariViewController
     let initialURL: URL
-    @Published var host = "auth.openai.com"
-    @Published var error: String?
-    @Published var requiresSystemBrowser = false
 
-    init(url: URL) {
+    // Safari supplies the button chrome and interaction. A text template keeps
+    // this action recognizable without relying on an unfamiliar clipboard icon.
+    private static func copyCodeToolbarImage(code: String) -> UIImage {
+        let size = CGSize(width: 44, height: 44)
+        return UIGraphicsImageRenderer(size: size).image { _ in
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.alignment = .center
+            paragraph.lineBreakMode = .byTruncatingTail
+            let split = code.index(code.startIndex, offsetBy: min(5, code.count))
+            let label = String(code[..<split]) + "\n" + String(code[split...])
+            (label as NSString).draw(in: CGRect(x: 0, y: 7, width: 44, height: 30), withAttributes: [
+                .font: UIFont.monospacedSystemFont(ofSize: 11, weight: .semibold),
+                .foregroundColor: UIColor.black,
+                .paragraphStyle: paragraph
+            ])
+        }.withRenderingMode(.alwaysTemplate)
+    }
+
+    init(url: URL, code: String) {
         initialURL = url
-        let configuration = WKWebViewConfiguration()
-        configuration.websiteDataStore = .default()
-        webView = WKWebView(frame: .zero, configuration: configuration)
-        super.init()
-        webView.navigationDelegate = self
-        webView.uiDelegate = self
-        webView.load(URLRequest(url: url))
+        let configuration = SFSafariViewController.Configuration()
+        configuration.barCollapsingEnabled = false
+        configuration.activityButton = SFSafariViewController.ActivityButton(
+            templateImage: Self.copyCodeToolbarImage(code: code),
+            extensionIdentifier: "com.niederme.AIQuota.copySignInCode")
+        controller = SFSafariViewController(url: url, configuration: configuration)
     }
-    func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction,
-                 decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-        guard let url = action.request.url, url.scheme == "https" else {
-            decisionHandler(.cancel)
-            return
-        }
-        if url.host == "accounts.google.com" {
-            requiresSystemBrowser = true
-            decisionHandler(.cancel)
-            return
-        }
-        if action.targetFrame?.isMainFrame != false { host = url.host ?? "Sign in" }
-        decisionHandler(.allow)
-    }
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        host = webView.url?.host ?? "Sign in"
-        error = nil
-    }
-    func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-        if (error as NSError).code != NSURLErrorCancelled {
-            self.error = "Couldn’t load the sign-in page. Try reloading or use the system browser."
-        }
-    }
-    func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
-                 for action: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
-        if action.targetFrame == nil, action.request.url?.scheme == "https",
-           action.request.url?.host != "accounts.google.com" {
-            webView.load(action.request)
-        }
-        return nil
-    }
-}
-
-private struct CodexWebPage: UIViewRepresentable {
-    let session: CodexBrowserSession
-    func makeUIView(context: Context) -> WKWebView { session.webView }
-    func updateUIView(_ uiView: WKWebView, context: Context) {}
 }
 
 /// One value carries both presentation and its required content. A separate Boolean
@@ -278,67 +230,13 @@ struct CodexSignInPresentation: Identifiable {
 struct CodexSignInSheet: View {
     @ObservedObject var session: CodexBrowserSession
     let code: String
-    @Environment(\.dismiss) private var dismiss
-    @State private var copied = false
-    @State private var showSystemBrowser = false
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                ViewThatFits(in: .horizontal) {
-                    HStack { codeLabel; Spacer(); copyButton }
-                    VStack(alignment: .leading, spacing: 8) { codeLabel; copyButton }
-                }
-                .padding().background(.bar)
-                if let error = session.error {
-                    Text(error).font(.callout).padding()
-                }
-                CodexWebPage(session: session)
-            }
-            .navigationTitle(session.host)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
-                ToolbarItem(placement: .primaryAction) {
-                    Menu {
-                        Button("Reload page", systemImage: "arrow.clockwise") { session.webView.reload() }
-                        Button("Use system browser", systemImage: "safari") { showSystemBrowser = true }
-                    } label: { Image(systemName: "ellipsis.circle") }
-                    .accessibilityLabel("Sign-in options")
-                }
-            }
-            .alert("Use the system browser for Google sign-in", isPresented: $session.requiresSystemBrowser) {
-                Button("Open system browser") { showSystemBrowser = true }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Google requires a system browser. Start sign-in there; its copy-code toolbar button remains available.")
-            }
-            .sheet(isPresented: $showSystemBrowser) {
-                ProbeBrowser(url: session.initialURL, retainedController: systemBrowser())
-            }
-        }
-    }
-    private var codeLabel: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text("Codex sign-in code").font(.caption).foregroundStyle(.secondary)
-            Text(code).font(.headline.monospaced()).textSelection(.enabled)
-        }
-    }
-    private var copyButton: some View {
-        Button {
+        ProbeBrowser(url: session.initialURL, retainedController: session.controller,
+                     copySignInCode: {
             UIPasteboard.general.setItems([[UIPasteboard.typeAutomatic: code]],
                 options: [.localOnly: true, .expirationDate: Date.now.addingTimeInterval(15 * 60)])
-            copied = true
-        } label: {
-            Label(copied ? "Copied · Copy again" : "Copy code", systemImage: "doc.on.clipboard")
-        }.buttonStyle(.borderedProminent)
-    }
-    private func systemBrowser() -> SFSafariViewController {
-        let configuration = SFSafariViewController.Configuration()
-        configuration.barCollapsingEnabled = false
-        configuration.activityButton = SFSafariViewController.ActivityButton(
-            templateImage: UIImage(systemName: "doc.on.clipboard")!,
-            extensionIdentifier: "com.niederme.AIQuota.copySignInCode")
-        return SFSafariViewController(url: session.initialURL, configuration: configuration)
+            return true
+        })
     }
 }

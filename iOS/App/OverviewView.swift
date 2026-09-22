@@ -7,6 +7,9 @@ struct OverviewView: View {
     @State private var onboarding = OnboardingProgress()
     @State private var showOnboarding = false
     @State private var codex = ProbeModel()
+    @State private var resetNotice = CodexResetNotice()
+    @State private var showResetDetails = false
+    @AppStorage(CodexResetNotice.dismissalKey) private var dismissedResetID = ""
     @State private var navigationID = UUID()
     @State private var selectedService: OverviewService?
     @Environment(\.scenePhase) private var scenePhase
@@ -19,6 +22,11 @@ struct OverviewView: View {
             GeometryReader { geometry in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
+                        if codex.connected, let announcement = resetNotice.announcement(dismissedID: dismissedResetID) {
+                            CodexResetNoticeBanner(announcement: announcement, openDetails: { showResetDetails = true }, dismiss: {
+                                dismissedResetID = announcement.id
+                            }, loading: codex.busy || claude.busy || resetNotice.fetching)
+                        }
                         ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 780) - 32, reading: codex.reading,
                                          connected: codex.connected, busy: codex.busy, error: codex.error, failure: codex.connectionFailure,
                                          history: codex.history, historyUnavailable: codex.historyUnavailable) {
@@ -77,6 +85,14 @@ struct OverviewView: View {
                     _ = await (first, second)
                 }
             }
+            .task(id: "\(scenePhase)-\(codex.connected)") {
+                guard scenePhase == .active, codex.connected else { return }
+                while !Task.isCancelled {
+                    await resetNotice.refresh()
+                    do { try await Task.sleep(for: .seconds(60)) }
+                    catch { return }
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -123,6 +139,9 @@ struct OverviewView: View {
         }
         .sheet(isPresented: $showOnboarding, onDismiss: { onboarding.dismiss() }) {
             OnboardingView(codex: codex, claude: claude, progress: onboarding)
+        }
+        .sheet(isPresented: $showResetDetails) {
+            ProbeBrowser(url: CodexResetNotice.website)
         }
     }
     private var overviewFreshness: some View {
@@ -300,17 +319,36 @@ struct ServiceDetailContent<Account: View>: View {
     }
 }
 
-private struct UsageLoadingState: ViewModifier {
+struct UsageLoadingState: ViewModifier {
     let loading: Bool
+    var label = "Updating usage"
     func body(content: Content) -> some View {
         if loading {
             content.redacted(reason: .placeholder)
                 .disabled(true)
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Updating usage")
+                .accessibilityLabel(label)
         } else {
             content
         }
+    }
+}
+
+/// Preserve the symbol's native size and baseline while keeping its placeholder round.
+struct OverviewCircularSymbol: View {
+    let systemName: String
+    @Environment(\.redactionReasons) private var redactionReasons
+
+    var body: some View {
+        Image(systemName: systemName)
+            .font(.title3)
+            .opacity(redactionReasons.contains(.placeholder) ? 0 : 1)
+            .overlay {
+                if redactionReasons.contains(.placeholder) {
+                    Circle().fill(OverviewStyle.track)
+                }
+            }
+            .unredacted()
     }
 }
 
@@ -622,7 +660,7 @@ struct OverviewBackground: View {
     }
 }
 
-private struct OverviewCardMaterial: ViewModifier {
+struct OverviewCardMaterial: ViewModifier {
     func body(content: Content) -> some View {
         if #available(iOS 26.0, *) {
             // Regular glass lets the OS apply the user's Liquid Glass appearance and accessibility settings.
@@ -734,8 +772,8 @@ struct ProviderDialCardContent: View {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(name).unredacted().modifier(OverviewDetailType(title: true)).foregroundStyle(OverviewStyle.primary)
                 Spacer(minLength: 0)
-                Image(systemName: "chevron.right.circle.fill")
-                    .font(.title3).foregroundStyle(OverviewStyle.tertiary).accessibilityHidden(true)
+                OverviewCircularSymbol(systemName: "chevron.right.circle.fill")
+                    .foregroundStyle(OverviewStyle.tertiary).accessibilityHidden(true)
             }
             Text(connected ? (reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported") : "Not connected")
                 .modifier(OverviewDetailType(weight: .regular)).foregroundStyle(OverviewStyle.secondary)

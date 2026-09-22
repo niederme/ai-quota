@@ -11,7 +11,7 @@ targetTemplates:
         DEVELOPMENT_TEAM: 289GY9L343
         CODE_SIGN_STYLE: Automatic
         MARKETING_VERSION: "0.1.0"
-        CURRENT_PROJECT_VERSION: "30"
+        CURRENT_PROJECT_VERSION: "31"
 targets:
   AIQuota-iOS:
     type: application
@@ -92,8 +92,8 @@ targets:
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         SignInCodeKeychainGroup: $(AppIdentifierPrefix)com.niederme.AIQuota.SignInCode
         NSExtension:
-          NSExtensionPointIdentifier: com.apple.ui-services
-          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).CopySignInCodeViewController
+          NSExtensionPointIdentifier: com.apple.services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).CopySignInCodeRequestHandler
           NSExtensionAttributes:
             NSExtensionActivationRule:
               NSExtensionActivationSupportsWebURLWithMaxCount: 1

@@ -191,7 +191,7 @@ struct MobileNotificationControls: View {
 enum MobileSettingsReset {
     static func clearPreferences(standard: UserDefaults = .standard,
                                  shared: UserDefaults = MobileResetNotifications.defaults) {
-        for key in ["refreshIntervalMinutes", "mobileProbe.codexReading", "mobileProbe.claudeReading"] {
+        for key in ["refreshIntervalMinutes", "mobileProbe.codexReading", "mobileProbe.claudeReading", CodexResetNotice.dismissalKey] {
             standard.removeObject(forKey: key)
         }
         for key in ["notifications.enabled", "notifications.codex", "notifications.claude", "notifications.error"] {

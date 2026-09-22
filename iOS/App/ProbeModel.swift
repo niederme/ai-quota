@@ -30,10 +30,10 @@ final class ProbeModel {
     private let cacheKey = "mobileProbe.codexReading"
 
     init() {
-        connectionFailure = shared.failure()
         do {
             tokens = try shared.load(CodexTokens.self) ?? TokenStore.load()
             if tokens != nil {
+                connectionFailure = shared.failure()
                 message = "Connected. Your usage updates automatically."
                 reading = shared.reading()
                 if let data = UserDefaults.standard.data(forKey: historyCacheKey) {
@@ -171,6 +171,8 @@ final class ProbeModel {
         await pending?.value
         try await clearConnection()
         lastAutomaticRefresh = nil
+        signInCompletionID = nil
+        message = "Connect Codex to see your usage."
     }
     private func clearConnection() async throws {
         try await shared.withLease { [shared] in
