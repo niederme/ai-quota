@@ -66,3 +66,15 @@ GoogleAppMeasurement dSYM warning but completed successfully.
 
 Release record: `/Users/niederme/Library/Logs/AIQuota/TestFlight/2026-09-22-170055-996e87`.
 Resume status checks with `python3 scripts/testflight.py status --run /Users/niederme/Library/Logs/AIQuota/TestFlight/2026-09-22-170055-996e87 --wait 0`. Do not upload again for processing delays.
+
+## Responsive splash and TestFlight build 36
+
+The artwork now uses 80% of viewport width, capped at 420pt and 80% of
+viewport height. Its center sits at 48% of viewport height for the approved
+optical upward offset. The transparent image padding makes the visible mark
+roughly 57% of phone width. Figma exports are 420/840/1260px for 1x/2x/3x.
+
+The storyboard compiled successfully. Version 0.1.0 (36) archived and uploaded
+successfully on September 22. Apple processing was pending at the initial check;
+physical-device confirmation of this final sizing remains pending.
+Release record: `/Users/niederme/Library/Logs/AIQuota/TestFlight/2026-09-22-173023-cc55ea`.
