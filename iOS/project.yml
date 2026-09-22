@@ -68,7 +68,7 @@ targets:
         GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_PERSONALIZATION_SIGNALS: false
         GOOGLE_ANALYTICS_IDFV_COLLECTION_ENABLED: false
         FirebaseAutomaticScreenReportingEnabled: false
-        UILaunchScreen: {}
+        UILaunchStoryboardName: LaunchScreen
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationLandscapeLeft

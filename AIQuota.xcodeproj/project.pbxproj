@@ -70,6 +70,7 @@
 		7804C0D72C84FB4E3C150FD2 /* AIQuotaKit in Frameworks */ = {isa = PBXBuildFile; productRef = FDE48747144C193C30BDEB55 /* AIQuotaKit */; };
 		79ABA17A6898FB25ACBF5812 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 033BEE818868F742F0C74E02 /* Assets.xcassets */; };
 		7C3015F3AC3BBE6C797538DF /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = CE9CEC32F8358117242A269F /* FirebaseAnalyticsCore */; };
+		8147126D5D0C9B128A3DE547 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = B9D34DB72575028B1A13707F /* LaunchScreen.storyboard */; };
 		8216D0F3164D0E0251628667 /* DemoQuotaData.swift in Sources */ = {isa = PBXBuildFile; fileRef = F67E72577EE3060D479BB8A0 /* DemoQuotaData.swift */; };
 		8345576EE21F0AB14ECE70BD /* MobileAnalyticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEF02E14FDE3406AB3CFB999 /* MobileAnalyticsTests.swift */; };
 		8A411DE18F08C54C94DD92E6 /* MobileAnalytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D95553FAC04DFF7EC1268BF /* MobileAnalytics.swift */; };
@@ -276,6 +277,7 @@
 		B298FC20B9D43BA1C027CE6E /* DemoViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoViews.swift; sourceTree = "<group>"; };
 		B2B4A02F2F3618A00A9FE938 /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
 		B2DD6DC0C92D6E6CBCA60A64 /* WidgetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetStore.swift; sourceTree = "<group>"; };
+		B9D34DB72575028B1A13707F /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		BC43070E1A6F758DB7AF31A6 /* CodexWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexWidget.swift; sourceTree = "<group>"; };
 		BE646C3065C7605692946277 /* AIQuota.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AIQuota.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C1E24D8AE870084C7D061ADA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -435,6 +437,7 @@
 				447D727A548E73A82C29281D /* CodexResetNotice.swift */,
 				B298FC20B9D43BA1C027CE6E /* DemoViews.swift */,
 				23DBF6CBC5AEF8D221D5EA51 /* Info.plist */,
+				B9D34DB72575028B1A13707F /* LaunchScreen.storyboard */,
 				667DECCAD3629416AE8E1184 /* MobileAccessApp.swift */,
 				8D95553FAC04DFF7EC1268BF /* MobileAnalytics.swift */,
 				EC6483FA9D6F3174B3E47F3D /* MobileSettingsView.swift */,
@@ -970,6 +973,7 @@
 			files = (
 				3613E6EC6F19D0D27161FD72 /* AppIcon.icon in Resources */,
 				79ABA17A6898FB25ACBF5812 /* Assets.xcassets in Resources */,
+				8147126D5D0C9B128A3DE547 /* LaunchScreen.storyboard in Resources */,
 				D3654F8B19B2D5B199379F3D /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
