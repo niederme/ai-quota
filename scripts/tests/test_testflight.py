@@ -83,13 +83,15 @@ class ReleaseTests(unittest.TestCase):
             app = Path(tmp) / 'Products/Applications/App.app'
             widget = app / 'PlugIns/Widget.appex'
             widget.mkdir(parents=True)
-            for path, bundle in [(app, m.BUNDLE), (widget, m.BUNDLE + '.mobilewidget')]:
+            action = app / 'PlugIns/CopyCode.appex'
+            action.mkdir()
+            for path, bundle in [(app, m.BUNDLE), (widget, m.BUNDLE + '.mobilewidget'), (action, m.BUNDLE + '.copySignInCode')]:
                 with (path / 'Info.plist').open('wb') as f:
                     plistlib.dump(dict(CFBundleIdentifier=bundle, CFBundleVersion='12', CFBundleShortVersionString='0.1.0', DTPlatformName='iphoneos'), f)
             state = dict(archive=tmp, build=12, version='0.1.0')
             m.verify_archive(state)
             with (widget / 'Info.plist').open('wb') as f:
-                plistlib.dump(dict(CFBundleVersion='11'), f)
+                plistlib.dump(dict(CFBundleIdentifier=m.BUNDLE + '.mobilewidget', CFBundleVersion='11'), f)
             with self.assertRaises(RuntimeError):
                 m.verify_archive(state)
 

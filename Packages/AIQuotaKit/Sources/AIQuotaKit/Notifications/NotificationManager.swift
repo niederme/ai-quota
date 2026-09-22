@@ -42,6 +42,15 @@ public actor NotificationManager {
         } catch {}
     }
 
+    /// Called only after a successful authenticated usage response, including recovery retries.
+    public func notifyPlanChange(service: String, previous: String?, current: String?, enabled: Bool) async {
+        guard enabled, let change = PlanChange(previous: previous, current: current) else { return }
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
+        await send(id: "plan-change.\(service.lowercased())", title: "\(service) plan changed to \(change.current)",
+                   body: "Previously \(change.previous). Connection checked and usage is up to date.")
+    }
+
     // MARK: - Codex evaluation
 
     /// Called after every successful Codex fetch. Fires at most one notification

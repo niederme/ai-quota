@@ -175,6 +175,23 @@ public struct CodexAPI: Sendable {
             metadata: AccountMetadata(plan: reading.metadata?.plan, balanceUSD: reading.metadata?.balanceUSD,
                 usageSpent: spent, usageCurrency: "USD"))
     }
+    /// Optional overview analytics. This never changes the successful quota reading.
+    public func usageHistory(_ tokens: CodexTokens, now: Date = .now) async throws -> CodexUsageHistory {
+        var url = URLComponents(string: "https://chatgpt.com/backend-api/wham/usage/daily-token-usage-breakdown")!
+        url.queryItems = [
+            URLQueryItem(name: "start_date", value: CodexUsageHistory.dateString(now.addingTimeInterval(-29 * 86400))),
+            URLQueryItem(name: "end_date", value: CodexUsageHistory.dateString(now)),
+            URLQueryItem(name: "group_by", value: "day")
+        ]
+        var request = URLRequest(url: url.url!)
+        request.timeoutInterval = 5
+        request.setValue("Bearer \(tokens.accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue(tokens.accountID, forHTTPHeaderField: "ChatGPT-Account-Id")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        let response = try await transport.send(request)
+        try validate(response)
+        return try CodexUsageHistory.decode(response.data, now: now)
+    }
     public static func decodeSpending(_ data: Data, now: Date, calendar: Calendar = .current) throws -> Double {
         struct Events: Decodable {
             struct Event: Decodable { let date: String; let credit_amount: Double }

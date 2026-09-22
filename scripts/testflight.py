@@ -20,7 +20,7 @@ import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
 MOBILE = ROOT / 'iOS'
-IOS_TARGETS = {'AIQuota-iOS', 'AIQuotaWidget-iOS', 'AIQuota-iOSTests'}
+IOS_TARGETS = {'AIQuota-iOS', 'AIQuotaWidget-iOS', 'AIQuotaCopySignInCode-iOS', 'AIQuota-iOSTests'}
 BUNDLE = 'com.niederme.AIQuota'
 TEAM = '289GY9L343'
 XCODE = '/Applications/Xcode.app/Contents/Developer'
@@ -165,9 +165,15 @@ def verify_archive(state):
         raise RuntimeError('Archive must contain exactly one iOS app.')
     app = apps[0]
     extensions = list((app / 'PlugIns').glob('*.appex'))
-    if len(extensions) != 1:
-        raise RuntimeError('Expected one widget extension.')
-    for item, bundle in [(app, BUNDLE), (extensions[0], BUNDLE + '.mobilewidget')]:
+    expected_extensions = {BUNDLE + '.mobilewidget', BUNDLE + '.copySignInCode'}
+    identified = {}
+    for extension in extensions:
+        with (extension / 'Info.plist').open('rb') as source:
+            bundle = plistlib.load(source)['CFBundleIdentifier']
+        identified[bundle] = extension
+    if set(identified) != expected_extensions or len(extensions) != 2:
+        raise RuntimeError('Expected the widget and sign-in code extensions.')
+    for item, bundle in [(app, BUNDLE)] + [(path, bundle) for bundle, path in identified.items()]:
         with (item / 'Info.plist').open('rb') as source:
             info = plistlib.load(source)
         expected = {'CFBundleIdentifier': bundle, 'CFBundleShortVersionString': state['version'], 'CFBundleVersion': str(state['build']), 'DTPlatformName': 'iphoneos'}

@@ -1,5 +1,6 @@
 import Foundation
 import AIQuotaKit
+import UserNotifications
 
 // MARK: - Demo keyframe engine (DEMO_MODE builds only)
 
@@ -84,7 +85,7 @@ final class DemoDriver {
     // ±25% jitter applied in scheduleNextCodex for a natural feel.
 
     private let codexFrames: [ServiceFrame] = [
-        // Cycle 1 — day 1: slow fill, 0 → limit → reset  (7d: 0 → 18%)
+        // Cycle 1 — Plus approaches its limit, then Pro provides more headroom.
         // Frame 0 is a clean slate, held for `startHold` before the climb.
         .init(fiveH:   0, sevenD:   0, resetSecs: 18000, weeklyResetDays: 6, tick: 1.1),
         .init(fiveH:  19, sevenD:   5, resetSecs: 13200, weeklyResetDays: 6, tick: 1.1),
@@ -92,8 +93,8 @@ final class DemoDriver {
         .init(fiveH:  66, sevenD:  12, resetSecs:  6900, weeklyResetDays: 6, tick: 1.1),
         .init(fiveH:  84, sevenD:  15, resetSecs:  2700, weeklyResetDays: 6, tick: 1.3), // amber
         .init(fiveH:  96, sevenD:  17, resetSecs:   600, weeklyResetDays: 6, tick: 1.1),
-        .init(fiveH: 100, sevenD:  18, resetSecs: 15400, weeklyResetDays: 6, tick: 1.4), // red
-        .init(fiveH:   0, sevenD:  18, resetSecs: 18000, weeklyResetDays: 6, tick: 0.5),
+        .init(fiveH:  24, sevenD:   4, resetSecs:   600, weeklyResetDays: 6, tick: 3.0), // Pro upgrade: illustrative refreshed allowances
+        .init(fiveH:  30, sevenD:   5, resetSecs:   300, weeklyResetDays: 6, tick: 1.1),
 
         // Cycle 2 — day 1.5: 7d climbs to ~38%
         .init(fiveH:  12, sevenD:  23, resetSecs: 15000, weeklyResetDays: 5, tick: 1.1),
@@ -149,7 +150,7 @@ final class DemoDriver {
         // landing on the same beat as the 5h limit for maximum drama.
         map[20] = 0
         // Frame 21: auto-reload kicks in — balance jumps from 0 → 250.
-        // This triggers the top-up notification (delta = 250 >> noise floor 50).
+        // The scripted top-up notification fires on this frame.
         map[21] = 250
         // Frame 22 (final): healthy balance, auto-reload on, warning softened
         map[22] = 238
@@ -204,18 +205,28 @@ final class DemoDriver {
     /// freshly opened popover has a beat of calm before things move.
     private let startHold: TimeInterval = 5
 
+    private let notificationPresenter = DemoNotificationPresenter()
     private weak var target: QuotaViewModel?
 
     private var claudeIndex = 0
     private var codexIndex  = 0
     private var claudeTimer: Timer?
     private var codexTimer:  Timer?
+    private var notificationTask: Task<Void, Never>?
+    private let demoNotificationIDs = ["demo.codex.low", "demo.codex.plan", "demo.codex.topup"]
 
     // MARK: - Public API
 
     /// Store the view model target. Call once from `.task` in `AIQuotaApp`.
     func prepare(for viewModel: QuotaViewModel) {
         target = viewModel
+        UNUserNotificationCenter.current().delegate = notificationPresenter
+        Task {
+            let settings = await UNUserNotificationCenter.current().notificationSettings()
+            if settings.authorizationStatus == .notDetermined {
+                await NotificationManager.shared.requestPermission()
+            }
+        }
     }
 
     /// Restart the sequence from frame 0. Call from `.onAppear` and ⌘R.
@@ -226,6 +237,10 @@ final class DemoDriver {
         codexTimer  = nil
         claudeIndex = 0
         codexIndex  = 0
+        notificationTask?.cancel()
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: demoNotificationIDs)
+        center.removeDeliveredNotifications(withIdentifiers: demoNotificationIDs)
         target?.prepareForDemo()
 
         // Apply frame 0 of each service immediately — no loading state shown.
@@ -235,6 +250,7 @@ final class DemoDriver {
 
     /// Stop timers without resetting progress. Call from `.onDisappear`.
     func pause() {
+        notificationTask?.cancel()
         claudeTimer?.invalidate()
         codexTimer?.invalidate()
         claudeTimer = nil
@@ -303,6 +319,8 @@ final class DemoDriver {
         let base = codexFrames[codexIndex - 1].tick
         var duration = base * Double.random(in: 0.75...1.25)
         if codexIndex == 1 { duration += startHold }  // hold on the opening frame
+        // Hold notification frames for six seconds even at the fastest jitter.
+        if [5, 6, 21].contains(codexIndex - 1) { duration = max(duration, 6) }
         codexTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
             Task { @MainActor [weak self] in self?.applyNextCodexFrame() }
         }
@@ -330,7 +348,7 @@ final class DemoDriver {
             hourlyWindowSeconds:     18000,
             limitReached:            f.fiveH >= 100,
             allowed:                 f.fiveH < 100,
-            planType:                "plus",
+            planType:                codexIndex - 1 >= 6 ? "pro" : "plus",
             creditBalance:           balance,
             bonusCreditsSpentThisMonth: spent > 1 ? spent : nil,
             approxLocalMessages:     nil,
@@ -343,18 +361,48 @@ final class DemoDriver {
                               codexLoading: false,
                               codexAutoReload: autoReload)
 
-        // Mirror production: evaluate top-up notification for each simulated refresh
-        Task {
-            await NotificationManager.shared.evaluateTopUp(
-                currentBalance: balance,
-                autoReload: autoReload,
-                prefs: target.settings.notifications
-            )
+        // Three deliberately paced demo alerts. Do not run production evaluators:
+        // they would add noise and write simulated balances into real alert history.
+        switch codexIndex - 1 {
+        case 5:
+            notifyDemo(id: "demo.codex.low", title: "Codex is almost at its 5-hour limit",
+                       body: "You’ve used 96% of your 5-hour allowance.")
+        case 6:
+            notifyDemo(id: "demo.codex.plan", title: "Codex plan changed to Pro",
+                       body: "Previously Plus. Connection checked and usage is up to date.")
+        case 21:
+            notifyDemo(id: "demo.codex.topup", title: "Codex credits topped up",
+                       body: "Auto-reload added credits. Your balance is now $10.00.")
+        default:
+            break
         }
 
         if codexIndex < codexFrames.count {
             scheduleNextCodex()
         }
+    }
+    private func notifyDemo(id: String, title: String, body: String) {
+        notificationTask?.cancel()
+        notificationTask = Task {
+            let center = UNUserNotificationCenter.current()
+            let settings = await center.notificationSettings()
+            guard !Task.isCancelled,
+                  settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
+            let content = UNMutableNotificationContent()
+            content.title = title
+            content.body = body
+            content.sound = .default
+            try? await center.add(UNNotificationRequest(identifier: id, content: content, trigger: nil))
+        }
+    }
+}
+
+/// Show the scripted notification even while the demo popover is foreground.
+private final class DemoNotificationPresenter: NSObject, UNUserNotificationCenterDelegate {
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        completionHandler([.banner, .sound])
     }
 }
 

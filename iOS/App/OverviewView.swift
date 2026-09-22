@@ -1,4 +1,5 @@
 import SwiftUI
+import Charts
 import MobileAccessCore
 
 struct OverviewView: View {
@@ -7,38 +8,30 @@ struct OverviewView: View {
     @State private var showOnboarding = false
     @State private var codex = ProbeModel()
     @State private var navigationID = UUID()
-    @State private var showCodex = false
-    @State private var showClaude = false
+    @State private var selectedService: OverviewService?
     @Environment(\.scenePhase) private var scenePhase
     @State private var claude = ClaudeProbeModel()
     @State private var existingInstallation = UserDefaults.standard.data(forKey: "mobileProbe.codexReading") != nil
         || UserDefaults.standard.data(forKey: "mobileProbe.claudeReading") != nil
-    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        HStack(alignment: .firstTextBaseline) {
-                            overviewFreshness
-                            Spacer(minLength: 16)
-                            gaugeKey.font(.subheadline)
+                    VStack(alignment: .leading, spacing: 24) {
+                        ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 780) - 32, reading: codex.reading,
+                                         connected: codex.connected, busy: codex.busy, error: codex.error, failure: codex.connectionFailure,
+                                         history: codex.history, historyUnavailable: codex.historyUnavailable) {
+                            selectedService = .codex
                         }
-                        .padding(.horizontal, 12)
-                        EqualHeightCardStack(spacing: 16) {
-                            ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 780) - 40, reading: codex.reading,
-                                             connected: codex.connected, busy: codex.busy, error: codex.error, failure: codex.connectionFailure) {
-                                ProbeView(model: codex)
-                            }
-                            ProviderDialCard(name: "Claude Code", icon: "logo-claude", availableWidth: min(geometry.size.width, 780) - 40, reading: claude.reading,
-                                             connected: claude.connected, busy: claude.busy, error: claude.error, failure: claude.connectionFailure) {
-                                ClaudeProbeView(model: claude)
-                            }
+                        ProviderDialCard(name: "Claude", icon: "logo-claude", availableWidth: min(geometry.size.width, 780) - 32, reading: claude.reading,
+                                         connected: claude.connected, busy: claude.busy, error: claude.error, failure: claude.connectionFailure) {
+                            selectedService = .claude
                         }
+                        overviewFreshness.frame(maxWidth: .infinity)
 
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 16)
                     .padding(.top, 20)
                     .padding(.bottom, 20)
                     .frame(maxWidth: 780)
@@ -49,23 +42,20 @@ struct OverviewView: View {
                     async let second: Void = claude.refreshAndWait()
                     _ = await (first, second)
                 }
-                .background(Color(uiColor: .systemGroupedBackground))
+                .background { OverviewBackground().ignoresSafeArea() }
             }
             .navigationTitle("AI Quota")
             .toolbarTitleDisplayMode(.inlineLarge)
-            .navigationDestination(isPresented: $showCodex) { ProbeView(model: codex) }
-            .navigationDestination(isPresented: $showClaude) { ClaudeProbeView(model: claude) }
             .onOpenURL { url in
                 guard url.scheme == "aiquota-probe" else { return }
                 if url.host == "overview" {
-                    showCodex = false
-                    showClaude = false
+                    selectedService = nil
                     navigationID = UUID()
                     codex.refreshOnOpen()
                     claude.refreshOnOpen()
                 }
-                if url.host == "codex" { showCodex = true; codex.refreshOnOpen() }
-                if url.host == "claude" { showClaude = true; claude.refreshOnOpen() }
+                if url.host == "codex" { selectedService = .codex; codex.refreshOnOpen() }
+                if url.host == "claude" { selectedService = .claude; claude.refreshOnOpen() }
             }
             .task(id: scenePhase) {
                 guard scenePhase == .active else { return }
@@ -98,22 +88,38 @@ struct OverviewView: View {
                             ProgressView().opacity(codex.busy || claude.busy ? 1 : 0)
                         }.frame(width: 24, height: 24)
                     }
+                    .tint(OverviewStyle.primary)
                     .disabled(codex.busy || claude.busy)
                     .accessibilityLabel(codex.busy || claude.busy ? "Refreshing usage" : "Refresh usage")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink {
-                        MobileSettingsView(codex: codex, claude: claude, onboarding: onboarding)
-                    } label: { Image(systemName: "gearshape") }
+                    Button { selectedService = .settings } label: { Image(systemName: "gearshape") }
+                    .tint(OverviewStyle.primary)
                     .accessibilityLabel("Settings")
                 }
             }
-        }.id(navigationID).tint(Color(uiColor: .systemPurple))
+        }.id(navigationID).tint(OverviewStyle.accent)
         .task {
             showOnboarding = onboarding.shouldPresent(
                 hasExistingAccount: codex.connected || claude.connected
                     || codex.reading != nil || claude.reading != nil,
                 hasExistingInstallation: existingInstallation)
+        }
+        .sheet(item: $selectedService) { service in
+            ServiceAccountSheet(showsClose: service == .settings) {
+                switch service {
+                case .settings:
+                    MobileSettingsView(codex: codex, claude: claude, onboarding: onboarding)
+                case .codex:
+                    ServiceDetailContent(name: "Codex", icon: "logo-openai", reading: codex.reading,
+                        connected: codex.connected, busy: codex.busy, error: codex.error,
+                        failure: codex.connectionFailure, history: codex.history, refresh: { codex.refresh() }) { ProbeView(model: codex) }
+                case .claude:
+                    ServiceDetailContent(name: "Claude", icon: "logo-claude", reading: claude.reading,
+                        connected: claude.connected, busy: claude.busy, error: claude.error,
+                        failure: claude.connectionFailure, refresh: { claude.refresh() }) { ClaudeProbeView(model: claude) }
+                }
+            }
         }
         .sheet(isPresented: $showOnboarding, onDismiss: { onboarding.dismiss() }) {
             OnboardingView(codex: codex, claude: claude, progress: onboarding)
@@ -121,55 +127,437 @@ struct OverviewView: View {
     }
     private var overviewFreshness: some View {
         TimelineView(.periodic(from: .now, by: 60)) { context in
-            let readings = [codex.reading, claude.reading].compactMap { $0 }
-            let oldest = readings.map(\.fetchedAt).min()
-            Text(codex.busy || claude.busy ? "Refreshing…" : oldest.map {
-                overviewFreshnessLabel($0, at: context.date,
-                    saved: codex.error != nil || claude.error != nil
-                        || codex.connectionFailure != nil || claude.connectionFailure != nil)
-            } ?? "No reading yet")
-            .font(.caption).foregroundStyle(.secondary)
-            .accessibilityLabel("Usage freshness")
-            .accessibilityValue(oldest.map { $0.formatted(date: .abbreviated, time: .shortened) } ?? "No reading yet")
+            let failed = codex.error != nil || codex.connectionFailure != nil
+                || claude.error != nil || claude.connectionFailure != nil
+            VStack(spacing: 4) {
+                if failed {
+                    freshness("Codex", reading: codex.reading, connected: codex.connected, busy: codex.busy,
+                              failed: codex.error != nil || codex.connectionFailure != nil, at: context.date)
+                    freshness("Claude", reading: claude.reading, connected: claude.connected, busy: claude.busy,
+                              failed: claude.error != nil || claude.connectionFailure != nil, at: context.date)
+                } else if codex.busy || claude.busy {
+                    Text("Refreshing…")
+                } else if let oldest = [codex.reading, claude.reading].compactMap({ $0?.fetchedAt }).min() {
+                    Text(overviewFreshnessLabel(oldest, at: context.date, saved: false)
+                        .replacingOccurrences(of: "Updated", with: "Refreshed")
+                        .replacingOccurrences(of: "Older reading ·", with: "Refreshed"))
+                } else {
+                    Text("No usage received yet")
+                }
+            }
+            .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+            .multilineTextAlignment(.center)
+        }
+    }
+    @ViewBuilder private func freshness(_ name: String, reading: QuotaReading?, connected: Bool,
+                                        busy: Bool, failed: Bool, at now: Date) -> some View {
+        if connected || reading != nil {
+            if busy {
+                Text("\(name) refreshing…")
+            } else if let reading {
+                let updated = overviewFreshnessLabel(reading.fetchedAt, at: now, saved: failed)
+                Text(failed ? "\(name) couldn’t update · \(updated)" : "\(name) \(updated.lowercased())")
+            } else {
+                Text("\(name) · No usage received yet")
+            }
         }
     }
 
-    private var gaugeKey: some View {
-        HStack(spacing: 12) {
-            Label("5h", systemImage: "circle.fill").foregroundStyle(Color(uiColor: .systemPurple))
-                .accessibilityLabel("Outer ring: five-hour allowance")
-            Label("7d", systemImage: "circle.fill").foregroundStyle(Color(uiColor: .systemPurple).opacity(0.5))
-                .accessibilityLabel("Inner ring: seven-day allowance")
-        }.labelStyle(GaugeKeyStyle()).fontWeight(.bold)
-    }
+
 
 }
 
-/// Measure both cards before placement, including at accessibility text sizes.
-/// Each card reserves its ordinary metadata/status space, so refreshing does not
-/// change this shared height. Longer connection errors can grow both together.
-struct EqualHeightCardStack: Layout {
-    var spacing: CGFloat = 16
+private enum OverviewService: String, Identifiable {
+    case codex, claude, settings
+    var id: String { rawValue }
+}
 
-    private func cardSize(_ proposal: ProposedViewSize, _ subviews: Subviews) -> CGSize {
-        let sizes = subviews.map { $0.sizeThatFits(ProposedViewSize(width: proposal.width, height: nil)) }
-        return CGSize(width: proposal.width ?? sizes.map(\.width).max() ?? 0,
-                      height: sizes.map(\.height).max() ?? 0)
+struct AccountConnectionForm: View {
+    let plan: String?
+    let updated: Date?
+    let busy: Bool
+    let needsReconnect: Bool
+    let error: String?
+    var updatesPaused = false
+    let retry: () -> Void
+    let reconnect: () -> Void
+    let disconnect: () -> Void
+
+    var body: some View {
+        Form {
+            Section {
+                LabeledContent("Status", value: needsReconnect ? "Sign-in required" : "Connected")
+                if let plan { LabeledContent("Plan", value: plan).fixedSize(horizontal: false, vertical: true) }
+            } footer: {
+                if !needsReconnect, error != nil {
+                    Text(updatesPaused ? "Updates temporarily paused. Your account is still connected."
+                         : "Usage couldn’t update. Your account is still connected.")
+                }
+            }.listRowBackground(OverviewStyle.track)
+            if needsReconnect {
+                Section {
+                    Button("Reconnect", action: reconnect)
+                } footer: {
+                    if let error { Text(error) }
+                }.listRowBackground(OverviewStyle.track)
+            }
+            Section {
+                Button("Disconnect", role: .destructive, action: disconnect)
+                    .foregroundStyle(OverviewStyle.critical)
+            }.listRowBackground(OverviewStyle.track)
+        }
+        .disabled(busy)
+        .scrollContentBackground(.hidden)
+        .background { BrandSurfaceBackground().ignoresSafeArea() }
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .tint(OverviewStyle.accent)
     }
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let size = cardSize(proposal, subviews)
-        return CGSize(width: size.width, height: size.height * CGFloat(subviews.count) + spacing * CGFloat(max(0, subviews.count - 1)))
+}
+
+struct ServiceAccountSheet<Content: View>: View {
+    @Environment(\.dismiss) private var dismiss
+    var showsClose = true
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        NavigationStack {
+            content()
+                .toolbar {
+                    if showsClose {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Close", systemImage: "xmark") { dismiss() }
+                            .labelStyle(.iconOnly)
+                            .tint(OverviewStyle.primary)
+                            .accessibilityLabel("Close")
+                    }
+                    }
+                }
+        }
+        .tint(OverviewStyle.accent)
+        .presentationBackground(OverviewStyle.base)
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
     }
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        let size = cardSize(ProposedViewSize(width: bounds.width, height: nil), subviews)
-        for (index, view) in subviews.enumerated() {
-            view.place(at: CGPoint(x: bounds.minX, y: bounds.minY + CGFloat(index) * (size.height + spacing)),
-                       anchor: .topLeading, proposal: ProposedViewSize(size))
+}
+
+struct ServiceDetailContent<Account: View>: View {
+    let name: String
+    let icon: String
+    let reading: QuotaReading?
+    let connected: Bool
+    let busy: Bool
+    let error: String?
+    let failure: SharedQuotaStore.Failure?
+    var history: CodexUsageHistory? = nil
+    let refresh: () -> Void
+    @ViewBuilder var account: () -> Account
+    @State private var showAccount = false
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                Group {
+                if name == "Codex" {
+                    CodexDetailInformation(reading: reading, history: history)
+                } else {
+                    ClaudeDetailInformation(reading: reading)
+                }
+                }.modifier(UsageLoadingState(loading: busy))
+                Divider()
+                if let error {
+                    Label(error, systemImage: "exclamationmark.triangle")
+                        .font(.callout).foregroundStyle(OverviewStyle.warning)
+                }
+                Button { showAccount = true } label: {
+                    Label(connected ? "Account and connection" : "Connect \(name)", systemImage: "person.crop.circle")
+                }
+            }.padding(.horizontal, 16).padding(.vertical, 24)
+        }
+        .background { BrandSurfaceBackground().ignoresSafeArea() }
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .navigationTitle(name)
+        .toolbarTitleDisplayMode(.inlineLarge)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Refresh", systemImage: "arrow.clockwise", action: refresh)
+                    .disabled(busy || !connected)
+                    .tint(OverviewStyle.primary)
+            }
+            if #available(iOS 26.0, *) {
+                ToolbarSpacer(.fixed, placement: .topBarTrailing)
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Close", systemImage: "xmark") { dismiss() }
+                    .labelStyle(.iconOnly)
+                    .tint(OverviewStyle.primary)
+                    .accessibilityLabel("Close")
+            }
+        }
+        .sheet(isPresented: $showAccount) {
+            ServiceAccountSheet { account() }
         }
     }
 }
 
-struct ProviderDialCard<Destination: View>: View {
+private struct UsageLoadingState: ViewModifier {
+    let loading: Bool
+    func body(content: Content) -> some View {
+        if loading {
+            content.redacted(reason: .placeholder)
+                .disabled(true)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Updating usage")
+        } else {
+            content
+        }
+    }
+}
+
+private struct ChartLoadingState: ViewModifier {
+    let loading: Bool
+    var history = false
+    func body(content: Content) -> some View {
+        content.opacity(loading ? 0 : 1)
+            .overlay {
+                if loading {
+                    if history {
+                        VStack(spacing: 8) {
+                            HStack(alignment: .bottom, spacing: 4) {
+                                ForEach(0..<30, id: \.self) { _ in
+                                    RoundedRectangle(cornerRadius: 2).fill(OverviewStyle.track)
+                                        .frame(height: 20)
+                                }
+                            }.frame(maxHeight: .infinity, alignment: .bottom)
+                            HStack {
+                                RoundedRectangle(cornerRadius: 3).fill(OverviewStyle.track).frame(width: 38, height: 10)
+                                Spacer()
+                                RoundedRectangle(cornerRadius: 3).fill(OverviewStyle.track).frame(width: 30, height: 10)
+                            }
+                        }.accessibilityHidden(true)
+                    } else {
+                        RoundedRectangle(cornerRadius: 4).fill(OverviewStyle.track)
+                            .accessibilityHidden(true)
+                    }
+                }
+            }
+            .accessibilityHidden(loading)
+    }
+}
+
+private struct ClaudeDetailInformation: View {
+    let reading: QuotaReading?
+    @ScaledMetric(relativeTo: .largeTitle) private var amountSize = 44.0
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            if let spent = reading?.metadata?.usageSpent, spent > 0 {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Credits used").font(.headline)
+                    Text(reading?.metadata?.usageCurrency.map { spent.formatted(.currency(code: $0)) }
+                         ?? spent.formatted(.number.precision(.fractionLength(0...2))) + " credits")
+                        .font(.system(size: amountSize, weight: .semibold))
+                        .lineLimit(1).minimumScaleFactor(0.5)
+                    Text("Beyond your subscription · \(reading?.fetchedAt.formatted(.dateTime.month(.wide)) ?? Date.now.formatted(.dateTime.month(.wide)))")
+                        .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                    Text("Fable 5 and post-limit usage. Claude reports both as one monthly total and doesn’t provide a reliable breakdown. Your subscription price is separate.")
+                        .font(.footnote).foregroundStyle(OverviewStyle.secondary).padding(.top, 4)
+                }
+                Divider()
+            } else if reading?.metadata?.usageSpent == nil {
+                Text("Spending not reported").font(.footnote).foregroundStyle(OverviewStyle.secondary)
+            }
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Resets").font(.headline)
+                reset("5-hour", window: reading?.shortTerm)
+                reset("7-day", window: reading?.weekly)
+            }
+            if let reading {
+                Text("Updated \(reading.fetchedAt.formatted(date: .abbreviated, time: .shortened))")
+                    .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+            }
+        }
+        .foregroundStyle(OverviewStyle.primary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func reset(_ title: String, window: QuotaWindow?) -> some View {
+        LabeledContent(title) {
+            Text(window?.resetsAt?.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute())
+                 ?? "Not reported")
+                .foregroundStyle(OverviewStyle.secondary).multilineTextAlignment(.trailing)
+        }.font(.subheadline)
+    }
+}
+
+private struct CodexDetailInformation: View {
+    let reading: QuotaReading?
+    let history: CodexUsageHistory?
+    @Environment(\.redactionReasons) private var redactionReasons
+    @State private var period = 30
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @ScaledMetric(relativeTo: .largeTitle) private var amountSize = 44.0
+
+    private var days: [CodexUsageHistory.Day] { Array((history?.days ?? []).suffix(period)) }
+    private func totals(_ key: KeyPath<CodexUsageHistory.Day, [String: Double]?>) -> [(String, Double)] {
+        var result: [String: Double] = [:]
+        for day in days {
+            for (name, value) in day[keyPath: key] ?? [:] { result[name, default: 0] += value }
+        }
+        return result.filter { $0.value > 0 }.sorted {
+            $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value
+        }.map { ($0.key, $0.value) }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            if let spent = reading?.metadata?.usageSpent, spent > 0 {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Credits used").font(.headline)
+                Text(spending).font(.system(size: amountSize, weight: .semibold))
+                    .lineLimit(1).minimumScaleFactor(0.5)
+                Text("Beyond your subscription · \(reading?.fetchedAt.formatted(.dateTime.month(.wide)) ?? Date.now.formatted(.dateTime.month(.wide)))")
+                    .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                Text("Credit usage reported for this month, converted at 25 credits = $1. This excludes your subscription price and is not a record of credit purchases.")
+                    .font(.footnote).foregroundStyle(OverviewStyle.secondary).padding(.top, 4)
+            }
+            Divider()
+            } else if reading?.metadata?.usageSpent == nil {
+                Text("Spending not reported").font(.footnote).foregroundStyle(OverviewStyle.secondary)
+            }
+            VStack(alignment: .leading, spacing: 16) {
+                let headingLayout = typeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                    : AnyLayout(HStackLayout())
+                headingLayout {
+                    Text("Usage").font(.headline)
+                    if !typeSize.isAccessibilitySize { Spacer() }
+                    Picker("Period", selection: $period) {
+                        Text("7 days").tag(7)
+                        Text("30 days").tag(30)
+                    }.pickerStyle(.menu)
+                }
+                Text("Share of usage credits, including your plan. Not a breakdown of extra charges.")
+                    .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                Text("Models").font(.subheadline.weight(.semibold))
+                breakdown(totals(\.models))
+                Text("Apps and tools").font(.subheadline.weight(.semibold)).padding(.top, 8)
+                breakdown(totals(\.surfaces))
+                if days.contains(where: { $0.credits != nil && $0.models == nil }) {
+                    Text("Model breakdown is missing for some reported days.")
+                        .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                }
+                if let history {
+                    Text("Updated \(history.fetchedAt.formatted(date: .abbreviated, time: .shortened))")
+                        .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                }
+            }
+            Divider()
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Resets").font(.headline)
+                reset("5-hour", window: reading?.shortTerm)
+                reset("7-day", window: reading?.weekly)
+            }
+        }
+        .foregroundStyle(OverviewStyle.primary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var spending: String {
+        guard let amount = reading?.metadata?.usageSpent else { return "Not reported" }
+        return amount.formatted(.currency(code: reading?.metadata?.usageCurrency ?? "USD"))
+    }
+
+    private func displayName(_ name: String) -> String {
+        let names = ["cli": "CLI", "vscode": "VS Code", "desktop_app": "Desktop",
+                     "web": "Web", "mobile": "Mobile", "sdk": "SDK",
+                     "github_code_review": "GitHub review", "codex-auto-review": "Auto review"]
+        return names[name] ?? name.replacingOccurrences(of: "gpt-", with: "GPT-")
+            .replacingOccurrences(of: "_", with: " ")
+    }
+    private func shareLabel(_ share: Double) -> String {
+        share > 0 && share < 0.01 ? "<1%" : share.formatted(.percent.precision(.fractionLength(0)))
+    }
+    @ViewBuilder private func breakdown(_ values: [(String, Double)]) -> some View {
+        let total = values.reduce(0) { $0 + $1.1 }
+        if total > 0 {
+            let leading = Array(values.filter { $0.1 / total >= 0.01 }.prefix(3))
+            let remaining = values.filter { item in !leading.contains(where: { $0.0 == item.0 }) }
+            let rows = leading + (remaining.isEmpty ? [] : [("Other", remaining.reduce(0) { $0 + $1.1 })])
+            let colors: [Color] = [OverviewStyle.accent, Color(red: 0.48, green: 0.27, blue: 0.70),
+                                   Color(red: 0.79, green: 0.66, blue: 0.91), Color(red: 0.43, green: 0.38, blue: 0.51)]
+            VStack(alignment: .leading, spacing: 12) {
+                GeometryReader { geometry in
+                    HStack(spacing: 0) {
+                        ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
+                            Rectangle().fill(colors[index])
+                                .frame(width: geometry.size.width * row.1 / total)
+                                .overlay(alignment: .leading) {
+                                    if index > 0 { Rectangle().fill(OverviewStyle.base).frame(width: 1) }
+                                }
+                        }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                }.frame(height: 20)
+                    .modifier(ChartLoadingState(loading: redactionReasons.contains(.placeholder)))
+                    .accessibilityHidden(true)
+                LazyVGrid(columns: typeSize.isAccessibilitySize
+                          ? [GridItem(.flexible(), alignment: .leading)]
+                          : [GridItem(.adaptive(minimum: 150), alignment: .leading)], alignment: .leading, spacing: 10) {
+                    ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Circle().fill(colors[index]).frame(width: 8, height: 8)
+                                .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] }
+                            Text(displayName(row.0)).fixedSize(horizontal: false, vertical: true)
+                            Text(shareLabel(row.1 / total)).monospacedDigit()
+                                .foregroundStyle(OverviewStyle.secondary)
+                        }
+                        .font(.subheadline)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(displayName(row.0))
+                        .accessibilityValue(shareLabel(row.1 / total))
+                    }
+                }
+                if !remaining.isEmpty {
+                    Text("Other: " + remaining.map { displayName($0.0) }.joined(separator: ", "))
+                        .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                }
+            }
+        } else {
+            Text("No breakdown reported for this period.")
+                .font(.subheadline).foregroundStyle(OverviewStyle.secondary)
+        }
+    }
+
+    private func reset(_ title: String, window: QuotaWindow?) -> some View {
+        LabeledContent(title) {
+            Text(window?.resetsAt?.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute())
+                 ?? "Not reported")
+                .foregroundStyle(OverviewStyle.secondary).multilineTextAlignment(.trailing)
+        }.font(.subheadline)
+    }
+}
+
+struct BrandSurfaceBackground: View {
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            OverviewStyle.base
+            if !reduceTransparency {
+                RadialGradient(
+                    colors: [OverviewStyle.accent.opacity(scheme == .dark ? 0.14 : 0.08), .clear],
+                    center: UnitPoint(x: 0.5, y: 0.38), startRadius: 0, endRadius: 210
+                )
+                .frame(height: 320)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+struct ProviderDialCard: View {
     let name: String
     let icon: String
     let availableWidth: CGFloat
@@ -178,11 +566,81 @@ struct ProviderDialCard<Destination: View>: View {
     let busy: Bool
     let error: String?
     var failure: SharedQuotaStore.Failure? = nil
-    @ViewBuilder let destination: () -> Destination
+    var history: CodexUsageHistory? = nil
+    var historyUnavailable = false
+    let onOpen: () -> Void
     var body: some View {
         ProviderDialCardContent(name: name, icon: icon, availableWidth: availableWidth,
             reading: reading, connected: connected, busy: busy, error: error, failure: failure,
-            accountDestination: AnyView(destination()))
+            onOpen: onOpen, history: history, historyUnavailable: historyUnavailable)
+    }
+}
+
+/// Native materials and system typography deliberately replace the Figma blur/border layers.
+/// Shared by the overview and service sheets; settings retain their existing UI.
+enum OverviewStyle {
+    static let accent = Color("OverviewAccent")
+    static let warning = Color("OverviewWarning")
+    static let critical = Color("OverviewCritical")
+    static let primary = Color("OverviewPrimary")
+    static let secondary = Color("OverviewSecondary")
+    static let tertiary = Color("OverviewTertiary")
+    static let track = Color(uiColor: .quaternarySystemFill)
+    static let base = Color("OverviewBase")
+    static let radius: CGFloat = 28
+    static let ringWidth: CGFloat = 8
+}
+
+struct OverviewBackground: View {
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .top) {
+                OverviewStyle.base
+                if !reduceTransparency {
+                    LinearGradient(stops: [
+                        .init(color: Color(red: 102/255, green: 31/255, blue: 143/255).opacity(scheme == .dark ? 0.72 : 0.18), location: 0),
+                        .init(color: OverviewStyle.accent.opacity(scheme == .dark ? 0.12 : 0.05), location: 0.4),
+                        .init(color: .clear, location: 0.7)
+                    ], startPoint: .top, endPoint: .bottom)
+                    RadialGradient(colors: [OverviewStyle.accent.opacity(scheme == .dark ? 0.35 : 0.12), .clear],
+                                   center: .topTrailing, startRadius: 0, endRadius: geometry.size.width * 0.85)
+                }
+            }
+        }.accessibilityHidden(true)
+    }
+}
+
+private struct OverviewCardMaterial: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            // Regular glass lets the OS apply the user's Liquid Glass appearance and accessibility settings.
+            content.glassEffect(.regular, in: RoundedRectangle(cornerRadius: OverviewStyle.radius))
+        } else {
+            content.background(.regularMaterial, in: RoundedRectangle(cornerRadius: OverviewStyle.radius))
+        }
+    }
+}
+
+/// Figma's compact SF line boxes, scaled with Dynamic Type. Accessibility sizes
+/// retain native leading so wrapped labels have room to breathe.
+private struct OverviewDetailType: ViewModifier {
+    var title = false
+    var weight: Font.Weight = .semibold
+    @ScaledMetric(relativeTo: .title3) private var titleSize = 20.0
+    @ScaledMetric(relativeTo: .footnote) private var bodySize = 13.0
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    func body(content: Content) -> some View {
+        let size = title ? titleSize : bodySize
+        let scale = size / (title ? 20 : 13)
+        let lineHeight = (title ? 22.0 : 15.0) * scale
+        let nativeHeight = UIFont.systemFont(ofSize: size, weight: weight == .regular ? .regular : .semibold).lineHeight
+        content
+            .font(.system(size: size, weight: weight))
+            .tracking((title ? -0.25 : -0.1) * scale)
+            .padding(.vertical, typeSize.isAccessibilitySize ? 0 : (lineHeight - nativeHeight) / 2)
     }
 }
 
@@ -195,235 +653,138 @@ struct ProviderDialCardContent: View {
     let busy: Bool
     let error: String?
     var failure: SharedQuotaStore.Failure? = nil
-    var accountDestination: AnyView? = nil
-    @State var info: MetadataExplanation?
-    @Environment(\.colorScheme) private var colorScheme
+    var onOpen: (() -> Void)? = nil
+    var history: CodexUsageHistory? = nil
+    var historyUnavailable = false
+    var largeDial = false
     @Environment(\.colorSchemeContrast) private var contrast
-
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @ScaledMetric(relativeTo: .body) private var dialSize = 124.0
     private var worst: Double { max(reading?.shortTerm?.usedPercent ?? 0, reading?.weekly?.usedPercent ?? 0) }
     private var tint: Color {
-        if failure != nil || error != nil || !connected { return .secondary }
-        if worst >= 95 { return Color(uiColor: .systemRed) }
-        if worst >= 85 { return Color(uiColor: .systemOrange) }
-        return Color(uiColor: .systemPurple)
+        if !connected || failure != nil || error != nil { return OverviewStyle.secondary }
+        if worst >= 95 { return OverviewStyle.critical }
+        if worst >= 85 { return OverviewStyle.warning }
+        return OverviewStyle.accent
     }
-    @Environment(\.dynamicTypeSize) private var typeSize
-    @ScaledMetric(relativeTo: .subheadline) private var resetLineHeight = 18.0
-    @ScaledMetric(relativeTo: .body) private var dialSize = 148.0
-    private var usageColumnWidth: CGFloat { max(min(dialSize, 300), (availableWidth - 40 - 33) * 2 / 3) }
-    private var usesColumns: Bool { !typeSize.isAccessibilitySize && availableWidth >= min(dialSize, 300) + 40 + 33 + 88 }
+    private var secondaryOpacity: Double { contrast == .increased ? 0.9 : 0.7 }
+    private var usesColumns: Bool { !typeSize.isAccessibilitySize && availableWidth >= min(dialSize, 200) + 180 }
 
     var body: some View {
+        if let onOpen {
+            Button(action: onOpen) { cardContent }
+                .buttonStyle(.plain)
+                .accessibilityHint("Opens \(name) service sheet")
+        } else {
+            cardContent
+        }
+    }
+    private var cardContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            if usesColumns {
-                HStack(alignment: .top, spacing: 33) {
-                    linkedIdentity.frame(width: usageColumnWidth)
-                    accountMetadata.frame(maxWidth: .infinity, alignment: .topLeading)
-                }
-                .overlay(alignment: .leading) {
-                    Rectangle().fill(Color(uiColor: .separator)).frame(width: 1)
-                        .offset(x: usageColumnWidth + 16)
-                        .accessibilityHidden(true)
-                        .allowsHitTesting(false)
-                }
-            } else {
-                linkedIdentity.frame(maxWidth: .infinity)
+            summary
+            if name == "Codex", connected {
                 Divider()
-                accountMetadata
+                if let history {
+                    OverviewHistoryStrip(history: history, unavailable: historyUnavailable)
+                        .modifier(ChartLoadingState(loading: busy, history: true))
+                } else {
+                    Text(busy && !historyUnavailable ? "Loading daily history…" : "Daily history unavailable")
+                        .font(.caption).foregroundStyle(OverviewStyle.secondary)
+                        .frame(maxWidth: .infinity, minHeight: 64)
+                }
             }
         }
-        .opacity(connected ? 1 : 0)
-        .allowsHitTesting(connected)
-        .accessibilityHidden(!connected)
-        .overlay {
-            if !connected { disconnectedContent }
-        }
-        .padding(20)
-        .frame(minHeight: 260)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(colorScheme == .dark ? Color(uiColor: .quaternarySystemFill) : Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .modifier(UsageLoadingState(loading: busy))
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(RoundedRectangle(cornerRadius: OverviewStyle.radius))
+        .modifier(OverviewCardMaterial())
 
     }
-    private var disconnectedContent: some View {
-        VStack(spacing: 12) {
-            ZStack {
-                Circle().trim(from: 0, to: 0.75)
-                    .stroke(Color(uiColor: .tertiarySystemFill), lineWidth: 9)
-                Circle().trim(from: 0, to: 0.75)
-                    .stroke(Color(uiColor: .tertiarySystemFill), lineWidth: 7)
-                    .padding(10)
+    private var summary: some View {
+        Group {
+            if usesColumns {
+                HStack(alignment: .top, spacing: 24) { dial; details }
+            } else {
+                VStack(alignment: .leading, spacing: 16) { dial; details }
             }
-            .rotationEffect(.degrees(135))
-            .overlay {
-                Image(icon).resizable().scaledToFit()
-                    .frame(width: 28, height: 28).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+    private var details: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            accountSummary
+            if connected, let spent = reading?.metadata?.usageSpent { spending(spent) }
+        }.padding(.top, 4).frame(maxWidth: .infinity, alignment: .leading)
+    }
+    private var accountSummary: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: name == "Codex" ? 2 : 0) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(name).unredacted().modifier(OverviewDetailType(title: true)).foregroundStyle(OverviewStyle.primary)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right.circle.fill")
+                    .font(.title3).foregroundStyle(OverviewStyle.tertiary).accessibilityHidden(true)
             }
-            .frame(width: min(dialSize, 220), height: min(dialSize, 220))
-            .padding(.bottom, -min(dialSize, 220) * 0.16)
-            .accessibilityHidden(true)
-            VStack(spacing: 4) {
-                Text(name).font(.headline.bold())
-                Text("Not connected").font(.subheadline).foregroundStyle(.secondary)
+            Text(connected ? (reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported") : "Not connected")
+                .modifier(OverviewDetailType(weight: .regular)).foregroundStyle(OverviewStyle.secondary)
             }
-            if let accountDestination {
-                NavigationLink { accountDestination } label: {
-                    Text("Connect").fontWeight(.semibold)
-                        .frame(minHeight: 32).padding(.horizontal, 12)
+            if connected {
+                VStack(alignment: .leading, spacing: 4) {
+                    resetCaption(reading?.shortTerm, label: "5h")
+                    resetCaption(reading?.weekly, label: "7d").opacity(secondaryOpacity)
                 }
-                .buttonStyle(.bordered)
-                .tint(Color(uiColor: .systemPurple))
-                .accessibilityLabel("Connect \(name)")
-                .accessibilityHint("Opens sign-in for \(name)")
+                if failure != nil || error != nil || reading == nil || worst >= 100 {
+                    Text(statusText).font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } else {
+                Label("Connect", systemImage: "plus.circle")
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(OverviewStyle.accent)
             }
-        }
-        .multilineTextAlignment(.center)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }.frame(maxWidth: .infinity, alignment: .leading)
     }
-    @ViewBuilder private var linkedIdentity: some View {
-        if let accountDestination {
-            NavigationLink { accountDestination } label: { identity }
-                .buttonStyle(.plain)
-                .accessibilityHint("Opens \(name) account details")
-        } else { identity }
+    private var statusText: String {
+        if failure == .reconnect || failure == .renewal { return "Reconnect to update" }
+        if failure != nil || error != nil { return "Couldn’t update · Saved reading" }
+        if reading == nil { return busy ? "Loading allowance…" : "No reading yet" }
+        return "Limit reached"
     }
-    private var identity: some View {
-        VStack(spacing: 4) {
-            dial
-                // Reclaim the empty bottom of the partial-circle bounds.
-                .padding(.bottom, -min(dialSize, 300) * 0.08)
-            Text(name).font(.headline.bold())
-                .multilineTextAlignment(.center)
-                .frame(width: min(dialSize, 300))
-            VStack(spacing: 1) {
-                resetCaption(reading?.shortTerm, label: "5h")
-                resetCaption(reading?.weekly, label: "7d")
-            }.padding(.top, 2).frame(width: usesColumns ? usageColumnWidth : min(dialSize, 300))
-        }
+    private func spending(_ amount: Double) -> some View {
+        let value = reading?.metadata?.usageCurrency.map { amount.formatted(.currency(code: $0)) }
+            ?? amount.formatted(.number.precision(.fractionLength(0...2))) + " credits"
+        return Text("Credits used  \(value)")
+            .modifier(OverviewDetailType()).foregroundStyle(OverviewStyle.warning)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityLabel("Credits used: \(value)")
     }
-    private var dial: some View {
+
+    var dial: some View {
         ZStack {
-            arc(reading?.shortTerm, width: 9, opacity: 1)
-            arc(reading?.weekly, width: 7, opacity: contrast == .increased ? 0.85 : (worst >= 85 ? 0.65 : 0.45))
-                .padding(10)
-            VStack(spacing: 5) {
-                Image(icon).resizable().scaledToFit()
-                    .frame(width: 22, height: 22)
-                dialValue(reading?.shortTerm, label: "5h")
-                    .font(.headline.monospacedDigit())
-                dialValue(reading?.weekly, label: "7d")
-                    .font(.subheadline.weight(.semibold).monospacedDigit())
-                    .opacity(contrast == .increased ? 0.9 : 0.7)
-            }
-            .foregroundStyle(tint)
+            arc(reading?.shortTerm, opacity: 1)
+            arc(reading?.weekly, opacity: secondaryOpacity).padding(largeDial ? 20 : 10)
+            VStack(spacing: largeDial ? 16 : 6) {
+                Image(icon).resizable().scaledToFit().frame(width: largeDial ? 36 : 18, height: largeDial ? 36 : 18)
+                VStack(spacing: 2) {
+                    dialValue(reading?.shortTerm, label: "5h")
+                    dialValue(reading?.weekly, label: "7d").opacity(secondaryOpacity)
+                }
+            }.foregroundStyle(tint)
         }
-        .padding(6)
-        .frame(width: min(dialSize, 300), height: min(dialSize, 300))
+        .padding(largeDial ? 8 : OverviewStyle.ringWidth / 2)
+        .frame(width: largeDial ? 248 : min(dialSize, 200), height: largeDial ? 248 : min(dialSize, 200))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(name) allowance used")
         .accessibilityValue("5 hours: \(accessibleValue(reading?.shortTerm)). 7 days: \(accessibleValue(reading?.weekly)).")
     }
     private func dialValue(_ window: QuotaWindow?, label: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 3) {
-            if let window { Text("\(window.usedPercent, specifier: "%.0f")%") }
-            else { Text("N/A") }
-            Text(label)
-        }
-        .foregroundStyle(window == nil ? Color.secondary : tint)
+        Text(window.map { "\(Int($0.usedPercent.rounded()))% \(label)" } ?? "— \(label)")
+            .font(largeDial ? .system(size: 32, weight: .medium).monospacedDigit() : .system(.subheadline, design: .default, weight: .medium).monospacedDigit())
+            .foregroundStyle(window == nil ? OverviewStyle.secondary : tint)
     }
     private func accessibleValue(_ window: QuotaWindow?) -> String {
         window.map { "\(Int($0.usedPercent.rounded())) percent" } ?? "not reported"
-    }
-    private var connectionStatus: some View {
-        ZStack(alignment: .topLeading) {
-            Text("Reconnect Claude Code · Tap to sign in").hidden()
-            Group {
-                if failure == .reconnect || failure == .renewal {
-                    Text("Reconnect \(name) · Tap to sign in").foregroundStyle(Color(uiColor: .systemOrange))
-                } else if !connected { Text("Connect \(name) · Tap to sign in") }
-                else if error != nil || failure != nil { Text("Couldn’t update · Tap to retry") }
-                else if reading == nil { Text("No reading yet") }
-                else if worst >= 100 { Text("Limit reached").fontWeight(.semibold) }
-            }
-        }.font(.caption).foregroundStyle(.secondary)
-    }
-    private var accountMetadata: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            ZStack(alignment: .topLeading) {
-                VStack(alignment: .leading, spacing: 8) {
-                    metadataRow("Plan", value: "Not reported", explanation: .plan, interactive: false)
-                    metadataRow("Credit balance", value: "$999.99")
-                    metadataRow("Credits used", value: "$999.99", spending: true, explanation: .claudeSpend, interactive: false)
-                }.hidden().accessibilityHidden(true).allowsHitTesting(false)
-                reportedMetadata
-            }
-            if let accountDestination {
-                NavigationLink { accountDestination } label: { connectionStatus }
-                    .buttonStyle(.plain)
-            } else { connectionStatus }
-        }.frame(maxWidth: .infinity, alignment: .leading)
-    }
-    private var reportedMetadata: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            let data = reading?.metadata
-            metadataRow("Plan", value: data?.displayPlan ?? "Not reported",
-                explanation: data?.displayPlan == nil ? .plan : nil)
-            if let balance = data?.balanceUSD {
-                metadataRow("Credit balance", value: balance.formatted(.currency(code: "USD")))
-            }
-            if let spent = data?.usageSpent {
-                let amount = data?.usageCurrency.map { spent.formatted(.currency(code: $0)) }
-                    ?? spent.formatted(.number.precision(.fractionLength(0...2))) + " credits"
-                metadataRow("Credits used",
-                    value: amount, spending: true,
-                    explanation: name == "Codex" ? .codexSpend : .claudeSpend)
-            }
-        }.frame(maxWidth: .infinity, alignment: .leading)
-    }
-    private func metadataRow(_ label: String, value: String, spending: Bool = false,
-                             explanation: MetadataExplanation? = nil, interactive: Bool = true) -> some View {
-        let fields = Group {
-            Group {
-                if explanation != nil {
-                    Text("\(label) \(Image(systemName: "info.circle"))")
-                } else {
-                    Text(label)
-                }
-            }
-            .fixedSize(horizontal: false, vertical: true)
-            .foregroundStyle(spending ? Color(uiColor: .systemOrange) : .secondary)
-            Text(value).fontWeight(.medium).monospacedDigit()
-                .fixedSize(horizontal: false, vertical: true)
-                .foregroundStyle(spending ? Color(uiColor: .systemOrange) : (value == "Not reported" ? .secondary : .primary))
-        }
-        let content = ViewThatFits(in: .horizontal) {
-            if !spending {
-                HStack(alignment: .firstTextBaseline, spacing: 5) { fields }
-                    .fixedSize(horizontal: true, vertical: false)
-            }
-            VStack(alignment: .leading, spacing: spending ? -2 : 2) { fields }
-        }
-        .font(.caption)
-        .frame(maxWidth: .infinity, minHeight: explanation != nil ? 44 : 32, alignment: .leading)
-        .contentShape(Rectangle())
-        return Group {
-            if let explanation, interactive {
-                Button { info = explanation } label: { content }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("metadata-info-\(explanation.rawValue)")
-                    .accessibilityLabel("\(label): \(value). \(explanation.title)")
-                    .accessibilityHint("Shows more information")
-                    .popover(isPresented: Binding(get: { info == explanation }, set: { if !$0 { info = nil } }),
-                             attachmentAnchor: .rect(.bounds), arrowEdge: .top) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text(explanation.title).font(.headline)
-                            Text(explanation.message).font(.subheadline)
-                        }.padding(20).frame(idealWidth: 300, maxWidth: 340)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .presentationCompactAdaptation(.popover)
-                    }
-            } else { content }
-        }
     }
     private func resetCaption(_ window: QuotaWindow?, label: String) -> some View {
         let text: String = {
@@ -434,58 +795,68 @@ struct ProviderDialCardContent: View {
                 ? .dateTime.hour().minute() : .dateTime.weekday(.abbreviated).hour().minute()
             return "\(label) resets \(reset.formatted(format))"
         }()
-        return Text(text).font(.subheadline.weight(.semibold))
-            .foregroundStyle(window == nil ? Color.secondary : tint.opacity(label == "5h" ? 1 : (contrast == .increased ? 0.85 : 0.5)))
-            .multilineTextAlignment(.center)
-            .lineLimit(typeSize.isAccessibilitySize ? 2 : 1).minimumScaleFactor(0.85)
-            .frame(height: resetLineHeight * (typeSize.isAccessibilitySize ? 2 : 1))
+        return Text(text).modifier(OverviewDetailType())
+            .foregroundStyle(window == nil ? OverviewStyle.secondary : tint)
+            .fixedSize(horizontal: false, vertical: true)
     }
-    private func arc(_ window: QuotaWindow?, width: CGFloat, opacity: Double) -> some View {
-        ZStack {
+    private func arc(_ window: QuotaWindow?, opacity: Double) -> some View {
+        let width = largeDial ? 16.0 : OverviewStyle.ringWidth
+        let tickScale = largeDial ? 2.0 : min(dialSize, 200) / 124
+        return ZStack {
             Circle().trim(from: 0, to: 0.75)
-                .stroke(Color(uiColor: .tertiarySystemFill), style: StrokeStyle(lineWidth: width, lineCap: .butt))
-            if let window {
+                .stroke(OverviewStyle.track, style: StrokeStyle(
+                    lineWidth: width, lineCap: .butt,
+                    dash: window == nil && !busy ? [4 * tickScale, 5 * tickScale] : []))
+            if connected, !busy, let window {
                 Circle().trim(from: 0, to: 0.75 * min(100, max(0, window.usedPercent)) / 100)
-                    .stroke(tint.opacity(opacity), style: StrokeStyle(lineWidth: width, lineCap: .butt))
+                    .stroke(tint.opacity(opacity), style: StrokeStyle(lineWidth: largeDial ? 16 : OverviewStyle.ringWidth, lineCap: .butt))
             }
         }.rotationEffect(.degrees(135))
     }
 }
 
-private struct GaugeKeyStyle: LabelStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        HStack(spacing: 3) { configuration.icon.font(.system(size: 6)); configuration.title }
-    }
-}
-
-enum MetadataExplanation: String, Identifiable {
-    case plan, codexSpend, claudeSpend
-    var id: String { rawValue }
-    var title: String {
-        switch self {
-        case .plan: "Plan not reported"
-        case .codexSpend: "Estimated Monthly Spend"
-        case .claudeSpend: "Fable 5 & Post-Limit Usage"
-        }
-    }
-    private var currentMonthName: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM"
-        return formatter.string(from: .now)
-    }
-    var message: String {
-        switch self {
-        case .plan: "The latest account refresh did not report a recognized plan name. Your allowance gauges use the limits the provider reports."
-        case .codexSpend: "AIQuota sums \(currentMonthName)’s usage-credit events and converts them at 25 credits = $1."
-        case .claudeSpend: "Claude reports both as one monthly total and doesn’t provide a reliable breakdown."
-        }
+struct OverviewHistoryStrip: View {
+    let history: CodexUsageHistory
+    var unavailable = false
+    private var maximum: Double { max(1, history.days.compactMap(\.credits).max() ?? 0) }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if history.days.contains(where: { $0.credits != nil }) {
+                Chart(history.days) { day in
+                    if let credits = day.credits {
+                        BarMark(x: .value("Date", day.date), y: .value("Usage credits", credits))
+                            .foregroundStyle(OverviewStyle.accent)
+                            .cornerRadius(2)
+                            .accessibilityLabel(day.date)
+                            .accessibilityValue("\(credits.formatted(.number.precision(.fractionLength(0...2)))) usage credits")
+                    }
+                }
+                .chartXScale(domain: history.days.map(\.date))
+                .chartYScale(domain: 0...maximum)
+                .chartXAxis(.hidden).chartYAxis(.hidden).chartLegend(.hidden)
+                .frame(height: 44)
+            } else {
+                Text("No daily history reported").font(.caption).foregroundStyle(OverviewStyle.secondary)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            HStack {
+                Text(history.startLabel)
+                Spacer()
+                Text(history.endLabel)
+            }.font(.caption2).foregroundStyle(OverviewStyle.secondary)
+            if unavailable || Date.now.timeIntervalSince(history.fetchedAt) > 1800 {
+                Text("Saved history · \(history.fetchedAt.formatted(date: .abbreviated, time: .shortened))")
+                    .font(.caption2).foregroundStyle(OverviewStyle.secondary)
+            }
+        }.accessibilityElement(children: .contain)
+            .accessibilityLabel("Daily Codex usage credits. Gaps are unreported days.")
     }
 }
 
 private func overviewFreshnessLabel(_ fetchedAt: Date, at now: Date, saved: Bool) -> String {
     let elapsed = max(0, Int(now.timeIntervalSince(fetchedAt)))
-    let relative = elapsed < 60 ? "Just now" : elapsed < 3600 ? "\(elapsed / 60)m ago" : "\(elapsed / 3600)h ago"
-    if saved { return "Saved · \(relative)" }
+    let relative = elapsed < 60 ? "just now" : elapsed < 3600 ? "\(elapsed / 60) minute\(elapsed / 60 == 1 ? "" : "s") ago" : "\(elapsed / 3600) hour\(elapsed / 3600 == 1 ? "" : "s") ago"
+    if saved { return "Last updated \(relative)" }
     if elapsed >= 1800 { return "Older reading · \(relative)" }
-    return relative
+    return "Updated \(relative)"
 }

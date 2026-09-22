@@ -4,6 +4,11 @@ import MobileAccessCore
 struct MobileSettingsView: View {
     @AppStorage("refreshIntervalMinutes") private var refreshMinutes = 0
     @State private var showOnboarding = false
+    @State private var destination: SettingsDestination?
+    private enum SettingsDestination: String, Identifiable {
+        case codex, claude, notifications, widgets
+        var id: String { rawValue }
+    }
     @State private var confirmReset = false
     @State private var resetting = false
     @State private var resetError: String?
@@ -21,37 +26,42 @@ struct MobileSettingsView: View {
                 }
             } header: { Text("General") } footer: {
                 Text("While the app is open, Auto refreshes every 5 minutes, or every minute near a limit. iOS controls background widget updates. Opening the app also checks for fresh usage.")
-            }
+            }.listRowBackground(OverviewStyle.track)
             Section {
-                NavigationLink { ProbeView(model: codex) } label: {
+                Button { destination = .codex } label: {
                     account("Codex", connected: codex.connected, error: codex.error, updated: codex.reading?.fetchedAt, busy: codex.busy)
                 }
-                NavigationLink { ClaudeProbeView(model: claude) } label: {
+                Button { destination = .claude } label: {
                     account("Claude Code", connected: claude.connected, error: claude.error, updated: claude.reading?.fetchedAt, busy: claude.busy)
                 }
             } header: { Text("Accounts") } footer: {
                 Text("Manage accounts, reconnect, and check when usage last updated.")
-            }
-            Section { NavigationLink("Notifications") { MobileNotificationsView() } }
+            }.listRowBackground(OverviewStyle.track)
+            Section { Button("Notifications") { destination = .notifications } }.listRowBackground(OverviewStyle.track)
             Section("Onboarding") {
                 Button("Guided Setup…") {
                     onboarding.replay()
                     showOnboarding = true
                 }
-                NavigationLink("Widgets") { LockScreenSetupView() }
+                Button("Widgets") { destination = .widgets }
                 Button("Reset All Settings…", role: .destructive) { confirmReset = true }
                 if resetting { ProgressView("Resetting…") }
-                if let resetError { Text(resetError).font(.callout).foregroundStyle(.red) }
-            }
+                if let resetError { Text(resetError).font(.callout).foregroundStyle(OverviewStyle.critical) }
+            }.listRowBackground(OverviewStyle.track)
             Section("Privacy") {
                 Text("Sign-in credentials stay in this device’s Keychain and are shared with its widgets. Usage is requested directly from each service.")
-                    .font(.footnote).foregroundStyle(.secondary)
-            }
+                    .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+            }.listRowBackground(OverviewStyle.track)
             Section("About") {
                 LabeledContent("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—")
                 LabeledContent("Build", value: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—")
-            }
+            }.listRowBackground(OverviewStyle.track)
         }.disabled(resetting)
+        .scrollContentBackground(.hidden)
+        .background { BrandSurfaceBackground().ignoresSafeArea() }
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .foregroundStyle(OverviewStyle.primary)
+        .tint(OverviewStyle.accent)
         .confirmationDialog("Clear all Settings and Start Over?", isPresented: $confirmReset, titleVisibility: .visible) {
             Button("Reset", role: .destructive) {
                 resetting = true
@@ -76,6 +86,16 @@ struct MobileSettingsView: View {
             Text("Signs out of all services, clears cached data, and resets settings to defaults. System notification permissions are not affected.")
         }
         .navigationTitle("Settings").navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $destination) { destination in
+            ServiceAccountSheet {
+                switch destination {
+                case .codex: ProbeView(model: codex)
+                case .claude: ClaudeProbeView(model: claude)
+                case .notifications: MobileNotificationsView()
+                case .widgets: LockScreenSetupView()
+                }
+            }
+        }
         .sheet(isPresented: $showOnboarding, onDismiss: { onboarding.dismiss() }) {
             OnboardingView(codex: codex, claude: claude, progress: onboarding)
         }
@@ -84,11 +104,11 @@ struct MobileSettingsView: View {
         VStack(alignment: .leading, spacing: 4) {
             LabeledContent(name) {
                 Text(busy ? "Refreshing…" : !connected ? "Connect" : error == nil ? "Connected" : "Needs attention")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(OverviewStyle.secondary)
             }
             if let updated {
                 Text("Last updated \(updated.formatted(date: .abbreviated, time: .shortened))")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(OverviewStyle.secondary)
             }
         }
     }
@@ -100,7 +120,10 @@ import UserNotifications
 struct MobileNotificationsView: View {
     var body: some View {
         ScrollView { MobileNotificationControls().padding(24) }
-            .background(Color(uiColor: .systemGroupedBackground))
+            .background { BrandSurfaceBackground().ignoresSafeArea() }
+        .toolbarBackground(.hidden, for: .navigationBar)
+            .foregroundStyle(OverviewStyle.primary)
+            .tint(OverviewStyle.accent)
             .navigationTitle("Notifications").navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -116,7 +139,7 @@ struct MobileNotificationControls: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Notifications").font(.title.bold())
-            Text("Choose which alerts you’d like to receive.").foregroundStyle(.secondary)
+            Text("Choose which alerts you’d like to receive.").foregroundStyle(OverviewStyle.secondary)
             Toggle("Enable notifications", isOn: Binding(get: { enabled }, set: { value in
                 enabled = value
                 Task {
@@ -133,13 +156,13 @@ struct MobileNotificationControls: View {
                 serviceGroup("Codex", service: .codex, enabled: $codex)
                 serviceGroup("Claude Code", service: .claude, enabled: $claude)
                 Text("Usage alerts are checked when the app or widgets update. Reset reminders use your last fresh reading and are estimates; open the app to confirm availability.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(OverviewStyle.secondary)
             }
             if denied {
                 Text("Notifications are disabled in iOS Settings.").font(.callout)
                 Button("Open notification settings") { openURL(URL(string: UIApplication.openNotificationSettingsURLString)!) }
             }
-            if !schedulingError.isEmpty { Text(schedulingError).font(.callout).foregroundStyle(.orange) }
+            if !schedulingError.isEmpty { Text(schedulingError).font(.callout).foregroundStyle(OverviewStyle.warning) }
         }
         .onChange(of: codex) { Task { await MobileResetNotifications.reconcile() } }
         .onChange(of: claude) { Task { await MobileResetNotifications.reconcile() } }
@@ -154,8 +177,8 @@ struct MobileNotificationControls: View {
             }
         }
         .padding(16)
-        .background(Color(uiColor: .secondarySystemGroupedBackground),
-                    in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .background(OverviewStyle.track,
+                    in: RoundedRectangle(cornerRadius: OverviewStyle.radius, style: .continuous))
     }
 
     private func check() async {
@@ -235,7 +258,7 @@ struct MobileWindowAlertControls: View {
             .padding(.top, 16)
             .padding(.bottom, 8)
         } label: {
-            Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(.primary)
+            Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(OverviewStyle.primary)
                 .padding(.vertical, 6)
         }
         .onChange(of: mode) { Task { await MobileResetNotifications.reconcile() } }
