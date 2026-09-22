@@ -74,6 +74,24 @@ The apps share an Xcode project with separate Mac and iOS schemes.
 - [Website previews and deployment](docs/website-development.md)
 - [Roadmap and validation priorities](docs/roadmap.md)
 
+## Anonymous usage analytics
+
+Optional usage sharing is off by default. **Share anonymous usage data** appears
+in Settings → Privacy and guided setup, with matching consent copy on Mac and
+iOS. It reports app activity and setup events without sending prompts,
+credentials, account identifiers, or quota readings. iOS demo activity is excluded,
+and Reset All Settings revokes consent.
+
+The iOS integration and shared `ios` / `macos` event tags were merged in
+[PR #67](https://github.com/niederme/ai-quota/pull/67). iOS delivery was verified
+in Firebase DebugView on September 22, 2026; this verification did not ship an
+app release. Users receive these changes when updated Mac and iOS builds ship.
+
+Historical Mac events remain intact but are not retroactively platform-tagged.
+A combined historical and newly tagged Mac report remains unresolved. See the
+[analytics setup and reporting notes](iOS/README.md#anonymous-usage-analytics)
+for configuration, validation, and reporting limitations.
+
 ## Support
 
 Report problems or request features in [GitHub Issues](https://github.com/niederme/ai-quota/issues).
