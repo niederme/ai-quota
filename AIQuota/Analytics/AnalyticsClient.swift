@@ -12,6 +12,14 @@ import FirebaseAnalytics
 final class AnalyticsClient: @unchecked Sendable {
     static let shared = AnalyticsClient()
 
+    private static var platform: String {
+        #if os(macOS)
+        "macos"
+        #else
+        "ios"
+        #endif
+    }
+
     private enum Backend {
         case undetermined
         case firebase
@@ -45,6 +53,10 @@ final class AnalyticsClient: @unchecked Sendable {
     }
 
     func send(_ eventName: String, params: [String: String] = [:], enabled: Bool) async {
+        // Keep custom events separable when Apple apps share one Firebase registration.
+        var params = params
+        params["platform"] = Self.platform
+
         let backend = stateQueue.sync { () -> Backend in
             guard enabled, collectionEnabled else { return .none }
             configureIfNeededLocked()
@@ -71,6 +83,7 @@ final class AnalyticsClient: @unchecked Sendable {
             if FirebaseApp.app() == nil {
                 FirebaseApp.configure()
             }
+            Analytics.setDefaultEventParameters(["platform": Self.platform])
             backend = .firebase
             logger.notice("Analytics backend: Firebase")
             return

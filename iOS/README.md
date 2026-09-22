@@ -46,8 +46,14 @@ Custom events mirror Mac: `app_launched`, `app_active` (once per UTC day),
 `analytics_enabled`, `onboarding_completed`, `service_connected`,
 `service_disconnected`, and overview `manual_refresh`. Parameters contain only
 app version, platform, connected service names/count, setup state, and event
-context. Credentials, account identifiers, quota readings, and error messages are
-never passed to analytics. IDFA support, IDFV collection, ad personalization, and
+context. The shared client tags every custom event with `platform: ios` or
+`platform: macos`, and sets it as a default for future Firebase SDK events,
+allowing both apps to share a Firebase registration. In Google
+Analytics, register an event-scoped custom dimension named **App platform** with
+the event parameter **platform** to compare or filter their events. Older Mac
+events do not have this tag; the Mac app must ship the updated client first.
+Credentials, account identifiers, quota readings, and error messages are never
+passed to analytics. IDFA support, IDFV collection, ad personalization, and
 automatic screen reporting are disabled. Widgets do not link Firebase.
 The app privacy manifest declares product interaction, a random installation
 identifier, coarse location derived by Firebase from masked IP addresses, and SDK
