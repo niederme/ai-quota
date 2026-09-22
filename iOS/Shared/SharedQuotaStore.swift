@@ -90,6 +90,12 @@ struct SharedQuotaStore: Sendable {
         renew: @Sendable (T) async throws -> T, usage: @Sendable (T) async throws -> QuotaReading
     ) async throws -> QuotaReading {
         try await withLease {
+            // Shared across app, widget and launches. Suppressed attempts must not extend the cooldown.
+            if service == .claude, let url = cooldownURL,
+               let data = try? Data(contentsOf: url),
+               let until = try? JSONDecoder().decode(Date.self, from: data), until > .now {
+                throw ClaudeAccessError.requestFailed(stage: "usage update", status: 429)
+            }
             do {
                 guard var credentials = try load(type) else { throw AccessError.expired }
                 if !forceRenewal, !credentials.needsRefresh(at: .now), let cached = reading(),
@@ -125,6 +131,11 @@ struct SharedQuotaStore: Sendable {
                 log(source, "success", reading: value)
                 return value
             } catch {
+                if service == .claude,
+                   case .requestFailed(_, 429) = error as? ClaudeAccessError,
+                   let url = cooldownURL {
+                    try? JSONEncoder().encode(Date.now.addingTimeInterval(300)).write(to: url, options: .atomic)
+                }
                 if !(error is CancellationError) {
                     saveFailure(Failure.classify(error))
                     if namespace == "live" { MobileResetNotifications.cancel(service) }
@@ -169,6 +180,12 @@ struct SharedQuotaStore: Sendable {
             return .temporary
         }
     }
+    var updatesPaused: Bool {
+        guard let url = cooldownURL, let data = try? Data(contentsOf: url),
+              let until = try? JSONDecoder().decode(Date.self, from: data) else { return false }
+        return until > .now
+    }
+    private var cooldownURL: URL? { root?.appendingPathComponent("\(service.rawValue)-cooldown.json") }
     private var failureURL: URL? { root?.appendingPathComponent("\(service.rawValue)-failure.json") }
     func failure() -> Failure? {
         guard let url = failureURL, let data = try? Data(contentsOf: url) else { return nil }

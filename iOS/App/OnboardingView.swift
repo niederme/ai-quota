@@ -72,7 +72,7 @@ struct OnboardingView: View {
                     case .services:
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Connect your services").font(.title.bold())
-                            Text("Sign in to the services you use.").foregroundStyle(.secondary)
+                            Text("Sign in to the services you use.").foregroundStyle(OverviewStyle.secondary)
                         }
                         service("Codex", subtitle: "ChatGPT / OpenAI", logo: "logo-openai", connected: codex.connected, error: codex.error) {
                             ProbeView(model: codex)
@@ -89,20 +89,20 @@ struct OnboardingView: View {
                                     ForEach([1, 5, 10, 30], id: \.self) { Text("\($0) min").tag($0) }
                                 }.pickerStyle(.menu)
                                 Text("Auto checks every 5 minutes while the app is open, or every minute near a limit.")
-                                    .font(.footnote).foregroundStyle(.secondary)
+                                    .font(.footnote).foregroundStyle(OverviewStyle.secondary)
                             }
                         }
-                        Text("You can connect more services later in Settings.").font(.footnote).foregroundStyle(.secondary)
+                        Text("You can connect more services later in Settings.").font(.footnote).foregroundStyle(OverviewStyle.secondary)
                     case .notifications:
                         MobileNotificationControls()
                     case .widgets:
                         LockScreenSetupContent()
                     case .complete:
                         VStack(spacing: 24) {
-                            Image(systemName: "checkmark.circle.fill").font(.system(size: 64)).foregroundStyle(.green)
+                            Image(systemName: "checkmark.circle.fill").font(.system(size: 64)).foregroundStyle(OverviewStyle.accent)
                             Text("You’re all set!").font(.title.bold())
                             Button("Start using AIQuota") { progress.finish(); dismiss() }
-                                .buttonStyle(OnboardingPrimaryButtonStyle())
+                                .modifier(OnboardingPrimaryButtonStyle())
                             VStack(spacing: 6) {
                                 let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
                                 let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
@@ -113,7 +113,7 @@ struct OnboardingView: View {
                                     HStack(spacing: 12) { supportLinks }
                                     VStack(spacing: 8) { supportLinks }
                                 }
-                            }.font(.footnote).foregroundStyle(.secondary)
+                            }.font(.footnote).foregroundStyle(OverviewStyle.secondary)
                                 .multilineTextAlignment(.center).padding(.top, 24)
 
                         }.frame(maxWidth: .infinity).padding(.vertical, 40)
@@ -129,12 +129,12 @@ struct OnboardingView: View {
                         Button("Back", systemImage: "chevron.left") {
                             let index = OnboardingProgress.order.firstIndex(of: progress.step) ?? 0
                             progress.setStep(OnboardingProgress.order[max(0, index - 1)])
-                        }.buttonStyle(OnboardingSecondaryButtonStyle())
+                        }.modifier(OnboardingSecondaryButtonStyle())
                     }
                     Spacer()
                     HStack(spacing: 6) {
                         ForEach(OnboardingProgress.order, id: \.rawValue) { step in
-                            Circle().fill(step == progress.step ? Color(uiColor: .systemPurple) : Color.secondary.opacity(0.3)).frame(width: 6, height: 6)
+                            Circle().fill(step == progress.step ? OverviewStyle.accent : OverviewStyle.track).frame(width: 6, height: 6)
                         }
                     }.accessibilityLabel("Step \((OnboardingProgress.order.firstIndex(of: progress.step) ?? 0) + 1) of 5")
                     Spacer()
@@ -142,11 +142,12 @@ struct OnboardingView: View {
                     Button("Continue") {
                         let index = OnboardingProgress.order.firstIndex(of: progress.step) ?? 0
                         progress.setStep(OnboardingProgress.order[index + 1])
-                    }.buttonStyle(OnboardingPrimaryButtonStyle())
+                    }.modifier(OnboardingPrimaryButtonStyle())
                     }
-                }.padding(20).background(.bar)
+                }.padding(20)
             }
-            .background(Color(uiColor: .systemGroupedBackground))
+            .background { BrandSurfaceBackground().ignoresSafeArea() }
+        .toolbarBackground(.hidden, for: .navigationBar)
             .navigationTitle("Set up AIQuota")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -159,7 +160,9 @@ struct OnboardingView: View {
                     }
                 }
             }
-        }.tint(Color(uiColor: .systemPurple))
+        }.tint(OverviewStyle.accent)
+            .foregroundStyle(OverviewStyle.primary)
+            .presentationBackground(OverviewStyle.base)
     }
 
     private var skipButton: some View {
@@ -171,7 +174,7 @@ struct OnboardingView: View {
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
         }
-        .buttonStyle(OnboardingSecondaryButtonStyle())
+        .modifier(OnboardingSecondaryButtonStyle())
         .fixedSize(horizontal: true, vertical: false)
     }
 
@@ -185,26 +188,26 @@ struct OnboardingView: View {
         NavigationLink(destination: destination) {
             HStack(spacing: 12) {
                 Image(logo).resizable().scaledToFit().frame(width: 28, height: 28)
-                    .foregroundStyle(.primary).padding(10)
-                    .background(Color(uiColor: .systemPurple).opacity(0.12), in: Circle())
-                    .overlay(Circle().strokeBorder(Color(uiColor: .systemPurple).opacity(0.4)))
+                    .foregroundStyle(OverviewStyle.primary).padding(10)
+                    .background(OverviewStyle.accent.opacity(0.12), in: Circle())
+                    .overlay(Circle().strokeBorder(OverviewStyle.accent.opacity(0.4)))
                 VStack(alignment: .leading, spacing: 3) {
                     Text(name).font(.headline)
                     Text(subtitle)
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.caption).foregroundStyle(OverviewStyle.secondary)
                 }
                 Spacer(minLength: 0)
                 if connected && error == nil {
-                    Label("Connected", systemImage: "checkmark.circle.fill").font(.caption.weight(.medium)).foregroundStyle(.green)
+                    Label("Connected", systemImage: "checkmark.circle.fill").font(.caption.weight(.medium)).foregroundStyle(OverviewStyle.accent)
                 } else {
                     Text(error == nil ? "Sign In" : "Reconnect").font(.callout.weight(.semibold))
                         .padding(.horizontal, 12).padding(.vertical, 8)
-                        .foregroundStyle(.white).background(Color(uiColor: .systemPurple), in: Capsule())
+                        .foregroundStyle(.white).background(OverviewStyle.accent, in: Capsule())
                 }
             }
             .padding(16)
-            .background(Color(uiColor: .secondarySystemGroupedBackground),
-                        in: RoundedRectangle(cornerRadius: 16))
+            .background(OverviewStyle.track,
+                        in: RoundedRectangle(cornerRadius: OverviewStyle.radius))
         }.buttonStyle(.plain)
     }
 }
@@ -216,33 +219,76 @@ struct OnboardingWelcome: View {
                 .clipShape(RoundedRectangle(cornerRadius: 20)).accessibilityHidden(true)
             Text("AIQuota").font(.largeTitle.bold())
             Text("Know your limits.\nKeep your flow.")
-                .font(.title3).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                .font(.title3).foregroundStyle(OverviewStyle.secondary).multilineTextAlignment(.center)
         }.frame(maxWidth: .infinity).padding(.vertical, 64)
     }
 }
 
 struct LockScreenSetupContent: View {
+    @State var lockScreen = false
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            Text("Add AIQuota widgets").font(.largeTitle.bold()).fixedSize(horizontal: false, vertical: true)
-            Text("See your quota at a glance on your Home Screen and Lock Screen.")
-                .foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-            Text("Home Screen").font(.headline)
-            instruction(1, "Touch and hold your Home Screen, then open the widget gallery.")
-            instruction(2, "Search for AI Quota. Choose a small or medium widget for one service, or a medium or large widget for both.")
-            instruction(3, "For a single-service widget, edit the placed widget to choose Codex or Claude Code.")
-            Divider()
-            Text("Lock Screen").font(.headline)
-            instruction(1, "Touch and hold your Lock Screen, then tap Customize and choose the Lock Screen.")
-            instruction(2, "Tap the widget area and choose AI Quota. Add rings, percentages, or Service details.")
-            instruction(3, "For a single-service widget, tap the placed widget to choose Codex or Claude. Finish customizing to save.")
-            Text("Connect a service in AI Quota before expecting its usage in a widget. iOS decides when widgets update; opening the app checks for a fresh reading.")
-                .font(.footnote).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: 24) {
+            Picker("Widget location", selection: $lockScreen) {
+                Text("Home Screen").tag(false)
+                Text("Lock Screen").tag(true)
+            }.pickerStyle(.segmented)
+            illustration.frame(maxWidth: .infinity).accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 20) {
+                if lockScreen {
+                    instruction(1, "Touch and hold your Lock Screen.")
+                    instruction(2, "Tap Customize, then Lock Screen.")
+                    instruction(3, "Tap Add Widgets, choose AI Quota, then tap Done.")
+                } else {
+                    instruction(1, "Touch and hold your Home Screen.")
+                    instruction(2, "Tap Edit, then Add Widget.")
+                    instruction(3, "Search for AI Quota, choose a widget, then tap Add Widget.")
+                }
+            }
         }
     }
+
+    private var illustration: some View {
+        VStack(spacing: 18) {
+            Capsule().fill(OverviewStyle.secondary.opacity(0.3)).frame(width: 54, height: 6)
+            if lockScreen {
+                Text("9:41").font(.system(size: 52, weight: .medium))
+                Label("Add Widgets", systemImage: "plus")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(maxWidth: .infinity).padding(.vertical, 16)
+                    .background(OverviewStyle.accent.opacity(0.15), in: RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(OverviewStyle.accent, style: StrokeStyle(lineWidth: 2, dash: [5, 4])))
+                    .foregroundStyle(OverviewStyle.accent)
+                Image(systemName: "hand.tap.fill").font(.title).foregroundStyle(OverviewStyle.accent)
+                Spacer(minLength: 0)
+            } else {
+                HStack {
+                    Text("Edit").font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 14).padding(.vertical, 8)
+                        .background(OverviewStyle.accent.opacity(0.15), in: Capsule())
+                        .foregroundStyle(OverviewStyle.accent)
+                    Spacer()
+                }
+                Label("Add Widget", systemImage: "plus")
+                    .font(.subheadline.weight(.semibold)).foregroundStyle(OverviewStyle.accent)
+                    .frame(maxWidth: .infinity, alignment: .leading).padding(14)
+                    .background(OverviewStyle.track, in: RoundedRectangle(cornerRadius: 12))
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 14), count: 4), spacing: 14) {
+                    ForEach(0..<8, id: \.self) { _ in
+                        RoundedRectangle(cornerRadius: 10).fill(OverviewStyle.track).frame(height: 34)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+        }
+        .padding(20).frame(width: 240, height: 280)
+        .background(OverviewStyle.track.opacity(0.5), in: RoundedRectangle(cornerRadius: 32))
+        .overlay(RoundedRectangle(cornerRadius: 32).strokeBorder(OverviewStyle.secondary.opacity(0.25), lineWidth: 1))
+    }
+
     private func instruction(_ number: Int, _ text: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
-            Text("\(number)").font(.headline).foregroundStyle(Color(uiColor: .systemPurple))
+            Text("\(number)").font(.headline).foregroundStyle(OverviewStyle.accent)
             Text(text).fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -254,33 +300,31 @@ struct LockScreenSetupView: View {
             LockScreenSetupContent().padding(24).frame(maxWidth: 600, alignment: .leading)
                 .frame(maxWidth: .infinity)
         }
-        .background(Color(uiColor: .systemGroupedBackground))
-        .navigationTitle("Lock Screen widgets").navigationBarTitleDisplayMode(.inline)
+        .background { BrandSurfaceBackground().ignoresSafeArea() }
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .foregroundStyle(OverviewStyle.primary)
+        .tint(OverviewStyle.accent)
+        .navigationTitle("Widgets").navigationBarTitleDisplayMode(.inline)
     }
 }
 
-// Shared sizing keeps the final action and step navigation in one hierarchy.
-private struct OnboardingPrimaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.body.weight(.semibold))
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .frame(minHeight: 44)
-            .foregroundStyle(.white)
-            .background(Color(uiColor: .systemPurple), in: Capsule())
-            .opacity(configuration.isPressed ? 0.7 : 1)
+// Native controls inherit the brand tint and system Liquid Glass appearance.
+private struct OnboardingPrimaryButtonStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.buttonStyle(.glassProminent).controlSize(.large)
+        } else {
+            content.buttonStyle(.borderedProminent).controlSize(.large)
+        }
     }
 }
 
-private struct OnboardingSecondaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.body)
-            .padding(.horizontal, 8)
-            .frame(minHeight: 44)
-            .contentShape(Rectangle())
-            .foregroundStyle(Color(uiColor: .systemPurple))
-            .opacity(configuration.isPressed ? 0.7 : 1)
+private struct OnboardingSecondaryButtonStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.buttonStyle(.glass).controlSize(.large)
+        } else {
+            content.buttonStyle(.bordered).controlSize(.large)
+        }
     }
 }

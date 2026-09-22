@@ -45,6 +45,32 @@ final class SharedQuotaStoreTests: XCTestCase {
         try await store.withLease { try store.clear() }
         if let root = store.root { try? FileManager.default.removeItem(at: root) }
     }
+    func testClaudeRateLimitBlocksSubsequentAppAndWidgetRequests() async throws {
+        let store = store(.claude)
+        try await store.withLease { try store.saveCredentials(credentials()) }
+        do {
+            _ = try await store.fetch(CodexTokens.self, source: "app", renew: { $0 }, usage: { _ in
+                throw ClaudeAccessError.requestFailed(stage: "usage update", status: 429)
+            })
+            XCTFail("Expected rate limit")
+        } catch { }
+        let cooldown = try XCTUnwrap(store.root).appendingPathComponent("claude-cooldown.json")
+        let original = try Data(contentsOf: cooldown)
+        for source in ["app", "widget"] {
+            do {
+                _ = try await store.fetch(CodexTokens.self, source: source, renew: { $0 }, usage: { _ in
+                    XCTFail("Cooldown must prevent a request")
+                    return try sample()
+                })
+                XCTFail("Expected cooldown")
+            } catch { }
+        }
+        XCTAssertEqual(try Data(contentsOf: cooldown), original)
+        try JSONEncoder().encode(Date.distantPast).write(to: cooldown)
+        _ = try await store.fetch(CodexTokens.self, source: "app", renew: { $0 }, usage: { _ in try sample() })
+        XCTAssertNil(store.failure())
+        try await clean(store)
+    }
     func testUnexpiredTokenRenewsOnceAfter401() async throws {
         let store = store(), calls = UnauthorizedCalls()
         try await store.withLease { try store.saveCredentials(credentials()) }
@@ -149,50 +175,23 @@ final class SharedQuotaStoreTests: XCTestCase {
 // Render representative long-metadata cards for visual review without provider access.
 import SwiftUI
 final class OverviewLayoutReviewTests: XCTestCase {
-    @MainActor func testCardHeightDoesNotChangeWhileRefreshingOrLosingMetadata() throws {
-        let full = try JSONDecoder().decode(QuotaReading.self, from: Data("""
-        {"fetchedAt":\(Date.now.timeIntervalSinceReferenceDate),"shortTerm":{"usedPercent":98,"durationSeconds":18000,"resetsAt":\(Date.now.addingTimeInterval(3600).timeIntervalSinceReferenceDate)},"weekly":{"usedPercent":55,"durationSeconds":604800,"resetsAt":\(Date.now.addingTimeInterval(86400).timeIntervalSinceReferenceDate)},"metadata":{"plan":"Plus","balanceUSD":12.50,"usageSpent":45.12,"usageCurrency":"USD"}}
-        """.utf8))
-        let empty = try JSONDecoder().decode(QuotaReading.self, from: Data("""
-        {"fetchedAt":\(Date.now.timeIntervalSinceReferenceDate),"shortTerm":{"usedPercent":18,"durationSeconds":18000},"weekly":{"usedPercent":55,"durationSeconds":604800}}
-        """.utf8))
+    @MainActor func testRefreshPreservesCompactSummaryHeight() throws {
+        let reading = try sample()
         for typeSize in [DynamicTypeSize.large, .xxxLarge, .accessibility3] {
-            func card(_ reading: QuotaReading?, busy: Bool, failure: SharedQuotaStore.Failure? = nil, connected: Bool = true, error: String? = nil) -> some View {
-                ProviderDialCardContent(name: "Codex", icon: "logo-openai", availableWidth: 338,
-                    reading: reading, connected: connected, busy: busy, error: error, failure: failure)
+            func size(busy: Bool) throws -> CGSize {
+                let card = ProviderDialCardContent(name: "Claude", icon: "logo-claude", availableWidth: 370,
+                    reading: reading, connected: true, busy: busy, error: nil)
+                    .frame(width: 370).environment(\.dynamicTypeSize, typeSize)
+                return try XCTUnwrap(ImageRenderer(content: card).uiImage).size
             }
-            func renderedSize<V: View>(_ view: V) throws -> CGSize {
-                try XCTUnwrap(ImageRenderer(content: view.frame(width: 338).environment(\.dynamicTypeSize, typeSize)).uiImage).size
-            }
-            let idle = try renderedSize(card(full, busy: false))
-            XCTAssertEqual(try renderedSize(card(full, busy: true)), idle)
-            XCTAssertEqual(try renderedSize(card(empty, busy: false)), idle)
-            for failure in [SharedQuotaStore.Failure.renewal, .reconnect, .temporary] {
-                XCTAssertEqual(try renderedSize(card(full, busy: false, failure: failure)), idle)
-            }
-            XCTAssertEqual(try renderedSize(card(nil, busy: false)), idle)
-            XCTAssertEqual(try renderedSize(card(nil, busy: false, connected: false)), idle)
-            XCTAssertEqual(try renderedSize(card(full, busy: false, error: "Provider request failed (HTTP 401).")), idle)
-            let pair = EqualHeightCardStack(spacing: 16) {
-                card(full, busy: false)
-                card(empty, busy: true, failure: .renewal)
-            }
-            let pairSize = try renderedSize(pair)
-            XCTAssertEqual(pairSize.height, idle.height * 2 + 16, accuracy: 1)
-            let renderer = ImageRenderer(content: pair.frame(width: 338).padding(20)
-                .background(Color(uiColor: .systemGroupedBackground))
-                .environment(\.colorScheme, .dark).environment(\.dynamicTypeSize, typeSize))
-            renderer.scale = 2
-            let path = FileManager.default.temporaryDirectory.appendingPathComponent("overview-pair-\(typeSize).png")
-            try XCTUnwrap(renderer.uiImage).pngData()?.write(to: path)
-            print("PAIR_REVIEW " + path.path)
+            XCTAssertEqual(try size(busy: false), try size(busy: true))
         }
     }
     @MainActor func testDisconnectedCardsOfferConnectAction() throws {
         for size in [DynamicTypeSize.large, .accessibility3] {
             let view = ProviderDialCardContent(name: "Claude Code", icon: "logo-claude", availableWidth: 362,
                 reading: nil, connected: false, busy: false, error: nil,
-                accountDestination: AnyView(Text("Claude sign-in")))
+                onOpen: {})
                 .frame(width: 362).padding(20)
                 .background(Color(uiColor: .systemGroupedBackground))
                 .environment(\.colorScheme, .dark).environment(\.dynamicTypeSize, size)
@@ -205,41 +204,6 @@ final class OverviewLayoutReviewTests: XCTestCase {
             let path = FileManager.default.temporaryDirectory.appendingPathComponent("disconnected-\(size).png")
             try image.pngData()?.write(to: path)
             print("DISCONNECTED_REVIEW " + path.path)
-        }
-    }
-    @MainActor func testSpendingPopoversPresentOnCards() async throws {
-        let reading = try JSONDecoder().decode(QuotaReading.self, from: Data("""
-        {"fetchedAt":\(Date.now.timeIntervalSinceReferenceDate),"weekly":{"usedPercent":59,"durationSeconds":604800,"resetsAt":\(Date.now.addingTimeInterval(3600).timeIntervalSinceReferenceDate)},"metadata":{"plan":"Pro","balanceUSD":10.44,"usageSpent":15.58,"usageCurrency":"USD"}}
-        """.utf8))
-        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
-        let previous = scene.windows.first(where: \.isKeyWindow)
-        for (name, icon, explanation) in [("Codex", "logo-openai", MetadataExplanation.codexSpend),
-                                          ("Claude Code", "logo-claude", .claudeSpend)] {
-            let view = NavigationStack {
-                ProviderDialCardContent(name: name, icon: icon, availableWidth: 362,
-                    reading: reading, connected: true, busy: false, error: nil,
-                    accountDestination: AnyView(Text("Account details")), info: explanation)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(20)
-                    .frame(maxHeight: .infinity, alignment: .top)
-                    .navigationTitle("AI Quota").toolbarTitleDisplayMode(.inlineLarge)
-            }.tint(Color(uiColor: .systemPurple))
-            let host = UIHostingController(rootView: view)
-            let window = UIWindow(windowScene: scene)
-            window.rootViewController = host
-            window.makeKeyAndVisible()
-            defer { window.isHidden = true; previous?.makeKey() }
-            try await Task.sleep(for: .milliseconds(800))
-            XCTAssertNotNil(host.presentedViewController, "The info button must present a popover independently of account navigation.")
-            let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
-                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
-            }
-            let attachment = XCTAttachment(image: image)
-            attachment.name = "\(name) spending popover"; attachment.lifetime = .keepAlways
-            add(attachment)
-            let path = FileManager.default.temporaryDirectory.appendingPathComponent("popover-\(explanation.rawValue).png")
-            try image.pngData()?.write(to: path)
-            print("POPOVER_REVIEW " + path.path)
         }
     }
     @MainActor func testOverviewAppearances() throws {

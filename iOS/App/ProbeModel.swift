@@ -13,6 +13,9 @@ final class ProbeModel {
     private var generation = UUID()
     private var tokens: CodexTokens?
     private(set) var challenge: DeviceChallenge?
+    private(set) var history: CodexUsageHistory?
+    private(set) var historyUnavailable = false
+    private let historyCacheKey = "mobileProbe.codexHistory"
     private(set) var reading: QuotaReading?
     private(set) var busy = false
     private(set) var message = "Connect Codex to see your usage."
@@ -29,6 +32,9 @@ final class ProbeModel {
             if tokens != nil {
                 message = "Connected. Your usage updates automatically."
                 reading = shared.reading()
+                if let data = UserDefaults.standard.data(forKey: historyCacheKey) {
+                    history = try? JSONDecoder().decode(CodexUsageHistory.self, from: data)
+                }
                 if reading == nil, let data = UserDefaults.standard.data(forKey: cacheKey) {
                     reading = try? JSONDecoder().decode(QuotaReading.self, from: data)
                 }
@@ -53,6 +59,9 @@ final class ProbeModel {
                         try shared.saveCredentials(newTokens)
                         try TokenStore.clear()
                     }
+                    history = nil
+                    historyUnavailable = false
+                    UserDefaults.standard.removeObject(forKey: historyCacheKey)
                     tokens = newTokens
                     challenge = nil
                     message = "Signed in on this device. Checking quota…"
@@ -101,6 +110,17 @@ final class ProbeModel {
         if forceRenewal { renewedAt = .now }
         WidgetCenter.shared.reloadAllTimelines()
         message = "Usage updated."
+        // History is optional: an unavailable analytics endpoint must not mark quota stale.
+        if let tokens {
+            do {
+                let updated = try await api.usageHistory(tokens)
+                try Task.checkCancellation()
+                history = updated
+                historyUnavailable = false
+                UserDefaults.standard.set(try JSONEncoder().encode(updated), forKey: historyCacheKey)
+            } catch is CancellationError { throw CancellationError() }
+            catch { historyUnavailable = true }
+        }
     }
     private func run(_ action: @escaping @MainActor () async throws -> Void) {
         error = nil
@@ -154,6 +174,9 @@ final class ProbeModel {
         }
         WidgetCenter.shared.reloadAllTimelines()
         UserDefaults.standard.removeObject(forKey: cacheKey)
+        UserDefaults.standard.removeObject(forKey: historyCacheKey)
+        history = nil
+        historyUnavailable = false
         tokens = nil
         reading = nil
         renewedAt = nil

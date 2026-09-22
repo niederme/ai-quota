@@ -17,6 +17,13 @@ struct ProbeView: View {
     @State private var didCopyCode = false
     var body: some View {
         Group {
+            if model.connected && model.challenge == nil {
+                AccountConnectionForm(plan: model.reading?.metadata?.displayPlan,
+                    updated: model.reading?.fetchedAt, busy: model.busy,
+                    needsReconnect: model.connectionFailure == .reconnect || model.connectionFailure == .renewal,
+                    error: model.error, retry: { model.refresh() }, reconnect: { model.connect() },
+                    disconnect: { confirmDisconnect = true })
+            } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     VStack(alignment: .leading, spacing: 8) {
@@ -51,25 +58,13 @@ struct ProbeView: View {
                             Button("Open OpenAI sign-in") { openURL(challenge.verificationURL) }
                                 .buttonStyle(.borderedProminent)
                             Text("Enter this code on OpenAI’s page, then return after approving.")
-                                .font(.footnote).foregroundStyle(.secondary)
+                                .font(.footnote).foregroundStyle(OverviewStyle.secondary)
                         }
                     }
-                    if let reading = model.reading {
-                        ViewThatFits(in: .horizontal) {
-                            HStack(alignment: .top, spacing: 16) { windows(reading) }
-                            VStack(alignment: .leading, spacing: 16) { windows(reading) }
-                        }
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Last successful reading").font(.caption).foregroundStyle(.secondary)
-                            Text(reading.fetchedAt.formatted(date: .abbreviated, time: .standard))
-                                .font(.callout.monospacedDigit())
-                            Text("Saved reading. Refresh to check current usage.")
-                                .font(.footnote).foregroundStyle(.secondary)
-                        }
-                    }
+
                     if let error = model.error {
                         Label(error, systemImage: "exclamationmark.triangle")
-                            .foregroundStyle(.red).font(.callout)
+                            .foregroundStyle(OverviewStyle.critical).font(.callout)
                     }
                     if model.busy {
                         HStack { ProgressView(); Button("Cancel") { model.cancel() } }
@@ -84,37 +79,39 @@ struct ProbeView: View {
                             }
                             if let date = model.renewedAt {
                                 Text("Renewed \(date.formatted(date: .omitted, time: .standard))")
-                                    .font(.caption).foregroundStyle(.secondary)
+                                    .font(.caption).foregroundStyle(OverviewStyle.secondary)
                             }
                         }
                     } else {
                         Button("Connect Codex") { model.connect() }.buttonStyle(.borderedProminent)
                     }
-                    DisclosureGroup("About this connection") {
-                        Text("Uses Codex’s device-code sign-in. OpenAI may identify this connection as Codex CLI. Tokens stay in this device’s Keychain. AI Quota only reads quota; it never sends prompts or uses reset credits.")
-                    }.font(.footnote).foregroundStyle(.secondary)
+                    if model.connected {
+                        Divider().padding(.top, 12)
+                        Button("Disconnect", role: .destructive) { confirmDisconnect = true }
+                            .tint(OverviewStyle.critical).foregroundStyle(OverviewStyle.critical)
+                            .frame(minHeight: 44).disabled(model.busy)
+                    }
                 }
                 .frame(maxWidth: 700, alignment: .leading)
                 .padding(24)
                 .frame(maxWidth: .infinity)
             }
+            }
+            }
+            .foregroundStyle(OverviewStyle.primary)
+            .background(OverviewStyle.base)
             .navigationTitle("Codex account")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                if model.connected {
-                    Button("Disconnect", role: .destructive) { confirmDisconnect = true }.disabled(model.busy)
-                }
-            }
             .confirmationDialog("Remove this device’s connection?", isPresented: $confirmDisconnect) {
                 Button("Disconnect", role: .destructive) { model.disconnect() }
             } message: {
                 Text("Removes the local token and saved reading. It does not revoke the connection at OpenAI.")
             }
-        }.onChange(of: model.challenge?.userCode) { _, _ in
+        .onChange(of: model.challenge?.userCode) { _, _ in
             didCopyCode = false
         }.sheet(isPresented: $showSecuritySettings) {
             ProbeBrowser(url: URL(string: "https://chatgpt.com/#settings/Security")!)
-        }.tint(Color(uiColor: .systemPurple))
+        }.tint(OverviewStyle.accent)
     }
     @ViewBuilder private func windows(_ reading: QuotaReading) -> some View {
         window(reading.shortTerm, unavailableLabel: "Short-term")
@@ -129,15 +126,15 @@ struct ProbeView: View {
                     .accessibilityLabel("\(window.label) usage")
                 if let reset = window.resetsAt {
                     Text("Reported reset \(reset.formatted(date: .abbreviated, time: .shortened))")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.caption).foregroundStyle(OverviewStyle.secondary)
                 } else {
-                    Text("Reset time unavailable").font(.caption).foregroundStyle(.secondary)
+                    Text("Reset time unavailable").font(.caption).foregroundStyle(OverviewStyle.secondary)
                 }
             } else {
-                Text("Not reported").foregroundStyle(.secondary)
+                Text("Not reported").foregroundStyle(OverviewStyle.secondary)
             }
         }.frame(minWidth: 180, maxWidth: .infinity, alignment: .leading)
-            .padding(16).background(.quaternary, in: RoundedRectangle(cornerRadius: 16))
+            .padding(16).background(OverviewStyle.track, in: RoundedRectangle(cornerRadius: OverviewStyle.radius))
     }
 }
 
