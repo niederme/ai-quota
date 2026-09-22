@@ -4,6 +4,7 @@ The iPhone and iPad app is in beta via TestFlight. For features and availability
 see the [project README](../README.md#ios).
 
 - [Build and test](#build-and-validation)
+- [Anonymous usage analytics](#anonymous-usage-analytics)
 - [TestFlight releases](#testflight-release-workflow)
 - [Remaining work](../docs/roadmap.md#ios)
 - [Planned Shortcuts and App Intents](../docs/roadmap.md#app-intents-backlog-mac--ios)
@@ -37,7 +38,8 @@ the Mac's native Icon Composer asset.
 ## Anonymous usage analytics
 
 The iOS app shares the Mac `AnalyticsClient` and Firebase Analytics Core dependency.
-Consent is off by default, including upgrades, and can be changed in Settings →
+Consent defaults to off when no saved choice exists, persists across launches,
+and can be changed in Settings →
 Privacy or the final guided-setup screen. Both use the Mac consent copy and privacy
 policy link. Reset All Settings revokes consent before clearing accounts. Demo
 mode suspends collection and its consent controls are temporary.
@@ -48,10 +50,9 @@ Custom events mirror Mac: `app_launched`, `app_active` (once per UTC day),
 app version, platform, connected service names/count, setup state, and event
 context. The shared client tags every custom event with `platform: ios` or
 `platform: macos`, and sets it as a default for future Firebase SDK events,
-allowing both apps to share a Firebase registration. In Google
-Analytics, register an event-scoped custom dimension named **App platform** with
-the event parameter **platform** to compare or filter their events. Older Mac
-events do not have this tag; the Mac app must ship the updated client first.
+allowing both apps to share a Firebase registration. These are custom event
+parameter values, not GA4's built-in Platform or Device category labels. Older
+Mac versions do not send this tag; users need a release with the updated client.
 Credentials, account identifiers, quota readings, and error messages are never
 passed to analytics. IDFA support, IDFV collection, ad personalization, and
 automatic screen reporting are disabled. Widgets do not link Firebase.
@@ -60,15 +61,58 @@ identifier, coarse location derived by Firebase from masked IP addresses, and SD
 diagnostics for analytics, without linking to an account or advertising tracking.
 See [Firebase's data disclosure documentation](https://support.google.com/analytics/answer/10285841).
 
-For collection in a release build, place the Firebase Apple app configuration for
-`com.niederme.AIQuota` at `iOS/Resources/GoogleService-Info.plist`. The build copies
+### Local configuration and delivery checks
+
+For collection in Debug or Release builds, place the Firebase Apple app configuration for
+`com.niederme.AIQuota` at `iOS/Resources/GoogleService-Info.plist` in the checkout
+or worktree being built. The build copies
 it into the app when present and removes any stale bundled copy when absent.
 The file is gitignored and optional for local/open-source builds. It must belong to the intended Firebase reporting app; do not substitute
 an unrelated plist or the Mac Measurement Protocol secret. Without the file,
 events are no-ops. To verify delivery, use Firebase DebugView on a configured
 build with `-FIRAnalyticsDebugEnabled`, explicitly opt in, and exercise setup and
-Settings. Local tests validate consent and event payloads with an injected
-transport and do not establish delivery to Firebase.
+Settings. Inspect a custom event's `platform` parameter for `ios`. After testing,
+disable sharing and run with `-FIRAnalyticsDebugDisabled` to leave debug mode;
+do not leave the debug-enabled argument in a shared scheme. Local tests validate
+consent and event payloads with an injected transport and do not establish
+delivery to Firebase.
+
+### GA4 platform reporting and historical data
+
+As of September 22, 2026, Mac and iOS share the existing **AIQuota** Firebase
+registration and the **aiquota** GA4 property under **nieder.me**. The event-scoped
+custom dimension **App Platform** has been created for the event parameter
+`platform`. Use its `macos` and `ios` values for newly tagged events. A separate
+Firebase project or GA4 property is not needed for this setup.
+
+Historical Mac events have not been rewritten or imported with platform tags.
+Built-in Platform, Operating system, and Device category labels do not reliably
+identify these older Mac events. Filtering only for `App Platform = macos` is
+therefore not a complete historical Mac report.
+
+The January 1–September 21, 2026 Events report was verified to contain **1,299
+events**. Attempts to include this history using the new dimension, including
+`contains (not set)` and `does not contain ios`, returned no data. Removing the
+temporary comparisons restored the historical report; no working combined
+comparison was saved. Retest after the new dimension becomes available in
+processed reports before relying on it. Missing platform values must not be
+assumed to mean Mac indefinitely, since they can also include untagged iOS test
+or SDK events. The combined historical and newly tagged Mac report remains
+unresolved.
+
+### Verified implementation status
+
+[PR #67](https://github.com/niederme/ai-quota/pull/67) was merged on September 22,
+2026. Validation covered 64 iOS unit tests, the guided-setup UI test, 7 analytics
+tests after platform tagging, 4 Mac consent tests, and the Mac TestFlight target
+build. Configured iOS debug delivery was separately verified with Firebase HTTP
+204 responses, `platform: ios` in debug logs, and visible `app_launched` and
+`app_active` events in DebugView. Collection-off behavior was checked in SDK
+logs, and the diagnostic session was returned to off.
+
+This establishes implementation and debug delivery, not release availability or
+a validated historical platform report. No TestFlight or Mac release was shipped
+as part of PR #67.
 
 ## Codex reset announcements
 
