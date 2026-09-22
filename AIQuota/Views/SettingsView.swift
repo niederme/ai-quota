@@ -39,7 +39,7 @@ struct SettingsView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                LabeledContent("Menu bar display") {
+                Group {
                     let selection = Binding<MenuBarDisplayOption>(
                         get: {
                             MenuBarDisplayOption.current(
@@ -70,7 +70,6 @@ struct SettingsView: View {
                         selection: selection,
                         enrolledServices: vm.enrolledServices
                     )
-                    .frame(width: 260)
                 }
 
                 LaunchAtLoginToggle()
@@ -766,7 +765,6 @@ private struct MenuBarDisplaySegmentedPicker: View {
             }
         }
         .pickerStyle(.segmented)
-        .labelsHidden()
     }
 
     private func isAvailable(_ option: MenuBarDisplayOption) -> Bool {
