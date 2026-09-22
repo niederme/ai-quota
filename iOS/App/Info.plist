@@ -41,8 +41,8 @@
 	<false/>
 	<key>SignInCodeKeychainGroup</key>
 	<string>$(AppIdentifierPrefix)com.niederme.AIQuota.SignInCode</string>
-	<key>UILaunchScreen</key>
-	<dict/>
+	<key>UILaunchStoryboardName</key>
+	<string>LaunchScreen</string>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>

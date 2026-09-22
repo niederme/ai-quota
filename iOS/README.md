@@ -9,11 +9,28 @@ see the [project README](../README.md#ios).
 - [Remaining work](../docs/roadmap.md#ios)
 - [Planned Shortcuts and App Intents](../docs/roadmap.md#app-intents-backlog-mac--ios)
 - [Historical build and validation notes](HISTORY.md)
+- [iOS v1 pause checkpoint and next steps](docs/IOS_V1_HANDOFF.md)
 
 Commands below run from the repository root. The Mac app is the design reference
 for typography, colors, materials, and gauge proportions.
 
 ## Project and identities
+
+The native launch screen centers a 112-point Icon Composer rendition on the app's
+adaptive `OverviewBase` background. `App/LaunchScreen.storyboard` controls the
+layout on iPhone and iPad. Light and dark `LaunchIcon` images are generated from
+`AIQuota/AppIcon.icon` using Icon Composer's design-generation 27 renderer (the
+2026 material style). Re-export after changing the layered icon:
+
+```sh
+DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer bash scripts/export-ios-launch-icon.sh
+```
+
+iOS displays the static launch screen during startup; there is no added timer or
+wait for network refresh before onboarding or the dashboard appears.
+The same export command refreshes `onboarding-icon`. The obsolete iOS `AppIcon`
+asset-catalog entry is removed; `AIQuota/AppIcon.icon` is the app icon source,
+and Xcode generates the required platform renditions from it.
 
 Open [`AIQuota.xcodeproj`](../AIQuota.xcodeproj) from the repository root and select the `AIQuota-iOS` scheme.
 

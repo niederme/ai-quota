@@ -54,6 +54,8 @@ while refreshing.
 
 Connections are stored on the device. Device testing continues for session
 recovery, background refresh, accessibility, and notification delivery.
+The native launch screen uses light/dark artwork exported from Icon Composer.
+See the [iOS v1 handoff](iOS/docs/IOS_V1_HANDOFF.md) for the saved next steps.
 
 ## Understanding usage
 
