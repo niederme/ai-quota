@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# Render the native launch-screen artwork from the same layered source as the app icon.
+# Keep launch and onboarding images aligned with the authoritative Icon Composer app icon.
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 xcode_developer="${DEVELOPER_DIR:-$(xcode-select -p)}"
 icon_tool="$xcode_developer/../Applications/Icon Composer.app/Contents/Executables/ictool"
@@ -23,3 +23,11 @@ for appearance in light dark; do
             --width 112 --height 112 --scale "$scale" --design-generation 27
     done
 done
+
+# Onboarding uses a 132-point image at 2x.
+"$icon_tool" "$repo_root/AIQuota/AppIcon.icon" --export-image \
+    --output-file "$repo_root/iOS/App/Assets.xcassets/onboarding-icon.imageset/icon.png" \
+    --platform iOS --rendition Default --width 132 --height 132 --scale 2 --design-generation 27
+"$icon_tool" "$repo_root/AIQuota/AppIcon.icon" --export-image \
+    --output-file "$repo_root/iOS/App/Assets.xcassets/onboarding-icon.imageset/icon-dark.png" \
+    --platform iOS --rendition Dark --width 132 --height 132 --scale 2 --design-generation 27

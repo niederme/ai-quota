@@ -12,6 +12,12 @@ Paused at the owner's request until usage resets. Do not resume work automatical
   `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer bash scripts/export-ios-launch-icon.sh`.
 - The launch branch was rebased onto `2e3fde2`, which includes PR #70's iOS
   surfaces, gauge weights, and icon indicators. Exports were then refreshed.
+- PR #70 enlarged both round indicator radii from 44 to 51 source units (about
+  16% larger diameter). Launch and onboarding exports now both reflect that
+  source. The old one-ring iOS `AppIcon.appiconset` was removed so the layered
+  `AIQuota/AppIcon.icon` is authoritative. The export script updates launch and
+  onboarding together. Any further indicator-size adjustment belongs in the
+  source SVGs, followed by the export command.
 - Simulator Debug build passed. Native light/dark launch screens were visually
   checked on iPhone Duo, and a normal launch reached the dashboard. The owner
   ran on Karin Air and reported that the icon looked good on the splash.

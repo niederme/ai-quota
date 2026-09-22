@@ -28,6 +28,9 @@ DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer bash scripts/expor
 
 iOS displays the static launch screen during startup; there is no added timer or
 wait for network refresh before onboarding or the dashboard appears.
+The same export command refreshes `onboarding-icon`. The obsolete iOS `AppIcon`
+asset-catalog entry is removed; `AIQuota/AppIcon.icon` is the app icon source,
+and Xcode generates the required platform renditions from it.
 
 Open [`AIQuota.xcodeproj`](../AIQuota.xcodeproj) from the repository root and select the `AIQuota-iOS` scheme.
 
