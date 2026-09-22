@@ -38,8 +38,7 @@ struct HomeQuotaView: View {
                     HStack {
                         Text("AIQuota").font(.subheadline.bold())
                         Spacer()
-                        Text("● 5h").foregroundStyle(accent)
-                        Text("● 7d").foregroundStyle(accent.opacity(0.5))
+                        Text("Allowance used").foregroundStyle(.secondary)
                     }.font(.caption.bold())
                     Divider()
                     HStack(spacing: 0) {
@@ -74,18 +73,25 @@ struct HomeQuotaView: View {
     private func gauge(_ value: ProviderReading, size: CGFloat) -> some View {
         VStack(spacing: 3) {
             ZStack {
-                ring(value.reading?.shortTerm, width: size * 0.09, color: tint(value))
-                ring(value.reading?.weekly, width: size * 0.07, color: tint(value).opacity(0.5)).padding(size * 0.1)
+                ring(value.reading?.primaryWindow, width: size * (value.reading?.windows.count == 1 ? 0.13 : 0.09), color: tint(value))
+                    .padding(value.reading?.windows.count == 1 ? size * 0.02 : 0)
+                if let secondary = value.reading?.secondaryWindow {
+                    ring(secondary, width: size * 0.07, color: tint(value).opacity(0.5)).padding(size * 0.1)
+                }
                 VStack(spacing: 1) {
                     if value.needsApp {
                         Image(systemName: "exclamationmark.triangle.fill").font(.system(size: size * 0.16))
                     } else {
                         Image(value.service.logo).resizable().scaledToFit().frame(width: size * 0.16, height: size * 0.16)
                     }
-                    Text(percent(value.reading?.shortTerm) + " 5h").font(.system(size: size * 0.175, weight: .bold))
-                        .foregroundStyle(value.reading?.shortTerm == nil ? Color.secondary : tint(value))
-                    Text(percent(value.reading?.weekly) + " 7d").font(.system(size: size * 0.125, weight: .semibold))
-                        .foregroundStyle(value.reading?.weekly == nil ? Color.secondary : tint(value).opacity(0.5))
+                    Text(percent(value.reading?.primaryWindow) + " " + (value.reading?.primaryWindow?.compactLabel ?? ""))
+                        .font(.system(size: size * (value.reading?.secondaryWindow == nil ? 0.15 : 0.175), weight: .bold)).lineLimit(1).minimumScaleFactor(0.7)
+                        .foregroundStyle(value.reading?.primaryWindow == nil ? Color.secondary : tint(value))
+                    if let secondary = value.reading?.secondaryWindow {
+                        Text(percent(secondary) + " " + secondary.compactLabel)
+                            .font(.system(size: size * 0.125, weight: .semibold))
+                            .foregroundStyle(tint(value).opacity(0.5))
+                    }
                 }.foregroundStyle(tint(value)).monospacedDigit()
             }.frame(width: size, height: size)
                 .padding(.bottom, -size * 0.08)
@@ -97,9 +103,11 @@ struct HomeQuotaView: View {
             } else if stale(value) {
                 Text("Saved reading").foregroundStyle(.secondary)
             } else {
-                reset(value.reading?.shortTerm, label: "5h")
-                if layout != .singleMedium && layout != .large {
-                    reset(value.reading?.weekly, label: "7d")
+                if let primary = value.reading?.primaryWindow {
+                    reset(primary, label: primary.resetLabel)
+                }
+                if layout != .singleMedium && layout != .large, let secondary = value.reading?.secondaryWindow {
+                    reset(secondary, label: secondary.resetLabel)
                 }
             }
         }.font(.system(size: 11)).multilineTextAlignment(.center)
@@ -117,16 +125,13 @@ struct HomeQuotaView: View {
     private func reset(_ window: QuotaWindow?, label: String) -> some View {
         Group {
             if window == nil { Text("\(label) not reported") }
-            else if let end = window?.resetsAt, end > date {
-                Text("\(label) resets \(end.formatted(label == "7d" ? .dateTime.weekday(.abbreviated).hour().minute() : .dateTime.hour().minute()))")
-            } else if window?.resetsAt != nil { Text("\(label) reset unconfirmed") }
-            else { Text("\(label) reset unavailable") }
+            else if let window { Text("\(label) \(window.resetDescription(relativeTo: date, compact: true))") }
         }.foregroundStyle(.secondary).lineLimit(1).minimumScaleFactor(0.85)
     }
     private func details(_ value: ProviderReading) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             if let reading = value.reading {
-                if let window = value.service == .codex ? reading.weekly : reading.shortTerm { row(value.service == .codex ? "7d left" : "5h left", "\(Int((100 - window.usedPercent).rounded()))%", icon: "sparkles") }
+                if let window = value.service == .codex ? reading.windows.last : reading.primaryWindow { row("\(window.label == "Monthly" ? "Month" : window.compactLabel) left", "\(Int((100 - window.usedPercent).rounded()))%", icon: "sparkles") }
                 if let plan = reading.metadata?.displayPlan { row("Plan", plan, icon: "person.fill") }
                 if let balance = reading.metadata?.balanceUSD { row("Balance", balance.formatted(.currency(code: "USD")), icon: "creditcard.fill") }
                 if let spent = reading.metadata?.usageSpent {
@@ -135,7 +140,7 @@ struct HomeQuotaView: View {
                 }
                 if value.needsApp { Text("Connection needs attention").foregroundStyle(.secondary) }
                 else if stale(value) { Text("Saved reading").foregroundStyle(.secondary) }
-                else { reset(reading.weekly, label: "7d") }
+                else if let window = reading.windows.last { reset(window, label: window.resetLabel) }
             } else {
                 Text(value.needsApp ? "Reconnect in AIQuota" : "Sign in to AIQuota").fontWeight(.semibold)
                 Text("Connect \(name(value)) in the app.").foregroundStyle(.secondary)

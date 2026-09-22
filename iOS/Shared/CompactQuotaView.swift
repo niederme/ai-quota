@@ -17,16 +17,17 @@ struct CompactQuotaView: View {
                     .lineLimit(1).minimumScaleFactor(0.8)
             }
             VStack(alignment: .leading, spacing: 0) {
-                percentage(reading?.shortTerm, label: "5h")
-                    .foregroundStyle(reading?.shortTerm == nil ? .secondary : .primary)
-                percentage(reading?.weekly, label: "7d")
-                    .foregroundStyle(.secondary)
+                percentage(reading?.primaryWindow, label: reading?.primaryWindow?.compactLabel ?? "")
+                    .foregroundStyle(.primary)
+                if let secondary = reading?.secondaryWindow {
+                    percentage(secondary, label: secondary.compactLabel).foregroundStyle(.secondary)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(service.name) \(reading?.metadata?.plan == "Demo" ? "sample" : "allowance") used")
-        .accessibilityValue("Five hours: \(spoken(reading?.shortTerm)). Seven days: \(spoken(reading?.weekly)). \(stale ? "Reading needs refreshing." : "")")
+        .accessibilityValue("\(reading?.accessibilitySummary ?? "Allowance unavailable"). \(stale ? "Reading needs refreshing." : "")")
         .accessibilityHint("Opens AI Quota")
     }
     private func percentage(_ window: QuotaWindow?, label: String) -> some View {
@@ -38,8 +39,11 @@ struct CompactQuotaView: View {
     }
     private var miniGauge: some View {
         ZStack {
-            ring(reading?.shortTerm, width: 3.36, opacity: 1)
-            ring(reading?.weekly, width: 3.36, opacity: 0.6).padding(4.36)
+            ring(reading?.primaryWindow, width: reading?.windows.count == 1 ? 5.04 : 3.36, opacity: 1)
+                .padding(reading?.windows.count == 1 ? 0.84 : 0)
+            if let secondary = reading?.secondaryWindow {
+                ring(secondary, width: 3.36, opacity: 0.6).padding(4.36)
+            }
             Group {
                 if needsApp { Image(systemName: "exclamationmark").font(.system(size: 9, weight: .bold)) }
                 else { Circle().fill(.primary).frame(width: 3, height: 3) }
@@ -56,9 +60,7 @@ struct CompactQuotaView: View {
             }
         }.rotationEffect(.degrees(135))
     }
-    private func spoken(_ window: QuotaWindow?) -> String {
-        window.map { "\(Int($0.usedPercent.rounded())) percent" } ?? "Unavailable"
-    }
+
 }
 
 struct ProviderReading: Sendable {
@@ -77,10 +79,12 @@ struct CodexDial: View {
         GeometryReader { geometry in
             let size = min(geometry.size.width, geometry.size.height)
             ZStack {
-                ring(value.reading?.shortTerm, width: size * 0.12, opacity: 1)
-                    .padding(size * 0.09)
-                ring(value.reading?.weekly, width: size * 0.12, opacity: 0.6)
-                    .padding(size * 0.21 + 1)
+                ring(value.reading?.primaryWindow, width: value.reading?.windows.count == 1 ? size * 0.14 : size * 0.12, opacity: 1)
+                    .padding(value.reading?.windows.count == 1 ? size * 0.10 : size * 0.09)
+                if let secondary = value.reading?.secondaryWindow {
+                    ring(secondary, width: size * 0.12, opacity: 0.6)
+                        .padding(size * 0.21 + 1)
+                }
                 if value.reading?.metadata?.plan == "Demo" {
                     Text("Demo").font(.system(size: size * 0.16, weight: .semibold))
                 } else if value.needsApp {
@@ -100,12 +104,10 @@ struct CodexDial: View {
         .padding(3)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(value.service.name) \(value.reading?.metadata?.plan == "Demo" ? "sample" : "allowance") used")
-        .accessibilityValue("Five hours: \(formatted(value.reading?.shortTerm)). Seven days: \(formatted(value.reading?.weekly)). \(stale ? "Reading needs refreshing." : "") \(warning ? "An allowance limit is reached." : "")")
+        .accessibilityValue("\(value.reading?.accessibilitySummary ?? "Allowance unavailable"). \(stale ? "Reading needs refreshing." : "") \(warning ? "An allowance limit is reached." : "")")
         .accessibilityHint("Opens AI Quota")
     }
-    private func formatted(_ window: QuotaWindow?) -> String {
-        window.map { "\(Int($0.usedPercent.rounded())) percent" } ?? "Unavailable"
-    }
+
     private func ring(_ window: QuotaWindow?, width: CGFloat, opacity: Double) -> some View {
         ZStack {
             Circle().trim(from: 0, to: 0.75)
@@ -128,8 +130,10 @@ struct ServiceDetailsView: View {
                     CodexDial(value: value, date: date, logoScale: 0.8).frame(width: 56, height: 56)
                     VStack(alignment: .leading, spacing: 0) {
                         Text(value.service.name).font(.system(size: 16, weight: .medium)).lineLimit(1).minimumScaleFactor(0.8)
-                        metric(value.reading?.shortTerm, label: "5h").foregroundStyle(value.reading?.shortTerm == nil ? .secondary : .primary)
-                        metric(value.reading?.weekly, label: "7d").foregroundStyle(.secondary)
+                        metric(value.reading?.primaryWindow, label: value.reading?.primaryWindow?.compactLabel ?? "").foregroundStyle(.primary)
+                        if let secondary = value.reading?.secondaryWindow {
+                            metric(secondary, label: secondary.compactLabel).foregroundStyle(.secondary)
+                        }
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }
 

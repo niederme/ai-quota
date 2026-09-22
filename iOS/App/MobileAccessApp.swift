@@ -17,6 +17,57 @@ struct MobileAccessApp: App {
     }
 }
 
+struct CodexSignInContent: View {
+    let code: String?
+    let busy: Bool
+    let error: String?
+    let openSecurity: () -> Void
+    let continueSignIn: () -> Void
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 32) {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Sign in to Codex").font(.title2.bold())
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("First, check that Device Code Authorization is enabled in ChatGPT’s Security Settings, then continue.")
+                            .foregroundStyle(.secondary)
+                        Button(action: openSecurity) {
+                            HStack(spacing: 6) {
+                                Text("Open security settings")
+                                Image(systemName: "arrow.up.right").accessibilityHidden(true)
+                            }
+                            .frame(minHeight: 44)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(OverviewStyle.accent)
+                    }
+                }
+                VStack(alignment: .leading, spacing: 16) {
+                    if let code {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Your sign-in code").foregroundStyle(.secondary)
+                            Text(code).font(.title.monospaced().weight(.semibold))
+                                .textSelection(.enabled)
+                        }
+                    }
+                    Button("Copy code and continue", action: continueSignIn)
+                        .modifier(OnboardingPrimaryButtonStyle())
+                        .disabled(busy && code == nil)
+                    if let error {
+                        Text(error).foregroundStyle(OverviewStyle.critical)
+                    }
+                }
+            }
+            .font(.body)
+            .frame(maxWidth: 700, alignment: .leading)
+            .padding(24)
+            .frame(maxWidth: .infinity)
+        }
+    }
+}
+
 struct ProbeView: View {
     let model: ProbeModel
     @Environment(\.openURL) private var openURL
@@ -36,39 +87,15 @@ struct ProbeView: View {
                     error: model.error, retry: { model.refresh() }, reconnect: { beginSignIn() },
                     disconnect: { confirmDisconnect = true })
             } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-                        Text("Sign in to Codex").font(.title2.bold())
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Enable device-code authorization in ChatGPT’s Security settings, then return here.")
-                                .font(.body)
-                            Button("Open security settings") {
-                                openURL(URL(string: "https://chatgpt.com/#settings/Security")!)
-                            }
-                                .modifier(OnboardingSecondaryButtonStyle())
-                        }
-                        VStack(alignment: .leading, spacing: 16) {
-                            if let challenge = model.challenge {
-                                Text(challenge.userCode).font(.title.monospaced().bold())
-                                    .textSelection(.enabled)
-                            }
-                            Button("Copy code and continue") { beginSignIn() }
-                                .modifier(OnboardingPrimaryButtonStyle())
-                                .disabled(model.busy && model.challenge == nil)
-                        }
-                        if let error = model.error {
-                            Text(error).font(.footnote).foregroundStyle(OverviewStyle.critical)
-                        }
-                    }
-                    .frame(maxWidth: 700, alignment: .leading)
-                    .padding(24)
-                    .frame(maxWidth: .infinity)
-                }
+                CodexSignInContent(code: model.challenge?.userCode, busy: model.busy, error: model.error,
+                    openSecurity: { openURL(URL(string: "https://chatgpt.com/#settings/Security")!) },
+                    continueSignIn: { beginSignIn() })
             }
         }
             .foregroundStyle(OverviewStyle.primary)
             .background(OverviewStyle.base)
             .navigationTitle("Codex account")
+            .modifier(DismissAfterAccountConnection(completionID: model.signInCompletionID))
             .navigationBarTitleDisplayMode(.inline)
             .confirmationDialog("Remove this device’s connection?", isPresented: $confirmDisconnect) {
                 Button("Disconnect", role: .destructive) { model.disconnect() }
@@ -112,8 +139,9 @@ struct ProbeView: View {
     }
 
     @ViewBuilder private func windows(_ reading: QuotaReading) -> some View {
-        window(reading.shortTerm, unavailableLabel: "Short-term")
-        window(reading.weekly, unavailableLabel: "Weekly")
+        ForEach(reading.windows) { quota in
+            window(quota, unavailableLabel: quota.label)
+        }
     }
     private func window(_ window: QuotaWindow?, unavailableLabel: String) -> some View {
         VStack(alignment: .leading, spacing: 8) {

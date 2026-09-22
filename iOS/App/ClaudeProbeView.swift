@@ -75,6 +75,7 @@ struct ClaudeProbeView: View {
         .background(OverviewStyle.base)
         .tint(OverviewStyle.accent)
         .navigationTitle("Claude Code account")
+        .modifier(DismissAfterAccountConnection(completionID: model.signInCompletionID))
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showSignIn) {
             if let challenge = model.challenge {

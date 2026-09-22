@@ -11,6 +11,17 @@ public struct CodexUsageHistory: Codable, Sendable, Equatable {
     }
     public let fetchedAt: Date
     public let days: [Day]
+    /// Begin with actual usage, retaining zero and missing days after that point.
+    /// The overview reserves 30 slots so new accounts fill from left to right.
+    public var chartDays: [Day] {
+        Array(days.drop(while: { ($0.credits ?? 0) <= 0 }))
+    }
+    public var hasChartData: Bool { !chartDays.isEmpty }
+    public var chartRangeLabel: String {
+        guard let first = chartDays.first, let last = chartDays.last else { return "" }
+        let end = last.date == Self.dateString(.now) ? "Today" : Self.axisLabel(last.date)
+        return first.date == last.date ? end : "\(Self.axisLabel(first.date)) – \(end)"
+    }
     public var startLabel: String { days.first.map { Self.axisLabel($0.date) } ?? "" }
     public var endLabel: String {
         days.last?.date == Self.dateString(.now) ? "Today" : days.last.map { Self.axisLabel($0.date) } ?? ""

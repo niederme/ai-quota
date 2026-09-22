@@ -68,18 +68,51 @@ public struct CodexTokens: Codable, Sendable {
     public let expiresAt: Date
     public func needsRefresh(at date: Date) -> Bool { expiresAt <= date.addingTimeInterval(60) }
 }
-public struct QuotaWindow: Codable, Sendable, Equatable {
+public struct QuotaWindow: Codable, Sendable, Equatable, Identifiable {
+    public var id: Int { durationSeconds }
+    public var compactLabel: String {
+        if label == "Monthly" { return "m" }
+        return durationSeconds.isMultiple(of: 86400)
+            ? "\(durationSeconds / 86400)d" : "\(durationSeconds / 3600)h"
+    }
+    public var resetLabel: String { label == "Monthly" ? label : compactLabel }
+    public var accessibilitySummary: String { "\(label): \(Int(usedPercent.rounded())) percent used" }
+    public func resetDescription(relativeTo date: Date = .now, compact: Bool = false) -> String {
+        guard let reset = resetsAt else { return "reset unavailable" }
+        guard reset > date else { return "reset unconfirmed" }
+        if compact, label == "Monthly" {
+            return "resets \(reset.formatted(.dateTime.month(.abbreviated).day()))"
+        }
+        let format: Date.FormatStyle = Calendar.current.isDate(reset, inSameDayAs: date)
+            ? .dateTime.hour().minute()
+            : label == "Monthly" || reset.timeIntervalSince(date) >= 6 * 86400
+                ? .dateTime.month(.abbreviated).day().hour().minute()
+                : .dateTime.weekday(.abbreviated).hour().minute()
+        return "resets \(reset.formatted(format))"
+    }
     public let usedPercent: Double
     public let durationSeconds: Int
     public let resetsAt: Date?
     public var label: String {
-        durationSeconds >= 6 * 86400 ? "Weekly" : "\(durationSeconds / 3600) hours"
+        switch durationSeconds {
+        case 604800: "Weekly"
+        case 28 * 86400...31 * 86400: "Monthly"
+        default: durationSeconds.isMultiple(of: 86400)
+            ? "\(durationSeconds / 86400) days" : "\(durationSeconds / 3600) hours"
+        }
     }
 }
 public struct QuotaReading: Codable, Sendable, Equatable {
     public let fetchedAt: Date
     public let shortTerm: QuotaWindow?
+    // Legacy persistence key: this slot also holds monthly/other long allowances.
     public let weekly: QuotaWindow?
+    public var windows: [QuotaWindow] { [shortTerm, weekly].compactMap { $0 } }
+    public var primaryWindow: QuotaWindow? { windows.first }
+    public var secondaryWindow: QuotaWindow? { windows.dropFirst().first }
+    public var accessibilitySummary: String {
+        windows.isEmpty ? "Allowance unavailable" : windows.map(\.accessibilitySummary).joined(separator: ". ")
+    }
     public let metadata: AccountMetadata?
     public init(fetchedAt: Date, shortTerm: QuotaWindow?, weekly: QuotaWindow?, metadata: AccountMetadata? = nil) {
         self.fetchedAt = fetchedAt; self.shortTerm = shortTerm; self.weekly = weekly; self.metadata = metadata

@@ -224,6 +224,10 @@ import UserNotifications
 /// Scheduled reset estimates only. Delivery does not confirm renewed availability.
 enum MobileResetNotifications {
     static var defaults: UserDefaults { UserDefaults(suiteName: WidgetStore.group) ?? .standard }
+    // An absent preference means enabled; an explicit opt-out must survive re-enabling notifications.
+    static func alertEnabled(_ key: String, store: UserDefaults = defaults) -> Bool {
+        store.object(forKey: key) as? Bool ?? true
+    }
     static func identifier(_ service: QuotaService, _ window: String) -> String { "quota.reset.\(service.rawValue).\(window)" }
     static func planned(_ reading: QuotaReading?, now: Date, rules: [String: ResetAlertRule] = [:]) -> [(String, Date)] {
         guard let reading, !WidgetFreshness.isOld(reading, at: now) else { return [] }
@@ -271,7 +275,8 @@ enum MobileResetNotifications {
                 center.removePendingNotificationRequests(withIdentifiers: [id])
             }, schedule: { id, label, reset in
                 let content = UNMutableNotificationContent()
-                content.title = "\(service.name) \(label) reset expected"
+                let window = label == "5h" ? reading?.shortTerm : reading?.weekly
+                content.title = "\(service.name) \(window?.resetLabel ?? label) reset expected"
                 content.body = "Your last reading reported a reset now. Open AIQuota to check current usage."
                 content.sound = .default
                 let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: reset)
@@ -291,11 +296,11 @@ enum MobileResetNotifications {
                 ?? UsageAlertState(windowEnd: end)
             if state.windowEnd != end { state = UsageAlertState(windowEnd: end) }
             guard let level = state.next(used: window.usedPercent, now: .now,
-                nearEnabled: defaults.bool(forKey: prefix + "usageEnabled"),
+                nearEnabled: alertEnabled(prefix + "usageEnabled"),
                 nearThreshold: defaults.object(forKey: prefix + "usageThreshold") as? Double ?? 85,
-                limitEnabled: defaults.bool(forKey: prefix + "limitEnabled")) else { continue }
+                limitEnabled: alertEnabled(prefix + "limitEnabled")) else { continue }
             let content = UNMutableNotificationContent()
-            content.title = "\(service.name) \(label) " + (level == 100 ? "limit reached" : "usage high")
+            content.title = "\(service.name) \(window.resetLabel) " + (level == 100 ? "limit reached" : "usage high")
             content.body = "\(Int(window.usedPercent.rounded()))% used. Open AIQuota for current usage."
             content.sound = .default
             try await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "quota.usage.\(service.rawValue).\(label)", content: content, trigger: nil))
