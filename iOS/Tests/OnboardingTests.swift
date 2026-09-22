@@ -10,6 +10,25 @@ final class OnboardingTests: XCTestCase {
         defer { defaults.removePersistentDomain(forName: suite) }
         try body(defaults)
     }
+    func testRequiredSetupRestoresAccountFreeLaunchAfterDemoOrDismissal() throws {
+        try isolated { defaults in
+            let progress = OnboardingProgress(defaults: defaults)
+            progress.setStep(.notifications)
+            progress.dismiss()
+            progress.resumeRequiredSetup(hasConnectedService: false)
+            XCTAssertEqual(progress.step, .services)
+            XCTAssertFalse(progress.canAdvance(hasConnectedService: false))
+            XCTAssertTrue(progress.canAdvance(hasConnectedService: true))
+            // Connecting the first service must preserve the remaining setup steps.
+            progress.setStep(.notifications)
+            progress.resumeRequiredSetup(hasConnectedService: true)
+            XCTAssertEqual(progress.step, .notifications)
+            progress.finish()
+            progress.resumeRequiredSetup(hasConnectedService: false)
+            XCTAssertEqual(progress.step, .welcome)
+        }
+    }
+
     func testFreshInstallStartsAndInterruptedPartialSetupResumes() throws {
         try isolated { defaults in
             let progress = OnboardingProgress(defaults: defaults)

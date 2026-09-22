@@ -1,7 +1,7 @@
 import XCTest
 
 final class DemoFlowTests: XCTestCase {
-    func testEnterAndExitDemoFromWelcomeAndSettings() throws {
+    func testDemoReturnsToOnboardingAndSupportsGuidedSetup() throws {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-onboarding.v1.completed", "NO", "-onboarding.v1.dismissed", "NO", "-onboarding.v1.step", "0"]
@@ -14,15 +14,16 @@ final class DemoFlowTests: XCTestCase {
         // Verify the real onboarding controls before entering the demo.
         app.buttons["Continue"].tap()
         XCTAssertTrue(app.staticTexts["Connect your services"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Continue"].isEnabled)
         app.buttons["Back"].tap()
         tryDemo.tap()
         let sample = app.staticTexts["Sample usage for Codex and Claude."]
         XCTAssertTrue(sample.waitForExistence(timeout: 5))
         app.buttons["Exit demo"].firstMatch.tap()
         XCTAssertTrue(sample.waitForNonExistence(timeout: 5))
-        // A new root dismisses account/settings sheets on both transitions.
-        if app.buttons["Not now"].exists { app.buttons["Not now"].tap() }
-        app.buttons["Settings"].tap()
+        // With no live accounts, exiting the demo returns to the existing setup flow.
+        XCTAssertTrue(app.navigationBars["Set up AIQuota"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Not now"].exists)
         XCTAssertTrue(tryDemo.waitForExistence(timeout: 5))
         tryDemo.tap()
         XCTAssertTrue(sample.waitForExistence(timeout: 5))
@@ -41,7 +42,7 @@ final class DemoFlowTests: XCTestCase {
         let exit = app.buttons["Exit demo"].firstMatch
         XCTAssertTrue(exit.waitForExistence(timeout: 5))
         exit.tap()
-        XCTAssertTrue(app.buttons["Settings"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Set up AIQuota"].waitForExistence(timeout: 5))
         XCTAssertFalse(sample.exists)
     }
 }

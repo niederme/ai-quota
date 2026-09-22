@@ -35,6 +35,14 @@ final class OnboardingProgress {
         defaults.set(true, forKey: prefix + "started")
         defaults.set(false, forKey: prefix + "dismissed")
     }
+    func resumeRequiredSetup(hasConnectedService: Bool) {
+        begin()
+        // No-account launches use this flow even after a prior dismissal or completion.
+        if !hasConnectedService, step != .welcome { setStep(.services) }
+    }
+    func canAdvance(hasConnectedService: Bool) -> Bool {
+        step != .services || hasConnectedService
+    }
     func replay() {
         setStep(.welcome)
         begin()
@@ -64,6 +72,8 @@ struct OnboardingView: View {
     let codex: ProbeModel
     let claude: ClaudeProbeModel
     let progress: OnboardingProgress
+    var allowsDeferral = true
+    var onFinish: (() -> Void)? = nil
     @AppStorage("refreshIntervalMinutes") private var refreshMinutes = 0
     @Environment(\.dismiss) private var dismiss
     @State private var demoRefreshMinutes = 0
@@ -123,7 +133,10 @@ struct OnboardingView: View {
                         VStack(spacing: 24) {
                             Image(systemName: "checkmark.circle.fill").font(.system(size: 64)).foregroundStyle(OverviewStyle.accent)
                             Text("You’re all set!").font(.title.bold())
-                            Button(codex.isDemo ? "Return to demo" : "Start using AIQuota") { progress.finish(); dismiss() }
+                            Button(codex.isDemo ? "Return to demo" : "Start using AIQuota") {
+                                progress.finish()
+                                if let onFinish { onFinish() } else { dismiss() }
+                            }
                                 .modifier(OnboardingPrimaryButtonStyle())
                             VStack(spacing: 6) {
                                 let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
@@ -165,6 +178,7 @@ struct OnboardingView: View {
                         let index = OnboardingProgress.order.firstIndex(of: progress.step) ?? 0
                         progress.setStep(OnboardingProgress.order[index + 1])
                     }.modifier(OnboardingPrimaryButtonStyle())
+                        .disabled(!progress.canAdvance(hasConnectedService: codex.connected || claude.connected))
                     }
                 }.padding(20)
             }
@@ -173,7 +187,7 @@ struct OnboardingView: View {
             .navigationTitle(codex.isDemo ? "Demo setup" : "Set up AIQuota")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                if progress.step != .complete {
+                if allowsDeferral, progress.step != .complete {
                     if #available(iOS 26.0, *) {
                         ToolbarItem(placement: .cancellationAction) { skipButton }
                             .sharedBackgroundVisibility(.hidden)

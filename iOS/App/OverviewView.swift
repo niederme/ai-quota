@@ -6,6 +6,7 @@ struct OverviewView: View {
     @AppStorage("refreshIntervalMinutes") private var refreshMinutes = 0
     @State private var onboarding = OnboardingProgress()
     @State private var showOnboarding = false
+    @State private var needsInitialSetup: Bool
     @State private var codex: ProbeModel
     @State private var resetNotice = CodexResetNotice()
     @State private var showResetDetails = false
@@ -18,13 +19,38 @@ struct OverviewView: View {
 
     init(isDemo: Bool = false) {
         self.isDemo = isDemo
-        _codex = State(initialValue: ProbeModel(isDemo: isDemo))
-        _claude = State(initialValue: ClaudeProbeModel(isDemo: isDemo))
+        let codex = ProbeModel(isDemo: isDemo)
+        let claude = ClaudeProbeModel(isDemo: isDemo)
+        _codex = State(initialValue: codex)
+        _claude = State(initialValue: claude)
+        _needsInitialSetup = State(initialValue: !codex.connected && !claude.connected)
     }
     @State private var existingInstallation = UserDefaults.standard.data(forKey: "mobileProbe.codexReading") != nil
         || UserDefaults.standard.data(forKey: "mobileProbe.claudeReading") != nil
 
+    private var hasConnectedService: Bool { codex.connected || claude.connected }
+
     var body: some View {
+        Group {
+            if needsInitialSetup {
+                OnboardingView(codex: codex, claude: claude, progress: onboarding,
+                               allowsDeferral: false, onFinish: { needsInitialSetup = false })
+                    .onAppear { onboarding.resumeRequiredSetup(hasConnectedService: hasConnectedService) }
+            } else {
+                dashboard
+            }
+        }
+        .onChange(of: hasConnectedService) { _, connected in
+            if !connected {
+                selectedService = nil
+                showOnboarding = false
+                onboarding.replay()
+                needsInitialSetup = true
+            }
+        }
+    }
+
+    private var dashboard: some View {
         NavigationStack {
             GeometryReader { geometry in
                 ScrollView {
@@ -35,14 +61,18 @@ struct OverviewView: View {
                                 dismissedResetID = announcement.id
                             }, loading: codex.busy || claude.busy || resetNotice.fetching)
                         }
-                        ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 780) - 32, reading: codex.reading,
-                                         connected: codex.connected, busy: codex.busy, error: codex.error, failure: codex.connectionFailure,
-                                         history: codex.history, historyUnavailable: codex.historyUnavailable) {
-                            selectedService = .codex
+                        if codex.connected {
+                            ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 780) - 32, reading: codex.reading,
+                                             connected: codex.connected, busy: codex.busy, error: codex.error, failure: codex.connectionFailure,
+                                             history: codex.history, historyUnavailable: codex.historyUnavailable) {
+                                selectedService = .codex
+                            }
                         }
-                        ProviderDialCard(name: "Claude", icon: "logo-claude", availableWidth: min(geometry.size.width, 780) - 32, reading: claude.reading,
-                                         connected: claude.connected, busy: claude.busy, error: claude.error, failure: claude.connectionFailure) {
-                            selectedService = .claude
+                        if claude.connected {
+                            ProviderDialCard(name: "Claude", icon: "logo-claude", availableWidth: min(geometry.size.width, 780) - 32, reading: claude.reading,
+                                             connected: claude.connected, busy: claude.busy, error: claude.error, failure: claude.connectionFailure) {
+                                selectedService = .claude
+                            }
                         }
                         overviewFreshness.frame(maxWidth: .infinity)
 
@@ -744,21 +774,7 @@ struct ProviderDialCardContent: View {
     }
     private var cardContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            if connected {
-                summary
-            } else {
-                HStack(spacing: 16) {
-                    Image(icon).resizable().scaledToFit().frame(width: 36, height: 36)
-                        .foregroundStyle(OverviewStyle.primary)
-                        .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Connect \(name)").font(.headline).foregroundStyle(OverviewStyle.primary)
-                        Text("Sign in to see your usage.").font(.subheadline).foregroundStyle(OverviewStyle.secondary)
-                    }.frame(maxWidth: .infinity, alignment: .leading)
-                    Image(systemName: "chevron.right").font(.body.weight(.semibold))
-                        .foregroundStyle(OverviewStyle.accent).accessibilityHidden(true)
-                }.padding(.vertical, 8)
-            }
+            summary
             if name == "Codex", connected {
                 Divider()
                 if let history {

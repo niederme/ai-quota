@@ -4,7 +4,7 @@ Provide both live test-account access and the optional built-in demo. Enter actu
 
 ## Suggested reviewer instructions
 
-AIQuota can be explored without signing in: choose **Try demo** on the welcome screen, or **Settings → Demo → Try demo**. The dashboard shows labeled sample Codex and Claude usage, Codex history, and provider details. Widgets also show labeled sample data while demo is enabled. Settings → Guided Setup also works in demo mode with temporary progress, sample accounts, and a Return to demo completion action. Demo notification and refresh controls are temporary and do not send alerts or change live preferences. Choose **Exit demo** to use real accounts. Existing connections and cached usage are preserved.
+AIQuota can be explored without signing in: choose **Try demo** on the welcome screen, or **Settings → Demo → Try demo**. The dashboard shows labeled sample Codex and Claude usage, Codex history, and provider details. Widgets also show labeled sample data while demo is enabled. Settings → Guided Setup also works in demo mode with temporary progress, sample accounts, and a Return to demo completion action. Demo notification and refresh controls are temporary and do not send alerts or change live preferences. Choose **Exit demo** to use real accounts. Existing connections and cached usage are preserved. With no live account, Exit demo returns to the existing onboarding flow. Connect at least one service to finish setup; the dashboard only shows connected services.
 
 For live sign-in, use the dedicated provider test accounts supplied in the private review information. Provider verification emails arrive in the supplied dedicated Gmail inbox:
 
