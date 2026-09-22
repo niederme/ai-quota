@@ -398,6 +398,8 @@ private struct CodexDetailInformation: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .largeTitle) private var amountSize = 44.0
 
+    @ScaledMetric(relativeTo: .subheadline) private var legendCapMidpoint = 5.5
+
     private var days: [CodexUsageHistory.Day] { Array((history?.days ?? []).suffix(period)) }
     private func totals(_ key: KeyPath<CodexUsageHistory.Day, [String: Double]?>) -> [(String, Double)] {
         var result: [String: Double] = [:]
@@ -439,10 +441,14 @@ private struct CodexDetailInformation: View {
                 }
                 Text("Share of usage credits, including your plan. Not a breakdown of extra charges.")
                     .font(.footnote).foregroundStyle(OverviewStyle.secondary)
-                Text("Models").font(.subheadline.weight(.semibold))
-                breakdown(totals(\.models))
-                Text("Apps and tools").font(.subheadline.weight(.semibold)).padding(.top, 8)
-                breakdown(totals(\.surfaces))
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Models").font(.headline)
+                    breakdown(totals(\.models))
+                }.padding(.top, 12)
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Apps and tools").font(.headline)
+                    breakdown(totals(\.surfaces))
+                }.padding(.top, 16)
                 if days.contains(where: { $0.credits != nil && $0.models == nil }) {
                     Text("Model breakdown is missing for some reported days.")
                         .font(.footnote).foregroundStyle(OverviewStyle.secondary)
@@ -450,6 +456,7 @@ private struct CodexDetailInformation: View {
                 if let history {
                     Text("Updated \(history.fetchedAt.formatted(date: .abbreviated, time: .shortened))")
                         .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                        .padding(.top, 8)
                 }
             }
             Divider()
@@ -503,14 +510,17 @@ private struct CodexDetailInformation: View {
                     .accessibilityHidden(true)
                 LazyVGrid(columns: typeSize.isAccessibilitySize
                           ? [GridItem(.flexible(), alignment: .leading)]
-                          : [GridItem(.adaptive(minimum: 150), alignment: .leading)], alignment: .leading, spacing: 10) {
+                          : [GridItem(.flexible(), spacing: 16, alignment: .leading),
+                             GridItem(.flexible(), alignment: .leading)], alignment: .leading, spacing: 12) {
                     ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Circle().fill(colors[index]).frame(width: 8, height: 8)
-                                .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] }
-                            Text(displayName(row.0)).fixedSize(horizontal: false, vertical: true)
-                            Text(shareLabel(row.1 / total)).monospacedDigit()
-                                .foregroundStyle(OverviewStyle.secondary)
+                                .alignmentGuide(.firstTextBaseline) { dimensions in
+                                    dimensions[VerticalAlignment.center] + legendCapMidpoint
+                                }
+                            (Text(displayName(row.0)) + Text(" " + shareLabel(row.1 / total))
+                                .foregroundColor(OverviewStyle.secondary))
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         .font(.subheadline)
                         .accessibilityElement(children: .ignore)
