@@ -2,7 +2,7 @@
 
 The overview follows the purple AIQuota brand and core dual gauges. Native SF typography, SF Symbols, toolbar controls, and regular Liquid Glass on iOS 26+ provide the interface. Older supported systems use regular material. Inactive gauge tracks use `quaternarySystemFill`; unavailable windows use ticks, and reported zero remains a solid track. Reduce Transparency removes the decorative purple wash.
 
-Tapping anywhere in a service card opens its detail sheet. Settings and its destinations also use sheets. Account screens contain connection status, plan, and Disconnect; reconnect appears only for authentication failures. Usage is not repeated there. Settings, onboarding, and widget setup share the brand tokens. Widget extension layouts and macOS views are outside this change.
+Tapping anywhere in a service card opens its detail sheet. Settings and its destinations also use sheets. Account screens contain connection status, plan, and Disconnect; reconnect appears only for authentication failures. Usage is not repeated there. Settings, onboarding, and widget setup share the brand tokens. Widget extension layouts remain unchanged. The accompanying earlier work includes macOS unavailable-track refinements, plan-change notifications, persistent iOS sign-in, and release tooling for the sign-in code extension.
 
 ## Service details
 

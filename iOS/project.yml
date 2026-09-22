@@ -11,17 +11,18 @@ targetTemplates:
         DEVELOPMENT_TEAM: 289GY9L343
         CODE_SIGN_STYLE: Automatic
         MARKETING_VERSION: "0.1.0"
-        CURRENT_PROJECT_VERSION: "25"
+        CURRENT_PROJECT_VERSION: "29"
 targets:
   AIQuota-iOS:
     type: application
     platform: iOS
     deploymentTarget: "17.0"
     templates: [iOSDistribution]
-    sources: [App, Shared, ../AIQuota/AppIcon.icon]
+    sources: [App, Shared, SignInSupport, ../AIQuota/AppIcon.icon]
     dependencies:
       - package: MobileAccessCore
       - target: AIQuotaWidget-iOS
+      - target: AIQuotaCopySignInCode-iOS
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.niederme.AIQuota
@@ -35,6 +36,7 @@ targets:
         WidgetKeychainGroup: $(AppIdentifierPrefix)com.niederme.AIQuota.MobileAccessProbe.Widget
         CFBundleURLTypes:
           - CFBundleURLSchemes: [aiquota-probe]
+        SignInCodeKeychainGroup: $(AppIdentifierPrefix)com.niederme.AIQuota.SignInCode
         CFBundleDisplayName: AI Quota
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
@@ -71,6 +73,30 @@ targets:
         WidgetKeychainGroup: $(AppIdentifierPrefix)com.niederme.AIQuota.MobileAccessProbe.Widget
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
+  AIQuotaCopySignInCode-iOS:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    templates: [iOSDistribution]
+    sources: [CopySignInCode, SignInSupport]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.niederme.AIQuota.copySignInCode
+        CODE_SIGN_ENTITLEMENTS: iOS/CopySignInCode/CopySignInCode.entitlements
+        TARGETED_DEVICE_FAMILY: "1,2"
+    info:
+      path: CopySignInCode/Info.plist
+      properties:
+        CFBundleDisplayName: Copy Codex sign-in code
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        SignInCodeKeychainGroup: $(AppIdentifierPrefix)com.niederme.AIQuota.SignInCode
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.ui-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).CopySignInCodeViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
   AIQuota-iOSTests:
     type: bundle.unit-test
     platform: iOS

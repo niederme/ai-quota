@@ -86,7 +86,11 @@ struct CircularGaugeView: View {
             // ── Outer track ───────────────────────────────────────────
             Circle()
                 .trim(from: 0, to: 0.75)
-                .stroke(.fill.tertiary, style: StrokeStyle(lineWidth: outerLw, lineCap: .butt))
+                .stroke(.fill.tertiary, style: StrokeStyle(
+                    lineWidth: outerLw,
+                    lineCap: .butt,
+                    dash: !isLoading && !showsPrimaryMetric ? [3, 3] : []
+                ))
                 .rotationEffect(.degrees(135))
 
             // ── Outer fill (primary) ──────────────────────────────────

@@ -1,4 +1,5 @@
 import XCTest
+import WebKit
 import MobileAccessCore
 @testable import AIQuota_iOS
 
@@ -69,5 +70,40 @@ extension TokenStoreTests {
         try WidgetStore.publish(tokens, account: account)
         try WidgetStore.clearAccess(account: account)
         XCTAssertNil(try WidgetStore.tokens(account: account))
+    }
+}
+
+
+extension TokenStoreTests {
+    func testSignInCodeExpiresAndIsRemoved() throws {
+        let account = "test-code-" + UUID().uuidString
+        defer { try? SignInCodeStore.clear(account: account) }
+        let now = Date.now
+        try SignInCodeStore.save(code: "TEST-CODE", expiresAt: now.addingTimeInterval(60), account: account)
+        XCTAssertEqual(try SignInCodeStore.load(at: now, account: account)?.code, "TEST-CODE")
+        XCTAssertNil(try SignInCodeStore.load(at: now.addingTimeInterval(60), account: account))
+        XCTAssertNil(try SignInCodeStore.load(at: now, account: account))
+        try SignInCodeStore.save(code: "NEW-CODE", expiresAt: now.addingTimeInterval(60), account: account)
+        try SignInCodeStore.clear(account: account)
+        XCTAssertNil(try SignInCodeStore.load(at: now, account: account))
+    }
+}
+
+
+extension TokenStoreTests {
+    @MainActor
+    func testCodexBrowserUsesPersistentCookiesAcrossInstances() async throws {
+        let first = CodexBrowserSession(url: URL(string: "about:blank")!)
+        XCTAssertTrue(first.webView.configuration.websiteDataStore.isPersistent)
+        let cookie = try XCTUnwrap(HTTPCookie(properties: [
+            .domain: "aiquota-session-test.invalid", .path: "/", .name: UUID().uuidString,
+            .value: "synthetic", .secure: "TRUE", .expires: Date.now.addingTimeInterval(60)
+        ]))
+        let store = first.webView.configuration.websiteDataStore.httpCookieStore
+        await store.setCookie(cookie)
+        let reopened = CodexBrowserSession(url: URL(string: "about:blank")!)
+        let cookies = await reopened.webView.configuration.websiteDataStore.httpCookieStore.allCookies()
+        await store.deleteCookie(cookie)
+        XCTAssertTrue(cookies.contains { $0.name == cookie.name && $0.value == "synthetic" })
     }
 }

@@ -1,6 +1,6 @@
 # AI Quota for iPhone and iPad
 
-> **Current status (September 15, 2026):** The iPhone and iPad app is in beta via TestFlight and builds from the shared Xcode project using the `AIQuota-iOS` scheme. Independent Codex and Claude connections, Lock Screen and Home Screen widgets, and per-window alerts are implemented. See the [iOS beta roadmap](../README.md#ios) for remaining validation. The original plan and feasibility notes below are historical; implementation does not establish device reliability or public-release readiness.
+> **Current status (September 15, 2026):** The iPhone and iPad app is in beta via TestFlight and builds from the shared Xcode project using the `AIQuota-iOS` scheme. Independent Codex and Claude connections, Lock Screen and Home Screen widgets, and per-window alerts are implemented. See the [iOS beta roadmap](roadmap.md#ios) for remaining validation. The original plan and feasibility notes below are historical; implementation does not establish device reliability or public-release readiness.
 
 Original product plan · September 11, 2026 · Historical reference
 

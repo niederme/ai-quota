@@ -103,6 +103,7 @@ struct SharedQuotaStore: Sendable {
                     log(source, "reused", reading: cached)
                     return cached
                 }
+                let previousPlan = reading()?.metadata?.plan
                 log(source, "attempt", reading: reading())
                 let renewedBeforeUsage = forceRenewal || credentials.needsRefresh(at: .now)
                 if renewedBeforeUsage {
@@ -127,7 +128,10 @@ struct SharedQuotaStore: Sendable {
                 try Task.checkCancellation()
                 try saveReading(value)
                 saveFailure(nil)
-                if namespace == "live" { await MobileResetNotifications.update(service, reading: value, evaluateUsage: true) }
+                if namespace == "live" {
+                    await MobileResetNotifications.update(service, reading: value, evaluateUsage: true)
+                    await MobileResetNotifications.planChanged(service, previous: previousPlan, current: value.metadata?.plan)
+                }
                 log(source, "success", reading: value)
                 return value
             } catch {
@@ -231,6 +235,20 @@ enum MobileResetNotifications {
     static func cancel(_ service: QuotaService) {
         UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [identifier(service, "5h"), identifier(service, "7d"), "quota.usage.\(service.rawValue).5h", "quota.usage.\(service.rawValue).7d"])
     }
+    static func planChanged(_ service: QuotaService, previous: String?, current: String?) async {
+        guard let change = PlanChange(previous: previous, current: current),
+              defaults.bool(forKey: "notifications.enabled"),
+              defaults.object(forKey: "notifications.\(service.rawValue)") as? Bool ?? true else { return }
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
+        let content = UNMutableNotificationContent()
+        content.title = "\(service.name) plan changed to \(change.current)"
+        content.body = "Previously \(change.previous). Connection checked and usage is up to date."
+        content.sound = .default
+        try? await center.add(UNNotificationRequest(identifier: "quota.plan.\(service.rawValue)", content: content, trigger: nil))
+    }
+
     // Call under the provider lease so app and widget do not race scheduling or disconnect.
     static func update(_ service: QuotaService, reading: QuotaReading?, evaluateUsage: Bool = false) async {
         let center = UNUserNotificationCenter.current()

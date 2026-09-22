@@ -14,6 +14,7 @@ final class ClaudeProbeModel {
     private var tokens: ClaudeTokens?
     private(set) var challenge: ClaudeChallenge?
     private(set) var reading: QuotaReading?
+    private(set) var signInCompletionID: UUID?
     private(set) var busy = false
     private(set) var message = "Connect Claude to see your usage."
     private(set) var error: String?
@@ -59,6 +60,7 @@ final class ClaudeProbeModel {
             challenge = nil
             message = "Signed in on this device. Checking quota…"
             try await fetch(forceRenewal: false)
+            signInCompletionID = UUID()
         }
     }
     func refresh(forceRenewal: Bool = false) {

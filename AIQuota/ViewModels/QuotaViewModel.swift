@@ -515,6 +515,7 @@ final class QuotaViewModel {
         guard !Self.isDemoBuild else { return }
         guard isCodexAuthenticated else { return }
         guard !isCodexLoading else { return }
+        let previousPlan = codexUsage?.planType
         let gen = codexRefreshGeneration
         isCodexLoading = true
         codexError = nil
@@ -546,6 +547,8 @@ final class QuotaViewModel {
             lastRefreshedAt = .now
             SharedDefaults.saveUsage(result)
             await NotificationManager.shared.evaluate(current: result, prefs: settings.notifications)
+            await NotificationManager.shared.notifyPlanChange(service: "Codex", previous: previousPlan, current: result.planType,
+                enabled: settings.notifications.enabled && settings.notifications.codexEnabled)
             if let balance = result.creditBalance {
                 await NotificationManager.shared.evaluateTopUp(
                     currentBalance: balance,
@@ -573,6 +576,8 @@ final class QuotaViewModel {
                     lastRefreshedAt = .now
                     SharedDefaults.saveUsage(result)
                     await NotificationManager.shared.evaluate(current: result, prefs: settings.notifications)
+                    await NotificationManager.shared.notifyPlanChange(service: "Codex", previous: previousPlan, current: result.planType,
+                        enabled: settings.notifications.enabled && settings.notifications.codexEnabled)
                     if let balance = result.creditBalance {
                         await NotificationManager.shared.evaluateTopUp(
                             currentBalance: balance,
@@ -621,6 +626,7 @@ final class QuotaViewModel {
         guard !Self.isDemoBuild else { return }
         guard isClaudeAuthenticated else { return }
         guard !isClaudeLoading else { return }
+        let previousPlan = claudeUsage?.planDisplayName
         let gen = claudeRefreshGeneration
         isClaudeLoading = true
         claudeError = nil
@@ -634,6 +640,8 @@ final class QuotaViewModel {
             lastRefreshedAt = .now
             SharedDefaults.saveClaudeUsage(result)
             await NotificationManager.shared.evaluate(claude: result, prefs: settings.notifications)
+            await NotificationManager.shared.notifyPlanChange(service: "Claude", previous: previousPlan, current: result.planDisplayName,
+                enabled: settings.notifications.enabled && settings.notifications.claudeEnabled)
         } catch let e as NetworkError {
             if e.isAuthError {
                 claudeUsage = nil
@@ -650,6 +658,8 @@ final class QuotaViewModel {
                     lastRefreshedAt = .now
                     SharedDefaults.saveClaudeUsage(result)
                     await NotificationManager.shared.evaluate(claude: result, prefs: settings.notifications)
+                    await NotificationManager.shared.notifyPlanChange(service: "Claude", previous: previousPlan, current: result.planDisplayName,
+                        enabled: settings.notifications.enabled && settings.notifications.claudeEnabled)
                 } catch {
                     // Retry also failed — coordinator already transitioned to unauthenticated
                 }

@@ -76,9 +76,15 @@ struct OnboardingView: View {
                         }
                         service("Codex", subtitle: "ChatGPT / OpenAI", logo: "logo-openai", connected: codex.connected, error: codex.error) {
                             ProbeView(model: codex)
+                                .modifier(ReturnToOnboardingAfterConnection(
+                                    completionID: codex.signInCompletionID
+                                ))
                         }
                         service("Claude Code", subtitle: "Anthropic / claude.ai", logo: "logo-claude", connected: claude.connected, error: claude.error ?? (claude.connectionFailure != nil ? "Needs attention" : nil)) {
                             ClaudeProbeView(model: claude)
+                                .modifier(ReturnToOnboardingAfterConnection(
+                                    completionID: claude.signInCompletionID
+                                ))
                         }
                         if codex.connected || claude.connected {
                             Divider()
@@ -209,6 +215,21 @@ struct OnboardingView: View {
             .background(OverviewStyle.track,
                         in: RoundedRectangle(cornerRadius: OverviewStyle.radius))
         }.buttonStyle(.plain)
+    }
+}
+
+/// Only onboarding destinations return to the service list after a successful attempt.
+/// Wait for the initial usage check so a failed connection stays visible for retry.
+private struct ReturnToOnboardingAfterConnection: ViewModifier {
+    let completionID: UUID?
+    @Environment(\.dismiss) private var dismiss
+
+    func body(content: Content) -> some View {
+        content.onChange(of: completionID) { _, completed in
+            if completed != nil {
+                dismiss()
+            }
+        }
     }
 }
 
