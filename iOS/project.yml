@@ -11,7 +11,7 @@ targetTemplates:
         DEVELOPMENT_TEAM: 289GY9L343
         CODE_SIGN_STYLE: Automatic
         MARKETING_VERSION: "0.1.0"
-        CURRENT_PROJECT_VERSION: "34"
+        CURRENT_PROJECT_VERSION: "36"
 targets:
   AIQuota-iOS:
     type: application
