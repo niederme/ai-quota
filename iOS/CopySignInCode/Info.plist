@@ -31,9 +31,9 @@
 			</dict>
 		</dict>
 		<key>NSExtensionPointIdentifier</key>
-		<string>com.apple.ui-services</string>
+		<string>com.apple.services</string>
 		<key>NSExtensionPrincipalClass</key>
-		<string>$(PRODUCT_MODULE_NAME).CopySignInCodeViewController</string>
+		<string>$(PRODUCT_MODULE_NAME).CopySignInCodeRequestHandler</string>
 	</dict>
 	<key>SignInCodeKeychainGroup</key>
 	<string>$(AppIdentifierPrefix)com.niederme.AIQuota.SignInCode</string>

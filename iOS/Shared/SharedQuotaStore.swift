@@ -60,6 +60,9 @@ struct SharedQuotaStore: Sendable {
         guard status == errSecSuccess || status == errSecItemNotFound else { throw AccessError.storage }
         if let url = readingURL, FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
         saveFailure(nil)
+        if let url = cooldownURL, FileManager.default.fileExists(atPath: url.path) {
+            try FileManager.default.removeItem(at: url)
+        }
         if namespace == "live" {
             MobileResetNotifications.cancel(service)
             for window in ["5h", "7d"] {
@@ -90,6 +93,12 @@ struct SharedQuotaStore: Sendable {
         renew: @Sendable (T) async throws -> T, usage: @Sendable (T) async throws -> QuotaReading
     ) async throws -> QuotaReading {
         try await withLease {
+            // A widget can refresh after disconnect/reset. No credentials means signed
+            // out, not a broken connection; do not persist a reconnect warning.
+            guard var credentials = try load(type) else {
+                saveFailure(nil)
+                throw AccessError.expired
+            }
             // Shared across app, widget and launches. Suppressed attempts must not extend the cooldown.
             if service == .claude, let url = cooldownURL,
                let data = try? Data(contentsOf: url),
@@ -97,7 +106,6 @@ struct SharedQuotaStore: Sendable {
                 throw ClaudeAccessError.requestFailed(stage: "usage update", status: 429)
             }
             do {
-                guard var credentials = try load(type) else { throw AccessError.expired }
                 if !forceRenewal, !credentials.needsRefresh(at: .now), let cached = reading(),
                    !WidgetFreshness.isOld(cached, at: .now), Date.now.timeIntervalSince(cached.fetchedAt) < minimumAge {
                     log(source, "reused", reading: cached)

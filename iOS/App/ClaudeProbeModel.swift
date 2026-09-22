@@ -27,10 +27,10 @@ final class ClaudeProbeModel {
         self.api = api
         self.shared = shared
         guard restore else { return }
-        connectionFailure = shared.failure()
         do {
             tokens = try shared.load(ClaudeTokens.self) ?? ClaudeTokenStore.load()
             if tokens != nil {
+                connectionFailure = shared.failure()
                 message = "Connected. Your usage updates automatically."
                 reading = shared.reading()
                 if reading == nil, let data = UserDefaults.standard.data(forKey: cacheKey) {
@@ -144,6 +144,8 @@ final class ClaudeProbeModel {
         await pending?.value
         try await clearConnection()
         lastAutomaticRefresh = nil
+        signInCompletionID = nil
+        message = "Connect Claude to see your usage."
     }
     private func clearConnection() async throws {
         try await shared.withLease { [shared] in

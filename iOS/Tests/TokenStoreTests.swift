@@ -92,18 +92,13 @@ extension TokenStoreTests {
 
 extension TokenStoreTests {
     @MainActor
-    func testCodexBrowserUsesPersistentCookiesAcrossInstances() async throws {
-        let first = CodexBrowserSession(url: URL(string: "about:blank")!)
-        XCTAssertTrue(first.webView.configuration.websiteDataStore.isPersistent)
-        let cookie = try XCTUnwrap(HTTPCookie(properties: [
-            .domain: "aiquota-session-test.invalid", .path: "/", .name: UUID().uuidString,
-            .value: "synthetic", .secure: "TRUE", .expires: Date.now.addingTimeInterval(60)
-        ]))
-        let store = first.webView.configuration.websiteDataStore.httpCookieStore
-        await store.setCookie(cookie)
-        let reopened = CodexBrowserSession(url: URL(string: "about:blank")!)
-        let cookies = await reopened.webView.configuration.websiteDataStore.httpCookieStore.allCookies()
-        await store.deleteCookie(cookie)
-        XCTAssertTrue(cookies.contains { $0.name == cookie.name && $0.value == "synthetic" })
+    func testCodexSignInRetainsSystemBrowserAndCopyCodeAction() throws {
+        let session = CodexBrowserSession(url: URL(string: "https://example.com/device")!, code: "TEST-CODE")
+        let first = CodexSignInPresentation(id: "attempt", session: session, code: "TEST-CODE")
+        let reopened = CodexSignInPresentation(id: "attempt", session: session, code: "TEST-CODE")
+        XCTAssertTrue(first.session.controller === reopened.session.controller)
+        XCTAssertFalse(session.controller.configuration.barCollapsingEnabled)
+        XCTAssertEqual(session.controller.configuration.activityButton?.extensionIdentifier,
+                       "com.niederme.AIQuota.copySignInCode")
     }
 }
