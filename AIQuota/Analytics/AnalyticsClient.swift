@@ -46,10 +46,9 @@ final class AnalyticsClient: @unchecked Sendable {
 
     func send(_ eventName: String, params: [String: String] = [:], enabled: Bool) async {
         let backend = stateQueue.sync { () -> Backend in
-            collectionEnabled = enabled
+            guard enabled, collectionEnabled else { return .none }
             configureIfNeededLocked()
-            applyCollectionSettingLocked()
-            return enabled ? self.backend : .none
+            return self.backend
         }
 
         switch backend {

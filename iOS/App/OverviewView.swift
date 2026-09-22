@@ -40,6 +40,16 @@ struct OverviewView: View {
                 dashboard
             }
         }
+        .onAppear {
+            MobileAnalytics.shared.observeServices(codex: codex.connected, claude: claude.connected, isDemo: isDemo)
+            MobileAnalytics.shared.recordLaunchIfNeeded()
+            if scenePhase == .active { MobileAnalytics.shared.recordDailyActiveIfNeeded() }
+        }
+        .onChange(of: codex.connected) { _, _ in updateAnalyticsServices() }
+        .onChange(of: claude.connected) { _, _ in updateAnalyticsServices() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { MobileAnalytics.shared.recordDailyActiveIfNeeded() }
+        }
         .onChange(of: hasConnectedService) { _, connected in
             if !connected {
                 selectedService = nil
@@ -48,6 +58,10 @@ struct OverviewView: View {
                 needsInitialSetup = true
             }
         }
+    }
+
+    private func updateAnalyticsServices() {
+        MobileAnalytics.shared.observeServices(codex: codex.connected, claude: claude.connected, isDemo: isDemo)
     }
 
     private var dashboard: some View {
@@ -86,6 +100,7 @@ struct OverviewView: View {
                     .frame(maxWidth: .infinity)
                 }
                 .refreshable {
+                    MobileAnalytics.shared.manualRefresh()
                     async let first: Void = codex.refreshAndWait()
                     async let second: Void = claude.refreshAndWait()
                     _ = await (first, second)
@@ -136,6 +151,7 @@ struct OverviewView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
+                        MobileAnalytics.shared.manualRefresh()
                         codex.refresh()
                         claude.refresh()
                     } label: {

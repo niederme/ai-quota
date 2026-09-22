@@ -107,6 +107,8 @@ final class OnboardingTests: XCTestCase {
         try isolated { defaults in
             defaults.set("keep", forKey: "unrelated")
             defaults.set(10, forKey: "refreshIntervalMinutes")
+            defaults.set(true, forKey: MobileAnalytics.enabledKey)
+            defaults.set("2026-09-22", forKey: MobileAnalytics.lastActiveDateKey)
             defaults.set(true, forKey: "notifications.enabled")
             defaults.set(false, forKey: "notifications.claude")
             let progress = OnboardingProgress(defaults: defaults)
@@ -117,6 +119,8 @@ final class OnboardingTests: XCTestCase {
             XCTAssertEqual(progress.step, .welcome)
             XCTAssertTrue(progress.shouldPresent(hasExistingAccount: false))
             XCTAssertNil(defaults.object(forKey: "refreshIntervalMinutes"))
+            XCTAssertNil(defaults.object(forKey: MobileAnalytics.enabledKey))
+            XCTAssertNil(defaults.object(forKey: MobileAnalytics.lastActiveDateKey))
             XCTAssertNil(defaults.object(forKey: "notifications.enabled"))
             XCTAssertNil(defaults.object(forKey: "notifications.claude"))
             XCTAssertEqual(defaults.string(forKey: "unrelated"), "keep")

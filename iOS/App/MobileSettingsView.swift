@@ -61,6 +61,7 @@ struct MobileSettingsView: View {
                 if let resetError { Text(resetError).font(.callout).foregroundStyle(OverviewStyle.critical) }
             }.listRowBackground(OverviewStyle.track)
             Section("Privacy") {
+                MobileAnalyticsConsentControls(surface: .settings, isDemo: codex.isDemo)
                 Text("Sign-in credentials stay in this device’s Keychain and are shared with its widgets. Usage is requested directly from each service.")
                     .font(.footnote).foregroundStyle(OverviewStyle.secondary)
             }.listRowBackground(OverviewStyle.track)
@@ -78,6 +79,7 @@ struct MobileSettingsView: View {
             Button("Reset", role: .destructive) {
                 resetting = true
                 resetError = nil
+                MobileAnalytics.shared.reset()
                 Task {
                     // Prevent any further widget scheduling while account leases settle.
                     MobileResetNotifications.defaults.set(false, forKey: "notifications.enabled")
@@ -251,7 +253,7 @@ struct MobileNotificationControls: View {
 enum MobileSettingsReset {
     static func clearPreferences(standard: UserDefaults = .standard,
                                  shared: UserDefaults = MobileResetNotifications.defaults) {
-        for key in ["refreshIntervalMinutes", "mobileProbe.codexReading", "mobileProbe.claudeReading", CodexResetNotice.dismissalKey] {
+        for key in [MobileAnalytics.enabledKey, MobileAnalytics.lastActiveDateKey, "refreshIntervalMinutes", "mobileProbe.codexReading", "mobileProbe.claudeReading", CodexResetNotice.dismissalKey] {
             standard.removeObject(forKey: key)
         }
         for key in ["notifications.enabled", "notifications.codex", "notifications.claude", "notifications.error"] {

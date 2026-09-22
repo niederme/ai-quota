@@ -34,6 +34,36 @@ copy. The old prototype installation can be removed separately. The iOS app uses
 the Mac's native Icon Composer asset.
 
 
+## Anonymous usage analytics
+
+The iOS app shares the Mac `AnalyticsClient` and Firebase Analytics Core dependency.
+Consent is off by default, including upgrades, and can be changed in Settings →
+Privacy or the final guided-setup screen. Both use the Mac consent copy and privacy
+policy link. Reset All Settings revokes consent before clearing accounts. Demo
+mode suspends collection and its consent controls are temporary.
+
+Custom events mirror Mac: `app_launched`, `app_active` (once per UTC day),
+`analytics_enabled`, `onboarding_completed`, `service_connected`,
+`service_disconnected`, and overview `manual_refresh`. Parameters contain only
+app version, platform, connected service names/count, setup state, and event
+context. Credentials, account identifiers, quota readings, and error messages are
+never passed to analytics. IDFA support, IDFV collection, ad personalization, and
+automatic screen reporting are disabled. Widgets do not link Firebase.
+The app privacy manifest declares product interaction, a random installation
+identifier, coarse location derived by Firebase from masked IP addresses, and SDK
+diagnostics for analytics, without linking to an account or advertising tracking.
+See [Firebase's data disclosure documentation](https://support.google.com/analytics/answer/10285841).
+
+For collection in a release build, place the Firebase Apple app configuration for
+`com.niederme.AIQuota` at `iOS/Resources/GoogleService-Info.plist`, then run
+`xcodegen generate`. The file is gitignored and optional for local/open-source
+builds. It must belong to the intended Firebase reporting app; do not substitute
+an unrelated plist or the Mac Measurement Protocol secret. Without the file,
+events are no-ops. To verify delivery, use Firebase DebugView on a configured
+build with `-FIRAnalyticsDebugEnabled`, explicitly opt in, and exercise setup and
+Settings. Local tests validate consent and event payloads with an injected
+transport and do not establish delivery to Firebase.
+
 ## Codex reset announcements
 
 The overview shows a dismissible notice above a connected Codex account when the

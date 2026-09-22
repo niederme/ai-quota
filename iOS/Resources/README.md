@@ -1,0 +1,1 @@
+Place the local Firebase Apple app configuration here as `GoogleService-Info.plist`, then regenerate the project with `xcodegen generate`. See the anonymous usage analytics section in `../README.md`. The configuration is gitignored; builds without it do not send analytics.

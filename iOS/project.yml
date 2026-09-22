@@ -18,9 +18,18 @@ targets:
     platform: iOS
     deploymentTarget: "17.0"
     templates: [iOSDistribution]
-    sources: [App, Shared, SignInSupport, ../AIQuota/AppIcon.icon]
+    sources:
+      - App
+      - Shared
+      - SignInSupport
+      - ../AIQuota/AppIcon.icon
+      - ../AIQuota/Analytics/AnalyticsClient.swift
+      - path: Resources
+        excludes: [README.md]
     dependencies:
       - package: MobileAccessCore
+      - package: Firebase
+        product: FirebaseAnalyticsCore
       - target: AIQuotaWidget-iOS
       - target: AIQuotaCopySignInCode-iOS
     settings:
@@ -41,6 +50,10 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         ITSAppUsesNonExemptEncryption: false
+        FIREBASE_ANALYTICS_COLLECTION_ENABLED: false
+        GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_PERSONALIZATION_SIGNALS: false
+        GOOGLE_ANALYTICS_IDFV_COLLECTION_ENABLED: false
+        FirebaseAutomaticScreenReportingEnabled: false
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait

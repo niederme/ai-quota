@@ -127,8 +127,14 @@ struct OnboardingView: View {
                                 VStack(spacing: 24) {
                                     Image(systemName: "checkmark.circle.fill").font(.system(size: 64)).foregroundStyle(OverviewStyle.accent)
                                     Text("You’re all set!").font(.title.bold())
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        MobileAnalyticsConsentControls(surface: .onboarding, isDemo: codex.isDemo)
+                                    }
+                                        .padding(18)
+                                        .background(OverviewStyle.track, in: RoundedRectangle(cornerRadius: OverviewStyle.radius))
                                     Button(codex.isDemo ? "Return to demo" : "Start using AIQuota") {
                                         progress.finish()
+                                        if !codex.isDemo { MobileAnalytics.shared.completeOnboarding() }
                                         if let onFinish { onFinish() } else { dismiss() }
                                     }
                                         .modifier(OnboardingPrimaryButtonStyle())

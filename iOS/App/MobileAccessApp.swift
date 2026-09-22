@@ -4,12 +4,14 @@ import MobileAccessCore
 
 @main
 struct MobileAccessApp: App {
+    @UIApplicationDelegateAdaptor(MobileAnalyticsAppDelegate.self) private var analyticsDelegate
     @State private var demoEnabled = DemoQuotaData.isEnabled
     var body: some Scene {
         WindowGroup {
             OverviewView(isDemo: demoEnabled).id(demoEnabled)
                 .environment(\.setDemoEnabled) { enabled in
                     // Update presentation directly; app-group defaults are for persistence and widgets.
+                    MobileAnalytics.shared.setDemoEnabled(enabled)
                     demoEnabled = enabled
                     DemoQuotaData.setEnabled(enabled)
                 }
