@@ -1,21 +1,14 @@
 #!/usr/bin/env python3
-"""Compose static, enclosure-free launch assets from the Icon Composer source.
-
-The source geometry and colors are retained; SVG edge highlights are a static
-launch treatment, not live Liquid Glass. The app icon itself is unchanged.
-"""
-import copy
+"""Regenerate adaptive splash backgrounds. Approved Figma artwork is maintained separately."""
 import json
 import subprocess
 import shutil
 from pathlib import Path
-import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'iOS/App/Assets.xcassets'
 ICON = ROOT / 'AIQuota/AppIcon.icon'
 NS = 'http://www.w3.org/2000/svg'
-ET.register_namespace('', NS)
 
 def color(name, dark):
     values = json.loads((ASSETS / f'{name}.colorset/Contents.json').read_text())['colors']
@@ -45,35 +38,6 @@ def save(name, documents):
             images.append(image)
     (folder/'Contents.json').write_text(json.dumps({'images':images,'info':{'author':'xcode','version':1}},indent=2)+'\n')
 
-def artwork(dark):
-    result = ET.Element(f'{{{NS}}}svg', {'width':'144','height':'144','viewBox':'0 0 1024 1024'})
-    defs = ET.SubElement(result, f'{{{NS}}}defs')
-    gradient = ET.SubElement(defs, f'{{{NS}}}linearGradient', {'id':'edge','x1':'0','y1':'0','x2':'0','y2':'1'})
-    for offset,opacity in [('0','0.85'),('0.5','0.12'),('1','0.4')]:
-        ET.SubElement(gradient, f'{{{NS}}}stop', {'offset':offset,'stop-color':'#FFFFFF','stop-opacity':opacity})
-    document = json.loads((ICON/'icon.json').read_text())
-    for group in reversed(document['groups']):
-        if group.get('hidden'): continue
-        for layer in reversed(group['layers']):
-            if layer.get('hidden'): continue
-            for original in ET.parse(ICON/'Assets'/layer['image-name']).getroot():
-                shape = copy.deepcopy(original)
-                if 'Track' in layer['name']:
-                    # Resolved UIKit quaternarySystemFill, light and dark.
-                    shape.set('fill', '#767680' if dark else '#747480')
-                    shape.set('fill-opacity', '0.18' if dark else '0.08')
-                if layer['name'] == 'Spark' and not dark:
-                    shape.set('fill', color('OverviewAccent',False))
-                result.append(shape)
-                if layer.get('glass'):
-                    edge = copy.deepcopy(shape)
-                    edge.set('fill','none')
-                    edge.attrib.pop('fill-opacity',None)
-                    edge.set('stroke','url(#edge)')
-                    edge.set('stroke-width','4')
-                    result.append(edge)
-    return ET.tostring(result, encoding='unicode')
-
 def background(dark):
     base, accent = color('OverviewBase',dark), color('OverviewAccent',dark)
     top,middle,glow = (0.72,0.12,0.35) if dark else (0.18,0.05,0.12)
@@ -95,5 +59,4 @@ def background(dark):
 </svg>'''
 
 if __name__ == '__main__':
-    save('LaunchArtwork', {'light':artwork(False),'dark':artwork(True)})
     save('LaunchBackground', {'light':background(False),'dark':background(True)})

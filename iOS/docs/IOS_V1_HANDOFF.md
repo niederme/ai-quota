@@ -7,12 +7,11 @@ screen now puts the standalone gauge arcs, enlarged round indicators, and
 sparkle directly on the app's purple gradient, with no rounded-square icon tile.
 
 - `App/SplashScreen.storyboard` uses `LaunchArtwork` and `LaunchBackground`.
-- `scripts/generate-ios-splash.py` reads the same SVG geometry and colors from
-  `AIQuota/AppIcon.icon`, paints its foreground layers back-to-front, and creates
-  light/dark PNG assets. It reads the app's base/accent colors for the gradient.
-- Highlights are static SVG styling. The native Icon Composer exporter includes
-  its enclosure, so these foreground assets are not a live Liquid Glass render.
-- Light-mode sparkle contrast is preserved with the app's accent color.
+- Foreground assets now use the approved Figma `icon-1` glass artwork, exported
+  as transparent 144/288/432px PNGs. Both appearances use the approved export.
+  Source link and 1024px master are in `iOS/Design/Splash`.
+- `scripts/generate-ios-splash.py` regenerates only gradient backgrounds,
+  preserving the approved Figma foreground.
 - The round indicators retain the source radius of 51, enlarged from 44 in PR #70.
 - `scripts/export-ios-launch-icon.sh` regenerates this splash and the native
   onboarding icon images. The old launch-tile asset is removed.
@@ -20,6 +19,10 @@ sparkle directly on the app's purple gradient, with no rounded-square icon tile.
   upload, or App Store submission is part of either splash change.
 
 ## Verification
+
+The latest Figma exports were checked for dimensions and transparency and copied
+into the open checkout. This asset replacement has not been run on Karin Air.
+The device run and simulator observations below refer to the prior artwork.
 
 The Debug simulator build passed. Native launch screenshots were inspected in
 light and dark appearances on a fresh iPhone simulator. The storyboard was

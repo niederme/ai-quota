@@ -21,10 +21,9 @@ indicators, and sparkle directly on the app's adaptive purple gradient. There is
 no rounded-square icon backing. `App/SplashScreen.storyboard` uses transparent
 `LaunchArtwork` and full-screen `LaunchBackground` PNG assets.
 
-`python3 scripts/generate-ios-splash.py` rebuilds these assets from the SVG layers
-in `AIQuota/AppIcon.icon` and the app color tokens. Launch highlights are static
-SVG styling rendered to PNG, not a live Liquid Glass renderer. The sparkle uses a purple fill in
-light mode to remain visible. The source app icon is unchanged.
+The approved foreground is exported from [Figma icon-1](https://www.figma.com/design/cja43k0cJmCFUnGctkDuJ2/AIQuota?node-id=502-17), including its glass highlights and shading. Export details and the transparent master are in `Design/Splash`. Both appearances use the approved artwork unchanged.
+
+`python3 scripts/generate-ios-splash.py` rebuilds only the adaptive gradient backgrounds. It preserves the Figma artwork.
 
 To also refresh the native Icon Composer onboarding images, run:
 
