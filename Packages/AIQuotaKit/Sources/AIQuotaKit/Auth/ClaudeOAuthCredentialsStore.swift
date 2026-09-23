@@ -47,8 +47,15 @@ public enum ClaudeOAuthCredentialsError: LocalizedError, Sendable {
 }
 
 public struct ClaudeOAuthKeychainReader: Sendable {
+    public static let consentDefaultsKey = "claude.allowClaudeCodeKeychainReuse"
+
+    public static func isAccessAllowed(defaults: UserDefaults = .standard) -> Bool {
+        AppDistribution.allowsHostCredentialDiscovery && defaults.bool(forKey: consentDefaultsKey)
+    }
+
     public static let claudeCodeNoninteractive = ClaudeOAuthKeychainReader {
-        try readClaudeCodeSecurityFramework()
+        guard isAccessAllowed() else { return nil }
+        return try readClaudeCodeSecurityFramework()
     }
 
     private static let serviceName = "Claude Code-credentials"
@@ -63,38 +70,41 @@ public struct ClaudeOAuthKeychainReader: Sendable {
         try read()
     }
 
-    private static func readClaudeCodeSecurityFramework() throws -> Data? {
-        if let persistentRef = try newestClaudeCodePersistentRef() {
-            return try readData(persistentRef: persistentRef)
-        }
-        return try readData(service: serviceName)
-    }
-
-    private static func newestClaudeCodePersistentRef() throws -> Data? {
-        let authContext = LAContext()
-        authContext.interactionNotAllowed = true
-        let query: [CFString: Any] = [
+    // Inject the Security call so tests exercise the queries actually used for both
+    // metadata and secret reads without accessing anyone's real credentials.
+    static func readClaudeCodeSecurityFramework(
+        copyMatching: ([CFString: Any]) -> (OSStatus, CFTypeRef?) = systemCopyMatching
+    ) throws -> Data? {
+        let metadataQuery = nonInteractiveQuery([
             kSecClass: kSecClassGenericPassword,
             kSecAttrService: serviceName,
             kSecMatchLimit: kSecMatchLimitAll,
             kSecReturnAttributes: true,
             kSecReturnPersistentRef: true,
-            kSecUseAuthenticationContext: authContext,
-        ]
+        ])
+        let (metadataStatus, metadata) = copyMatching(metadataQuery)
+        guard try isReadable(metadataStatus) else { return nil }
 
+        var dataQuery: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecMatchLimit: kSecMatchLimitOne,
+            kSecReturnData: true,
+        ]
+        if let rows = metadata as? [[String: Any]],
+           let persistentRef = newestPersistentRef(in: rows) {
+            dataQuery[kSecValuePersistentRef] = persistentRef
+        } else {
+            dataQuery[kSecAttrService] = serviceName
+        }
+        let (status, result) = copyMatching(nonInteractiveQuery(dataQuery))
+        guard try isReadable(status) else { return nil }
+        return result as? Data
+    }
+
+    private static func systemCopyMatching(_ query: [CFString: Any]) -> (OSStatus, CFTypeRef?) {
         var result: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
-        switch status {
-        case errSecSuccess:
-            break
-        case errSecItemNotFound, errSecInteractionNotAllowed:
-            return nil
-        default:
-            throw ClaudeOAuthKeychainError(status: status)
-        }
-
-        guard let rows = result as? [[String: Any]] else { return nil }
-        return newestPersistentRef(in: rows)
+        return (status, result)
     }
 
     static func newestPersistentRef(in rows: [[String: Any]]) -> Data? {
@@ -112,26 +122,6 @@ public struct ClaudeOAuthKeychainReader: Sendable {
             .persistentRef
     }
 
-    private static func readData(persistentRef: Data) throws -> Data? {
-        let query = nonInteractiveQuery([
-            kSecClass: kSecClassGenericPassword,
-            kSecValuePersistentRef: persistentRef,
-            kSecMatchLimit: kSecMatchLimitOne,
-            kSecReturnData: true,
-        ])
-        return try copyData(query: query)
-    }
-
-    private static func readData(service: String) throws -> Data? {
-        let query = nonInteractiveQuery([
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: service,
-            kSecMatchLimit: kSecMatchLimitOne,
-            kSecReturnData: true,
-        ])
-        return try copyData(query: query)
-    }
-
     /// Claude Code owns this item, so background recovery must never ask the
     /// user to grant AIQuota access. A protected item simply falls through to
     /// AIQuota's WebKit sign-in path.
@@ -140,21 +130,23 @@ public struct ClaudeOAuthKeychainReader: Sendable {
         authContext.interactionNotAllowed = true
         var query = values
         query[kSecUseAuthenticationContext] = authContext
+        // Deliberate legacy-keychain compatibility guard. Although deprecated in
+        // favor of LAContext, this policy also blocks legacy ACL Allow/Deny UI.
+        query[kSecUseAuthenticationUI] = kSecUseAuthenticationUIFail
         return query
     }
 
-    private static func copyData(query: [CFString: Any]) throws -> Data? {
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
+    private static func isReadable(_ status: OSStatus) throws -> Bool {
         switch status {
         case errSecSuccess:
-            return result as? Data
+            return true
         case errSecItemNotFound, errSecInteractionNotAllowed, errSecUserCanceled, errSecAuthFailed:
-            return nil
+            return false
         default:
             throw ClaudeOAuthKeychainError(status: status)
         }
     }
+
 }
 
 private struct ClaudeOAuthKeychainError: LocalizedError {

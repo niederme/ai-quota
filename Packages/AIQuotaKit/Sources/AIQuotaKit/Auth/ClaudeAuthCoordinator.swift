@@ -66,6 +66,7 @@ public actor ClaudeAuthCoordinator {
     public typealias LoginWindowRunner = @Sendable () async throws -> (orgId: String, cookies: [HTTPCookie])
     private let probe: SessionProbe
     private let headlessSessionReviver: HeadlessSessionReviver
+    private let keychainAccessAllowed: @Sendable () -> Bool
     private let oauthCredentialsLoader: OAuthCredentialsLoader
     private let sessionValidator: SessionValidator
     private let webSessionClearer: WebSessionClearer
@@ -75,6 +76,7 @@ public actor ClaudeAuthCoordinator {
         probe: SessionProbe? = nil,
         headlessSessionReviver: HeadlessSessionReviver? = nil,
         oauthCredentialsLoader: OAuthCredentialsLoader? = nil,
+        keychainAccessAllowed: @escaping @Sendable () -> Bool = { ClaudeOAuthKeychainReader.isAccessAllowed() },
         sessionValidator: SessionValidator? = nil,
         webSessionClearer: WebSessionClearer? = nil,
         loginWindowRunner: LoginWindowRunner? = nil
@@ -86,6 +88,7 @@ public actor ClaudeAuthCoordinator {
                 keychainReader: allowKeychain ? .claudeCodeNoninteractive : nil
             )
         }
+        self.keychainAccessAllowed = keychainAccessAllowed
         self.sessionValidator = sessionValidator ?? ClaudeAuthCoordinator.liveSessionValidator
         self.webSessionClearer = webSessionClearer ?? ClaudeAuthCoordinator.clearRejectedWebSession
         self.loginWindowRunner = loginWindowRunner ?? ClaudeAuthCoordinator.showLoginWindow
@@ -413,6 +416,11 @@ public actor ClaudeAuthCoordinator {
     public func loadOAuthCredentials(allowKeychain: Bool) throws -> ClaudeOAuthCredentials {
         guard !oauthDisabledForSession else { throw ClaudeOAuthCredentialsError.notFound }
 
+        // Recheck consent for every use, including credentials cached before the
+        // user disabled reuse. File credentials and web sign-in remain independent.
+        let hasKeychainConsent = keychainAccessAllowed()
+        if !hasKeychainConsent { cachedOAuthCredentials = nil }
+
         let fileError: Error?
         do {
             let credentials = try oauthCredentialsLoader(false)
@@ -428,7 +436,7 @@ public actor ClaudeAuthCoordinator {
             return cachedOAuthCredentials
         }
 
-        guard allowKeychain else {
+        guard allowKeychain && hasKeychainConsent else {
             throw fileError ?? ClaudeOAuthCredentialsError.notFound
         }
 

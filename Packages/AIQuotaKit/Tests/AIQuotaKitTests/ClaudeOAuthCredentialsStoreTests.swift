@@ -1,4 +1,5 @@
 import Foundation
+import LocalAuthentication
 import Security
 import Testing
 @testable import AIQuotaKit
@@ -179,20 +180,59 @@ struct ClaudeOAuthCredentialsStoreTests {
         #expect(ClaudeOAuthKeychainReader.newestPersistentRef(in: rows) == newer)
     }
 
-    @Test("Claude Code Keychain credential reads cannot present authentication UI")
-    func keychainCredentialReadsAreNoninteractive() throws {
-        let source = try String(
-            contentsOf: repoRoot.appending(path: "Packages/AIQuotaKit/Sources/AIQuotaKit/Auth/ClaudeOAuthCredentialsStore.swift"),
-            encoding: .utf8
-        )
+    @Test("Claude Code Keychain reuse requires explicit persisted consent")
+    func keychainConsentDefaultsOff() throws {
+        let name = "AIQuota-keychain-consent-test-\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: name))
+        defer { defaults.removePersistentDomain(forName: name) }
+        #expect(!ClaudeOAuthKeychainReader.isAccessAllowed(defaults: defaults))
+        defaults.set(true, forKey: ClaudeOAuthKeychainReader.consentDefaultsKey)
+        #expect(ClaudeOAuthKeychainReader.isAccessAllowed(defaults: defaults))
+        defaults.set(false, forKey: ClaudeOAuthKeychainReader.consentDefaultsKey)
+        #expect(!ClaudeOAuthKeychainReader.isAccessAllowed(defaults: defaults))
+    }
 
-        #expect(source.contains("public static let claudeCodeNoninteractive"))
-        #expect(!source.contains("claudeCodeInteractive"))
-        #expect(source.contains("private static func nonInteractiveQuery"))
-        #expect(source.contains("authContext.interactionNotAllowed = true"))
-        #expect(source.contains("query[kSecUseAuthenticationContext] = authContext"))
-        #expect(source.contains("let query = nonInteractiveQuery([\n            kSecClass: kSecClassGenericPassword,\n            kSecValuePersistentRef: persistentRef"))
-        #expect(source.contains("let query = nonInteractiveQuery([\n            kSecClass: kSecClassGenericPassword,\n            kSecAttrService: service"))
+    @Test("Metadata and secret queries both forbid authentication UI", arguments: [true, false])
+    func keychainCredentialReadsAreNoninteractive(usePersistentRef: Bool) throws {
+        let reference = Data([1, 2, 3])
+        let expected = Data("synthetic credentials".utf8)
+        var queries: [[CFString: Any]] = []
+        let result = try ClaudeOAuthKeychainReader.readClaudeCodeSecurityFramework { query in
+            queries.append(query)
+            if queries.count == 1 {
+                let rows: [[String: Any]] = usePersistentRef
+                    ? [[kSecValuePersistentRef as String: reference]] : []
+                return (errSecSuccess, rows as CFArray)
+            }
+            return (errSecSuccess, expected as CFData)
+        }
+        #expect(result == expected)
+        #expect(queries.count == 2)
+        for query in queries {
+            let context = try #require(query[kSecUseAuthenticationContext] as? LAContext)
+            #expect(context.interactionNotAllowed)
+            #expect(query[kSecUseAuthenticationUI] as? String == kSecUseAuthenticationUIFail as String)
+        }
+        #expect(queries[0][kSecReturnAttributes] as? Bool == true)
+        #expect(queries[1][kSecReturnData] as? Bool == true)
+        if usePersistentRef {
+            #expect(queries[1][kSecValuePersistentRef] as? Data == reference)
+        } else {
+            #expect(queries[1][kSecAttrService] as? String == "Claude Code-credentials")
+        }
+    }
+
+    @Test("Unavailable Keychain access stops without retrying or prompting",
+          arguments: [errSecInteractionNotAllowed, errSecUserCanceled, errSecAuthFailed, errSecItemNotFound], [1, 2])
+    func unavailableKeychainFailsQuietly(status: OSStatus, failureAt: Int) throws {
+        var calls = 0
+        let result = try ClaudeOAuthKeychainReader.readClaudeCodeSecurityFramework { _ in
+            calls += 1
+            if calls == failureAt { return (status, nil) }
+            return (errSecSuccess, [] as CFArray)
+        }
+        #expect(result == nil)
+        #expect(calls == failureAt)
     }
 
     @Test("CLAUDE_CONFIG_DIR wins over home credentials path")
