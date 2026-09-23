@@ -420,6 +420,7 @@ private struct AccountDiagnosticsRows: View {
     @Environment(QuotaViewModel.self) private var viewModel
     @State private var codexAttempts: [CodexSourceAttempt] = []
     @State private var claudeAttempts: [ClaudeSourceAttempt] = []
+    @AppStorage(ClaudeOAuthKeychainReader.consentDefaultsKey) private var reuseClaudeCodeKeychain = false
 
     var body: some View {
         AccountServiceStatusRow(
@@ -441,6 +442,16 @@ private struct AccountDiagnosticsRows: View {
             signIn: { Task { await viewModel.signInClaude() } },
             signOut: { viewModel.signOutClaude() }
         )
+
+        if AppDistribution.allowsHostCredentialDiscovery {
+            VStack(alignment: .leading, spacing: 4) {
+                Toggle("Reuse Claude Code Keychain credentials", isOn: $reuseClaudeCodeKeychain)
+                Text("Optional. Reuses Claude Code’s saved sign-in only when macOS allows access without a permission prompt. Otherwise, sign in to Claude in AIQuota.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
 
         HStack(alignment: .firstTextBaseline) {
             Button("Refresh Status") { reload() }

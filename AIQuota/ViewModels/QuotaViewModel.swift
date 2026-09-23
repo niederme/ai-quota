@@ -163,6 +163,7 @@ final class QuotaViewModel {
         SharedDefaults.clearCodexSourceAttempts()
         SharedDefaults.clearClaudeSourceAttempts()
         settings = .default
+        UserDefaults.standard.removeObject(forKey: ClaudeOAuthKeychainReader.consentDefaultsKey)
         // Persist settings directly — calling saveSettings() would invoke startAutoRefresh(),
         // which must not fire while the auth coordinators are still in the resetting state.
         SharedDefaults.saveSettings(settings)

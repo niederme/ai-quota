@@ -31,6 +31,13 @@ support still needs field testing.
 2. Unzip and move **AIQuota** to Applications.
 3. Launch AIQuota and follow guided setup to connect your accounts.
 
+On Mac, **Settings → Accounts → Reuse Claude Code Keychain credentials** is an
+optional, default-off shortcut to Claude Code's saved sign-in. AIQuota only reads
+it when access is available without a macOS permission prompt. If access is
+unavailable, use Claude sign-in in AIQuota. Turning reuse off prevents subsequent
+use of credentials cached from that Keychain item. Existing file-based credentials
+and web sessions are unaffected. This setting does not change iPhone/iPad sign-in.
+
 Desktop widgets include small single-service gauges, medium single-service or
 paired layouts, and a large two-service overview. If a widget stays stale after
 an update, removing and re-adding it can clear its cached state.

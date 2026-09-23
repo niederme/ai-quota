@@ -20,6 +20,7 @@ struct ClaudeAuthCoordinatorTests {
         probe: @escaping ClaudeAuthCoordinator.SessionProbe,
         headlessSessionReviver: ClaudeAuthCoordinator.HeadlessSessionReviver? = nil,
         oauthCredentialsLoader: ClaudeAuthCoordinator.OAuthCredentialsLoader? = nil,
+        keychainAccessAllowed: @escaping @Sendable () -> Bool = { false },
         sessionValidator: ClaudeAuthCoordinator.SessionValidator? = nil,
         webSessionClearer: ClaudeAuthCoordinator.WebSessionClearer? = nil,
         loginWindowRunner: ClaudeAuthCoordinator.LoginWindowRunner? = nil
@@ -28,10 +29,75 @@ struct ClaudeAuthCoordinatorTests {
             probe: probe,
             headlessSessionReviver: headlessSessionReviver ?? { .notFound },
             oauthCredentialsLoader: oauthCredentialsLoader ?? { _ in throw ClaudeOAuthCredentialsError.notFound },
+            keychainAccessAllowed: keychainAccessAllowed,
             sessionValidator: sessionValidator ?? { _ in .valid(orgId: "validated-org") },
             webSessionClearer: webSessionClearer ?? {},
             loginWindowRunner: loginWindowRunner
         )
+    }
+
+    @Test("Without consent, automatic recovery and credential probes skip the foreign Keychain")
+    func recoveryWithoutConsentUsesWebSession() async throws {
+        let keychainCalls = LockIsolated(0)
+        let sut = makeSUT(
+            probe: { .notFound },
+            headlessSessionReviver: { .found(orgId: "web-org", cookies: []) },
+            oauthCredentialsLoader: { allowed in
+                if allowed { keychainCalls.withLock { $0 += 1 } }
+                throw ClaudeOAuthCredentialsError.notFound
+            }
+        )
+        await sut.bootstrap()
+        #expect(!(await sut.hasUsableOAuthCredentials()))
+        #expect(await sut.restoreWithoutPromptIfPossible())
+        #expect(try await sut.requestContext().orgId == "web-org")
+        #expect(keychainCalls.value == 0)
+    }
+
+    @Test("Sign-in uses the login window when Keychain consent is off or access is unavailable",
+          arguments: [false, true])
+    func signInFallsBackToLogin(consent: Bool) async throws {
+        let keychainCalls = LockIsolated(0)
+        let loginCalls = LockIsolated(0)
+        let sut = makeSUT(
+            probe: { .notFound },
+            oauthCredentialsLoader: { allowed in
+                if allowed { keychainCalls.withLock { $0 += 1 } }
+                throw ClaudeOAuthCredentialsError.notFound
+            },
+            keychainAccessAllowed: { consent },
+            loginWindowRunner: {
+                loginCalls.withLock { $0 += 1 }
+                return ("login-org", [])
+            }
+        )
+        await sut.bootstrap()
+        try await sut.signIn()
+        #expect(loginCalls.value == 1)
+        #expect(keychainCalls.value == (consent ? 1 : 0))
+        #expect(try await sut.requestContext().orgId == "login-org")
+    }
+
+    @Test("Revoking consent prevents reuse of previously cached Keychain credentials")
+    func revokedConsentDiscardsCachedCredentials() async throws {
+        let consent = LockIsolated(true)
+        let keychainCalls = LockIsolated(0)
+        let sut = makeSUT(
+            probe: { .notFound },
+            oauthCredentialsLoader: { allowed in
+                guard allowed else { throw ClaudeOAuthCredentialsError.notFound }
+                keychainCalls.withLock { $0 += 1 }
+                return Self.oauthCredentials(accessToken: "cached-token")
+            },
+            keychainAccessAllowed: { consent.value }
+        )
+        _ = try await sut.loadOAuthCredentials(allowKeychain: true)
+        consent.withLock { $0 = false }
+        await #expect(throws: ClaudeOAuthCredentialsError.notFound) {
+            _ = try await sut.loadOAuthCredentials(allowKeychain: true)
+        }
+        #expect(!(await sut.hasUsableOAuthCredentials()))
+        #expect(keychainCalls.value == 1)
     }
 
     // MARK: - Bootstrap
@@ -87,7 +153,8 @@ struct ClaudeAuthCoordinatorTests {
                 allowedKeychainValues.withLock { $0.append(allowKeychain) }
                 guard allowKeychain else { throw ClaudeOAuthCredentialsError.notFound }
                 return Self.oauthCredentials(accessToken: "keychain-token")
-            }
+            },
+            keychainAccessAllowed: { true }
         )
 
         await sut.bootstrap()
@@ -197,7 +264,8 @@ struct ClaudeAuthCoordinatorTests {
                 allowedKeychainValues.withLock { $0.append(allowKeychain) }
                 guard allowKeychain else { throw ClaudeOAuthCredentialsError.notFound }
                 return Self.oauthCredentials(accessToken: "keychain-token")
-            }
+            },
+            keychainAccessAllowed: { true }
         )
 
         await sut.bootstrap()
@@ -296,7 +364,8 @@ struct ClaudeAuthCoordinatorTests {
                 guard allowKeychain else { throw ClaudeOAuthCredentialsError.notFound }
                 keychainCalls.withLock { $0 += 1 }
                 return Self.oauthCredentials(accessToken: "keychain-token")
-            }
+            },
+            keychainAccessAllowed: { true }
         )
 
         await sut.bootstrap()
