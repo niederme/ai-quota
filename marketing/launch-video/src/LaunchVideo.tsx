@@ -1,5 +1,5 @@
 import React from 'react';
-import {AbsoluteFill, useCurrentFrame, useVideoConfig} from 'remotion';
+import {AbsoluteFill, Audio, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {easeInOut, easeOut, keyframes, ramp, type Key} from './anim';
 import {IPhoneAir} from './devices/IPhoneAir';
 import {MacBookAir} from './devices/MacBookAir';
@@ -62,6 +62,7 @@ export const LaunchVideo: React.FC = () => {
 
   return (
     <AbsoluteFill style={{background: theme.base, overflow: 'hidden'}}>
+      <Audio src={staticFile('soundtrack.wav')} />
       <div style={{position: 'absolute', width: STAGE.w, height: STAGE.h, transform: `scale(${width / STAGE.w})`, transformOrigin: '0 0'}}>
         <div style={{position: 'absolute', inset: 0, background: `
           radial-gradient(55% 60% at ${glowX}% 42%, rgba(${Math.round(102 + 150 * glowHue)},31,${Math.round(143 - 90 * glowHue)},0.55), transparent 70%),
