@@ -92,7 +92,7 @@ private final class ResetNoticeURLProtocol: URLProtocol, @unchecked Sendable {
                     }.padding(16)
                 }
                 .background { OverviewBackground().ignoresSafeArea() }
-                .navigationTitle("AI Quota").toolbarTitleDisplayMode(.inlineLarge)
+                .navigationTitle("AIQuota").toolbarTitleDisplayMode(.inlineLarge)
             }.environment(\.colorScheme, scheme).environment(\.dynamicTypeSize, size)
             let window = UIWindow(windowScene: scene)
             window.rootViewController = UIHostingController(rootView: content)

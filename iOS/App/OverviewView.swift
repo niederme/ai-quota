@@ -107,7 +107,7 @@ struct OverviewView: View {
                 }
                 .background { OverviewBackground().ignoresSafeArea() }
             }
-            .navigationTitle("AI Quota")
+            .navigationTitle("AIQuota")
             .toolbarTitleDisplayMode(.inlineLarge)
             .onOpenURL { url in
                 guard url.scheme == "aiquota-probe" else { return }
