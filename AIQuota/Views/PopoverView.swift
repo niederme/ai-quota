@@ -462,7 +462,7 @@ struct PopoverView: View {
 
     @ViewBuilder private var header: some View {
         HStack(spacing: 8) {
-            Image(nsImage: NSApp.applicationIconImage)
+            Image("AppBrandIcon")
                 .resizable()
                 .frame(width: 20, height: 20)
             Text("AIQuota").font(.headline)
@@ -520,7 +520,7 @@ struct PopoverView: View {
     private var signInContent: some View {
         VStack(spacing: 0) {
             VStack(spacing: 24) {
-                Image(nsImage: NSApp.applicationIconImage)
+                Image("AppBrandIcon")
                     .resizable()
                     .frame(width: 60, height: 60)
                 VStack(spacing: 5) {

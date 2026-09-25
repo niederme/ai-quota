@@ -10,7 +10,7 @@ struct WelcomeStepView: View {
             Spacer()
 
             // App icon
-            Image(nsImage: NSApp.applicationIconImage)
+            Image("AppBrandIcon")
                 .resizable()
                 .frame(width: 96, height: 96)
                 .shadow(color: Color.brand.opacity(0.35), radius: 24, y: 8)
