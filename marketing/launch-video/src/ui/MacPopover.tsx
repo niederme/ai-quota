@@ -1,6 +1,6 @@
 import React from 'react';
 import {staticFile, Img} from 'remotion';
-import {gaugeColor, type Usage} from '../timeline';
+import {gaugeColor, resetLines, type Usage} from '../timeline';
 import {theme} from '../theme';
 import {Gauge} from './Gauge';
 import {RefreshGlyph} from './Glyphs';
@@ -8,21 +8,22 @@ import {RefreshGlyph} from './Glyphs';
 const W = 340;
 const divider = <div style={{height: 1, background: 'rgba(255,255,255,0.10)'}} />;
 
-const Column: React.FC<{service: 'codex' | 'claude'; name: string; usage: Usage['codex']; reveal: number}> = ({service, name, usage, reveal}) => {
+const Column: React.FC<{service: 'codex' | 'claude'; name: string; usage: Usage['codex']; reveal: number; frame: number}> = ({service, name, usage, reveal, frame}) => {
   const color = gaugeColor(Math.max(usage.h5, usage.d7));
+  const [h5, d7] = resetLines(service, 'mac', frame);
   return (
     <div style={{flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 14}}>
       <Gauge service={service} usage={usage} size={124} ring={9} gap={3} reveal={reveal} />
       <div style={{marginTop: -12}}><RefreshGlyph size={13} color="rgba(235,235,245,0.4)" /></div>
       <div style={{marginTop: 6, fontSize: 15, fontWeight: 700, color: theme.primary}}>{name}</div>
       <div style={{marginTop: 3, fontSize: 11, lineHeight: 1.35, textAlign: 'center', color, opacity: 0.85}}>
-        5h resets 10:01am<br />7d resets Mon. 8:01am
+        {h5}<br />{d7}
       </div>
     </div>
   );
 };
 
-export const MacPopover: React.FC<{usage: Usage; reveal: number}> = ({usage, reveal}) => (
+export const MacPopover: React.FC<{usage: Usage; reveal: number; frame: number}> = ({usage, reveal, frame}) => (
   <div style={{width: W, borderRadius: 16, overflow: 'hidden', fontFamily: theme.font, color: theme.primary,
     // Translucent glass like the real menu bar popover: the desktop shows through,
     // with only a light purple tint.
@@ -37,9 +38,9 @@ export const MacPopover: React.FC<{usage: Usage; reveal: number}> = ({usage, rev
     </div>
     {divider}
     <div style={{display: 'flex', paddingBottom: 14}}>
-      <Column service="codex" name="Codex" usage={usage.codex} reveal={reveal} />
+      <Column service="codex" name="Codex" usage={usage.codex} reveal={reveal} frame={frame} />
       <div style={{width: 1, background: 'rgba(255,255,255,0.10)', margin: '18px 0'}} />
-      <Column service="claude" name="Claude Code" usage={usage.claude} reveal={reveal} />
+      <Column service="claude" name="Claude Code" usage={usage.claude} reveal={reveal} frame={frame} />
     </div>
     {divider}
     <div style={{display: 'flex', padding: '12px 16px', fontSize: 12, lineHeight: 1.7}}>
@@ -52,10 +53,11 @@ export const MacPopover: React.FC<{usage: Usage; reveal: number}> = ({usage, rev
       </div>
     </div>
     {divider}
-    <div style={{display: 'flex', justifyContent: 'space-between', padding: '12px 20px', fontSize: 14}}>
-      <span style={{color: 'rgba(200,190,255,0.9)'}}>Settings</span>
+    {/* equal outer columns keep "Just now" centred regardless of button widths */}
+    <div style={{display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', padding: '12px 20px', fontSize: 14}}>
+      <span style={{color: 'rgba(200,190,255,0.9)', justifySelf: 'start'}}>Settings</span>
       <span style={{color: theme.tertiary}}>Just now</span>
-      <span style={{color: 'rgba(200,190,255,0.9)'}}>Quit</span>
+      <span style={{color: 'rgba(200,190,255,0.9)', justifySelf: 'end'}}>Quit</span>
     </div>
   </div>
 );

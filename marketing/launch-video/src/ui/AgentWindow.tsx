@@ -17,8 +17,11 @@ export const StatusLine: React.FC<{session: Session; frame: number; size: number
 
 // Fixed single-line composer: long prompts scroll left as they're typed, so the
 // field never changes height mid-sentence.
-const Caret: React.FC<{frame: number}> = ({frame}) =>
-  frame % 40 < 22 ? <span style={{display: 'inline-block', width: 2, height: 18, marginLeft: 1, background: C.text, verticalAlign: -3}} /> : null;
+// Always laid out; blinking only toggles opacity so neighbouring text never shifts.
+const Caret: React.FC<{frame: number}> = ({frame}) => (
+  <span style={{display: 'inline-block', width: 2, height: 18, marginLeft: 1, background: C.text, verticalAlign: -3,
+    opacity: frame % 40 < 22 ? 1 : 0}} />
+);
 
 export const Composer: React.FC<{text: string; frame: number; placeholder: string; fontSize: number; maxChars: number; focused?: boolean}> = ({text, frame, placeholder, fontSize, maxChars, focused}) => (
   <div style={{height: 48, boxSizing: 'border-box', borderRadius: 16, background: C.bubble, border: '1px solid rgba(255,255,255,0.08)', padding: '13px 16px',

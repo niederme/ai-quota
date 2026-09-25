@@ -65,7 +65,7 @@ export const PhoneScreen: React.FC<{frame: number; usage: Usage; claudeGlow: num
       )}
       {open > 0 && (
         <div style={{position: 'absolute', inset: 0, clipPath: `inset(${inset.top}px ${inset.right}px ${inset.bottom}px ${inset.left}px round ${24 * (1 - open) + 4}px)`}}>
-          <IOSOverview usage={usage} claudeGlow={claudeGlow} notification={0} />
+          <IOSOverview usage={usage} claudeGlow={claudeGlow} notification={0} frame={frame} />
         </div>
       )}
     </div>

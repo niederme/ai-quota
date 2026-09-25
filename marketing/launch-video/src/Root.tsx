@@ -15,7 +15,7 @@ export const Root: React.FC = () => (
     <Still id="MacStill" width={1180} height={767} component={() => (
       <MacDesktop frame={380} usage={usageAt(380)} popover={1} cursor={{x: 0, y: 0, opacity: 0, press: 0}} />)} />
     <Still id="IOSStill" width={420} height={912} component={() => (
-      <IOSOverview usage={usageAt(600)} claudeGlow={0} notification={1} />)} />
+      <IOSOverview usage={usageAt(600)} claudeGlow={0} notification={1} frame={600} />)} />
     <Still id="PhoneChatStill" width={420} height={912} component={() => <PhoneScreen frame={1060} usage={usageAt(1060)} claudeGlow={0} />} />
     <Still id="IconStill" width={400} height={400} component={() => <div style={{padding: 50}}><AppIcon size={300} /></div>} />
   </>

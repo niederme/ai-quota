@@ -31,6 +31,14 @@ describe.each([
     }
   });
 
+  it('fans out to sub-agents', () => {
+    const block = session.script.find((i) => i.kind === 'agents')!;
+    expect(agentAt(session, block.at + 20).items.some((i) => i.kind === 'agents')).toBe(true);
+  });
+});
+
+describe('mac session', () => {
+  const session = MAC_SESSION;
   it('has a back-and-forth: a second prompt after replies', () => {
     const prompts = session.script.filter((i) => i.kind === 'prompt');
     expect(prompts.length).toBeGreaterThanOrEqual(2);
