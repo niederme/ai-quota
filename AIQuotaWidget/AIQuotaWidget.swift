@@ -43,7 +43,7 @@ struct AIQuotaSmallWidget: Widget {
                 .environment(\.colorScheme, .dark)
                 .containerBackground(Color(white: 0.1), for: .widget)
         }
-        .configurationDisplayName("AI Quota")
+        .configurationDisplayName("AIQuota")
         .description("Track your AI service usage quota.")
         .supportedFamilies([.systemSmall, .systemMedium])
         .contentMarginsDisabled()
@@ -61,7 +61,7 @@ struct AIQuotaMediumWidget: Widget {
                 .environment(\.colorScheme, .dark)
                 .containerBackground(Color(white: 0.1), for: .widget)
         }
-        .configurationDisplayName("AI Quota")
+        .configurationDisplayName("AIQuota")
         .description("Track both Codex and Claude Code with room for more detail.")
         .supportedFamilies([.systemMedium, .systemLarge])
         .contentMarginsDisabled()

@@ -1,6 +1,6 @@
 # Mac distribution channels
 
-AI Quota uses one Xcode project with separate schemes and targets for two builds from the same source. The TestFlight build does not replace the existing direct-download configuration.
+AIQuota uses one Xcode project with separate schemes and targets for two builds from the same source. The TestFlight build does not replace the existing direct-download configuration.
 
 | Route | Project / scheme | Updates | Sandbox |
 | --- | --- | --- | --- |
@@ -40,7 +40,7 @@ Distribute the resulting archive through App Store Connect in Organizer. Do not 
 - Both app and widget have sandbox, outgoing-network, shared app-group, and shared Keychain entitlements.
 - The store build does not import legacy browser/defaults files or run the Launch Services repair commands that restart widget hosts.
 - Local Codex CLI and Claude Code credential discovery is disabled by an explicit host-bundle channel marker. Swift package flags do not inherit target flags, so the runtime marker is present in both store plists.
-- AI Quota’s existing browser sign-in and own session storage remain available. Users may need to sign in again because the sandbox has separate preferences and WebKit storage. Live provider sign-in must be checked in the sandboxed build before beta rollout.
+- AIQuota’s existing browser sign-in and own session storage remain available. Users may need to sign in again because the sandbox has separate preferences and WebKit storage. Live provider sign-in must be checked in the sandboxed build before beta rollout.
 
 The direct build keeps Sparkle, its automatic/manual update controls, startup repair, legacy migration, and local credential discovery.
 

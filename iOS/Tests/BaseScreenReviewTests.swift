@@ -36,7 +36,7 @@ final class BaseScreenReviewTests: XCTestCase {
                     }.padding(.horizontal, 16).padding(.vertical, 20)
                 }
                 .background { OverviewBackground().ignoresSafeArea() }
-                .navigationTitle("AI Quota").toolbarTitleDisplayMode(.inlineLarge)
+                .navigationTitle("AIQuota").toolbarTitleDisplayMode(.inlineLarge)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) { Button("Refresh", systemImage: "arrow.clockwise") {}.tint(OverviewStyle.primary) }
                     ToolbarItem(placement: .topBarTrailing) { Button("Settings", systemImage: "gearshape") {}.tint(OverviewStyle.primary) }

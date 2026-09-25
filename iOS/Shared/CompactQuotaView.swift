@@ -28,7 +28,7 @@ struct CompactQuotaView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(service.name) \(reading?.metadata?.plan == "Demo" ? "sample" : "allowance") used")
         .accessibilityValue("\(reading?.accessibilitySummary ?? "Allowance unavailable"). \(stale ? "Reading needs refreshing." : "")")
-        .accessibilityHint("Opens AI Quota")
+        .accessibilityHint("Opens AIQuota")
     }
     private func percentage(_ window: QuotaWindow?, label: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
@@ -105,7 +105,7 @@ struct CodexDial: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(value.service.name) \(value.reading?.metadata?.plan == "Demo" ? "sample" : "allowance") used")
         .accessibilityValue("\(value.reading?.accessibilitySummary ?? "Allowance unavailable"). \(stale ? "Reading needs refreshing." : "") \(warning ? "An allowance limit is reached." : "")")
-        .accessibilityHint("Opens AI Quota")
+        .accessibilityHint("Opens AIQuota")
     }
 
     private func ring(_ window: QuotaWindow?, width: CGFloat, opacity: Double) -> some View {

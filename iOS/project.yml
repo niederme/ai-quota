@@ -60,7 +60,7 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLSchemes: [aiquota-probe]
         SignInCodeKeychainGroup: $(AppIdentifierPrefix)com.niederme.AIQuota.SignInCode
-        CFBundleDisplayName: AI Quota
+        CFBundleDisplayName: AIQuota
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         ITSAppUsesNonExemptEncryption: false

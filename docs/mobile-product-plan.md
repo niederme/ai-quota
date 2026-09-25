@@ -1,4 +1,4 @@
-# AI Quota for iPhone and iPad
+# AIQuota for iPhone and iPad
 
 > **Current status (September 15, 2026):** The iPhone and iPad app is in beta via TestFlight and builds from the shared Xcode project using the `AIQuota-iOS` scheme. Independent Codex and Claude connections, Lock Screen and Home Screen widgets, and per-window alerts are implemented. See the [iOS beta roadmap](roadmap.md#ios) for remaining validation. The original plan and feasibility notes below are historical; implementation does not establish device reliability or public-release readiness.
 
@@ -16,7 +16,7 @@ This is the product direction, not the scope of the feasibility build. The first
 
 One provider, one quota arc, and a recognizable service symbol. Configure each gauge for short-term or weekly usage. Tap through to the relevant detail in the app. Pedometer++ is the usability reference: recognizable and useful at a glance. It does not establish our achievable refresh behavior.
 
-Preserve AI Quota’s existing quota-used arc meaning. Make unavailable and stale readings distinct without relying only on color. Provider marks remain a design proposal subject to appropriate usage rights.
+Preserve AIQuota’s existing quota-used arc meaning. Make unavailable and stale readings distinct without relying only on color. Provider marks remain a design proposal subject to appropriate usage rights.
 
 ### Home Screen
 
