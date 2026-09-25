@@ -160,7 +160,7 @@ private struct UsageWindow: Decodable {
 }
 
 public struct CodexAPI: Sendable {
-    // Public first-party Codex CLI client identifier, not an AI Quota client registration.
+    // Public first-party Codex CLI client identifier, not an AIQuota client registration.
     // Personal feasibility probe only. Distribution authorization remains unresolved.
     public static let clientID = "app_EMoamEEZ73f0CkXaXp7hrann"
     private let transport: any HTTPTransport

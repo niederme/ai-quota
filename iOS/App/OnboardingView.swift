@@ -298,11 +298,11 @@ struct LockScreenSetupContent: View {
                 if lockScreen {
                     instruction(1, "Touch and hold your Lock Screen.")
                     instruction(2, "Tap Customize, then Lock Screen.")
-                    instruction(3, "Tap Add Widgets, choose AI Quota, then tap Done.")
+                    instruction(3, "Tap Add Widgets, choose AIQuota, then tap Done.")
                 } else {
                     instruction(1, "Touch and hold your Home Screen.")
                     instruction(2, "Tap Edit, then Add Widget.")
-                    instruction(3, "Search for AI Quota, choose a widget, then tap Add Widget.")
+                    instruction(3, "Search for AIQuota, choose a widget, then tap Add Widget.")
                 }
             }
         }

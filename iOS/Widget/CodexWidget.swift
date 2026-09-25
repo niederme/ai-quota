@@ -196,7 +196,7 @@ struct SingleHomeScreenWidget: Widget {
                 .widgetURL(entry.values.first?.service.url)
                 .containerBackground(for: .widget) { HomeWidgetBackground() }
         }
-        .configurationDisplayName("AI Quota")
+        .configurationDisplayName("AIQuota")
         .description("Track your AI service usage quota. Choose Codex or Claude Code.")
         .supportedFamilies([.systemSmall, .systemMedium])
         .contentMarginsDisabled()
@@ -209,7 +209,7 @@ struct BothHomeScreenWidget: Widget {
                 .widgetURL(URL(string: "aiquota-probe://overview"))
                 .containerBackground(for: .widget) { HomeWidgetBackground() }
         }
-        .configurationDisplayName("AI Quota")
+        .configurationDisplayName("AIQuota")
         .description("Track both Codex and Claude Code with room for more detail.")
         .supportedFamilies([.systemMedium, .systemLarge])
         .contentMarginsDisabled()

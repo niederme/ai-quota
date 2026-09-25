@@ -79,7 +79,7 @@ public struct ClaudeTokens: Codable, Sendable {
 }
 
 public struct ClaudeAPI: Sendable {
-    // Published first-party CLI identity, not an AI Quota registration.
+    // Published first-party CLI identity, not an AIQuota registration.
     // Personal technical probe; third-party permission remains unresolved.
     public static let clientID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
     public static let redirectURI = "https://console.anthropic.com/oauth/code/callback"
