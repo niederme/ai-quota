@@ -1,0 +1,21 @@
+{
+  "fps": 60,
+  "duration": 1680,
+  "beats": {
+    "hold": 40,
+    "promptSent": 90,
+    "followUp": 340,
+    "zoomOut": 440,
+    "click": 540,
+    "macOpen": 544,
+    "caption1": 680,
+    "phoneIn": 840,
+    "phonePrompt": 890,
+    "notify": 1080,
+    "tap": 1120,
+    "peak": 1200,
+    "reset": 1240,
+    "caption2": 1240,
+    "endCard": 1360
+  }
+}

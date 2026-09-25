@@ -1,0 +1,22 @@
+{
+  "name": "aiquota-launch-video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio",
+    "test": "vitest run",
+    "audio": "node scripts/make-audio.mjs",
+    "render": "./scripts/render.sh"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.529",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "remotion": "^4.0.529"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.31",
+    "typescript": "^7.0.2",
+    "vitest": "^2.1.9"
+  }
+}
