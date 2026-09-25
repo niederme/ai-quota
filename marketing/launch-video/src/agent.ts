@@ -3,6 +3,7 @@
 // Pure layout model: every item has a deterministic height so the transcript
 // can auto-scroll and the camera can follow the newest line without measuring the DOM.
 import {smooth} from './anim';
+import {springFollow} from './follow';
 import {BEATS} from './timeline';
 
 type SubAgent = {name: string; tasks: string[]; tokens: number; doneAt: number};
@@ -14,6 +15,7 @@ export type ScriptItem =
   | {kind: 'agents'; at: number; title: string; agents: SubAgent[]};
 
 export type Session = {
+  id: string;
   script: ScriptItem[];
   view: {w: number; h: number};
   line: number;
@@ -26,7 +28,7 @@ export type Session = {
 const P = BEATS.promptSent;
 const F = BEATS.followUp;
 export const MAC_SESSION: Session = {
-  view: {w: 700, h: 468}, line: 23, row: 25, gap: 14, charsPerFrame: 3, typeFrames: 40,
+  id: 'mac', view: {w: 700, h: 468}, line: 23, row: 25, gap: 14, charsPerFrame: 3, typeFrames: 47,
   script: [
     {kind: 'prompt', at: P, lines: ['Build a marketing site for our new iOS app: landing page, pricing,', 'docs and a blog. One agent per section, Lighthouse above 95.']},
     {kind: 'text', at: P + 6, lines: ['Big one. Here’s the plan, then I’ll fan out to parallel agents:']},
@@ -53,7 +55,7 @@ export const MAC_SESSION: Session = {
 
 const PP = BEATS.phonePrompt;
 export const PHONE_SESSION: Session = {
-  view: {w: 364, h: 600}, line: 22, row: 24, gap: 12, charsPerFrame: 2.8, typeFrames: 34,
+  id: 'phone', view: {w: 364, h: 600}, line: 22, row: 24, gap: 12, charsPerFrame: 2.8, typeFrames: 34,
   script: [
     {kind: 'prompt', at: PP, lines: ['Make a 20-second launch video', 'for the app: device mockups,', 'motion, and a beat. 4K master.']},
     {kind: 'text', at: PP + 6, lines: ['Love it. Splitting the work:']},
@@ -72,13 +74,14 @@ export const PHONE_SESSION: Session = {
   ],
 };
 
-export type AgentRow = {name: string; task: string; tokens: number; done: boolean};
+export type AgentRow = {name: string; task: string; tokens: number; done: boolean; at: number};
 
+// `at` is the frame the item appeared, for entrance animation.
 export type Item =
-  | {kind: 'prompt'; y: number; h: number; lines: string[]}
-  | {kind: 'text'; y: number; h: number; lines: string[]}
-  | {kind: 'plan'; y: number; h: number; steps: string[]; done: boolean[]}
-  | {kind: 'agents'; y: number; h: number; title: string; rows: AgentRow[]; reveal: number};
+  | {kind: 'prompt'; at: number; y: number; h: number; lines: string[]}
+  | {kind: 'text'; at: number; y: number; h: number; lines: string[]}
+  | {kind: 'plan'; at: number; y: number; h: number; steps: string[]; done: boolean[]}
+  | {kind: 'agents'; at: number; y: number; h: number; title: string; rows: AgentRow[]; reveal: number};
 
 export type AgentState = {
   composer: string;
@@ -96,7 +99,7 @@ function agentRows(frame: number, block: Extract<ScriptItem, {kind: 'agents'}>):
     const t = Math.max(0, Math.min(1, (frame - start) / (g.doneAt - start)));
     const task = g.tasks[Math.min(g.tasks.length - 1, Math.floor(t * g.tasks.length))];
     // Tokens ramp quickly at first (reading), then keep ticking up.
-    return {name: g.name, task, tokens: Math.round(g.tokens * (0.6 * smooth(Math.min(1, t * 1.6)) + 0.4 * t)), done: frame >= g.doneAt};
+    return {name: g.name, task, tokens: Math.round(g.tokens * (0.6 * smooth(Math.min(1, t * 1.6)) + 0.4 * t)), done: frame >= g.doneAt, at: start};
   });
 }
 
@@ -116,7 +119,7 @@ export function agentAt(s: Session, frame: number): AgentState {
     if (frame < item.at) { streaming = true; break; }
     if (item.kind === 'prompt') {
       const h = item.lines.length * s.line + 22;
-      items.push({kind: 'prompt', y, h, lines: item.lines});
+      items.push({kind: 'prompt', at: item.at, y, h, lines: item.lines});
       y += h + s.gap;
     } else if (item.kind === 'text') {
       let budget = Math.floor((frame - item.at) * s.charsPerFrame);
@@ -127,18 +130,18 @@ export function agentAt(s: Session, frame: number): AgentState {
         budget -= l.length;
       }
       const h = item.lines.length * s.line;
-      items.push({kind: 'text', y, h, lines});
+      items.push({kind: 'text', at: item.at, y, h, lines});
       y += h + s.gap;
       if (budget < 0) { streaming = true; break; }
     } else if (item.kind === 'plan') {
       const h = item.steps.length * s.row;
-      items.push({kind: 'plan', y, h, steps: item.steps, done: item.doneAt.map((d) => frame >= d)});
+      items.push({kind: 'plan', at: item.at, y, h, steps: item.steps, done: item.doneAt.map((d) => frame >= d)});
       y += h + s.gap;
     } else {
       const rows = agentRows(frame, item);
       const reveal = Math.min(item.agents.length, Math.floor((frame - item.at) / ROW_STAGGER) + 1);
       const h = s.row + item.agents.length * s.row;
-      items.push({kind: 'agents', y, h, title: item.title, rows, reveal});
+      items.push({kind: 'agents', at: item.at, y, h, title: item.title, rows, reveal});
       y += h + s.gap;
       if (rows.some((r) => !r.done)) streaming = true;
     }
@@ -160,4 +163,9 @@ export function sessionTokens(s: Session, frame: number): number {
     if (item.kind === 'agents') total += item.rows.slice(0, item.reveal).reduce((n, r) => n + r.tokens, 0);
   }
   return total;
+}
+
+// Transcript scroll, eased by two springs in series so new content glides in.
+export function smoothScroll(s: Session, frame: number): number {
+  return springFollow(`scroll:${s.id}:2`, frame, (g) => springFollow(`scroll:${s.id}:1`, g, (h) => agentAt(s, h).scroll, 0.16), 0.16);
 }

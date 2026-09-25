@@ -4,6 +4,8 @@ export type Ease = (t: number) => number;
 export const smooth: Ease = (t) => t * t * (3 - 2 * t);
 // Close to Apple's default ease-in-out curve.
 export const easeInOut: Ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+// Quintic smootherstep: zero velocity and acceleration at both ends, no mid-move jolt.
+export const smoother: Ease = (t) => t * t * t * (t * (6 * t - 15) + 10);
 export const easeOut: Ease = (t) => 1 - Math.pow(1 - t, 3);
 
 export function keyframes(frame: number, keys: Key[], ease: Ease = smooth): number {

@@ -1,5 +1,6 @@
 import React from 'react';
-import {agentAt, type Item, type Session} from '../agent';
+import {agentAt, smoothScroll, type Item, type Session} from '../agent';
+import {easeOut, ramp} from '../anim';
 import {theme} from '../theme';
 
 export const C = {
@@ -11,6 +12,12 @@ export const C = {
 export const Spinner: React.FC<{frame: number}> = ({frame}) => (
   <span style={{display: 'inline-block', width: 16, color: theme.accent}}>{'✶✸✹✺✹✸'[Math.floor(frame / 5) % 6]}</span>
 );
+
+// New content fades and rises into place instead of popping.
+const enter = (frame: number, at: number): React.CSSProperties => {
+  const t = ramp(frame, at, at + 12, easeOut);
+  return t >= 1 ? {} : {opacity: t, transform: `translateY(${(1 - t) * 10}px)`};
+};
 
 const Row: React.FC<{item: Item; frame: number; s: Session; fontSize: number; monoSize: number}> = ({item, frame, s, fontSize, monoSize}) => {
   const base: React.CSSProperties = {position: 'absolute', left: 0, right: 0, top: item.y};
@@ -49,7 +56,7 @@ const Row: React.FC<{item: Item; frame: number; s: Session; fontSize: number; mo
             {running ? item.title : `${item.rows.length} agents finished`}
           </div>
           {item.rows.slice(0, item.reveal).map((r, i) => (
-            <div key={r.name} style={{height: s.row, display: 'flex', alignItems: 'center', gap: 8}}>
+            <div key={r.name} style={{height: s.row, display: 'flex', alignItems: 'center', gap: 8, ...enter(frame, r.at)}}>
               <span style={{color: C.faint}}>{i === item.rows.length - 1 ? '└─' : '├─'}</span>
               {r.done ? <span style={{color: C.ok, width: 16}}>●</span> : <Spinner frame={frame + i * 7} />}
               <span style={{color: C.verb, fontWeight: 600}}>{r.name}</span>
@@ -63,19 +70,16 @@ const Row: React.FC<{item: Item; frame: number; s: Session; fontSize: number; mo
   }
 };
 
-// Eased auto-scroll so new lines glide in rather than snap.
-export function smoothScroll(s: Session, frame: number) {
-  let sum = 0;
-  for (let k = 0; k < 8; k++) sum += agentAt(s, Math.max(0, frame - k)).scroll;
-  return sum / 8;
-}
-
 export const Transcript: React.FC<{session: Session; frame: number; fontSize: number; monoSize: number}> = ({session, frame, fontSize, monoSize}) => {
   const a = agentAt(session, frame);
   return (
     <div style={{position: 'relative', width: session.view.w, height: session.view.h, overflow: 'hidden', fontFamily: theme.font}}>
       <div style={{position: 'absolute', left: 0, right: 0, top: -smoothScroll(session, frame)}}>
-        {a.items.map((item, i) => <Row key={i} item={item} frame={frame} s={session} fontSize={fontSize} monoSize={monoSize} />)}
+        {a.items.map((item, i) => (
+          <div key={i} style={enter(frame, item.at)}>
+            <Row item={item} frame={frame} s={session} fontSize={fontSize} monoSize={monoSize} />
+          </div>
+        ))}
       </div>
     </div>
   );

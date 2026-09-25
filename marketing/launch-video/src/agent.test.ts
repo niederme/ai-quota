@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {agentAt, MAC_SESSION, PHONE_SESSION, sessionTokens, type Session} from './agent';
+import {agentAt, MAC_SESSION, PHONE_SESSION, sessionTokens, smoothScroll, type Session} from './agent';
 import {BEATS, DURATION} from './timeline';
 
 const firstPrompt = (s: Session) => s.script.find((i) => i.kind === 'prompt')!;
@@ -85,5 +85,22 @@ describe('sessionTokens', () => {
       prev = t;
     }
     expect(prev).toBeGreaterThan(150000);
+  });
+});
+
+describe('transcript motion', () => {
+  it.each([['mac', MAC_SESSION], ['phone', PHONE_SESSION]] as const)('%s scroll glides without jolts', (_n, s) => {
+    const ys = Array.from({length: DURATION}, (_, f) => smoothScroll(s, f));
+    for (let f = 2; f < DURATION; f++) expect(Math.abs(ys[f] - 2 * ys[f - 1] + ys[f - 2]), `frame ${f}`).toBeLessThan(1.5);
+  });
+  it('stamps every item and agent row with the frame it appeared', () => {
+    const a = agentAt(MAC_SESSION, BEATS.followUp + 100);
+    for (const item of a.items) {
+      expect(item.at).toBeLessThanOrEqual(BEATS.followUp + 100);
+      if (item.kind === 'agents') item.rows.slice(0, item.reveal).forEach((r) => expect(r.at).toBeLessThanOrEqual(BEATS.followUp + 100));
+    }
+  });
+  it('starts typing within the first few frames', () => {
+    expect(agentAt(MAC_SESSION, 6).composer.length).toBeGreaterThan(0);
   });
 });

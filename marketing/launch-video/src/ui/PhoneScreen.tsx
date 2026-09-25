@@ -35,7 +35,7 @@ const PhoneChat: React.FC<{frame: number}> = ({frame}) => {
       </div>
       <div style={{position: 'absolute', left: 14, right: 14, bottom: 34}}>
         <div style={{height: 22, marginBottom: 8, paddingLeft: 6}}><StatusLine session={PHONE_SESSION} frame={frame} size={12} /></div>
-        <Composer text={a.composer} frame={frame} placeholder="Message the agent…" fontSize={16} />
+        <Composer text={a.composer} frame={frame} placeholder="Message the agent…" fontSize={16} maxChars={38} />
       </div>
     </div>
   );
