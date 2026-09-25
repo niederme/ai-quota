@@ -65,12 +65,6 @@ export const PHONE_SESSION: Session = {
       {name: 'motion', tasks: ['Keyframing camera', 'Adding 3D tilt'], tokens: 45700, doneAt: PP + 86},
       {name: 'soundtrack', tasks: ['Sketching drums', 'Mixing'], tokens: 22900, doneAt: PP + 68},
     ]},
-    {kind: 'text', at: PP + 90, lines: ['First cut rendered: 4K, 20s.']},
-    {kind: 'prompt', at: PP + 112, lines: ['Great. More dynamic zooms,', 'and make the music hit harder.']},
-    {kind: 'agents', at: PP + 120, title: 'Running 2 agents', agents: [
-      {name: 'motion', tasks: ['Adding whip zooms', 'Retiming to the beat'], tokens: 51200, doneAt: PP + 420},
-      {name: 'soundtrack', tasks: ['Programming breakbeat', 'Adding a tape stop'], tokens: 37800, doneAt: PP + 380},
-    ]},
   ],
 };
 

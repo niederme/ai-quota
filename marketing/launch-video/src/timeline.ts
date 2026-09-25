@@ -15,7 +15,7 @@ export type Usage = {codex: Window; claude: Window};
 const curves = {
   codexH5: [[0, 18], [BEATS.macOpen, 31], [BEATS.phoneIn, 40], [BEATS.tap, 48], [DURATION, 55]] as Key[],
   codexD7: [[0, 52], [BEATS.tap, 58], [DURATION, 61]] as Key[],
-  claudeH5: [[0, 30], [BEATS.macOpen, 52], [BEATS.phoneIn, 66], [BEATS.tap, 88], [BEATS.peak, 97],
+  claudeH5: [[0, 30], [BEATS.macOpen, 52], [BEATS.phoneIn, 72], [BEATS.tap, 88], [BEATS.peak, 97],
     [BEATS.reset - 10, 97], [BEATS.reset + 15, 6], [DURATION, 14]] as Key[],
   claudeD7: [[0, 38], [BEATS.peak, 52], [DURATION, 55]] as Key[],
 };
@@ -33,4 +33,17 @@ export function gaugeColor(worst: number): string {
   if (worst >= 95) return theme.critical;
   if (worst >= 85) return theme.warning;
   return theme.accent;
+}
+
+// Reset times differ per service, and Claude's 5h window moves on after it resets.
+const RESETS = {
+  codex: {mac: ['5h resets 11:24am', '7d resets Sat. 2:10pm'], ios: ['5h resets 11:24 AM', '7d resets Sat 2:10 PM']},
+  claude: {mac: ['5h resets 10:05am', '7d resets Tue. 9:40am'], ios: ['5h resets 10:05 AM', '7d resets Tue 9:40 AM']},
+} as const;
+const CLAUDE_AFTER_RESET = {mac: '5h resets 2:41pm', ios: '5h resets 2:41 PM'} as const;
+
+export function resetLines(service: 'codex' | 'claude', platform: 'mac' | 'ios', frame: number): [string, string] {
+  const [h5, d7] = RESETS[service][platform];
+  if (service === 'claude' && frame >= BEATS.reset) return [CLAUDE_AFTER_RESET[platform], d7];
+  return [h5, d7];
 }

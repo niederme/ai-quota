@@ -20,7 +20,7 @@ export const EndLockup: React.FC<{frame: number; start: number}> = ({frame, star
         AIQuota
       </div>
       <div style={{...rise(frame, start + 38), marginTop: 20, fontSize: 44, fontWeight: 500, color: stage.inkSecondary, letterSpacing: '-0.01em'}}>
-        for Mac and iOS
+        macOS &amp; iOS
       </div>
     </div>
   );

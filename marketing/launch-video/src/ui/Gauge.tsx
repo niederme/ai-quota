@@ -52,18 +52,36 @@ export const Gauge: React.FC<{
   );
 };
 
-// Tiny menu bar glyph: single ring with fill.
-export const MiniGauge: React.FC<{value: number; size: number; color: string}> = ({value, size, color}) => {
-  const ring = size * 0.16;
-  const r = (size - ring) / 2;
-  const c = 2 * Math.PI * r;
-  const d = (fill: number) => `${0.75 * c * fill} ${c}`;
+// Menu bar gauge, drawn like AIQuotaKit's GaugeImageMaker: touching outer (5h) and
+// inner (7d) rings, butt caps, white when healthy (amber/red near the limit), inner
+// fill dimmed, and a white needle dot at the tip of the outer fill.
+function menuBarColor(worst: number) {
+  const remaining = 1 - worst / 100;
+  if (remaining <= 0.05) return 'rgb(255,64,64)';
+  if (remaining <= 0.15) return 'rgb(255,166,0)';
+  return '#FFFFFF';
+}
+
+export const MenuBarGauge: React.FC<{primary: number; secondary: number; size: number}> = ({primary, secondary, size}) => {
+  const lw = size * 0.12;
+  const r1 = size * 0.41;
+  const r2 = r1 - lw;
+  const c = size / 2;
+  const color = menuBarColor(Math.max(primary, secondary));
+  const arc = (r: number, fill: number, stroke: string, opacity: number) => {
+    const circ = 2 * Math.PI * r;
+    return <circle cx={c} cy={c} r={r} fill="none" stroke={stroke} strokeOpacity={opacity} strokeWidth={lw}
+      strokeDasharray={`${0.75 * circ * Math.max(0, Math.min(1, fill))} ${circ}`} transform={`rotate(135 ${c} ${c})`} />;
+  };
+  const tip = ((135 + 270 * Math.min(1, primary / 100)) * Math.PI) / 180;
+  const warning = Math.max(primary, secondary) >= 85;
   return (
     <svg width={size} height={size}>
-      <g transform={`rotate(135 ${size / 2} ${size / 2})`} fill="none" strokeWidth={ring} strokeLinecap="round">
-        <circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(255,255,255,0.28)" strokeDasharray={d(1)} />
-        <circle cx={size / 2} cy={size / 2} r={r} stroke={color} strokeDasharray={d(value / 100)} />
-      </g>
+      {arc(r1, 1, '#FFFFFF', 0.2)}
+      {arc(r2, 1, '#FFFFFF', 0.12)}
+      {secondary > 0 && arc(r2, secondary / 100, color, warning ? 0.65 : 0.45)}
+      {primary > 0 && arc(r1, primary / 100, color, 1)}
+      {primary > 0 && <circle cx={c + r1 * Math.cos(tip)} cy={c + r1 * Math.sin(tip)} r={lw * 0.5} fill="rgba(255,255,255,0.95)" />}
     </svg>
   );
 };

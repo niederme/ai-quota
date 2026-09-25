@@ -1,6 +1,6 @@
 {
   "fps": 60,
-  "duration": 1560,
+  "duration": 1520,
   "beats": {
     "hold": 80,
     "promptSent": 130,
@@ -11,11 +11,11 @@
     "caption1": 640,
     "phoneIn": 800,
     "phonePrompt": 850,
-    "notify": 960,
-    "tap": 1000,
-    "peak": 1080,
-    "reset": 1120,
-    "caption2": 1120,
-    "endCard": 1240
+    "notify": 920,
+    "tap": 960,
+    "peak": 1040,
+    "reset": 1080,
+    "caption2": 1080,
+    "endCard": 1200
   }
 }

@@ -1,7 +1,7 @@
 import React from 'react';
 import {Img, staticFile} from 'remotion';
 import {easeOut} from '../anim';
-import {gaugeColor, type Usage, type Window} from '../timeline';
+import {gaugeColor, resetLines, type Usage, type Window} from '../timeline';
 import {theme} from '../theme';
 import {Gauge} from './Gauge';
 import {BatteryGlyph, ChevronBadge, GearGlyph, RefreshGlyph, WifiGlyph} from './Glyphs';
@@ -21,8 +21,9 @@ const Background: React.FC = () => (
 
 const HISTORY = Array.from({length: 30}, (_, i) => [32, 48, 21, 64, 53, 18, 8][(29 - i) % 7]);
 
-const Card: React.FC<{service: 'codex' | 'claude'; name: string; plan: string; usage: Window; glow: number; chart?: boolean}> = ({service, name, plan, usage, glow, chart}) => {
+const Card: React.FC<{service: 'codex' | 'claude'; name: string; plan: string; usage: Window; glow: number; frame: number; chart?: boolean}> = ({service, name, plan, usage, glow, frame, chart}) => {
   const color = gaugeColor(Math.max(usage.h5, usage.d7));
+  const [h5, d7] = resetLines(service, 'ios', frame);
   return (
     <div style={{...glass, borderRadius: 28, padding: '16px 16px 14px', position: 'relative',
       boxShadow: `${glass.boxShadow}, 0 0 ${40 * glow}px ${color}${glow > 0 ? '66' : '00'}`}}>
@@ -32,7 +33,7 @@ const Card: React.FC<{service: 'codex' | 'claude'; name: string; plan: string; u
           <div style={{fontSize: 22, fontWeight: 600, color: theme.primary}}>{name}</div>
           <div style={{fontSize: 15, color: theme.secondary, marginTop: 2}}>{plan}</div>
           <div style={{fontSize: 15, fontWeight: 500, color, marginTop: 12, lineHeight: 1.45}}>
-            5h resets 10:01 AM<br />7d resets Mon 8:01 AM
+            {h5}<br />{d7}
           </div>
         </div>
         <div style={{position: 'absolute', right: 16, top: 16}}><ChevronBadge size={20} /></div>
@@ -68,7 +69,7 @@ export const Notification: React.FC<{progress: number}> = ({progress}) => {
   );
 };
 
-export const IOSOverview: React.FC<{usage: Usage; claudeGlow: number; notification: number}> = ({usage, claudeGlow, notification}) => (
+export const IOSOverview: React.FC<{usage: Usage; claudeGlow: number; notification: number; frame: number}> = ({usage, claudeGlow, notification, frame}) => (
   <div style={{position: 'relative', width: 420, height: 912, overflow: 'hidden', fontFamily: theme.font, color: theme.primary}}>
     <Background />
     <div style={{position: 'absolute', left: 0, right: 0, top: 0, height: 54, display: 'flex', alignItems: 'center',
@@ -83,8 +84,8 @@ export const IOSOverview: React.FC<{usage: Usage; claudeGlow: number; notificati
       </div>
     </div>
     <div style={{position: 'absolute', left: 17, right: 17, top: 142, display: 'flex', flexDirection: 'column', gap: 26}}>
-      <Card service="codex" name="Codex" plan="Plus plan" usage={usage.codex} glow={0} chart />
-      <Card service="claude" name="Claude" plan="Max plan" usage={usage.claude} glow={claudeGlow} />
+      <Card service="codex" name="Codex" plan="Plus plan" usage={usage.codex} glow={0} frame={frame} chart />
+      <Card service="claude" name="Claude" plan="Max plan" usage={usage.claude} glow={claudeGlow} frame={frame} />
       <div style={{textAlign: 'center', fontSize: 13, color: theme.secondary}}>Updated just now</div>
     </div>
     {notification > 0 && <Notification progress={notification} />}

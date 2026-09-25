@@ -3,7 +3,7 @@ import {easeOut} from '../anim';
 import {gaugeColor, type Usage} from '../timeline';
 import {theme} from '../theme';
 import {AgentWindow} from './AgentWindow';
-import {MiniGauge} from './Gauge';
+import {MenuBarGauge} from './Gauge';
 import {BatteryGlyph, ControlCenterGlyph, Cursor, SearchGlyph, WifiGlyph} from './Glyphs';
 import {MacPopover} from './MacPopover';
 
@@ -15,7 +15,7 @@ const MENU_H = 30;
 // AIQuota extra's position is known exactly for the cursor and popover.
 const MENU_PAD_R = 14;
 const MENU_GAP = 14;
-const SLOTS = [['search', 15], ['aiquota', 54], ['wifi', 17], ['battery', 25], ['cc', 16], ['clock', 136]] as const;
+const SLOTS = [['search', 15], ['aiquota', 51], ['wifi', 17], ['battery', 25], ['cc', 16], ['clock', 136]] as const;
 type Slot = (typeof SLOTS)[number][0];
 const slotX: Record<Slot, number> = (() => {
   const total = SLOTS.reduce((w, [, sw]) => w + sw, 0) + MENU_GAP * (SLOTS.length - 1);
@@ -42,7 +42,6 @@ export type CursorState = {x: number; y: number; opacity: number; press: number}
 
 export const MacDesktop: React.FC<{frame: number; usage: Usage; popover: number; cursor: CursorState}> = ({frame, usage, popover, cursor}) => {
   const p = easeOut(Math.max(0, Math.min(1, popover)));
-  const barColor = (w: Usage['codex']) => gaugeColor(Math.max(w.h5, w.d7));
   return (
     <div style={{position: 'relative', width: MAC_SCREEN.w, height: MAC_SCREEN.h, overflow: 'hidden', fontFamily: theme.font}}>
       <Wallpaper />
@@ -67,15 +66,17 @@ export const MacDesktop: React.FC<{frame: number; usage: Usage; popover: number;
       ))}
       <div style={{position: 'absolute', left: slotX.clock, top: 0, width: slotW.clock, height: MENU_H, display: 'flex', alignItems: 'center',
         justifyContent: 'flex-end', fontSize: 13, color: 'white', whiteSpace: 'nowrap'}}>Thu Sep 25&nbsp;&nbsp;9:41 AM</div>
+      {/* AIQuota menu extra: two gauges; the rounded highlight only shows while its menu is open, like macOS */}
       <div style={{position: 'absolute', left: slotX.aiquota, width: slotW.aiquota, top: 4, height: MENU_H - 8, boxSizing: 'border-box',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, borderRadius: 7, background: `rgba(255,255,255,${0.08 + 0.16 * p})`}}>
-        <MiniGauge value={usage.codex.h5} size={16} color={barColor(usage.codex)} />
-        <MiniGauge value={usage.claude.h5} size={16} color={barColor(usage.claude)} />
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, borderRadius: 5,
+        background: `rgba(255,255,255,${0.22 * p})`}}>
+        <MenuBarGauge primary={usage.codex.h5} secondary={usage.codex.d7} size={19} />
+        <MenuBarGauge primary={usage.claude.h5} secondary={usage.claude.d7} size={19} />
       </div>
       {p > 0.001 && (
         <div style={{position: 'absolute', left: POPOVER_RECT.x, top: POPOVER_RECT.y, opacity: Math.min(1, p * 1.6),
           transform: `translateY(${(1 - p) * -10}px) scale(${0.96 + 0.04 * p})`, transformOrigin: '50% 0'}}>
-          <MacPopover usage={usage} reveal={p} />
+          <MacPopover usage={usage} reveal={p} frame={frame} />
         </div>
       )}
       <div style={{position: 'absolute', left: cursor.x, top: cursor.y, opacity: cursor.opacity,
