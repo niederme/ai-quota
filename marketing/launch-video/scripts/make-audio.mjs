@@ -11,6 +11,7 @@ const N = Math.ceil((DURATION / FPS) * SR);
 const BEAT = 40; // frames
 const BAR = BEAT * 4;
 const STEP = BEAT / 4; // 16th note in frames
+const T0 = B.hold; // the grid starts after the opening hold on the empty prompt
 const SWING = 0.18; // fraction of a 16th that off-beat 16ths are delayed
 const sec = (frame) => frame / FPS;
 const idx = (s) => Math.floor(s * SR);
@@ -29,8 +30,8 @@ function put(b, i, v, pan = 0) {
 }
 
 // Sections (frames).
-const DRUMS_IN = BEAT;                 // drums enter, filtered, after the first beat
-const DRUMS_OPEN = BAR;                // filter fully open
+const DRUMS_IN = T0 + BEAT;            // drums enter, filtered, a beat after the hold
+const DRUMS_OPEN = T0 + BAR;           // filter fully open
 const BREAK = [B.caption1, B.phoneIn]; // filtered break under "Know your limits."
 const STOP = [B.peak, B.reset];        // tape-stop, then silence until the reset
 const OUTRO_END = B.endCard + BAR;     // beat ends a bar into the end card
@@ -43,7 +44,7 @@ const CHORDS = [
   {root: 31, notes: [50, 53, 57, 58]},
   {root: 33, notes: [49, 55, 60, 61]},
 ];
-const chordAt = (f) => CHORDS[Math.floor(Math.max(0, f) / BAR) % CHORDS.length];
+const chordAt = (f) => CHORDS[Math.floor(Math.max(0, f - T0) / BAR) % CHORDS.length];
 
 // ---------- Instruments ----------
 function kick(f, gain) {
@@ -172,8 +173,8 @@ function bell(f, m, gain, pan = 0.4) {
 // ---------- Arrangement ----------
 const swing = (f, step) => f + (step % 2 === 1 ? SWING * STEP : 0);
 
-for (let bar = 0; bar * BAR < DURATION; bar++) {
-  const b0 = bar * BAR;
+for (let bar = 0; T0 + bar * BAR < DURATION; bar++) {
+  const b0 = T0 + bar * BAR;
   const alt = bar % 2 === 1;
   for (let step = 0; step < 16; step++) {
     const f = swing(b0 + step * STEP, step);
@@ -191,9 +192,8 @@ for (let bar = 0; bar * BAR < DURATION; bar++) {
 
 // Bassline: syncopated roots/octaves, sits out in the break and the stop.
 const BASS_STEPS = [[0, 0, 0.5], [3, 0, 0.18], [6, 12, 0.16], [10, 0, 0.3], [14, 7, 0.14]];
-for (let bar = 0; bar * BAR < OUTRO_END; bar++) {
-  const b0 = bar * BAR;
-  if (b0 < BAR) continue;
+for (let bar = 1; T0 + bar * BAR < OUTRO_END; bar++) {
+  const b0 = T0 + bar * BAR;
   for (const [step, off, len] of BASS_STEPS) {
     const f = swing(b0 + step * STEP, step);
     if (!playing(f) || (f >= BREAK[0] && f < BREAK[1])) continue;
@@ -202,8 +202,8 @@ for (let bar = 0; bar * BAR < OUTRO_END; bar++) {
 }
 
 // Rhodes: chord on the one, a push on the "and" of two. Also carries the intro and the break.
-for (let bar = 0; bar * BAR < DURATION; bar++) {
-  const b0 = bar * BAR;
+for (let bar = 0; T0 + bar * BAR < DURATION; bar++) {
+  const b0 = T0 + bar * BAR;
   const ch = chordAt(b0).notes;
   for (const [step, len, g] of [[0, 1.0, 0.07], [6, 0.35, 0.05], [11, 0.5, 0.045]]) {
     const f = swing(b0 + step * STEP, step);
@@ -214,7 +214,7 @@ for (let bar = 0; bar * BAR < DURATION; bar++) {
 }
 
 // Foley and hits cut to picture.
-for (let f = 6, k = 0; f < B.promptSent - 4; f += 2 + (k++ % 3 === 0 ? 1 : 0)) click(f, 0.06 + 0.02 * rand(), 2400 + 700 * rand(), 0);
+for (let f = B.promptSent - 44, k = 0; f < B.promptSent - 4; f += 2 + (k++ % 3 === 0 ? 1 : 0)) click(f, 0.06 + 0.02 * rand(), 2400 + 700 * rand(), 0);
 click(B.promptSent, 0.12, 1500, 0);
 for (let f = B.followUp - 36, k = 0; f < B.followUp - 4; f += 2 + (k++ % 3 === 0 ? 1 : 0)) click(f, 0.05 + 0.02 * rand(), 2600 + 600 * rand(), 0);
 scratch(B.zoomOut + 20, 0.28, 2);

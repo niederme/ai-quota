@@ -100,7 +100,8 @@ describe('transcript motion', () => {
       if (item.kind === 'agents') item.rows.slice(0, item.reveal).forEach((r) => expect(r.at).toBeLessThanOrEqual(BEATS.followUp + 100));
     }
   });
-  it('starts typing within the first few frames', () => {
-    expect(agentAt(MAC_SESSION, 6).composer.length).toBeGreaterThan(0);
+  it('holds on the empty composer for a beat, then starts typing', () => {
+    for (let f = 0; f < BEATS.hold; f++) expect(agentAt(MAC_SESSION, f).composer).toBe('');
+    expect(agentAt(MAC_SESSION, BEATS.hold + 6).composer.length).toBeGreaterThan(0);
   });
 });

@@ -17,11 +17,15 @@ export const StatusLine: React.FC<{session: Session; frame: number; size: number
 
 // Fixed single-line composer: long prompts scroll left as they're typed, so the
 // field never changes height mid-sentence.
-export const Composer: React.FC<{text: string; frame: number; placeholder: string; fontSize: number; maxChars: number}> = ({text, frame, placeholder, fontSize, maxChars}) => (
+const Caret: React.FC<{frame: number}> = ({frame}) =>
+  frame % 40 < 22 ? <span style={{display: 'inline-block', width: 2, height: 18, marginLeft: 1, background: C.text, verticalAlign: -3}} /> : null;
+
+export const Composer: React.FC<{text: string; frame: number; placeholder: string; fontSize: number; maxChars: number; focused?: boolean}> = ({text, frame, placeholder, fontSize, maxChars, focused}) => (
   <div style={{height: 48, boxSizing: 'border-box', borderRadius: 16, background: C.bubble, border: '1px solid rgba(255,255,255,0.08)', padding: '13px 16px',
     fontSize, lineHeight: '22px', color: text ? C.text : C.dim, whiteSpace: 'nowrap', overflow: 'hidden'}}>
+    {!text && focused && <Caret frame={frame} />}
     {text ? (text.length > maxChars ? '…' + text.slice(-maxChars) : text) : placeholder}
-    {text && frame % 40 < 22 && <span style={{display: 'inline-block', width: 2, height: 18, marginLeft: 1, background: C.text, verticalAlign: -3}} />}
+    {text && <Caret frame={frame} />}
   </div>
 );
 
@@ -39,7 +43,7 @@ export const AgentWindow: React.FC<{frame: number}> = ({frame}) => {
       </div>
       <div style={{position: 'absolute', left: 20, right: 20, bottom: 18}}>
         <div style={{height: 22, marginBottom: 8, paddingLeft: 4}}><StatusLine session={MAC_SESSION} frame={frame} size={12.5} /></div>
-        <Composer text={a.composer} frame={frame} placeholder="Ask the agent…" fontSize={15} maxChars={86} />
+        <Composer text={a.composer} frame={frame} placeholder="Ask the agent…" fontSize={15} maxChars={86} focused={frame < MAC_SESSION.script[0].at} />
       </div>
     </div>
   );

@@ -59,7 +59,7 @@ export const LaunchVideo: React.FC = () => {
           transform: `translate(${STAGE.w / 2}px, ${STAGE.h / 2}px) scale(${cam.z}) translate(${-cam.x}px, ${-cam.y}px)`, transformOrigin: '0 0'}}>
           {/* Taglines: background layer, behind every device. */}
           <Caption frame={frame} inAt={B.caption1 + 20} outAt={B.phoneIn + 60} style={{left: 1080, top: 380, fontSize: 150}}>
-            Know your<br />limits.
+            Know your<br />limits
           </Caption>
           <Caption frame={frame} inAt={B.caption2 + 4} outAt={B.endCard - 14} style={{left: 110, top: 390, fontSize: 118}}>
             before they<br />break your flow.

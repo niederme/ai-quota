@@ -24,8 +24,12 @@ const Column: React.FC<{service: 'codex' | 'claude'; name: string; usage: Usage[
 
 export const MacPopover: React.FC<{usage: Usage; reveal: number}> = ({usage, reveal}) => (
   <div style={{width: W, borderRadius: 16, overflow: 'hidden', fontFamily: theme.font, color: theme.primary,
-    background: 'rgba(36,24,52,0.74)', backdropFilter: 'blur(28px) saturate(1.6)', WebkitBackdropFilter: 'blur(28px) saturate(1.6)',
-    border: '1px solid rgba(255,255,255,0.14)', boxShadow: '0 24px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)'}}>
+    // Translucent glass like the real menu bar popover: the desktop shows through,
+    // with only a light purple tint.
+    background: 'linear-gradient(180deg, rgba(86,72,112,0.34) 0%, rgba(44,38,60,0.30) 100%)',
+    backdropFilter: 'blur(36px) saturate(1.9) brightness(1.08)', WebkitBackdropFilter: 'blur(36px) saturate(1.9) brightness(1.08)',
+    border: '1px solid rgba(255,255,255,0.20)',
+    boxShadow: '0 24px 60px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.22), inset 0 0 0 1px rgba(255,255,255,0.04)'}}>
     <div style={{display: 'flex', alignItems: 'center', padding: '12px 16px', gap: 10}}>
       <Img src={staticFile('icon-dark.png')} style={{width: 22, height: 22}} />
       <div style={{fontSize: 15, fontWeight: 700, flex: 1}}>AIQuota</div>
