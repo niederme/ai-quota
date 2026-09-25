@@ -13,10 +13,10 @@ export type Window = {h5: number; d7: number};
 export type Usage = {codex: Window; claude: Window};
 
 const curves = {
-  codexH5: [[0, 20], [BEATS.macOpen, 31], [BEATS.caption2, 48], [DURATION, 55]] as Key[],
-  codexD7: [[0, 52], [BEATS.caption2, 58], [DURATION, 61]] as Key[],
-  claudeH5: [[0, 30], [BEATS.macOpen, 54], [BEATS.caption2, 81], [BEATS.peak, 97],
-    [BEATS.reset - 10, 97], [BEATS.reset + 20, 6], [DURATION, 16]] as Key[],
+  codexH5: [[0, 18], [BEATS.macOpen, 31], [BEATS.phoneIn, 40], [BEATS.tap, 48], [DURATION, 55]] as Key[],
+  codexD7: [[0, 52], [BEATS.tap, 58], [DURATION, 61]] as Key[],
+  claudeH5: [[0, 30], [BEATS.macOpen, 52], [BEATS.phoneIn, 66], [BEATS.tap, 88], [BEATS.peak, 97],
+    [BEATS.reset - 10, 97], [BEATS.reset + 15, 6], [DURATION, 14]] as Key[],
   claudeD7: [[0, 38], [BEATS.peak, 52], [DURATION, 55]] as Key[],
 };
 
@@ -27,10 +27,6 @@ export function usageAt(frame: number): Usage {
   };
 }
 
-// Tokens streamed by the agent session on the Mac; drives the status line.
-export function tokensAt(frame: number): number {
-  return Math.round(track(frame, [[BEATS.promptSent, 0], [BEATS.zoomOut, 21400], [BEATS.caption2, 58200], [DURATION, 74800]]));
-}
 
 // Same thresholds as CircularGaugeView / OverviewView.
 export function gaugeColor(worst: number): string {

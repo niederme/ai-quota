@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {BEATS, DURATION, gaugeColor, tokensAt, usageAt} from './timeline';
+import {BEATS, DURATION, gaugeColor, usageAt} from './timeline';
 import {theme} from './theme';
 
 describe('gaugeColor', () => {
@@ -41,17 +41,5 @@ describe('usageAt', () => {
         expect(n).toBeLessThanOrEqual(100);
       }
     }
-  });
-});
-
-describe('tokensAt', () => {
-  it('counts up from the prompt and never decreases', () => {
-    expect(tokensAt(BEATS.promptSent)).toBe(0);
-    let prev = 0;
-    for (let f = BEATS.promptSent; f < DURATION; f++) {
-      expect(tokensAt(f)).toBeGreaterThanOrEqual(prev);
-      prev = tokensAt(f);
-    }
-    expect(prev).toBeGreaterThan(50000);
   });
 });

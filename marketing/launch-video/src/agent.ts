@@ -1,65 +1,84 @@
-// A generic AI coding-agent session shown on the Mac. Pure layout model: every
-// item has a deterministic height so the transcript can auto-scroll and the
-// camera can follow the newest line without measuring the DOM.
+// Generic AI coding-agent sessions shown on the Mac and the iPhone. Heavy,
+// token-hungry work (plans, parallel sub-agents) so the quota story is obvious.
+// Pure layout model: every item has a deterministic height so the transcript
+// can auto-scroll and the camera can follow the newest line without measuring the DOM.
+import {smooth} from './anim';
 import {BEATS} from './timeline';
 
-export const PROMPT = 'Add offline sync to the notes app: queue edits locally and replay them when the connection comes back. Keep the tests green.';
+type SubAgent = {name: string; tasks: string[]; tokens: number; doneAt: number};
 
-export const AGENT_VIEW = {w: 700, h: 468};
-export const LINE = 23;
-const CODE_LINE = 20;
-const GAP = 14;
-
-type Script =
+export type ScriptItem =
+  | {kind: 'prompt'; at: number; lines: string[]} // `at` = send frame; typed in the composer before it
   | {kind: 'text'; at: number; lines: string[]}
-  | {kind: 'tool'; at: number; verb: string; target: string; detail?: string}
-  | {kind: 'code'; at: number; file: string; lines: string[]};
+  | {kind: 'plan'; at: number; steps: string[]; doneAt: number[]}
+  | {kind: 'agents'; at: number; title: string; agents: SubAgent[]};
 
-const SCRIPT: Script[] = [
-  {kind: 'text', at: 64, lines: ['I’ll start by tracing how edits reach the server today.']},
-  {kind: 'tool', at: 84, verb: 'Read', target: 'src/store/notes.ts'},
-  {kind: 'tool', at: 94, verb: 'Read', target: 'src/sync/client.ts'},
-  {kind: 'tool', at: 104, verb: 'Search', target: '"saveNote("', detail: '14 matches'},
-  {kind: 'text', at: 118, lines: ['Every edit calls the API directly, so nothing survives a', 'dropped connection. I’ll put a persistent queue in front of it:']},
-  {kind: 'code', at: 150, file: 'src/sync/queue.ts', lines: [
-    'export class EditQueue {',
-    '  private pending: Edit[] = load(\'edits\') ?? [];',
-    '',
-    '  enqueue(edit: Edit) {',
-    '    this.pending.push(edit);',
-    '    persist(\'edits\', this.pending);',
-    '  }',
-    '',
-    '  async flush(client: SyncClient) {',
-    '    while (this.pending.length > 0) {',
-    '      await client.save(this.pending[0]);',
-    '      this.pending.shift();',
-    '      persist(\'edits\', this.pending);',
-    '    }',
-    '  }',
-    '}',
-  ]},
-  {kind: 'tool', at: 214, verb: 'Edit', target: 'src/sync/queue.ts', detail: '+48'},
-  {kind: 'tool', at: 232, verb: 'Edit', target: 'src/store/notes.ts', detail: '+12 −5'},
-  {kind: 'tool', at: 252, verb: 'Run', target: 'npm test', detail: '128 passed'},
-  {kind: 'text', at: 300, lines: ['Queue is in. Now wiring reconnect events so pending edits', 'flush the moment you’re back online…']},
-  {kind: 'tool', at: 350, verb: 'Read', target: 'src/sync/network.ts'},
-  {kind: 'tool', at: 380, verb: 'Edit', target: 'src/sync/network.ts', detail: '+21'},
-  {kind: 'tool', at: 420, verb: 'Run', target: 'npm test -- sync', detail: '31 passed'},
-  {kind: 'text', at: 470, lines: ['Adding a replay test that drops the connection mid-edit…']},
-  {kind: 'tool', at: 520, verb: 'Edit', target: 'test/sync/replay.test.ts', detail: '+64'},
-];
+export type Session = {
+  script: ScriptItem[];
+  view: {w: number; h: number};
+  line: number;
+  row: number;
+  gap: number;
+  charsPerFrame: number;
+  typeFrames: number;
+};
 
-const CHARS_PER_FRAME = 2.6;
-const CODE_LINES_PER_FRAME = 0.45;
-const TOOL_RUN = 8;
-const PROMPT_START = 4;
+const P = BEATS.promptSent;
+const F = BEATS.followUp;
+export const MAC_SESSION: Session = {
+  view: {w: 700, h: 468}, line: 23, row: 25, gap: 14, charsPerFrame: 3, typeFrames: 40,
+  script: [
+    {kind: 'prompt', at: P, lines: ['Build a marketing site for our new iOS app: landing page, pricing,', 'docs and a blog. One agent per section, Lighthouse above 95.']},
+    {kind: 'text', at: P + 6, lines: ['Big one. Here’s the plan, then I’ll fan out to parallel agents:']},
+    {kind: 'plan', at: P + 26, steps: ['Design tokens and shared layout', 'Build each section in parallel', 'Wire docs search and blog feed', 'Performance and accessibility pass'],
+      doneAt: [P + 60, P + 200, P + 218, 9999]},
+    {kind: 'agents', at: P + 64, title: 'Running 4 agents', agents: [
+      {name: 'landing', tasks: ['Reading brand assets', 'Writing hero + features', 'Tuning animations'], tokens: 48200, doneAt: P + 196},
+      {name: 'pricing', tasks: ['Drafting plans table', 'Building FAQ', 'Wiring checkout links'], tokens: 31700, doneAt: P + 160},
+      {name: 'docs', tasks: ['Indexing 142 source files', 'Writing API reference', 'Generating examples'], tokens: 86400, doneAt: P + 214},
+      {name: 'blog', tasks: ['Scaffolding MDX', 'Writing launch post', 'Building RSS feed'], tokens: 39900, doneAt: P + 182},
+    ]},
+    {kind: 'text', at: P + 222, lines: ['All 4 agents done: 61 pages, Lighthouse 98.']},
+    {kind: 'prompt', at: F, lines: ['Now make it responsive, add dark mode, and have agents review', 'every page for accessibility.']},
+    {kind: 'text', at: F + 6, lines: ['On it. Spinning up 5 reviewers alongside the build:']},
+    {kind: 'agents', at: F + 26, title: 'Running 5 agents', agents: [
+      {name: 'responsive', tasks: ['Auditing 61 pages', 'Rewriting grid breakpoints', 'Testing 9 viewports'], tokens: 72300, doneAt: F + 560},
+      {name: 'dark-mode', tasks: ['Extracting color tokens', 'Theming components', 'Checking contrast'], tokens: 54800, doneAt: F + 420},
+      {name: 'a11y-review', tasks: ['Scanning landmarks', 'Fixing focus order', 'Writing alt text'], tokens: 91200, doneAt: F + 700},
+      {name: 'docs-review', tasks: ['Reading 38 guides', 'Checking code samples', 'Fixing broken links'], tokens: 66100, doneAt: F + 640},
+      {name: 'perf', tasks: ['Profiling bundles', 'Splitting routes', 'Compressing images'], tokens: 43500, doneAt: F + 480},
+    ]},
+  ],
+};
+
+const PP = BEATS.phonePrompt;
+export const PHONE_SESSION: Session = {
+  view: {w: 364, h: 600}, line: 22, row: 24, gap: 12, charsPerFrame: 2.8, typeFrames: 34,
+  script: [
+    {kind: 'prompt', at: PP, lines: ['Make a 20-second launch video', 'for the app: device mockups,', 'motion, and a beat. 4K master.']},
+    {kind: 'text', at: PP + 6, lines: ['Love it. Splitting the work:']},
+    {kind: 'agents', at: PP + 22, title: 'Running 4 agents', agents: [
+      {name: 'storyboard', tasks: ['Writing shot list', 'Timing beats'], tokens: 28400, doneAt: PP + 70},
+      {name: 'ui-rebuild', tasks: ['Reading SwiftUI views', 'Rebuilding screens'], tokens: 63100, doneAt: PP + 118},
+      {name: 'motion', tasks: ['Keyframing camera', 'Adding 3D tilt'], tokens: 45700, doneAt: PP + 132},
+      {name: 'soundtrack', tasks: ['Sketching drums', 'Mixing'], tokens: 22900, doneAt: PP + 104},
+    ]},
+    {kind: 'text', at: PP + 136, lines: ['First cut rendered: 4K, 20s.']},
+    {kind: 'prompt', at: PP + 166, lines: ['Great. More dynamic zooms,', 'and make the music hit harder.']},
+    {kind: 'agents', at: PP + 178, title: 'Running 2 agents', agents: [
+      {name: 'motion', tasks: ['Adding whip zooms', 'Retiming to the beat'], tokens: 51200, doneAt: PP + 420},
+      {name: 'soundtrack', tasks: ['Programming breakbeat', 'Adding a tape stop'], tokens: 37800, doneAt: PP + 380},
+    ]},
+  ],
+};
+
+export type AgentRow = {name: string; task: string; tokens: number; done: boolean};
 
 export type Item =
-  | {kind: 'prompt'; y: number; h: number}
+  | {kind: 'prompt'; y: number; h: number; lines: string[]}
   | {kind: 'text'; y: number; h: number; lines: string[]}
-  | {kind: 'tool'; y: number; h: number; verb: string; target: string; detail?: string; done: boolean}
-  | {kind: 'code'; y: number; h: number; file: string; lines: string[]};
+  | {kind: 'plan'; y: number; h: number; steps: string[]; done: boolean[]}
+  | {kind: 'agents'; y: number; h: number; title: string; rows: AgentRow[]; reveal: number};
 
 export type AgentState = {
   composer: string;
@@ -69,49 +88,76 @@ export type AgentState = {
   streaming: boolean;
 };
 
-const PROMPT_H = 3 * LINE + 22;
+const ROW_STAGGER = 5;
 
-export function agentAt(frame: number): AgentState {
-  const typed = Math.max(0, Math.min(PROMPT.length, Math.floor((frame - PROMPT_START) * (PROMPT.length / (BEATS.promptSent - PROMPT_START - 6)))));
-  if (frame < BEATS.promptSent) {
-    return {composer: PROMPT.slice(0, typed), items: [], scroll: 0, focusY: AGENT_VIEW.h, streaming: false};
-  }
-  const items: Item[] = [{kind: 'prompt', y: 0, h: PROMPT_H}];
-  let y = PROMPT_H + GAP;
+function agentRows(frame: number, block: Extract<ScriptItem, {kind: 'agents'}>): AgentRow[] {
+  return block.agents.map((g, i) => {
+    const start = block.at + i * ROW_STAGGER;
+    const t = Math.max(0, Math.min(1, (frame - start) / (g.doneAt - start)));
+    const task = g.tasks[Math.min(g.tasks.length - 1, Math.floor(t * g.tasks.length))];
+    // Tokens ramp quickly at first (reading), then keep ticking up.
+    return {name: g.name, task, tokens: Math.round(g.tokens * (0.6 * smooth(Math.min(1, t * 1.6)) + 0.4 * t)), done: frame >= g.doneAt};
+  });
+}
+
+export function agentAt(s: Session, frame: number): AgentState {
+  const items: Item[] = [];
+  let y = 0;
   let streaming = false;
-  for (const s of SCRIPT) {
-    if (frame < s.at) { streaming = true; break; }
-    if (s.kind === 'text') {
-      let budget = Math.floor((frame - s.at) * CHARS_PER_FRAME);
+  let composer = '';
+  for (const item of s.script) {
+    if (item.kind === 'prompt' && frame < item.at) {
+      // Type into the composer during the frames before sending.
+      const text = item.lines.join(' ');
+      const t = (frame - (item.at - s.typeFrames)) / (s.typeFrames - 4);
+      if (t > 0) composer = text.slice(0, Math.min(text.length, Math.ceil(t * text.length)));
+      break;
+    }
+    if (frame < item.at) { streaming = true; break; }
+    if (item.kind === 'prompt') {
+      const h = item.lines.length * s.line + 22;
+      items.push({kind: 'prompt', y, h, lines: item.lines});
+      y += h + s.gap;
+    } else if (item.kind === 'text') {
+      let budget = Math.floor((frame - item.at) * s.charsPerFrame);
       const lines: string[] = [];
-      for (const l of s.lines) {
+      for (const l of item.lines) {
         if (budget <= 0) break;
         lines.push(l.slice(0, budget));
         budget -= l.length;
       }
-      if (budget < 0) streaming = true;
-      const h = s.lines.length * LINE;
+      const h = item.lines.length * s.line;
       items.push({kind: 'text', y, h, lines});
-      y += h + GAP;
-      if (budget < 0) break;
-    } else if (s.kind === 'tool') {
-      const done = frame - s.at >= TOOL_RUN;
-      if (!done) streaming = true;
-      items.push({kind: 'tool', y, h: LINE + 4, verb: s.verb, target: s.target, detail: s.detail, done});
-      y += LINE + 4 + GAP;
-      if (!done) break;
+      y += h + s.gap;
+      if (budget < 0) { streaming = true; break; }
+    } else if (item.kind === 'plan') {
+      const h = item.steps.length * s.row;
+      items.push({kind: 'plan', y, h, steps: item.steps, done: item.doneAt.map((d) => frame >= d)});
+      y += h + s.gap;
     } else {
-      const shown = Math.min(s.lines.length, Math.floor((frame - s.at) * CODE_LINES_PER_FRAME) + 1);
-      const h = 34 + s.lines.length * CODE_LINE + 12;
-      items.push({kind: 'code', y, h, file: s.file, lines: s.lines.slice(0, shown)});
-      y += h + GAP;
-      if (shown < s.lines.length) { streaming = true; break; }
+      const rows = agentRows(frame, item);
+      const reveal = Math.min(item.agents.length, Math.floor((frame - item.at) / ROW_STAGGER) + 1);
+      const h = s.row + item.agents.length * s.row;
+      items.push({kind: 'agents', y, h, title: item.title, rows, reveal});
+      y += h + s.gap;
+      if (rows.some((r) => !r.done)) streaming = true;
     }
   }
-  if (!streaming && frame < SCRIPT[SCRIPT.length - 1].at + 40) streaming = true;
-  const last = items[items.length - 1];
-  let focusY = last.y + last.h;
-  if (last.kind === 'code') focusY = last.y + 34 + last.lines.length * CODE_LINE;
-  const scroll = Math.max(0, focusY - AGENT_VIEW.h + 24);
-  return {composer: '', items, scroll, focusY, streaming};
+  if (items.length === 0) return {composer, items, scroll: 0, focusY: s.view.h, streaming: false};
+  const tail = items[items.length - 1];
+  const focusY = tail.kind === 'agents' ? tail.y + s.row * (1 + tail.reveal) : tail.y + tail.h;
+  const scroll = Math.max(0, focusY - s.view.h + 24);
+  return {composer, items, scroll, focusY, streaming};
+}
+
+// Session-wide token counter shown in the status line: context + streamed text + every sub-agent.
+export function sessionTokens(s: Session, frame: number): number {
+  const a = agentAt(s, frame);
+  let total = a.items.length ? 3200 : 0;
+  for (const item of a.items) {
+    if (item.kind === 'text') total += item.lines.join('').length * 14;
+    if (item.kind === 'prompt') total += 1800;
+    if (item.kind === 'agents') total += item.rows.slice(0, item.reveal).reduce((n, r) => n + r.tokens, 0);
+  }
+  return total;
 }
