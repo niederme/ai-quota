@@ -1,6 +1,10 @@
 import React from 'react';
 import {MAC_SCREEN} from '../ui/MacDesktop';
 
+// Rect path with only the top corners rounded.
+const topRounded = (w: number, h: number, r: number) =>
+  `M0,${h}V${r}A${r},${r} 0 0 1 ${r},0H${w - r}A${r},${r} 0 0 1 ${w},${r}V${h}Z`;
+
 // Drawn MacBook Air (Silver). `width` is the lid width in stage px.
 export const macGeometry = (W: number) => {
   const side = W * 0.021;
@@ -19,8 +23,10 @@ export const MacBookAir: React.FC<{width: number; children: React.ReactNode}> = 
       <div style={{position: 'absolute', left: 0, top: 0, width: W, height: g.lidH,
         borderRadius: `${W * 0.03}px ${W * 0.03}px ${W * 0.012}px ${W * 0.012}px`,
         background: '#0a0a0c', boxShadow: `inset 0 0 0 ${W * 0.0032}px #c9cbcf, inset 0 0 0 ${W * 0.0048}px #1a1a1c`}}>
-        <div style={{position: 'absolute', left: g.side, top: g.top, width: g.sw, height: g.sh, overflow: 'hidden',
-          borderRadius: `${W * 0.011}px ${W * 0.011}px 0 0`}}>
+        {/* Explicit clip-path: border-radius + overflow can be dropped by the compositor
+            when screen content is composited (backdrop-filter), leaking square corners. */}
+        <div style={{position: 'absolute', left: g.side, top: g.top, width: g.sw, height: g.sh,
+          clipPath: `path('${topRounded(g.sw, g.sh, W * 0.011)}')`}}>
           <div style={{transform: `scale(${g.scale})`, transformOrigin: '0 0'}}>{children}</div>
           <div style={{position: 'absolute', inset: 0, background: 'linear-gradient(115deg, rgba(255,255,255,0.05) 0%, transparent 38%)'}} />
         </div>
