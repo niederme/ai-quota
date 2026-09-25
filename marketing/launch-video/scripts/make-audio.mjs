@@ -23,8 +23,13 @@ const rand = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296) *
 
 const bus = () => ({L: new Float32Array(N), R: new Float32Array(N)});
 const drums = bus(), music = bus(), fx = bus();
+// Start sample of the note being rendered. Notes that began before the tape-stop are
+// cut at the reset so their tails don't resume mid-sound after the silence.
+let evStart = 0;
+const STOP_S0 = Math.floor((B.peak / FPS) * SR), STOP_S1 = Math.floor((B.reset / FPS) * SR);
 function put(b, i, v, pan = 0) {
   if (i < 0 || i >= N) return;
+  if (evStart < STOP_S0 && i >= STOP_S1) return;
   b.L[i] += v * Math.cos(((pan + 1) * Math.PI) / 4);
   b.R[i] += v * Math.sin(((pan + 1) * Math.PI) / 4);
 }
@@ -48,7 +53,7 @@ const chordAt = (f) => CHORDS[Math.floor(Math.max(0, f - T0) / BAR) % CHORDS.len
 
 // ---------- Instruments ----------
 function kick(f, gain) {
-  const s0 = idx(sec(f));
+  const s0 = (evStart = idx(sec(f)));
   let ph = 0;
   for (let i = 0; i < idx(0.42); i++) {
     const t = i / SR;
@@ -59,7 +64,7 @@ function kick(f, gain) {
   }
 }
 function snare(f, gain) {
-  const s0 = idx(sec(f));
+  const s0 = (evStart = idx(sec(f)));
   let b1 = 0, b2 = 0;
   const w = (2 * Math.PI * 2600) / SR;
   for (let i = 0; i < idx(0.3); i++) {
@@ -72,7 +77,7 @@ function snare(f, gain) {
   }
 }
 function hat(f, gain, open = false) {
-  const s0 = idx(sec(f));
+  const s0 = (evStart = idx(sec(f)));
   let x1 = 0, y1 = 0, y2 = 0;
   const len = open ? 0.22 : 0.05;
   for (let i = 0; i < idx(len); i++) {
@@ -85,7 +90,7 @@ function hat(f, gain, open = false) {
 }
 // FM electric piano voice.
 function rhodes(f, m, gain, len, pan) {
-  const s0 = idx(sec(f));
+  const s0 = (evStart = idx(sec(f)));
   const fc = midi(m);
   for (let i = 0; i < idx(len); i++) {
     const t = i / SR;
@@ -99,7 +104,7 @@ function rhodes(f, m, gain, len, pan) {
 }
 // Warm bass: sine + soft saturated 2nd harmonic, short glide in.
 function bass(f, m, gain, len) {
-  const s0 = idx(sec(f));
+  const s0 = (evStart = idx(sec(f)));
   const fr = midi(m);
   let ph = 0;
   for (let i = 0; i < idx(len); i++) {
@@ -112,7 +117,7 @@ function bass(f, m, gain, len) {
 }
 // Brass-ish stab: detuned saws through a closing low-pass.
 function stab(f, notes, gain, len = 0.34) {
-  const s0 = idx(sec(f));
+  const s0 = (evStart = idx(sec(f)));
   const voices = notes.flatMap((m) => [midi(m) * 0.997, midi(m) * 1.003]);
   const phase = voices.map(() => (rand() + 1) / 2);
   let lp1 = 0, lp2 = 0;
@@ -129,7 +134,7 @@ function stab(f, notes, gain, len = 0.34) {
 }
 // Turntable scratch: a formant-ish tone whose playback speed swings back and forth.
 function scratch(f, gain, cuts = 2, dur = 0.34) {
-  const s0 = idx(sec(f));
+  const s0 = (evStart = idx(sec(f)));
   let pos = 0, b1 = 0, b2 = 0;
   for (let i = 0; i < idx(dur); i++) {
     const t = i / SR;
@@ -144,7 +149,7 @@ function scratch(f, gain, cuts = 2, dur = 0.34) {
   }
 }
 function hit(f, gain) { // crash-ish noise burst + low boom for the slam-backs
-  const s0 = idx(sec(f));
+  const s0 = (evStart = idx(sec(f)));
   let x1 = 0, y1 = 0;
   for (let i = 0; i < idx(1.4); i++) {
     const t = i / SR;
@@ -154,14 +159,14 @@ function hit(f, gain) { // crash-ish noise burst + low boom for the slam-backs
   }
 }
 function click(f, gain, freq, pan) {
-  const s0 = idx(sec(f));
+  const s0 = (evStart = idx(sec(f)));
   for (let i = 0; i < idx(0.022); i++) {
     const t = i / SR;
     put(fx, s0 + i, (Math.sin(2 * Math.PI * freq * t) * 0.5 + rand() * 0.5) * Math.exp(-t * 320) * gain, pan);
   }
 }
 function bell(f, m, gain, pan = 0.4) {
-  const s0 = idx(sec(f));
+  const s0 = (evStart = idx(sec(f)));
   const fr = midi(m);
   for (let i = 0; i < idx(1.4); i++) {
     const t = i / SR;
@@ -273,6 +278,26 @@ function room(src, pre) {
   }
   return out;
 }
+// Tape-stop at the red peak, applied to the dry buses so the room tail and the vinyl
+// keep going: playback slows to zero over 0.45 s and fades out (no hard cut), then
+// silence until the reset.
+function tapeStop(b) {
+  const s0 = STOP_S0, len = idx(0.45), s1 = STOP_S1, fadeLen = idx(0.12);
+  for (const ch of ['L', 'R']) {
+    const src = b[ch].slice(s0, s0 + len);
+    let pos = 0;
+    for (let i = 0; i < s1 - s0; i++) {
+      if (i >= len) { b[ch][s0 + i] = 0; continue; }
+      const rate = 1 - i / len;
+      pos += rate * rate;
+      const k = Math.floor(pos), fr = pos - k;
+      const fade = Math.min(1, (len - i) / fadeLen);
+      b[ch][s0 + i] = ((src[k] ?? 0) * (1 - fr) + (src[k + 1] ?? 0) * fr) * fade * fade;
+    }
+  }
+}
+tapeStop(drums); tapeStop(music); tapeStop(fx);
+
 const mixL = new Float32Array(N), mixR = new Float32Array(N);
 const sendL = new Float32Array(N), sendR = new Float32Array(N);
 for (let n = 0; n < N; n++) {
@@ -282,27 +307,12 @@ for (let n = 0; n < N; n++) {
 const wetL = room(sendL, 0), wetR = room(sendR, 19);
 let crackleLp = 0;
 for (let n = 0; n < N; n++) {
-  // Vinyl: sparse pops over soft hiss.
+  // Vinyl: sparse pops over soft hiss (keeps running through the stop).
   let v = rand() * 0.004;
   if ((rand() + 1) / 2 < 22 / SR) v += rand() * 0.12;
   crackleLp += 0.3 * (v - crackleLp);
   mixL[n] = drums.L[n] + music.L[n] + fx.L[n] + wetL[n] * 0.5 + crackleLp;
   mixR[n] = drums.R[n] + music.R[n] + fx.R[n] + wetR[n] * 0.5 + crackleLp * 0.9;
-}
-
-// Tape-stop at the red peak: playback slows to zero over 0.45 s, then silence to the reset.
-{
-  const s0 = idx(sec(STOP[0])), len = idx(0.45), s1 = idx(sec(STOP[1]));
-  const srcL = mixL.slice(s0, s0 + len), srcR = mixR.slice(s0, s0 + len);
-  let pos = 0;
-  for (let i = 0; i < s1 - s0; i++) {
-    const rate = Math.max(0, 1 - i / len);
-    pos += rate * rate;
-    const k = Math.floor(pos), fr = pos - k;
-    const gain = i < len ? 1 : 0;
-    mixL[s0 + i] = gain * ((srcL[k] ?? 0) * (1 - fr) + (srcL[k + 1] ?? 0) * fr);
-    mixR[s0 + i] = gain * ((srcR[k] ?? 0) * (1 - fr) + (srcR[k + 1] ?? 0) * fr);
-  }
 }
 
 // Glue compression + soft clip, fade the tail, normalise to -1 dBFS.
