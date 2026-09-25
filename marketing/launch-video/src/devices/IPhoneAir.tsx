@@ -2,7 +2,7 @@ import React from 'react';
 
 export const IPHONE_SCREEN = {w: 420, h: 912};
 
-// Drawn iPhone Air (Space Black). `width` is the device width in stage px.
+// Drawn iPhone Air (Cloud White). `width` is the device width in stage px.
 export const IPhoneAir: React.FC<{width: number; children: React.ReactNode}> = ({width: W, children}) => {
   const bezel = W * 0.036;
   const sw = W - bezel * 2;
@@ -10,7 +10,7 @@ export const IPhoneAir: React.FC<{width: number; children: React.ReactNode}> = (
   const H = sh + bezel * 2;
   const btn = (side: 'l' | 'r', top: number, h: number) => (
     <div style={{position: 'absolute', [side === 'l' ? 'left' : 'right']: -W * 0.011, top, width: W * 0.016, height: h,
-      borderRadius: W * 0.01, background: 'linear-gradient(90deg, #2a2a2e, #4a4a50, #2a2a2e)'}} />
+      borderRadius: W * 0.01, background: 'linear-gradient(90deg, #bfbfbc, #f2f2f0, #bfbfbc)'}} />
   );
   return (
     <div style={{position: 'relative', width: W, height: H}}>
@@ -20,8 +20,8 @@ export const IPhoneAir: React.FC<{width: number; children: React.ReactNode}> = (
       {btn('r', H * 0.3, H * 0.12)}
       {btn('r', H * 0.62, H * 0.07)}
       <div style={{position: 'absolute', inset: 0, borderRadius: W * 0.175,
-        background: 'linear-gradient(135deg, #5a5a60 0%, #1c1c20 30%, #2c2c31 70%, #6a6a70 100%)',
-        boxShadow: '0 40px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,0,0,0.6)'}} />
+        background: 'linear-gradient(135deg, #ffffff 0%, #e4e4e1 28%, #d2d2ce 70%, #f7f7f5 100%)',
+        boxShadow: '0 34px 70px rgba(30,20,50,0.22), 0 8px 18px rgba(30,20,50,0.10), 0 0 0 1px rgba(0,0,0,0.10)'}} />
       <div style={{position: 'absolute', inset: W * 0.008, borderRadius: W * 0.168, background: '#000'}} />
       <div style={{position: 'absolute', left: bezel, top: bezel, width: sw, height: sh, borderRadius: W * 0.14, overflow: 'hidden'}}>
         <div style={{transform: `scale(${sw / IPHONE_SCREEN.w})`, transformOrigin: '0 0'}}>{children}</div>

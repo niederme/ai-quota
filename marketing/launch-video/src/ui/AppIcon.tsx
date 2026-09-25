@@ -42,7 +42,7 @@ export const AppIcon: React.FC<{size: number; progress?: number}> = ({size, prog
   return (
     <div style={{width: size, height: size, borderRadius: size * 0.2237, overflow: 'hidden', position: 'relative',
       background: 'linear-gradient(180deg, #1d1633 0%, #110c21 100%)',
-      boxShadow: `inset 0 ${size * 0.004}px 0 rgba(255,255,255,0.14), 0 ${size * 0.06}px ${size * 0.16}px rgba(0,0,0,0.55), 0 0 ${size * 0.5}px rgba(152,62,255,0.28)`}}>
+      boxShadow: `inset 0 ${size * 0.004}px 0 rgba(255,255,255,0.14), 0 ${size * 0.05}px ${size * 0.14}px rgba(30,20,50,0.28), 0 ${size * 0.01}px ${size * 0.03}px rgba(30,20,50,0.18)`}}>
       <svg viewBox="0 0 1024 1024" width={size} height={size}>
         <Arc r={OUTER.r} sweep={270} stroke="#767680" opacity={0.18} />
         <Arc r={INNER.r} sweep={270} stroke="#767680" opacity={0.18} />

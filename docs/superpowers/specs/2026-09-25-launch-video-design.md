@@ -48,3 +48,14 @@ Original, generated in-repo (no licensing): soft synth pad, gentle ticks as gaug
 ## Out of scope (now)
 
 Square cut, website integration, App Store preview videos.
+
+## Revision 2 (after first-cut review)
+
+Feedback: too much purple, heavy and moody; laptop screen too detailed; the Mac should show a real AI session; more dynamic camera; better audio. Decisions:
+
+- **Framing lightens, product UI stays dark.** Light neutral stage (`#F5F5F7`), silver MacBook Air, white iPhone Air, dark ink captions. The AIQuota UIs keep their dark appearance; the Mac desktop uses a neutral graphite wallpaper so purple belongs only to AIQuota.
+- **Mac at a "larger text" scaled resolution** (1180×767 pt) so UI reads bigger with less detail.
+- **Opens on a generic AI coding-agent session**: prompt typed, streamed reply with tool steps, code, and a climbing token counter. The camera follows the newest line, whip-zooms out, the cursor clicks AIQuota in the menu bar, then punches into the popover.
+- **Camera system** (focus point + log-space zoom) drives pushes, pans and pull-backs; the phone swings in with a 3D tilt; the camera pushes into the phone for the warning/reset beat.
+- **Length ~20 s** (1200 frames). Beats shared with the soundtrack via `src/beats.json`.
+- **Soundtrack rebuilt**: Karplus–Strong plucked arpeggios, warm pad, soft groove (kick, snap, shaker), chord changes on story beats, a drop and riser into the reset, typing/click foley.

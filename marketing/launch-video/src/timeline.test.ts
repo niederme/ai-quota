@@ -1,5 +1,5 @@
 import {describe, expect, it} from 'vitest';
-import {BEATS, DURATION, gaugeColor, usageAt} from './timeline';
+import {BEATS, DURATION, gaugeColor, tokensAt, usageAt} from './timeline';
 import {theme} from './theme';
 
 describe('gaugeColor', () => {
@@ -12,9 +12,9 @@ describe('gaugeColor', () => {
 });
 
 describe('usageAt', () => {
-  it('starts low', () => {
-    const u = usageAt(0);
-    expect(Math.max(u.codex.h5, u.claude.h5)).toBeLessThan(30);
+  it('is below warning when the popover first opens', () => {
+    const u = usageAt(BEATS.macOpen);
+    expect(Math.max(u.codex.h5, u.claude.h5)).toBeLessThan(85);
   });
   it('peaks Claude 5h into critical', () => {
     expect(usageAt(BEATS.peak).claude.h5).toBeGreaterThanOrEqual(95);
@@ -41,5 +41,17 @@ describe('usageAt', () => {
         expect(n).toBeLessThanOrEqual(100);
       }
     }
+  });
+});
+
+describe('tokensAt', () => {
+  it('counts up from the prompt and never decreases', () => {
+    expect(tokensAt(BEATS.promptSent)).toBe(0);
+    let prev = 0;
+    for (let f = BEATS.promptSent; f < DURATION; f++) {
+      expect(tokensAt(f)).toBeGreaterThanOrEqual(prev);
+      prev = tokensAt(f);
+    }
+    expect(prev).toBeGreaterThan(50000);
   });
 });

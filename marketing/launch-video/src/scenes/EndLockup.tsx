@@ -1,6 +1,6 @@
 import React from 'react';
 import {easeOut, ramp} from '../anim';
-import {theme} from '../theme';
+import {stage, theme} from '../theme';
 import {AppIcon} from '../ui/AppIcon';
 
 const rise = (frame: number, at: number) => {
@@ -12,14 +12,14 @@ export const EndLockup: React.FC<{frame: number; start: number}> = ({frame, star
   if (frame < start) return null;
   return (
     <div style={{position: 'absolute', left: 1330, top: 270, width: 440, display: 'flex', flexDirection: 'column',
-      alignItems: 'center', fontFamily: theme.font, color: theme.primary}}>
+      alignItems: 'center', fontFamily: theme.font, color: stage.ink}}>
       <div style={rise(frame, start)}>
         <AppIcon size={200} progress={ramp(frame, start + 10, start + 80, easeOut)} />
       </div>
       <div style={{...rise(frame, start + 22), marginTop: 44, fontSize: 112, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1}}>
         AIQuota
       </div>
-      <div style={{...rise(frame, start + 38), marginTop: 20, fontSize: 44, fontWeight: 500, color: theme.secondary, letterSpacing: '-0.01em'}}>
+      <div style={{...rise(frame, start + 38), marginTop: 20, fontSize: 44, fontWeight: 500, color: stage.inkSecondary, letterSpacing: '-0.01em'}}>
         for Mac and iOS
       </div>
     </div>

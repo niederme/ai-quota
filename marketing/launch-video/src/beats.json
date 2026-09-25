@@ -1,0 +1,17 @@
+{
+  "fps": 60,
+  "duration": 1200,
+  "beats": {
+    "promptSent": 56,
+    "zoomOut": 200,
+    "click": 280,
+    "macOpen": 284,
+    "caption1": 360,
+    "phoneIn": 480,
+    "caption2": 680,
+    "notify": 725,
+    "peak": 780,
+    "reset": 820,
+    "endCard": 880
+  }
+}
