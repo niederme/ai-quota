@@ -94,7 +94,7 @@ function whoosh(frame, dur, gain, pan = 0, rise = 1) {
     addStereo(s + i, b1 * env * gain, pan * (p * 2 - 1));
   }
 }
-whoosh(BEATS.caption1, 1.1, 0.1, -0.6);
+whoosh(BEATS.caption1 - 20, 1.1, 0.1, -0.6);
 whoosh(BEATS.phoneIn + 40, 1.0, 0.11, 0.6);
 whoosh(BEATS.caption2, 1.0, 0.08, 0.3);
 whoosh(BEATS.endCard + 20, 1.4, 0.1, -0.2, -1);

@@ -20,9 +20,9 @@ const at = (frame: number, p: Placement) => ({
 });
 
 const MAC: Placement = {
-  cx: [[0, 960], [B.caption1, 880], [B.caption1 + 130, 700], [B.caption2, 690], [B.caption2 + 70, 520], [B.endCard, 520], [B.endCard + 90, 660]],
-  cy: [[0, 590], [B.caption1, 600], [B.caption1 + 130, 560], [B.caption2, 555], [B.caption2 + 70, 560], [B.endCard, 560], [B.endCard + 90, 560]],
-  w: [[0, 1480], [B.caption1, 1600], [B.caption1 + 130, 1080], [B.caption2, 1110], [B.caption2 + 70, 1000], [B.endCard, 1000], [B.endCard + 90, 900]],
+  cx: [[0, 960], [B.caption1 - 40, 890], [B.caption1 + 80, 700], [B.caption2, 690], [B.caption2 + 70, 520], [B.endCard, 520], [B.endCard + 90, 660]],
+  cy: [[0, 590], [B.caption1 - 40, 600], [B.caption1 + 80, 560], [B.caption2, 555], [B.caption2 + 70, 560], [B.endCard, 560], [B.endCard + 90, 560]],
+  w: [[0, 1480], [B.caption1 - 40, 1590], [B.caption1 + 80, 1080], [B.caption2, 1110], [B.caption2 + 70, 1000], [B.endCard, 1000], [B.endCard + 90, 900]],
 };
 const PHONE: Placement = {
   cx: [[B.phoneIn, 1450], [B.caption2, 1430], [B.caption2 + 70, 1340], [B.endCard, 1340], [B.endCard + 90, 1178]],
@@ -83,7 +83,7 @@ export const LaunchVideo: React.FC = () => {
           </Placed>
         )}
 
-        <Caption frame={frame} inAt={B.caption1 + 22} outAt={B.phoneIn - 10} style={{left: 1290, top: 380, fontSize: 118}}>
+        <Caption frame={frame} inAt={B.caption1 + 30} outAt={B.phoneIn + 5} style={{left: 1290, top: 380, fontSize: 118}}>
           Know your<br />limits.
         </Caption>
         <Caption frame={frame} inAt={B.caption2 + 30} outAt={B.endCard - 20} style={{left: 130, top: 400, fontSize: 104}}>
