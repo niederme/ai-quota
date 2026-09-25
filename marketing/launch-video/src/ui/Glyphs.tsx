@@ -60,3 +60,20 @@ export const SparkGlyph: React.FC<{size: number; color: string}> = ({size, color
     <path d="M18 13c.4 2.1.7 2.4 2.8 2.8-2.1.4-2.4.7-2.8 2.8-.4-2.1-.7-2.4-2.8-2.8 2.1-.4 2.4-.7 2.8-2.8z" />
   </svg>
 );
+
+export const SearchGlyph: React.FC<{size: number; color: string}> = ({size, color}) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2.4} strokeLinecap="round">
+    <circle cx="10.5" cy="10.5" r="6.5" />
+    <path d="M15.5 15.5L21 21" />
+  </svg>
+);
+
+// macOS Control Center menu extra: two stacked toggle pills.
+export const ControlCenterGlyph: React.FC<{size: number; color: string}> = ({size, color}) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={1.8}>
+    <rect x="3" y="4" width="18" height="7" rx="3.5" />
+    <circle cx="16.5" cy="7.5" r="2" fill={color} stroke="none" />
+    <rect x="3" y="13" width="18" height="7" rx="3.5" />
+    <circle cx="7.5" cy="16.5" r="2" fill={color} stroke="none" />
+  </svg>
+);

@@ -33,14 +33,14 @@ export const MAC_SESSION: Session = {
     {kind: 'prompt', at: P, lines: ['Build a marketing site for our new iOS app: landing page, pricing,', 'docs and a blog. One agent per section, Lighthouse above 95.']},
     {kind: 'text', at: P + 6, lines: ['Big one. Here’s the plan, then I’ll fan out to parallel agents:']},
     {kind: 'plan', at: P + 26, steps: ['Design tokens and shared layout', 'Build each section in parallel', 'Wire docs search and blog feed', 'Performance and accessibility pass'],
-      doneAt: [P + 60, P + 200, P + 218, 9999]},
-    {kind: 'agents', at: P + 64, title: 'Running 4 agents', agents: [
-      {name: 'landing', tasks: ['Reading brand assets', 'Writing hero + features', 'Tuning animations'], tokens: 48200, doneAt: P + 196},
-      {name: 'pricing', tasks: ['Drafting plans table', 'Building FAQ', 'Wiring checkout links'], tokens: 31700, doneAt: P + 160},
-      {name: 'docs', tasks: ['Indexing 142 source files', 'Writing API reference', 'Generating examples'], tokens: 86400, doneAt: P + 214},
-      {name: 'blog', tasks: ['Scaffolding MDX', 'Writing launch post', 'Building RSS feed'], tokens: 39900, doneAt: P + 182},
+      doneAt: [P + 48, P + 150, P + 160, 9999]},
+    {kind: 'agents', at: P + 48, title: 'Running 4 agents', agents: [
+      {name: 'landing', tasks: ['Reading brand assets', 'Writing hero + features', 'Tuning animations'], tokens: 48200, doneAt: P + 148},
+      {name: 'pricing', tasks: ['Drafting plans table', 'Building FAQ', 'Wiring checkout links'], tokens: 31700, doneAt: P + 118},
+      {name: 'docs', tasks: ['Indexing 142 source files', 'Writing API reference', 'Generating examples'], tokens: 86400, doneAt: P + 156},
+      {name: 'blog', tasks: ['Scaffolding MDX', 'Writing launch post', 'Building RSS feed'], tokens: 39900, doneAt: P + 134},
     ]},
-    {kind: 'text', at: P + 222, lines: ['All 4 agents done: 61 pages, Lighthouse 98.']},
+    {kind: 'text', at: P + 162, lines: ['All 4 agents done: 61 pages, Lighthouse 98.']},
     {kind: 'prompt', at: F, lines: ['Now make it responsive, add dark mode, and have agents review', 'every page for accessibility.']},
     {kind: 'text', at: F + 6, lines: ['On it. Spinning up 5 reviewers alongside the build:']},
     {kind: 'agents', at: F + 26, title: 'Running 5 agents', agents: [
@@ -59,15 +59,15 @@ export const PHONE_SESSION: Session = {
   script: [
     {kind: 'prompt', at: PP, lines: ['Make a 20-second launch video', 'for the app: device mockups,', 'motion, and a beat. 4K master.']},
     {kind: 'text', at: PP + 6, lines: ['Love it. Splitting the work:']},
-    {kind: 'agents', at: PP + 22, title: 'Running 4 agents', agents: [
-      {name: 'storyboard', tasks: ['Writing shot list', 'Timing beats'], tokens: 28400, doneAt: PP + 70},
-      {name: 'ui-rebuild', tasks: ['Reading SwiftUI views', 'Rebuilding screens'], tokens: 63100, doneAt: PP + 118},
-      {name: 'motion', tasks: ['Keyframing camera', 'Adding 3D tilt'], tokens: 45700, doneAt: PP + 132},
-      {name: 'soundtrack', tasks: ['Sketching drums', 'Mixing'], tokens: 22900, doneAt: PP + 104},
+    {kind: 'agents', at: PP + 18, title: 'Running 4 agents', agents: [
+      {name: 'storyboard', tasks: ['Writing shot list', 'Timing beats'], tokens: 28400, doneAt: PP + 48},
+      {name: 'ui-rebuild', tasks: ['Reading SwiftUI views', 'Rebuilding screens'], tokens: 63100, doneAt: PP + 80},
+      {name: 'motion', tasks: ['Keyframing camera', 'Adding 3D tilt'], tokens: 45700, doneAt: PP + 86},
+      {name: 'soundtrack', tasks: ['Sketching drums', 'Mixing'], tokens: 22900, doneAt: PP + 68},
     ]},
-    {kind: 'text', at: PP + 136, lines: ['First cut rendered: 4K, 20s.']},
-    {kind: 'prompt', at: PP + 166, lines: ['Great. More dynamic zooms,', 'and make the music hit harder.']},
-    {kind: 'agents', at: PP + 178, title: 'Running 2 agents', agents: [
+    {kind: 'text', at: PP + 90, lines: ['First cut rendered: 4K, 20s.']},
+    {kind: 'prompt', at: PP + 112, lines: ['Great. More dynamic zooms,', 'and make the music hit harder.']},
+    {kind: 'agents', at: PP + 120, title: 'Running 2 agents', agents: [
       {name: 'motion', tasks: ['Adding whip zooms', 'Retiming to the beat'], tokens: 51200, doneAt: PP + 420},
       {name: 'soundtrack', tasks: ['Programming breakbeat', 'Adding a tape stop'], tokens: 37800, doneAt: PP + 380},
     ]},
