@@ -1,21 +1,21 @@
 {
   "fps": 60,
-  "duration": 1680,
+  "duration": 1720,
   "beats": {
-    "hold": 40,
-    "promptSent": 90,
-    "followUp": 340,
-    "zoomOut": 440,
-    "click": 540,
-    "macOpen": 544,
-    "caption1": 680,
-    "phoneIn": 840,
-    "phonePrompt": 890,
-    "notify": 1080,
-    "tap": 1120,
-    "peak": 1200,
-    "reset": 1240,
-    "caption2": 1240,
-    "endCard": 1360
+    "hold": 80,
+    "promptSent": 130,
+    "followUp": 380,
+    "zoomOut": 480,
+    "click": 580,
+    "macOpen": 584,
+    "caption1": 720,
+    "phoneIn": 880,
+    "phonePrompt": 930,
+    "notify": 1120,
+    "tap": 1160,
+    "peak": 1240,
+    "reset": 1280,
+    "caption2": 1280,
+    "endCard": 1400
   }
 }
