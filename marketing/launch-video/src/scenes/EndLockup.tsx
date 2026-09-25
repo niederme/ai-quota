@@ -17,7 +17,7 @@ export const EndLockup: React.FC<{frame: number; start: number}> = ({frame, star
         <AppIcon size={200} progress={ramp(frame, start + 10, start + 80, easeOut)} />
       </div>
       <div style={{...rise(frame, start + 22), marginTop: 44, fontSize: 112, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1}}>
-        AI Quota
+        AIQuota
       </div>
       <div style={{...rise(frame, start + 38), marginTop: 20, fontSize: 44, fontWeight: 500, color: theme.secondary, letterSpacing: '-0.01em'}}>
         for Mac and iOS

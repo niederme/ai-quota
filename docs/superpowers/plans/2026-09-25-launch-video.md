@@ -12,7 +12,7 @@
 
 - Palette (iOS dark): base `#0B060F`, accent `#BF5AF2`, warning `#FF9F0A` at ≥85 %, critical `#FF453A` at ≥95 %, wash `rgb(102,31,143)`, secondary text `rgba(235,235,245,0.62)`.
 - Gauge geometry: 270° arc starting at 135° (SwiftUI `trim(0, 0.75)` rotated 135°); outer ring = 5h, inner ring = 7d.
-- Captions: "Know your limits." / "before they break your flow." End card: "AI Quota" / "for Mac and iOS".
+- Captions: "Know your limits." / "before they break your flow." End card: "AIQuota" / "for Mac and iOS".
 - Output: 3840×2160 master, 1920×1080 web (with audio), 1920×1080 muted, poster PNG = last frame. 60 fps, ~17 s (1020 frames).
 - No third-party image or audio assets.
 
@@ -42,7 +42,7 @@
 
 **Files:** `src/ui/IOSOverview.tsx`, `src/devices/IPhoneAir.tsx`.
 
-- [ ] Build overview (title "AI Quota", toolbar pill, Codex card with usage bars, Claude card, purple wash) — omit demo banner.
+- [ ] Build overview (title "AIQuota", toolbar pill, Codex card with usage bars, Claude card, purple wash) — omit demo banner.
 - [ ] Verify with `IOSStill` still vs `reference/ios-overview-demo-dark.png`. Commit.
 
 ### Task 4: Logo + end card

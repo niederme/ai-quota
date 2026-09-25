@@ -77,7 +77,7 @@ export const IOSOverview: React.FC<{usage: Usage; claudeGlow: number; notificati
       <span style={{display: 'flex', gap: 7, alignItems: 'center'}}><WifiGlyph size={18} color="white" /><BatteryGlyph width={27} color="white" /></span>
     </div>
     <div style={{position: 'absolute', left: 20, right: 18, top: 68, display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-      <div style={{fontSize: 34, fontWeight: 700, letterSpacing: 0.2}}>AI Quota</div>
+      <div style={{fontSize: 34, fontWeight: 700, letterSpacing: 0.2}}>AIQuota</div>
       <div style={{...glass, background: 'rgba(191,90,242,0.35)', borderRadius: 24, display: 'flex', gap: 28, padding: '10px 20px'}}>
         <RefreshGlyph size={22} color="white" /><GearGlyph size={22} color="white" />
       </div>
