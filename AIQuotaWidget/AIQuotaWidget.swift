@@ -4,14 +4,7 @@ import AIQuotaKit
 
 private struct WidgetSurface: View {
     var body: some View {
-        LinearGradient(
-            colors: [
-                Color(red: 0x23 / 255.0, green: 0x15 / 255.0, blue: 0x2B / 255.0),
-                Color(red: 0x0D / 255.0, green: 0x08 / 255.0, blue: 0x11 / 255.0),
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
+        Color(red: 0x14 / 255.0, green: 0x0E / 255.0, blue: 0x18 / 255.0)
     }
 }
 
