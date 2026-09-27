@@ -4,7 +4,7 @@ import AIQuotaKit
 
 private struct WidgetSurface: View {
     var body: some View {
-        Color(red: 0x14 / 255.0, green: 0x0E / 255.0, blue: 0x18 / 255.0)
+        Color(red: 0x1E / 255.0, green: 0x12 / 255.0, blue: 0x23 / 255.0)
     }
 }
 
