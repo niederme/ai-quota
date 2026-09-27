@@ -53,6 +53,7 @@ struct AIQuotaSmallWidget: Widget {
         .description("Track your AI service usage quota.")
         .supportedFamilies([.systemSmall, .systemMedium])
         .contentMarginsDisabled()
+        .containerBackgroundRemovable(false)
     }
 }
 
@@ -71,6 +72,7 @@ struct AIQuotaMediumWidget: Widget {
         .description("Track both Codex and Claude Code with room for more detail.")
         .supportedFamilies([.systemMedium, .systemLarge])
         .contentMarginsDisabled()
+        .containerBackgroundRemovable(false)
     }
 }
 
