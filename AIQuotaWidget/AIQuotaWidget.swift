@@ -2,6 +2,19 @@ import WidgetKit
 import SwiftUI
 import AIQuotaKit
 
+private struct WidgetSurface: View {
+    var body: some View {
+        LinearGradient(
+            colors: [
+                Color(red: 0x23 / 255.0, green: 0x15 / 255.0, blue: 0x2B / 255.0),
+                Color(red: 0x0D / 255.0, green: 0x08 / 255.0, blue: 0x11 / 255.0),
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+}
+
 private struct ConfigurableQuotaWidgetView: View {
     let entry: QuotaEntry
     @Environment(\.widgetFamily) private var family
@@ -41,7 +54,7 @@ struct AIQuotaSmallWidget: Widget {
             // continue rendering after updates instead of going blank.
             ConfigurableQuotaWidgetView(entry: entry)
                 .environment(\.colorScheme, .dark)
-                .containerBackground(Color(white: 0.1), for: .widget)
+                .containerBackground(for: .widget) { WidgetSurface() }
         }
         .configurationDisplayName("AIQuota")
         .description("Track your AI service usage quota.")
@@ -59,7 +72,7 @@ struct AIQuotaMediumWidget: Widget {
         StaticConfiguration(kind: kind, provider: StaticQuotaTimelineProvider()) { entry in
             StaticQuotaWidgetView(entry: entry)
                 .environment(\.colorScheme, .dark)
-                .containerBackground(Color(white: 0.1), for: .widget)
+                .containerBackground(for: .widget) { WidgetSurface() }
         }
         .configurationDisplayName("AIQuota")
         .description("Track both Codex and Claude Code with room for more detail.")

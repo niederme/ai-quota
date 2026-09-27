@@ -100,10 +100,10 @@ struct WidgetGaugeView: View {
                             HStack(alignment: .firstTextBaseline, spacing: 2) {
                                 Text("\(secondaryPercent)%")
                                     .font(.system(size: secPt, weight: .semibold, design: .rounded))
-                                    .foregroundStyle(statusColor.opacity(secondaryOpacity))
+                                    .foregroundStyle(statusColor)
                                 Text(secondaryLabel)
                                     .font(.system(size: secPt * 0.7))
-                                    .foregroundStyle(.tertiary)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -133,14 +133,14 @@ struct WidgetGaugeView: View {
                 .frame(height: labelPt * 1.2, alignment: .top)
             Text(resetText)
                 .font(.system(size: resetPt))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
                 .frame(height: resetPt * 1.25, alignment: .top)
             if showsSecondaryReset {
                 Text(secondaryLimitReached ? "\(secondaryLabel) limit reached · \(secondaryLimitCountdownText)" : secondaryCountdownText)
                     .font(.system(size: resetPt))
-                    .foregroundStyle(secondaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.tertiary))
+                    .foregroundStyle(secondaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.secondary))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                     .frame(height: resetPt * 1.25, alignment: .top)

@@ -167,7 +167,7 @@ struct PopoverTypographyTests {
         let widgetSource = try String(contentsOf: repoRoot.appending(path: "AIQuotaWidget/AIQuotaWidget.swift"), encoding: .utf8)
 
         #expect(widgetSource.components(separatedBy: #".environment(\.colorScheme, .dark)"#).count == 3)
-        #expect(widgetSource.components(separatedBy: #"containerBackground(Color(white: 0.1), for: .widget)"#).count == 3)
+        #expect(widgetSource.components(separatedBy: #"containerBackground(for: .widget) { WidgetSurface() }"#).count == 3)
     }
 
     @Test("reset lines use compact local-time captions")

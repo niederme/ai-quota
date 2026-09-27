@@ -292,7 +292,7 @@ private struct WidgetStatsColumn: View {
                 if showsFooter {
                     Text(snapshot.detailFooter)
                         .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.tertiary)
+                        .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.85)
                         .padding(.top, 4)
@@ -332,7 +332,7 @@ private struct WidgetMediumStatsColumn: View {
 
                 Text(snapshot.detailFooter)
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
                     .padding(.top, 4)
@@ -470,7 +470,7 @@ private struct WidgetServiceDetailPanel: View {
 
                 Text(snapshot.detailFooter)
                     .font(.system(size: 10))
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
             }
