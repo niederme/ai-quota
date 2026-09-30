@@ -41,19 +41,22 @@ struct HomeQuotaView: View {
                         Text("Allowance used").foregroundStyle(.secondary)
                     }.font(.caption.bold())
                     Divider()
-                    HStack(spacing: 0) {
+                    HStack(spacing: 12) {
                         ForEach(Array(values.enumerated()), id: \.element.service) { index, value in
                             if index > 0 { Divider() }
-                            Link(destination: value.service.url) { gauge(value, size: 96).frame(maxWidth: .infinity) }
+                            Link(destination: value.service.url) {
+                                VStack(spacing: 10) {
+                                    gauge(value, size: 96)
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    Divider()
+                                    details(value)
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                                }
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            }
                         }
                     }.frame(maxHeight: .infinity)
-                    Divider()
-                    HStack(alignment: .top, spacing: 12) {
-                        ForEach(Array(values.enumerated()), id: \.element.service) { index, value in
-                            if index > 0 { Divider() }
-                            Link(destination: value.service.url) { details(value).frame(maxWidth: .infinity, alignment: .leading) }
-                        }
-                    }.frame(maxHeight: .infinity, alignment: .top)
+
                 }
             }
         }.buttonStyle(.plain).foregroundStyle(.primary).padding(12).frame(maxWidth: .infinity, maxHeight: .infinity)
