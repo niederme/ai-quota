@@ -102,14 +102,14 @@ struct CircularGaugeView: View {
                     .animation(.easeInOut(duration: 0.5), value: primaryFill)
             }
 
-            // ── Inner track (7pt, 2pt gap from outer) ─────────────────
-            Circle()
-                .trim(from: 0, to: 0.75)
-                .stroke(.fill.tertiary, style: StrokeStyle(lineWidth: innerLw, lineCap: .butt))
-                .rotationEffect(.degrees(135))
-                .padding(innerPad)
-
             if showsSecondaryMetric {
+                // ── Inner track (7pt, 2pt gap from outer) ─────────────────
+                Circle()
+                    .trim(from: 0, to: 0.75)
+                    .stroke(.fill.tertiary, style: StrokeStyle(lineWidth: innerLw, lineCap: .butt))
+                    .rotationEffect(.degrees(135))
+                    .padding(innerPad)
+
                 // ── Inner fill (secondary) ────────────────────────────
                 Circle()
                     .trim(from: 0, to: 0.75 * secondaryFill)

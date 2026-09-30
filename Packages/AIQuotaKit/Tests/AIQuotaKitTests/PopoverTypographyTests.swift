@@ -192,7 +192,7 @@ struct PopoverTypographyTests {
         // PopoverView: Codex passes real weekly reset dates and exhaustion state
         #expect(popoverSource.contains("u.weeklyResetAt"))
         #expect(popoverSource.contains("u.isWeeklyExhausted"))
-        #expect(popoverSource.contains("showsPrimaryMetric: hasHourlyWindow"))
+        #expect(popoverSource.contains("showsSecondaryMetric: hasHourlyWindow"))
         #expect(popoverSource.contains("secondaryPercent: u.weeklyUsedPercent"))
         #expect(notificationSource.contains("if current.hasHourlyWindow"))
         #expect(notificationSource.contains("defaults.removeObject(forKey: Key.codex5hLastResetAt)"))

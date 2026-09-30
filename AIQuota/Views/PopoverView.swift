@@ -86,18 +86,18 @@ struct PopoverView: View {
             if let u = viewModel.codexUsage {
                 let hasHourlyWindow = u.hasHourlyWindow
                 CircularGaugeView(
-                    primaryPercent: hasHourlyWindow ? u.hourlyUsedPercent : 0,
-                    primaryLimitReached: hasHourlyWindow && u.hourlyUsedPercent >= 100,
-                    showsPrimaryMetric: hasHourlyWindow,
+                    primaryPercent: hasHourlyWindow ? u.hourlyUsedPercent : u.weeklyUsedPercent,
+                    primaryLimitReached: hasHourlyWindow ? u.hourlyUsedPercent >= 100 : u.isWeeklyExhausted,
+                    showsPrimaryMetric: true,
                     secondaryPercent: u.weeklyUsedPercent,
                     secondaryLimitReached: u.isWeeklyExhausted,
-                    showsSecondaryMetric: true,
+                    showsSecondaryMetric: hasHourlyWindow,
                     isLoading: false,
                     icon: "logo-openai",
                     label: "Codex",
-                    primaryLabel: formatWindowDuration(u.hourlyWindowSeconds),
+                    primaryLabel: hasHourlyWindow ? formatWindowDuration(u.hourlyWindowSeconds) : "7d",
                     secondaryLabel: "7d",
-                    resetAt: hasHourlyWindow && u.hourlyResetAt != .distantFuture ? u.hourlyResetAt : nil,
+                    resetAt: hasHourlyWindow ? (u.hourlyResetAt == .distantFuture ? nil : u.hourlyResetAt) : (u.weeklyResetAt == .distantFuture ? nil : u.weeklyResetAt),
                     weeklyResetAt: u.weeklyResetAt == .distantFuture ? nil : u.weeklyResetAt,
                     isRefreshing: viewModel.isCodexLoading,
                     onRefresh: { viewModel.manualRefresh() }
@@ -135,7 +135,7 @@ struct PopoverView: View {
                     showsPrimaryMetric: true,
                     secondaryPercent: Int(u.sevenDayUtilization?.rounded() ?? 0),
                     secondaryLimitReached: (u.sevenDayUtilization ?? 0) >= 100,
-                    showsSecondaryMetric: true,
+                    showsSecondaryMetric: u.primaryMetric.kind != .sevenDay && u.sevenDayUtilization != nil,
                     isLoading: false,
                     icon: "logo-claude",
                     label: "Claude Code",
@@ -248,7 +248,7 @@ struct PopoverView: View {
         var lines = [
             "\(u.primaryMetricLabel) usage: \(u.primaryMetric.utilization.map { "\(Int($0.rounded()))% used" } ?? "unknown")",
         ]
-        if let sevenDay = u.sevenDayUtilization {
+        if u.primaryMetric.kind != .sevenDay, let sevenDay = u.sevenDayUtilization {
             lines.append("7-day window: \(Int(sevenDay.rounded()))% used")
         }
         if let bonus = u.bonusUsage {
