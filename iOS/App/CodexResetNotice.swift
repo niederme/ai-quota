@@ -5,6 +5,17 @@ import MobileAccessCore
 final class CodexResetNotice {
     static let dismissalKey = "codexResetNotice.dismissedID"
     static let website = URL(string: "https://codex-resets.com/")!
+    // Fixed sample shown independently of the live tracker and its expiry rules.
+    static let demoAnnouncement: CodexResetAnnouncement = {
+        let data = Data("""
+        {"id":"demo-codex-reset","status":"scheduled","reset_type":"regular",
+         "announced_at":"2026-01-01T12:00:00Z","scheduled_for":"2026-01-01T18:00:00Z",
+         "source":{"type":"demo","author":null,"url":null}}
+        """.utf8)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try! decoder.decode(CodexResetAnnouncement.self, from: data)
+    }()
     private(set) var status: CodexResetStatus?
     private var checkedAt = Date.now
     private var nextFetch = Date.distantPast

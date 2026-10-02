@@ -10,6 +10,7 @@ struct OverviewView: View {
     @State private var codex: ProbeModel
     @State private var resetNotice = CodexResetNotice()
     @State private var showResetDetails = false
+    @State private var demoResetDismissed = false
     @AppStorage(CodexResetNotice.dismissalKey) private var dismissedResetID = ""
     @State private var navigationID = UUID()
     @State private var selectedService: OverviewService?
@@ -27,6 +28,11 @@ struct OverviewView: View {
     }
     @State private var existingInstallation = UserDefaults.standard.data(forKey: "mobileProbe.codexReading") != nil
         || UserDefaults.standard.data(forKey: "mobileProbe.claudeReading") != nil
+
+    private var resetAnnouncement: CodexResetAnnouncement? {
+        if isDemo { return demoResetDismissed ? nil : CodexResetNotice.demoAnnouncement }
+        return resetNotice.announcement(dismissedID: dismissedResetID)
+    }
 
     private var hasConnectedService: Bool { codex.connected || claude.connected }
 
@@ -70,9 +76,10 @@ struct OverviewView: View {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
                         if isDemo { DemoBanner() }
-                        if !isDemo, codex.connected, let announcement = resetNotice.announcement(dismissedID: dismissedResetID) {
+                        if codex.connected, let announcement = resetAnnouncement {
                             CodexResetNoticeBanner(announcement: announcement, openDetails: { showResetDetails = true }, dismiss: {
-                                dismissedResetID = announcement.id
+                                if isDemo { demoResetDismissed = true }
+                                else { dismissedResetID = announcement.id }
                             }, loading: codex.busy || claude.busy || resetNotice.fetching)
                         }
                         if codex.connected {
