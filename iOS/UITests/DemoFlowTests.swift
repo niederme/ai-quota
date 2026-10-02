@@ -19,6 +19,17 @@ final class DemoFlowTests: XCTestCase {
         tryDemo.tap()
         let sample = app.staticTexts["Sample usage for Codex and Claude."]
         XCTAssertTrue(sample.waitForExistence(timeout: 5))
+        let resetBanner = app.staticTexts["Codex usage reset announced"]
+        let resetLink = app.buttons["Check Codex resets"]
+        XCTAssertTrue(resetBanner.waitForExistence(timeout: 5))
+        XCTAssertFalse(resetLink.exists)
+        app.buttons["Dismiss reset announcement"].tap()
+        XCTAssertTrue(resetBanner.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(resetLink.waitForExistence(timeout: 5))
+        let resetScreenshot = XCTAttachment(screenshot: app.screenshot())
+        resetScreenshot.name = "Codex reset check link after banner dismissal"
+        resetScreenshot.lifetime = .keepAlways
+        add(resetScreenshot)
         app.buttons["Exit demo"].firstMatch.tap()
         XCTAssertTrue(sample.waitForNonExistence(timeout: 5))
         // With no live accounts, exiting the demo returns to the existing setup flow.
@@ -27,6 +38,8 @@ final class DemoFlowTests: XCTestCase {
         XCTAssertTrue(tryDemo.waitForExistence(timeout: 5))
         tryDemo.tap()
         XCTAssertTrue(sample.waitForExistence(timeout: 5))
+        XCTAssertTrue(resetBanner.waitForExistence(timeout: 5))
+        XCTAssertFalse(resetLink.exists)
         app.buttons["Settings"].tap()
         app.buttons["Guided Setup…"].tap()
         XCTAssertTrue(app.navigationBars["Demo setup"].waitForExistence(timeout: 5))

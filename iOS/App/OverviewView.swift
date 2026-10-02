@@ -83,11 +83,25 @@ struct OverviewView: View {
                             }, loading: codex.busy || claude.busy || resetNotice.fetching)
                         }
                         if codex.connected {
-                            ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 780) - 32, reading: codex.reading,
-                                             connected: codex.connected, busy: codex.busy, error: codex.error, failure: codex.connectionFailure,
-                                             history: codex.history, historyUnavailable: codex.historyUnavailable,
-                                             onReconnect: { selectedService = .codexAccount }) {
-                                selectedService = .codex
+                            VStack(alignment: .trailing, spacing: 8) {
+                                ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 780) - 32, reading: codex.reading,
+                                                 connected: codex.connected, busy: codex.busy, error: codex.error, failure: codex.connectionFailure,
+                                                 history: codex.history, historyUnavailable: codex.historyUnavailable,
+                                                 onReconnect: { selectedService = .codexAccount }) {
+                                    selectedService = .codex
+                                }
+                                if resetAnnouncement == nil {
+                                    Button { showResetDetails = true } label: {
+                                        Label("Check Codex resets", systemImage: "arrow.up.right")
+                                            .font(.caption)
+                                            .foregroundStyle(OverviewStyle.secondary)
+                                            .frame(minHeight: 44)
+                                            .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityHint("Opens Codex Resets in the in-app browser")
+                                    .padding(.horizontal, 8)
+                                }
                             }
                         }
                         if claude.connected {

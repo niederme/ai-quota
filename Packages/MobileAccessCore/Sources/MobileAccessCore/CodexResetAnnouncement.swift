@@ -27,8 +27,10 @@ public struct CodexResetAnnouncement: Decodable, Sendable, Equatable, Identifiab
     }
 
     public var expiresAt: Date {
-        // A passed deadline is not completion evidence. Simply stop promoting it.
-        min(scheduled_for ?? announced_at.addingTimeInterval(24 * 3600),
+        // A promised time is not completion evidence. A fresh scheduled announcement
+        // stays visible until the feed removes/cancels it or reports completion.
+        if status == "scheduled" { return .distantFuture }
+        return min(scheduled_for ?? announced_at.addingTimeInterval(24 * 3600),
             announced_at.addingTimeInterval(72 * 3600))
     }
 }

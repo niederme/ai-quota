@@ -26,11 +26,24 @@ final class CodexResetAnnouncementTests: XCTestCase {
     func testBankedCreditIsNotDescribedAsAutomaticReset() throws {
         XCTAssertEqual(try response(type: "banked").announcement(at: now)?.title, "Codex reset credit announced")
     }
-    func testExpiredMissingAndFarFutureDeadlinesAreBounded() throws {
-        XCTAssertNil(try response(scheduled: "\"2026-09-22T12:00:00Z\"").announcement(at: now))
-        XCTAssertNotNil(try response(scheduled: "null").announcement(at: now))
-        XCTAssertNil(try response(scheduled: "null", announced: "2026-09-21T11:00:00Z").announcement(at: now))
-        XCTAssertNil(try response(scheduled: "\"2026-10-01T00:00:00Z\"", announced: "2026-09-18T00:00:00Z").announcement(at: now))
+    func testScheduledAnnouncementsRemainVisibleAfterPromisedTime() throws {
+        // At the deadline and after it, a fresh scheduled feed is still pending.
+        XCTAssertNotNil(try response(scheduled: "\"2026-09-22T12:00:00Z\"").announcement(at: now))
+        XCTAssertNotNil(try response(scheduled: "\"2026-09-22T11:00:00Z\"").announcement(at: now))
+        // No arbitrary 24/72-hour timeout while a fresh feed still lists the event.
+        XCTAssertNotNil(try response(scheduled: "null", announced: "2026-09-18T00:00:00Z").announcement(at: now))
+        XCTAssertNotNil(try response(scheduled: "\"2026-09-19T00:00:00Z\"", announced: "2026-09-18T00:00:00Z").announcement(at: now))
+    }
+    func testPastDeadlineHidesOnlyWhenCompletionIsReported() throws {
+        let deadline = "\"2026-09-22T11:00:00Z\""
+        let completed = """
+        {"id":"execution-2","reset_type":"regular","announced_at":"2026-09-22T11:30:00Z"}
+        """
+        XCTAssertNotNil(try response(scheduled: deadline).announcement(at: now))
+        XCTAssertNil(try response(scheduled: deadline, completed: completed).announcement(at: now))
+        XCTAssertNotNil(try response(type: "banked", scheduled: deadline, completed: completed).announcement(at: now))
+        XCTAssertNil(try response(scheduled: deadline, status: "cancelled").announcement(at: now))
+        XCTAssertNil(try response(scheduled: deadline).announcement(at: now, dismissedID: "announcement-1"))
     }
     func testStaleAndFutureResponsesAreHidden() throws {
         XCTAssertNil(try response(generated: "2026-09-22T11:29:00Z").announcement(at: now))
