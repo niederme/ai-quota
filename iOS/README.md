@@ -146,13 +146,18 @@ announced,” depending on the source. Historical averages and probabilities nev
 trigger a notice or appear in the UI. The banner uses the same Liquid Glass
 material as quota cards, with a matching circular dismiss icon. Existing notices
 show a skeleton while usage or the announcement feed refreshes; unknown or
-ineligible announcements do not create placeholder cards.
+ineligible announcements do not create placeholder cards. When there is no visible
+banner, a discreet **Check Codex resets** link below the Codex card opens the same
+in-app browser, including after a notice expires or is dismissed. A disappearing
+notice is not confirmation that the account quota reset.
 
 The app checks the public status endpoint at most every 15 minutes while active,
 honors rate-limit backoff, and sends no account credentials. Notices disappear on
-fetch failure, after the source data is 30 minutes old, at the reported deadline,
-or when the feed reports execution. A missing deadline expires after 24 hours;
-all notices have a 72-hour maximum age. Expiry is not proof of a completed reset.
+fetch failure or after the source data is 30 minutes old. A scheduled announcement
+stays visible past its promised time while a fresh feed still lists it as scheduled;
+it disappears when the feed confirms a matching reset, removes/cancels the event,
+or the user dismisses it. Hints expire at their reported deadline, with a 72-hour
+maximum age. Feed status does not establish that a particular account reset.
 Dismissal persists for that announcement and clears with Reset All Settings.
 This feature does not change quota readings or schedule notifications.
 
