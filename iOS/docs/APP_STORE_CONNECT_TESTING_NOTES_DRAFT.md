@@ -23,10 +23,12 @@ Claude
 ## Recommended review flow: demo
 
 1. Launch AIQuota and tap Try Demo at the bottom left of the welcome screen. If already set up, open Settings → Demo → Try demo.
-2. Explore the Codex and Claude cards, provider details, and sample Codex usage history.
-3. Add an AIQuota widget to the Home Screen or Lock Screen to see labeled sample usage.
-4. Optionally open Settings → Guided Setup to explore onboarding. Demo notification controls are temporary and do not send notifications.
-5. Tap Exit demo to test live sign-in. With no connected account, the app returns to onboarding; existing live connections are preserved.
+2. On entry to the demo overview, review the sample “Codex usage reset announced” banner. The sample banner appears each time a new demo session starts; dismissing it is temporary for that demo session.
+3. Tap the banner to open the live `https://codex-resets.com` website in AIQuota’s in-app browser. The page is current website content, not sample data from the demo. Public announcements on that site are separate from the signed-in account’s personal quota readings and reset times.
+4. Explore the Codex and Claude cards, provider details, and sample Codex usage history.
+5. Add an AIQuota widget to the Home Screen or Lock Screen to see labeled sample usage.
+6. Optionally open Settings → Guided Setup to explore onboarding. Demo notification controls are temporary and do not send notifications; the sample reset banner does not send a push notification.
+7. Tap Exit demo to test live sign-in. With no connected account, the app returns to onboarding; existing live connections are preserved.
 
 ## Live sign-in: access to verification emails
 
@@ -53,6 +55,7 @@ Claude
 
 - Live setup requires at least one connected service. The other service can be added later in Settings.
 - The dashboard shows connected services. Available quota fields and history depend on the provider and account; the demo provides representative sample data for both services.
+- The demo reset banner is a review-only sample of a public Codex announcement. It does not represent the reviewer account’s personal reset schedule, and it does not send a push notification.
 - If an update fails, the last successful reading remains visible. If sign-in must be renewed, use Reconnect.
 - Widget refresh timing is controlled by iOS; updates may not appear immediately.
 - Google backup codes are only for Gmail’s 2-Step Verification. Provider email verification codes, the Codex device code, and Claude’s final authorization code are separate codes.
