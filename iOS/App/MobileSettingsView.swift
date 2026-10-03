@@ -41,10 +41,10 @@ struct MobileSettingsView: View {
             }.listRowBackground(OverviewStyle.track)
             Section {
                 Button { destination = .codex } label: {
-                    MobileAccountRow(name: "Codex", connected: codex.connected, error: codex.error, updated: codex.reading?.fetchedAt, busy: codex.busy, isDemo: codex.isDemo)
+                    MobileAccountRow(name: "Codex", connected: codex.connected, error: codex.error, updated: codex.reading?.fetchedAt, busy: codex.loading, isDemo: codex.isDemo)
                 }
                 Button { destination = .claude } label: {
-                    MobileAccountRow(name: "Claude Code", connected: claude.connected, error: claude.error, updated: claude.reading?.fetchedAt, busy: claude.busy, isDemo: claude.isDemo)
+                    MobileAccountRow(name: "Claude Code", connected: claude.connected, error: claude.error, updated: claude.reading?.fetchedAt, busy: claude.loading, isDemo: claude.isDemo)
                 }
             } header: { Text("Accounts") } footer: {
                 Text("Manage accounts, reconnect, and check when usage last updated.")

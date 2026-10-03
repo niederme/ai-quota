@@ -80,11 +80,11 @@ struct OverviewView: View {
                             CodexResetNoticeBanner(announcement: announcement, openDetails: { showResetDetails = true }, dismiss: {
                                 if isDemo { demoResetDismissed = true }
                                 else { dismissedResetID = announcement.id }
-                            }, loading: codex.busy || claude.busy || resetNotice.fetching)
+                            }, loading: codex.loading || claude.loading || resetNotice.fetching)
                         }
                         if codex.connected {
                             ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 780) - 32, reading: codex.reading,
-                                             connected: codex.connected, busy: codex.busy, error: codex.error, failure: codex.connectionFailure,
+                                             connected: codex.connected, busy: codex.loading, error: codex.error, failure: codex.connectionFailure,
                                              history: codex.history, historyUnavailable: codex.historyUnavailable,
                                              onReconnect: { selectedService = .codexAccount }) {
                                 selectedService = .codex
@@ -92,7 +92,7 @@ struct OverviewView: View {
                         }
                         if claude.connected {
                             ProviderDialCard(name: "Claude", icon: "logo-claude", availableWidth: min(geometry.size.width, 780) - 32, reading: claude.reading,
-                                             connected: claude.connected, busy: claude.busy, error: claude.error, failure: claude.connectionFailure,
+                                             connected: claude.connected, busy: claude.loading, error: claude.error, failure: claude.connectionFailure,
                                              onReconnect: { selectedService = .claudeAccount }) {
                                 selectedService = .claude
                             }
@@ -163,13 +163,13 @@ struct OverviewView: View {
                         claude.refresh()
                     } label: {
                         ZStack {
-                            Image(systemName: "arrow.clockwise").opacity(codex.busy || claude.busy ? 0 : 1)
-                            ProgressView().opacity(codex.busy || claude.busy ? 1 : 0)
+                            Image(systemName: "arrow.clockwise").opacity(codex.loading || claude.loading ? 0 : 1)
+                            ProgressView().opacity(codex.loading || claude.loading ? 1 : 0)
                         }.frame(width: 24, height: 24)
                     }
                     .tint(OverviewStyle.primary)
                     .disabled(codex.busy || claude.busy)
-                    .accessibilityLabel(codex.busy || claude.busy ? "Refreshing usage" : "Refresh usage")
+                    .accessibilityLabel(codex.loading || claude.loading ? "Refreshing usage" : "Refresh usage")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { selectedService = .settings } label: { Image(systemName: "gearshape") }
@@ -195,13 +195,13 @@ struct OverviewView: View {
                 case .codex:
                     if !codex.connected { ProbeView(model: codex) } else {
                     ServiceDetailContent(name: "Codex", icon: "logo-openai", reading: codex.reading,
-                        connected: codex.connected, busy: codex.busy, error: codex.error,
+                        connected: codex.connected, busy: codex.loading, error: codex.error,
                         failure: codex.connectionFailure, history: codex.history, refresh: { codex.refresh() }) { ProbeView(model: codex) }
                     }
                 case .claude:
                     if !claude.connected { ClaudeProbeView(model: claude) } else {
                     ServiceDetailContent(name: "Claude", icon: "logo-claude", reading: claude.reading,
-                        connected: claude.connected, busy: claude.busy, error: claude.error,
+                        connected: claude.connected, busy: claude.loading, error: claude.error,
                         failure: claude.connectionFailure, refresh: { claude.refresh() }) { ClaudeProbeView(model: claude) }
                     }
                 }
@@ -222,11 +222,11 @@ struct OverviewView: View {
                 if isDemo {
                     Text("Sample usage · No live account data").font(.footnote).foregroundStyle(OverviewStyle.secondary)
                 } else if failed {
-                    freshness("Codex", reading: codex.reading, connected: codex.connected, busy: codex.busy,
+                    freshness("Codex", reading: codex.reading, connected: codex.connected, busy: codex.loading,
                               failed: codex.error != nil || codex.connectionFailure != nil, at: context.date)
-                    freshness("Claude", reading: claude.reading, connected: claude.connected, busy: claude.busy,
+                    freshness("Claude", reading: claude.reading, connected: claude.connected, busy: claude.loading,
                               failed: claude.error != nil || claude.connectionFailure != nil, at: context.date)
-                } else if codex.busy || claude.busy {
+                } else if codex.loading || claude.loading {
                     Text("Refreshing…")
                 } else if let oldest = [codex.reading, claude.reading].compactMap({ $0?.fetchedAt }).min() {
                     Text(overviewFreshnessLabel(oldest, at: context.date, saved: false)

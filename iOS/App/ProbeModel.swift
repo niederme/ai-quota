@@ -8,7 +8,9 @@ import MobileAccessCore
 @MainActor @Observable
 final class ProbeModel {
     private let shared = SharedQuotaStore(.codex)
-    private var lastAutomaticRefresh: Date?
+    private var foregroundRefresh = ForegroundRefreshPolicy()
+    private(set) var quietlyRefreshing = false
+    var loading: Bool { busy && !quietlyRefreshing }
     private let api = CodexAPI()
     private var work: Task<Void, Never>?
     private var generation = UUID()
@@ -76,6 +78,7 @@ final class ProbeModel {
                     history = nil
                     historyUnavailable = false
                     UserDefaults.standard.removeObject(forKey: historyCacheKey)
+                    foregroundRefresh.reset()
                     tokens = newTokens
                     challenge = nil
                     message = "Signed in on this device. Checking quota…"
@@ -100,12 +103,19 @@ final class ProbeModel {
         await work?.value
     }
     func refreshOnOpen() {
+        guard !isDemo else { refresh(); return }
         guard !busy, connected else { return }
-        if let lastAutomaticRefresh, Date.now.timeIntervalSince(lastAutomaticRefresh) < 15 { return }
-        lastAutomaticRefresh = .now
-        refresh()
+        // A widget may have published a newer successful reading while the app was inactive.
+        if let cached = shared.reading(), cached.fetchedAt > (reading?.fetchedAt ?? .distantPast) {
+            reading = cached
+            error = nil
+            connectionFailure = shared.failure()
+        }
+        guard foregroundRefresh.beginAutomatic(at: .now, reading: reading) else { return }
+        quietlyRefreshing = reading != nil
+        run { [self] in try await fetch(forceRenewal: false, minimumAge: 30) }
     }
-    private func fetch(forceRenewal: Bool) async throws {
+    private func fetch(forceRenewal: Bool, minimumAge: TimeInterval = 0) async throws {
         let backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "Refresh allowance") { [weak self] in
             Task { @MainActor in self?.work?.cancel() }
         }
@@ -120,7 +130,7 @@ final class ProbeModel {
             try WidgetStore.clearAccess()
         }
         message = "Refreshing…"
-        let value = try await shared.fetch(source: "app", forceRenewal: forceRenewal)
+        let value = try await shared.fetch(source: "app", forceRenewal: forceRenewal, minimumAge: minimumAge)
         try Task.checkCancellation()
         tokens = try shared.load(CodexTokens.self)
         reading = value
@@ -158,6 +168,7 @@ final class ProbeModel {
                 self.message = "Couldn’t update usage. Your last reading is still shown."
             }
             guard let self, self.generation == id else { return }
+            self.quietlyRefreshing = false
             self.busy = false
             self.challenge = nil
             self.work = nil
@@ -168,6 +179,7 @@ final class ProbeModel {
         generation = UUID()
         work?.cancel()
         work = nil
+        quietlyRefreshing = false
         busy = false
         challenge = nil
         message = "Check cancelled."
@@ -186,7 +198,7 @@ final class ProbeModel {
         defer { busy = false }
         await pending?.value
         try await clearConnection()
-        lastAutomaticRefresh = nil
+        foregroundRefresh.reset()
         signInCompletionID = nil
         message = "Connect Codex to see your usage."
     }
@@ -203,6 +215,7 @@ final class ProbeModel {
         UserDefaults.standard.removeObject(forKey: historyCacheKey)
         history = nil
         historyUnavailable = false
+        foregroundRefresh.reset()
         tokens = nil
         reading = nil
         renewedAt = nil
