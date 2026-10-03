@@ -71,14 +71,17 @@ final class BaseScreenReviewTests: XCTestCase {
         """.utf8), now: now)
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
         let previous = scene.windows.first(where: \.isKeyWindow)
-        for (name, scheme, size) in [("dark", ColorScheme.dark, DynamicTypeSize.large), ("light", .light, .large), ("accessible", .dark, .accessibility3), ("empty", .dark, .large)] {
-            let displayedReading = name == "empty"
+        for (name, scheme, size) in [("dark", ColorScheme.dark, DynamicTypeSize.large), ("light", .light, .large), ("accessible", .dark, .accessibility3), ("empty", .dark, .large), ("monthly", .light, .accessibility3), ("failed", .dark, .large), ("missing", .dark, .large)] {
+            let monthly = try JSONDecoder().decode(QuotaReading.self, from: Data("""
+            {"fetchedAt":\(now.addingTimeInterval(-3600).timeIntervalSinceReferenceDate),"weekly":{"usedPercent":4,"durationSeconds":2592000,"resetsAt":\(now.addingTimeInterval(-60).timeIntervalSinceReferenceDate)},"metadata":{"plan":"free","usageSpent":0,"usageCurrency":"USD"}}
+            """.utf8))
+            let displayedReading: QuotaReading? = name == "missing" ? nil : name == "monthly" ? monthly : name == "empty"
                 ? QuotaReading(fetchedAt: now, shortTerm: nil, weekly: reading.weekly) : reading
             let displayedHistory = name == "empty"
                 ? try CodexUsageHistory.decode(Data("{\"data\":[]}".utf8), now: now) : history
             let content = ServiceAccountSheet(showsClose: false) {
                 ServiceDetailContent(name: "Codex", icon: "logo-openai", reading: displayedReading,
-                    connected: true, busy: false, error: nil, failure: nil, history: displayedHistory, refresh: {}) { Text("Account") }
+                    connected: true, busy: false, error: nil, failure: name == "failed" ? .reconnect : nil, history: displayedHistory, historyUnavailable: name == "failed", refresh: {}) { Text("Account") }
             }.environment(\.colorScheme, scheme).environment(\.dynamicTypeSize, size)
             let window = UIWindow(windowScene: scene)
             window.rootViewController = UIHostingController(rootView: content)

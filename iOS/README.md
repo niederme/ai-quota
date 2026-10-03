@@ -332,6 +332,18 @@ access group containing only the current device code and its expiry. Account tok
 are not accessible to that extension. Codes expire after 15 minutes and are cleared
 when the sign-in attempt ends. The TestFlight script validates both bundled extensions.
 
+## Allowance-first service details
+
+Codex and Claude detail sheets begin with the provider and reported plan, a native
+gauge, and each reported allowance's used percentage and reset time. The purple
+card grows with its content and stacks at accessibility text sizes. Missing
+windows are omitted; missing readings and unconfirmed resets are explicit.
+Refresh retains existing values, with allowance freshness updating every 30 seconds.
+Codex model/app breakdowns have separate history freshness and saved/unavailable
+states. Nonzero extra usage appears below allowance; zero usage remains hidden.
+Account access, native sheet controls, and the Codex reset link remain available.
+This first pass does not introduce a new daily history chart.
+
 ## Free plans and variable allowance windows
 
 The overview, service details, widgets, and alert copy use each returned window's
