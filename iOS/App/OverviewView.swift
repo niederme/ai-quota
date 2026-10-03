@@ -860,7 +860,7 @@ struct ProviderDialCardContent: View {
     private var details: some View {
         VStack(alignment: .leading, spacing: 8) {
             accountSummary
-            if connected, let spent = reading?.metadata?.usageSpent { spending(spent) }
+            if connected, let spent = reading?.metadata?.usageSpent, spent > 0 { spending(spent) }
         }.padding(.top, 4).frame(maxWidth: .infinity, alignment: .leading)
     }
     private var accountSummary: some View {

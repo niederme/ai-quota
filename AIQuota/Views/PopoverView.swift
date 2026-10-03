@@ -302,7 +302,7 @@ struct PopoverView: View {
             ]
         }
         if let balance = u.creditBalance { lines.append("Credit balance: \(formatCodexDollarAmount(balance))") }
-        if let spent = u.bonusCreditsSpentThisMonth {
+        if let spent = u.bonusCreditsSpentThisMonth, spent > 0 {
             lines.append("Credits used: \(formatCodexDollarAmount(spent))")
         }
         if let local = u.approxLocalMessages, local.count == 2 {

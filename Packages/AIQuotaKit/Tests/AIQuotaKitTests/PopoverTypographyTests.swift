@@ -3,6 +3,17 @@ import Testing
 
 @Suite("Popover typography")
 struct PopoverTypographyTests {
+    @Test("zero and missing credits are omitted from overview and Codex accessibility")
+    func creditsRequirePositiveSpend() throws {
+        let source = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/PopoverView.swift"), encoding: .utf8)
+        #expect(source.contains("if let spent = usage.bonusCreditsSpentThisMonth, spent > 0 {"))
+        #expect(source.contains("if let credits = usage.usageCredits, credits.spent > 0 {"))
+        #expect(source.contains("if let spent = u.bonusCreditsSpentThisMonth, spent > 0 {"))
+        // Fable and post-limit usage remain the same provider-reported aggregate.
+        #expect(source.contains("Fable 5 & Post-Limit Usage"))
+        #expect(source.contains("CodexCreditsRow(balance: balance, autoReload: autoReload)"))
+    }
+
     @Test("popover uses visibly larger font sizes for annotated small text")
     func popoverUsesLargerFontSizes() throws {
         let popoverSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/PopoverView.swift"), encoding: .utf8)

@@ -95,6 +95,7 @@
 		A235B96E676D7BB0D9AA389F /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = 99ECBE0988C11C866C163C4A /* FirebaseAnalyticsCore */; };
 		A27DDA505B42FB7634AA0E49 /* SignInCodeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA990197CB437869D146B21C /* SignInCodeStore.swift */; };
 		A854CED8FF8E77BCB8FF09B4 /* MobileAccessCore in Frameworks */ = {isa = PBXBuildFile; productRef = 78A0AA96ED672D905CDC7DCA /* MobileAccessCore */; };
+		A8887B9AC256A6326AB5AA9D /* CreditsDisplayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E965708E9D49E52DD918B557 /* CreditsDisplayTests.swift */; };
 		A9A9F27E1D37CC53BEA92471 /* DemoAutoOpen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AD1CC15EEE16B262B2BBC8D /* DemoAutoOpen.swift */; };
 		A9E731415728005F78C17CC9 /* MobileAccessApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 667DECCAD3629416AE8E1184 /* MobileAccessApp.swift */; };
 		ADABF7DBD43E19C01A19B69B /* QuotaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5F53FC0B0CEEDEB3DD6488A /* QuotaViewModel.swift */; };
@@ -298,6 +299,7 @@
 		DEF02E14FDE3406AB3CFB999 /* MobileAnalyticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileAnalyticsTests.swift; sourceTree = "<group>"; };
 		E012B199A00FF2ABD9B06DA4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E2681A208A2007E5167B5903 /* CompactQuotaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompactQuotaView.swift; sourceTree = "<group>"; };
+		E965708E9D49E52DD918B557 /* CreditsDisplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreditsDisplayTests.swift; sourceTree = "<group>"; };
 		EC6483FA9D6F3174B3E47F3D /* MobileSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileSettingsView.swift; sourceTree = "<group>"; };
 		EDE2263EBEB7008EF6988081 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
 		F20C382E39D030AC581CA9B4 /* DoneStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoneStepView.swift; sourceTree = "<group>"; };
@@ -528,6 +530,7 @@
 			children = (
 				FB52A74E8799BDEFB61FFF62 /* BaseScreenReviewTests.swift */,
 				D52F88BFBFBF549EA3102907 /* CodexResetNoticeTests.swift */,
+				E965708E9D49E52DD918B557 /* CreditsDisplayTests.swift */,
 				0C2641A9E19D22252D201446 /* DemoModeTests.swift */,
 				B167CA4D488EA6D6B904363D /* ForegroundRefreshTests.swift */,
 				3805EE8533FA745C2DDA0491 /* HomeWidgetTests.swift */,
@@ -1169,6 +1172,7 @@
 			files = (
 				1480C81463CDB8E0AEB89C84 /* BaseScreenReviewTests.swift in Sources */,
 				24BC6BA77116E7B799ADB68C /* CodexResetNoticeTests.swift in Sources */,
+				A8887B9AC256A6326AB5AA9D /* CreditsDisplayTests.swift in Sources */,
 				135CCD8C4FA58980E1204E20 /* DemoModeTests.swift in Sources */,
 				31A3D31590EC997EACC431C6 /* ForegroundRefreshTests.swift in Sources */,
 				18F490DA24873632F7F02099 /* HomeWidgetTests.swift in Sources */,
