@@ -29,7 +29,7 @@
 		2FCFA2535E9E9290F1988907 /* MobileSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC6483FA9D6F3174B3E47F3D /* MobileSettingsView.swift */; };
 		31617F1EEAF0A9A374712D99 /* DemoAutoOpen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AD1CC15EEE16B262B2BBC8D /* DemoAutoOpen.swift */; };
 		3613E6EC6F19D0D27161FD72 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 9209085EEB25A6FC729B4DD8 /* AppIcon.icon */; };
-		41AD8FA8B9500380BF0806C8 /* MobileAccessCore in Frameworks */ = {isa = PBXBuildFile; productRef = 32AB6566429BDF91EF2A3EC1 /* MobileAccessCore */; };
+		41AD8FA8B9500380BF0806C8 /* AIQuotaKit in Frameworks */ = {isa = PBXBuildFile; productRef = 4107956DD8A43F21A1968899 /* AIQuotaKit */; };
 		41C02C66278A722573030C3B /* SharedQuotaStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8924102467BA8034DBE2CECD /* SharedQuotaStoreTests.swift */; };
 		455DE785DF5BFE80EBD70996 /* CompactQuotaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2681A208A2007E5167B5903 /* CompactQuotaView.swift */; };
 		4B1E60A90D0067714F4A261C /* MenuBarIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB657B3EE7EFE0906CC89C7E /* MenuBarIconView.swift */; };
@@ -85,8 +85,9 @@
 		96ECF77AF4F522CAF9619D23 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FB0180B641391BD6AFC75C41 /* Assets.xcassets */; };
 		98B72F5B1196475CAB2D49DB /* AIQuotaWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 76D9EEAA0A27FF50A5E170F4 /* AIQuotaWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		98F43072074B245C01E279A4 /* CountdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D136AA90C5E64F0E69E5B51 /* CountdownView.swift */; };
-		9AD32B35F559C959F1E704A5 /* AIQuotaKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6BDA6DD3060568B481F493B5 /* AIQuotaKit */; };
+		9AD32B35F559C959F1E704A5 /* MobileAccessCore in Frameworks */ = {isa = PBXBuildFile; productRef = CAB0BEB9B29041C498AA60E8 /* MobileAccessCore */; };
 		9AEFBADF15FBDEF08FEF22D8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8C0ACC770721BA686B7B6401 /* Assets.xcassets */; };
+		9BCCAA30F015C96958C9D8CA /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = 861B6B38CC5CE37615D5E6C5 /* FirebaseAnalyticsCore */; };
 		9CADD704324B208A365C1BFA /* AnalyticsClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC4153FE01FA354752C247C /* AnalyticsClient.swift */; };
 		9FD10589109C0FC5A53692FD /* MobileAccessCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0063D76A2C4685568BA5F1D7 /* MobileAccessCore */; };
 		A18B06E3FC7B69C7D7FB9683 /* WidgetsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AEFC74142619076ED0AB5BA /* WidgetsStepView.swift */; };
@@ -118,9 +119,8 @@
 		DB0D128A3383DCB3DA228D4F /* TokenStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9302F08CDA8C2099F522EB6 /* TokenStoreTests.swift */; };
 		DE51EF987644B16CFE0AE195 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = FB0002B3439366F7C9621561 /* Sparkle */; };
 		DF73B1ABD010C0FC8B4B0FE5 /* NotificationsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88FA3DF197FD04781EF8C4EF /* NotificationsStepView.swift */; };
-		E104D194CAEB9FF42758406C /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = 861B6B38CC5CE37615D5E6C5 /* FirebaseAnalyticsCore */; };
+		E104D194CAEB9FF42758406C /* AIQuotaKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6BDA6DD3060568B481F493B5 /* AIQuotaKit */; };
 		E160ECCBCF34150E6B3A8A61 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AFDFAA7F9E0650962EC80DC /* OnboardingView.swift */; };
-		E2AADD81DA2EB43FF75DD716 /* AIQuotaKit in Frameworks */ = {isa = PBXBuildFile; productRef = 4107956DD8A43F21A1968899 /* AIQuotaKit */; };
 		E35629D70F3650759EDF8865 /* ServicesStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C66610C3B005AD239F7EDE75 /* ServicesStepView.swift */; };
 		E3F95AF78B2FB568C2E16BB1 /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2DD6DC0C92D6E6CBCA60A64 /* WidgetStore.swift */; };
 		E8EEDCE93DA5BCE1A7910DFE /* AIQuotaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3E5BEBFAE5CBFD5ABBEB22 /* AIQuotaApp.swift */; };
@@ -313,8 +313,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9AD32B35F559C959F1E704A5 /* AIQuotaKit in Frameworks */,
-				E104D194CAEB9FF42758406C /* FirebaseAnalyticsCore in Frameworks */,
+				9AD32B35F559C959F1E704A5 /* MobileAccessCore in Frameworks */,
+				E104D194CAEB9FF42758406C /* AIQuotaKit in Frameworks */,
+				9BCCAA30F015C96958C9D8CA /* FirebaseAnalyticsCore in Frameworks */,
 				0C3D35A9CE3B5A6F4B5C7816 /* WebKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -340,8 +341,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				41AD8FA8B9500380BF0806C8 /* MobileAccessCore in Frameworks */,
-				E2AADD81DA2EB43FF75DD716 /* AIQuotaKit in Frameworks */,
+				41AD8FA8B9500380BF0806C8 /* AIQuotaKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -803,7 +803,6 @@
 			);
 			name = AIQuotaWidget;
 			packageProductDependencies = (
-				32AB6566429BDF91EF2A3EC1 /* MobileAccessCore */,
 				4107956DD8A43F21A1968899 /* AIQuotaKit */,
 			);
 			productName = AIQuotaWidget;
@@ -826,6 +825,7 @@
 			);
 			name = AIQuotaStore;
 			packageProductDependencies = (
+				CAB0BEB9B29041C498AA60E8 /* MobileAccessCore */,
 				6BDA6DD3060568B481F493B5 /* AIQuotaKit */,
 				861B6B38CC5CE37615D5E6C5 /* FirebaseAnalyticsCore */,
 			);
@@ -1474,7 +1474,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuota/Resources/AIQuota-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 390;
+				CURRENT_PROJECT_VERSION = 395;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuota/Resources/Info-TestFlight.plist";
@@ -1562,7 +1562,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuotaWidget/Resources/AIQuotaWidget-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 390;
+				CURRENT_PROJECT_VERSION = 395;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuotaWidget/Resources/Info-TestFlight.plist";
@@ -1607,7 +1607,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuota/Resources/AIQuota-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 390;
+				CURRENT_PROJECT_VERSION = 395;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuota/Resources/Info-TestFlight.plist";
@@ -1626,7 +1626,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuotaWidget/Resources/AIQuotaWidget-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 390;
+				CURRENT_PROJECT_VERSION = 395;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuotaWidget/Resources/Info-TestFlight.plist";
@@ -1672,7 +1672,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuota/Resources/AIQuota-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 390;
+				CURRENT_PROJECT_VERSION = 395;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuota/Resources/Info-TestFlight.plist";
@@ -1800,7 +1800,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuotaWidget/Resources/AIQuotaWidget-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 390;
+				CURRENT_PROJECT_VERSION = 395;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuotaWidget/Resources/Info-TestFlight.plist";
@@ -2129,10 +2129,6 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = MobileAccessCore;
 		};
-		32AB6566429BDF91EF2A3EC1 /* MobileAccessCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = MobileAccessCore;
-		};
 		3C9D80974CEBA587B65698CF /* MobileAccessCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = MobileAccessCore;
@@ -2164,6 +2160,10 @@
 			productName = FirebaseAnalyticsCore;
 		};
 		A02DA6F3782296C9AD385696 /* MobileAccessCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MobileAccessCore;
+		};
+		CAB0BEB9B29041C498AA60E8 /* MobileAccessCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = MobileAccessCore;
 		};
