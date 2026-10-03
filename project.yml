@@ -18,9 +18,11 @@ options:
 settings:
   base:
     MARKETING_VERSION: "1.9.28"
-    CURRENT_PROJECT_VERSION: "390"
+    CURRENT_PROJECT_VERSION: "395"
 
 packages:
+  MobileAccessCore:
+    path: Packages/MobileAccessCore
   AIQuotaKit:
     path: Packages/AIQuotaKit
   Firebase:
@@ -97,6 +99,7 @@ targets:
     resources:
       - path: AIQuota/Resources/Assets.xcassets
     dependencies:
+      - package: MobileAccessCore
       - package: AIQuotaKit
       - package: Firebase
         product: FirebaseAnalyticsCore
@@ -141,6 +144,7 @@ targets:
           - Resources/AIQuotaWidget-TestFlight.entitlements
           - Resources/Info-TestFlight.plist
     dependencies:
+      - package: MobileAccessCore
       - package: AIQuotaKit
     settings:
       base:
