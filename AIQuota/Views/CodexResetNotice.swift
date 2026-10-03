@@ -67,4 +67,3 @@ final class CodexResetNotice {
         status?.announcement(at: checkedAt, dismissedID: dismissedID)
     }
 }
-
