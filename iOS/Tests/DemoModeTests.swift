@@ -47,6 +47,8 @@ final class DemoModeTests: XCTestCase {
         for key in keys { UserDefaults.standard.set(sentinel, forKey: key) }
         let codex = ProbeModel(isDemo: true)
         let claude = ClaudeProbeModel(isDemo: true)
+        codex.refreshOnOpen()
+        claude.refreshOnOpen()
         codex.connect()
         claude.connect()
         claude.finishSignIn("not-a-real-code")

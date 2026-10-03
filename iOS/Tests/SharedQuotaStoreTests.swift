@@ -45,6 +45,22 @@ final class SharedQuotaStoreTests: XCTestCase {
         try await store.withLease { try store.clear() }
         if let root = store.root { try? FileManager.default.removeItem(at: root) }
     }
+    func testForegroundReusesWidgetSuccessButManualRefreshFetches() async throws {
+        let store = store()
+        try await store.withLease { try store.saveCredentials(credentials()) }
+        let calls = Calls()
+        let widget = try await store.fetch(CodexTokens.self, source: "widget", renew: { $0 }, usage: { try await calls.usage($0) })
+        let foreground = try await store.fetch(CodexTokens.self, source: "app", minimumAge: 30, renew: { $0 }, usage: { try await calls.usage($0) })
+        XCTAssertEqual(foreground, widget)
+        XCTAssertEqual(foreground.fetchedAt, widget.fetchedAt)
+        let afterForeground = await calls.access.count
+        XCTAssertEqual(afterForeground, 1)
+        _ = try await store.fetch(CodexTokens.self, source: "app", minimumAge: 0, renew: { $0 }, usage: { try await calls.usage($0) })
+        let afterManual = await calls.access.count
+        XCTAssertEqual(afterManual, 2)
+        try await clean(store)
+    }
+
     func testClaudeRateLimitBlocksSubsequentAppAndWidgetRequests() async throws {
         let store = store(.claude)
         try await store.withLease { try store.saveCredentials(credentials()) }
