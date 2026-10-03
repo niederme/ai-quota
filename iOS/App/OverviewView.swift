@@ -83,25 +83,11 @@ struct OverviewView: View {
                             }, loading: codex.busy || claude.busy || resetNotice.fetching)
                         }
                         if codex.connected {
-                            VStack(alignment: .trailing, spacing: 8) {
-                                ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 780) - 32, reading: codex.reading,
-                                                 connected: codex.connected, busy: codex.busy, error: codex.error, failure: codex.connectionFailure,
-                                                 history: codex.history, historyUnavailable: codex.historyUnavailable,
-                                                 onReconnect: { selectedService = .codexAccount }) {
-                                    selectedService = .codex
-                                }
-                                if resetAnnouncement == nil {
-                                    Button { showResetDetails = true } label: {
-                                        Label("Check Codex resets", systemImage: "arrow.up.right")
-                                            .font(.caption)
-                                            .foregroundStyle(OverviewStyle.secondary)
-                                            .frame(minHeight: 44)
-                                            .contentShape(Rectangle())
-                                    }
-                                    .buttonStyle(.plain)
-                                    .accessibilityHint("Opens Codex Resets in the in-app browser")
-                                    .padding(.horizontal, 8)
-                                }
+                            ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 780) - 32, reading: codex.reading,
+                                             connected: codex.connected, busy: codex.busy, error: codex.error, failure: codex.connectionFailure,
+                                             history: codex.history, historyUnavailable: codex.historyUnavailable,
+                                             onReconnect: { selectedService = .codexAccount }) {
+                                selectedService = .codex
                             }
                         }
                         if claude.connected {
@@ -370,6 +356,7 @@ struct ServiceDetailContent<Account: View>: View {
     let refresh: () -> Void
     @ViewBuilder var account: () -> Account
     @State private var showAccount = false
+    @State private var showResetWebsite = false
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -389,6 +376,12 @@ struct ServiceDetailContent<Account: View>: View {
                 }
                 Button { showAccount = true } label: {
                     Label(connected ? "Account and connection" : "Connect \(name)", systemImage: "person.crop.circle")
+                }
+                if name == "Codex" {
+                    Button { showResetWebsite = true } label: {
+                        Label("Check Codex resets", systemImage: "arrow.up.right")
+                    }
+                    .accessibilityHint("Opens Codex Resets in the in-app browser")
                 }
             }.padding(.horizontal, 16).padding(.vertical, 24)
         }
@@ -414,6 +407,9 @@ struct ServiceDetailContent<Account: View>: View {
         }
         .sheet(isPresented: $showAccount) {
             ServiceAccountSheet { account() }
+        }
+        .sheet(isPresented: $showResetWebsite) {
+            ProbeBrowser(url: CodexResetNotice.website)
         }
     }
 }

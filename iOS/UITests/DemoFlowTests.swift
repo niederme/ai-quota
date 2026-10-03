@@ -25,11 +25,27 @@ final class DemoFlowTests: XCTestCase {
         XCTAssertFalse(resetLink.exists)
         app.buttons["Dismiss reset announcement"].tap()
         XCTAssertTrue(resetBanner.waitForNonExistence(timeout: 5))
-        XCTAssertTrue(resetLink.waitForExistence(timeout: 5))
+        XCTAssertFalse(resetLink.exists)
+        app.buttons.containing(.staticText, identifier: "Codex").firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Codex"].waitForExistence(timeout: 5))
+        for _ in 0..<8 {
+            if resetLink.isHittable { break }
+            app.swipeUp()
+        }
+        XCTAssertTrue(resetLink.isHittable)
+        XCTAssertTrue(app.buttons["Account and connection"].exists)
         let resetScreenshot = XCTAttachment(screenshot: app.screenshot())
-        resetScreenshot.name = "Codex reset check link after banner dismissal"
+        resetScreenshot.name = "Codex reset check action in service sheet"
         resetScreenshot.lifetime = .keepAlways
         add(resetScreenshot)
+        resetLink.tap()
+        let browserDone = app.buttons["Done"].firstMatch
+        XCTAssertTrue(browserDone.waitForExistence(timeout: 10))
+        browserDone.tap()
+        XCTAssertTrue(resetLink.waitForExistence(timeout: 5))
+        app.buttons["Close"].firstMatch.tap()
+        XCTAssertTrue(sample.waitForExistence(timeout: 5))
+        XCTAssertFalse(resetLink.exists)
         app.buttons["Exit demo"].firstMatch.tap()
         XCTAssertTrue(sample.waitForNonExistence(timeout: 5))
         // With no live accounts, exiting the demo returns to the existing setup flow.

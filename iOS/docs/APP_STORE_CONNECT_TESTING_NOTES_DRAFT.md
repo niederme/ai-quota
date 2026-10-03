@@ -23,7 +23,7 @@ Claude
 ## Recommended review flow: demo
 
 1. Launch AIQuota and tap Try Demo at the bottom left of the welcome screen. If already set up, open Settings → Demo → Try demo.
-2. On entry to the demo overview, review the sample “Codex usage reset announced” banner. The sample banner appears each time a new demo session starts; dismissing it is temporary for that demo session. After dismissing it, tap Check Codex resets below the Codex card to open the website again. This discreet link is also available in the regular dashboard whenever no announcement banner is visible.
+2. On entry to the demo overview, review the sample “Codex usage reset announced” banner. The sample banner appears each time a new demo session starts; dismissing it is temporary for that demo session. Tap the Codex card to open its detail sheet, then tap **Check Codex resets** directly below **Account and connection** to open the live website. This link is always available in the Codex detail sheet, including while the overview announcement is visible.
 3. Tap the banner to open the live `https://codex-resets.com` website in AIQuota’s in-app browser. The page is current website content, not sample data from the demo. Public announcements on that site are separate from the signed-in account’s personal quota readings and reset times.
 4. Explore the Codex and Claude cards, provider details, and sample Codex usage history.
 5. Add an AIQuota widget to the Home Screen or Lock Screen to see labeled sample usage.

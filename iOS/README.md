@@ -146,10 +146,12 @@ announced,” depending on the source. Historical averages and probabilities nev
 trigger a notice or appear in the UI. The banner uses the same Liquid Glass
 material as quota cards, with a matching circular dismiss icon. Existing notices
 show a skeleton while usage or the announcement feed refreshes; unknown or
-ineligible announcements do not create placeholder cards. When there is no visible
-banner, a discreet **Check Codex resets** link below the Codex card opens the same
-in-app browser, including after a notice expires or is dismissed. A disappearing
-notice is not confirmation that the account quota reset.
+ineligible announcements do not create placeholder cards. The Codex detail sheet
+places a discreet **Check Codex resets** link directly below **Account and
+connection**, using the same secondary style. It is always available, including
+when the overview shows an announcement, and opens the live `codex-resets.com`
+site in the in-app browser. A disappearing notice is not confirmation that the
+account quota reset.
 
 The app checks the public status endpoint at most every 15 minutes while active,
 honors rate-limit backoff, and sends no account credentials. Notices disappear on
