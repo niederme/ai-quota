@@ -1,5 +1,6 @@
 import SwiftUI
 import AIQuotaKit
+import MobileAccessCore
 
 struct PopoverView: View {
     @Environment(QuotaViewModel.self) private var viewModel
@@ -9,6 +10,18 @@ struct PopoverView: View {
     /// Captured reference to the MenuBarExtra NSWindow so we can re-show it
     /// after Settings opens (which steals key focus and causes the window to close).
     @State private var menuBarWindow: NSWindow?
+
+    @State private var resetNotice = CodexResetNotice()
+    @AppStorage(CodexResetNotice.dismissalKey) private var dismissedResetID = ""
+    @State private var demoResetDismissed = false
+
+    private var resetAnnouncement: CodexResetAnnouncement? {
+        #if DEMO_MODE
+        demoResetDismissed ? nil : CodexResetNotice.demoAnnouncement
+        #else
+        resetNotice.announcement(dismissedID: dismissedResetID)
+        #endif
+    }
 
     private var popoverWidth: CGFloat {
         viewModel.enrolledServices.count == 1 ? 240 : 340
@@ -21,6 +34,16 @@ struct PopoverView: View {
             } else {
                 signInContent
             }
+        }
+        .task(id: viewModel.isCodexAuthenticated) {
+            #if !DEMO_MODE
+            guard viewModel.isCodexAuthenticated else { return }
+            while !Task.isCancelled {
+                await resetNotice.refresh()
+                do { try await Task.sleep(for: .seconds(60)) }
+                catch { return }
+            }
+            #endif
         }
         .frame(width: popoverWidth)
         .background { popoverSurface }
@@ -72,9 +95,57 @@ struct PopoverView: View {
 
             statsRow
 
+            if viewModel.isCodexAuthenticated { resetNoticeRow }
+
             updateAvailableRow
             Divider()
             footer
+        }
+    }
+
+    @ViewBuilder
+    private var resetNoticeRow: some View {
+        if let announcement = resetAnnouncement {
+            HStack(alignment: .top, spacing: 8) {
+                Button { NSWorkspace.shared.open(CodexResetNotice.website) } label: {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(announcement.title)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(.primary)
+                        Label("Read more on Codex Resets", systemImage: "arrow.up.right")
+                            .font(.system(size: 11))
+                            .foregroundStyle(CircularGaugeView.accent)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                Button {
+                    #if DEMO_MODE
+                    demoResetDismissed = true
+                    #else
+                    dismissedResetID = announcement.id
+                    #endif
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24, height: 24)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel("Dismiss reset announcement")
+            }
+            .buttonStyle(.plain)
+            .padding(12)
+            .background(CircularGaugeView.accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+        } else {
+            Button { NSWorkspace.shared.open(CodexResetNotice.website) } label: {
+                Label("Check Codex resets", systemImage: "arrow.up.right")
+                    .font(.system(size: 11))
+                    .foregroundStyle(CircularGaugeView.accent)
+            }
+            .buttonStyle(.plain)
+            .padding(.bottom, 10)
         }
     }
 

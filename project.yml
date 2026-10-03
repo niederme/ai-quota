@@ -18,9 +18,11 @@ options:
 settings:
   base:
     MARKETING_VERSION: "1.9.28"
-    CURRENT_PROJECT_VERSION: "390"
+    CURRENT_PROJECT_VERSION: "395"
 
 packages:
+  MobileAccessCore:
+    path: Packages/MobileAccessCore
   AIQuotaKit:
     path: Packages/AIQuotaKit
   Firebase:
@@ -71,7 +73,7 @@ targetTemplates:
   StoreDistribution:
     settings:
       base:
-        CURRENT_PROJECT_VERSION: "390"
+        CURRENT_PROJECT_VERSION: "395"
         SWIFT_VERSION: "6.0"
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) APP_STORE"
         CODE_SIGN_STYLE: Automatic
@@ -97,6 +99,7 @@ targets:
     resources:
       - path: AIQuota/Resources/Assets.xcassets
     dependencies:
+      - package: MobileAccessCore
       - package: AIQuotaKit
       - package: Firebase
         product: FirebaseAnalyticsCore
@@ -170,6 +173,7 @@ targets:
           - Resources/GoogleService-Info.plist
           - Support/LaunchServicesSync.swift
     dependencies:
+      - package: MobileAccessCore
       - package: AIQuotaKit
       - package: Firebase
         product: FirebaseAnalyticsCore
