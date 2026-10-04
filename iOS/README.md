@@ -365,6 +365,20 @@ meaning. The overview omits daily history until positive usage is reported. It
 starts at the first usage day within the returned 30-day range and fills fixed
 slots from left to right, preserving subsequent zero days and unreported gaps.
 
+## Codex analytics detail
+
+Round 05 replaces the repeated detail rings with reported allowance progress
+rows and separate 7/30-day usage-credit cards. Daily totals, model attribution,
+and app attribution use the existing daily history feed. A category opens its
+own trend; chart selection and expandable daily readings expose day values.
+Missing dates and missing attribution remain unavailable rather than zero.
+Quiet refresh retains values and quota/history freshness remain independent.
+
+The Settings reference's weekly feature-period history, plugin calls, skills,
+and message counts have no verified feed in this integration and are omitted.
+Usage credits include plan usage; monetary extra usage remains separate and
+zero spending is hidden. Claude detail is unchanged by this iteration.
+
 ## Demo and App Review access
 
 Choose **Try demo** from the welcome screen or Settings to explore labeled sample usage, Codex history, provider details, and widgets without signing in. **Exit demo** restores the normal account flow. Samples are generated in memory and do not overwrite saved accounts or usage. Guided Setup remains available in demo mode with separate, temporary progress. See [App Review access](docs/APP_REVIEW_ACCESS.md) for the live test-mailbox and Google backup-code instructions.
