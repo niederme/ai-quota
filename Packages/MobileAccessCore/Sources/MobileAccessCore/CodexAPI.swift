@@ -114,8 +114,9 @@ public struct QuotaReading: Codable, Sendable, Equatable {
         windows.isEmpty ? "Allowance unavailable" : windows.map(\.accessibilitySummary).joined(separator: ". ")
     }
     public let metadata: AccountMetadata?
-    public init(fetchedAt: Date, shortTerm: QuotaWindow?, weekly: QuotaWindow?, metadata: AccountMetadata? = nil) {
-        self.fetchedAt = fetchedAt; self.shortTerm = shortTerm; self.weekly = weekly; self.metadata = metadata
+    public let claudeBreakdown: ClaudeWeeklyBreakdown?
+    public init(fetchedAt: Date, shortTerm: QuotaWindow?, weekly: QuotaWindow?, metadata: AccountMetadata? = nil, claudeBreakdown: ClaudeWeeklyBreakdown? = nil) {
+        self.fetchedAt = fetchedAt; self.shortTerm = shortTerm; self.weekly = weekly; self.metadata = metadata; self.claudeBreakdown = claudeBreakdown
     }
     public static func decode(_ data: Data, now: Date) throws -> Self {
         let raw = try JSONDecoder().decode(UsageResponse.self, from: data)
