@@ -366,8 +366,7 @@ struct ServiceDetailContent<Account: View>: View {
                 if name == "Codex" {
                     CodexAllowanceSummary(reading: reading, failed: failure != nil || error != nil, busy: busy)
                 } else {
-                    ServiceAllowanceCard(name: name, icon: icon, reading: reading,
-                                         busy: busy, failed: failure != nil || error != nil)
+                    CodexAllowanceSummary(reading: reading, failed: failure != nil || error != nil, busy: busy)
                 }
                 if failure == .reconnect || failure == .renewal {
                     Label("Reconnect to update allowance. Your last reading is retained.",
@@ -383,7 +382,7 @@ struct ServiceDetailContent<Account: View>: View {
                         CodexAnalyticsView(reading: reading, history: history,
                                            historyUnavailable: historyUnavailable, busy: busy, refresh: refresh)
                     } else {
-                        ClaudeDetailInformation(reading: reading)
+                        ClaudeAnalyticsView(reading: reading, busy: busy, failed: failure != nil || error != nil, refresh: refresh)
                     }
                 }.modifier(UsageLoadingState(loading: busy && reading == nil))
                 Divider()
@@ -551,36 +550,6 @@ private struct ChartLoadingState: ViewModifier {
             }
             .accessibilityHidden(loading)
     }
-}
-
-private struct ClaudeDetailInformation: View {
-    let reading: QuotaReading?
-    @ScaledMetric(relativeTo: .largeTitle) private var amountSize = 44.0
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            if let spent = reading?.metadata?.usageSpent, spent > 0 {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Extra usage").font(.headline)
-                    Text(reading?.metadata?.usageCurrency.map { spent.formatted(.currency(code: $0)) }
-                         ?? spent.formatted(.number.precision(.fractionLength(0...2))) + " credits")
-                        .font(.system(size: amountSize, weight: .semibold))
-                        .lineLimit(1).minimumScaleFactor(0.5)
-                    Text("Beyond your subscription · \(reading?.fetchedAt.formatted(.dateTime.month(.wide)) ?? Date.now.formatted(.dateTime.month(.wide)))")
-                        .font(.body).foregroundStyle(OverviewStyle.secondary)
-                    Text("Fable 5 and post-limit usage. Claude reports both as one monthly total and doesn’t provide a reliable breakdown. Your subscription price is separate.")
-                        .font(.body).foregroundStyle(OverviewStyle.secondary).padding(.top, 4)
-                }
-            } else if reading?.metadata?.usageSpent == nil {
-                Text("Spending not reported").font(.body).foregroundStyle(OverviewStyle.secondary)
-            }
-
-        }
-        .foregroundStyle(OverviewStyle.primary)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-
 }
 
 struct BrandSurfaceBackground: View {

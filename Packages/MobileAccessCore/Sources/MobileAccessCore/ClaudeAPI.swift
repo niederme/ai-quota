@@ -150,7 +150,7 @@ public struct ClaudeAPI: Sendable {
         let metadata = AccountMetadata(plan: plan, balanceUSD: reading.metadata?.balanceUSD,
             usageSpent: reading.metadata?.usageSpent, usageCurrency: reading.metadata?.usageCurrency)
         return QuotaReading(fetchedAt: reading.fetchedAt, shortTerm: reading.shortTerm,
-                            weekly: reading.weekly, metadata: metadata)
+                            weekly: reading.weekly, metadata: metadata, claudeBreakdown: reading.claudeBreakdown)
     }
     // Profile path, organization field, and mappings match the installed first-party
     // Claude Code client. Unknown/new organization types remain explicitly unavailable.
@@ -199,7 +199,7 @@ public struct ClaudeAPI: Sendable {
         let metadata = AccountMetadata(plan: nil, balanceUSD: nil,
             usageSpent: amount ?? raw.extra_usage?.used_credits?.value,
             usageCurrency: amount != nil ? money?.currency : raw.extra_usage?.currency)
-        return QuotaReading(fetchedAt: now, shortTerm: short, weekly: weekly, metadata: metadata)
+        return QuotaReading(fetchedAt: now, shortTerm: short, weekly: weekly, metadata: metadata, claudeBreakdown: raw.seven_day_breakdown)
     }
     private struct TokenResponse: Decodable {
         let access_token: String
@@ -209,13 +209,15 @@ public struct ClaudeAPI: Sendable {
     private struct UsageResponse: Decodable {
         let five_hour: Window?; let seven_day: Window?
         let extra_usage: ExtraUsage?; let spend: Spend?
-        enum CodingKeys: String, CodingKey { case five_hour, seven_day, extra_usage, spend }
+        let seven_day_breakdown: ClaudeWeeklyBreakdown?
+        enum CodingKeys: String, CodingKey { case five_hour, seven_day, extra_usage, spend, seven_day_breakdown }
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
             five_hour = try c.decodeIfPresent(Window.self, forKey: .five_hour)
             seven_day = try c.decodeIfPresent(Window.self, forKey: .seven_day)
             extra_usage = try? c.decode(ExtraUsage.self, forKey: .extra_usage)
             spend = try? c.decode(Spend.self, forKey: .spend)
+            seven_day_breakdown = try? c.decode(ClaudeWeeklyBreakdown.self, forKey: .seven_day_breakdown)
         }
     }
     private struct ExtraUsage: Decodable { let used_credits: MetadataNumber?; let currency: String? }

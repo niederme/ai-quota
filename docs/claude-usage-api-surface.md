@@ -132,3 +132,19 @@ unresolved `account_id`.
 - Same fragility caveat as ChatGPT: undocumented internal API, codenamed
   fields suggest active internal churn on this response shape, no stability
   guarantee.
+
+## iOS weekly product percentages (October 4, 2026)
+
+A normal iOS OAuth refresh confirmed the optional `seven_day_breakdown` shape:
+`as_of`, `window_started_at`, and rows with `key`, `display_name`, `percent`.
+The capture retained types only, not user values. The September sample above
+has product percentages totaling 101 while its weekly utilization is 6, so the
+earlier suggestion to describe a row as a percentage of the weekly limit is
+unsupported. iOS displays the raw **reported product percentage**, independently
+of allowance, without normalization or inference about its denominator.
+
+Optional malformed/missing breakdowns do not discard valid quota. Provider
+product timestamps are shown separately from allowance fetch freshness. Extra
+usage stays separate, zero amounts are hidden, and absent currency retains
+provider credit units. Caps, balances, optional model windows and reset-credit
+counts are not added based on null/unverified fields.
