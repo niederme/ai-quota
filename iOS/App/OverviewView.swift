@@ -363,8 +363,12 @@ struct ServiceDetailContent<Account: View>: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                ServiceAllowanceCard(name: name, icon: icon, reading: reading,
-                                     busy: busy, failed: failure != nil || error != nil)
+                if name == "Codex" {
+                    CodexAllowanceSummary(reading: reading, failed: failure != nil || error != nil, busy: busy)
+                } else {
+                    ServiceAllowanceCard(name: name, icon: icon, reading: reading,
+                                         busy: busy, failed: failure != nil || error != nil)
+                }
                 if failure == .reconnect || failure == .renewal {
                     Label("Reconnect to update allowance. Your last reading is retained.",
                           systemImage: "person.crop.circle.badge.exclamationmark")
@@ -376,8 +380,8 @@ struct ServiceDetailContent<Account: View>: View {
                 }
                 Group {
                     if name == "Codex" {
-                        CodexDetailInformation(reading: reading, history: history,
-                                               historyUnavailable: historyUnavailable)
+                        CodexAnalyticsView(reading: reading, history: history,
+                                           historyUnavailable: historyUnavailable, busy: busy, refresh: refresh)
                     } else {
                         ClaudeDetailInformation(reading: reading)
                     }
@@ -574,164 +578,6 @@ private struct ClaudeDetailInformation: View {
         }
         .foregroundStyle(OverviewStyle.primary)
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-
-}
-
-private struct CodexDetailInformation: View {
-    let reading: QuotaReading?
-    let history: CodexUsageHistory?
-    var historyUnavailable = false
-    @Environment(\.redactionReasons) private var redactionReasons
-    @State private var period = 30
-    @Environment(\.dynamicTypeSize) private var typeSize
-    @ScaledMetric(relativeTo: .largeTitle) private var amountSize = 44.0
-
-    @ScaledMetric(relativeTo: .body) private var legendCapMidpoint = 6.5
-
-    private var days: [CodexUsageHistory.Day] { Array((history?.days ?? []).suffix(period)) }
-    private func totals(_ key: KeyPath<CodexUsageHistory.Day, [String: Double]?>) -> [(String, Double)] {
-        var result: [String: Double] = [:]
-        for day in days {
-            for (name, value) in day[keyPath: key] ?? [:] { result[name, default: 0] += value }
-        }
-        return result.filter { $0.value > 0 }.sorted {
-            $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value
-        }.map { ($0.key, $0.value) }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            if let spent = reading?.metadata?.usageSpent, spent > 0 {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Extra usage").font(.headline)
-                Text(spending).font(.system(size: amountSize, weight: .semibold))
-                    .lineLimit(1).minimumScaleFactor(0.5)
-                Text("Beyond your subscription · \(reading?.fetchedAt.formatted(.dateTime.month(.wide)) ?? Date.now.formatted(.dateTime.month(.wide)))")
-                    .font(.body).foregroundStyle(OverviewStyle.secondary)
-                Text("Credit usage reported for this month, converted at 25 credits = $1. This excludes your subscription price and is not a record of credit purchases.")
-                    .font(.body).foregroundStyle(OverviewStyle.secondary).padding(.top, 4)
-            }
-            Divider()
-            } else if reading?.metadata?.usageSpent == nil {
-                Text("Spending not reported").font(.body).foregroundStyle(OverviewStyle.secondary)
-            }
-            VStack(alignment: .leading, spacing: 16) {
-                let headingLayout = typeSize.isAccessibilitySize
-                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
-                    : AnyLayout(HStackLayout())
-                headingLayout {
-                    Text("Usage").font(.headline)
-                    if !typeSize.isAccessibilitySize { Spacer() }
-                    Picker("Period", selection: $period) {
-                        Text("7 days").tag(7)
-                        Text("30 days").tag(30)
-                    }.pickerStyle(.menu)
-                }
-                Text("Share of usage credits, including your plan. Not a breakdown of extra charges.")
-                    .font(.body).foregroundStyle(OverviewStyle.secondary)
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Models").font(.headline)
-                    breakdown(totals(\.models))
-                    if !totals(\.models).isEmpty,
-                       days.contains(where: { ($0.credits ?? 0) > 0 && ($0.models?.isEmpty ?? true) }) {
-                        Text("Model breakdown is missing for some reported days.")
-                            .font(.body).foregroundStyle(OverviewStyle.secondary)
-                    }
-                }.padding(.top, 8)
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Apps and tools").font(.headline)
-                    breakdown(totals(\.surfaces))
-                }.padding(.top, 8)
-                if historyUnavailable {
-                    Label(history == nil ? "Usage history unavailable" : "Couldn’t update usage history · Saved breakdowns",
-                          systemImage: "exclamationmark.triangle")
-                        .font(.callout).foregroundStyle(OverviewStyle.warning)
-                } else if history == nil {
-                    Text("Usage history not reported").font(.body).foregroundStyle(OverviewStyle.secondary)
-                }
-                if let history {
-                    TimelineView(.periodic(from: .now, by: 30)) { context in
-                        Text("History · " + overviewFreshnessLabel(history.fetchedAt, at: context.date, saved: historyUnavailable))
-                            .font(.footnote).foregroundStyle(OverviewStyle.secondary)
-                    }.padding(.top, 8)
-                }
-            }
-
-        }
-        .foregroundStyle(OverviewStyle.primary)
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var spending: String {
-        guard let amount = reading?.metadata?.usageSpent else { return "Not reported" }
-        return amount.formatted(.currency(code: reading?.metadata?.usageCurrency ?? "USD"))
-    }
-
-    private func displayName(_ name: String) -> String {
-        let names = ["cli": "CLI", "vscode": "VS Code", "desktop_app": "Desktop",
-                     "web": "Web", "mobile": "Mobile", "sdk": "SDK",
-                     "github_code_review": "GitHub review", "codex-auto-review": "Auto review"]
-        return names[name] ?? name.replacingOccurrences(of: "gpt-", with: "GPT-")
-            .replacingOccurrences(of: "_", with: " ")
-    }
-    private func shareLabel(_ share: Double) -> String {
-        share > 0 && share < 0.01 ? "<1%" : share.formatted(.percent.precision(.fractionLength(0)))
-    }
-    @ViewBuilder private func breakdown(_ values: [(String, Double)]) -> some View {
-        let total = values.reduce(0) { $0 + $1.1 }
-        let capMidpoint = legendCapMidpoint
-        if total > 0 {
-            let leading = Array(values.filter { $0.1 / total >= 0.01 }.prefix(3))
-            let remaining = values.filter { item in !leading.contains(where: { $0.0 == item.0 }) }
-            let rows = leading + (remaining.isEmpty ? [] : [("Other", remaining.reduce(0) { $0 + $1.1 })])
-            let colors: [Color] = [OverviewStyle.accent, Color(red: 0.48, green: 0.27, blue: 0.70),
-                                   Color(red: 0.79, green: 0.66, blue: 0.91), Color(red: 0.43, green: 0.38, blue: 0.51)]
-            VStack(alignment: .leading, spacing: 12) {
-                GeometryReader { geometry in
-                    HStack(spacing: 0) {
-                        ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
-                            Rectangle().fill(colors[index])
-                                .frame(width: geometry.size.width * row.1 / total)
-                                .overlay(alignment: .leading) {
-                                    if index > 0 { Rectangle().fill(OverviewStyle.base).frame(width: 1) }
-                                }
-                        }
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                }.frame(height: 20)
-                    .modifier(ChartLoadingState(loading: redactionReasons.contains(.placeholder)))
-                    .accessibilityHidden(true)
-                LazyVGrid(columns: typeSize.isAccessibilitySize
-                          ? [GridItem(.flexible(), alignment: .leading)]
-                          : [GridItem(.flexible(), spacing: 16, alignment: .leading),
-                             GridItem(.flexible(), alignment: .leading)], alignment: .leading, spacing: 12) {
-                    ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
-                        HStack(alignment: .firstTextBaseline, spacing: 6) {
-                            Circle().fill(colors[index]).frame(width: 8, height: 8)
-                                .alignmentGuide(.firstTextBaseline) { dimensions in
-                                    dimensions[VerticalAlignment.center] + capMidpoint
-                                }
-                            (Text(displayName(row.0)) + Text(" " + shareLabel(row.1 / total))
-                                .foregroundColor(OverviewStyle.primary))
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        .font(.body)
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(displayName(row.0))
-                        .accessibilityValue(shareLabel(row.1 / total))
-                    }
-                }
-                if !remaining.isEmpty {
-                    Text("Other: " + remaining.map { displayName($0.0) }.joined(separator: ", "))
-                        .font(.body).foregroundStyle(OverviewStyle.secondary)
-                }
-            }
-        } else {
-            Text("No breakdown reported for this period.")
-                .font(.body).foregroundStyle(OverviewStyle.secondary)
-        }
     }
 
 
@@ -1058,7 +904,7 @@ struct OverviewHistoryStrip: View {
     }
 }
 
-private func overviewFreshnessLabel(_ fetchedAt: Date, at now: Date, saved: Bool) -> String {
+func overviewFreshnessLabel(_ fetchedAt: Date, at now: Date, saved: Bool) -> String {
     let elapsed = max(0, Int(now.timeIntervalSince(fetchedAt)))
     let relative = elapsed < 60 ? "just now" : elapsed < 3600 ? "\(elapsed / 60) minute\(elapsed / 60 == 1 ? "" : "s") ago" : "\(elapsed / 3600) hour\(elapsed / 3600 == 1 ? "" : "s") ago"
     if saved { return "Last updated \(relative)" }
