@@ -6,6 +6,7 @@ struct ClaudeAnalyticsView: View {
     let busy: Bool
     let failed: Bool
     let refresh: () -> Void
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -18,18 +19,28 @@ struct ClaudeAnalyticsView: View {
                             ClaudeProductDetail(row: row, breakdown: breakdown, failed: failed)
                         } label: {
                             VStack(alignment: .leading, spacing: 8) {
-                                HStack(alignment: .firstTextBaseline) {
+                                let layout = typeSize.isAccessibilitySize
+                                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                                    : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 8))
+                                layout {
                                     Text(row.displayName).font(.body.weight(.semibold))
-                                    Spacer(minLength: 8)
-                                    Text(row.percent.formatted(.number.precision(.fractionLength(0...1))) + "%")
-                                        .font(.body.bold()).monospacedDigit().layoutPriority(1)
-                                    Image(systemName: "chevron.right").font(.caption)
-                                        .foregroundStyle(OverviewStyle.secondary)
+                                    if !typeSize.isAccessibilitySize { Spacer(minLength: 8) }
+                                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                        Text(row.percent.formatted(.number.precision(.fractionLength(0...1))) + "%")
+                                            .font(.body.bold()).monospacedDigit()
+                                        Image(systemName: "chevron.right").font(.caption)
+                                            .foregroundStyle(OverviewStyle.secondary)
+                                    }.fixedSize()
                                 }
-                                ProgressView(value: row.percent, total: 100).tint(OverviewStyle.accent)
-                                    .accessibilityHidden(true)
+                                GeometryReader { geometry in
+                                    ZStack(alignment: .leading) {
+                                        Capsule().fill(OverviewStyle.track)
+                                        Capsule().fill(OverviewStyle.accent)
+                                            .frame(width: geometry.size.width * row.percent / 100)
+                                    }
+                                }.frame(height: 5).accessibilityHidden(true)
                             }.padding(.vertical, 6).frame(minHeight: 44)
-                        }.buttonStyle(.plain)
+                        }.buttonStyle(.plain).foregroundStyle(OverviewStyle.primary)
                     }
                     ClaudeBreakdownFreshness(breakdown: breakdown, failed: failed)
                     Text("Percentages reported by Claude, separate from your allowance.")
@@ -75,6 +86,7 @@ struct ClaudeBreakdownFreshness: View {
                 Text("Reported as of " + breakdown.asOf.formatted(date: .abbreviated, time: .shortened))
                 Text("Window started " + breakdown.windowStartedAt.formatted(date: .abbreviated, time: .shortened))
             }.font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }
