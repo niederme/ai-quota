@@ -162,7 +162,7 @@ public actor WidgetRefreshService {
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             let raw = try decoder.decode(WhamUsageResponse.self, from: data)
-            return CodexUsage(from: raw)
+            return CodexUsage(from: raw).retainingLastConfirmedWindows(from: SharedDefaults.loadCachedUsage())
         } catch {
             throw NetworkError.decodingError(underlying: error)
         }

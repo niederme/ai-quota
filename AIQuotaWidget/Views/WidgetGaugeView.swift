@@ -64,14 +64,14 @@ struct WidgetGaugeView: View {
                         .rotationEffect(.degrees(135))
                 }
 
-                // ── Inner track (touching) ────────────────────────────
-                Circle()
-                    .trim(from: 0, to: 0.75)
-                    .stroke(.fill.tertiary, style: StrokeStyle(lineWidth: innerLW, lineCap: .butt))
-                    .rotationEffect(.degrees(135))
-                    .padding(innerPad)
-
                 if showsSecondaryMetric {
+                    // ── Inner track (touching) ────────────────────────────
+                    Circle()
+                        .trim(from: 0, to: 0.75)
+                        .stroke(.fill.tertiary, style: StrokeStyle(lineWidth: innerLW, lineCap: .butt))
+                        .rotationEffect(.degrees(135))
+                        .padding(innerPad)
+
                     Circle()
                         .trim(from: 0, to: 0.75 * secondaryFill)
                         .stroke(statusColor.opacity(secondaryOpacity), style: StrokeStyle(lineWidth: innerLW, lineCap: .butt))

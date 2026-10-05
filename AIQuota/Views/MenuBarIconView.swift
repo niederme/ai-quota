@@ -8,6 +8,7 @@ struct MenuBarGaugeInput {
     let limitReached: Bool
     let isLoading: Bool
     let worstPercent: Int
+    var showsSecondaryMetric: Bool = true
 }
 
 struct MenuBarIconView: View {
@@ -17,6 +18,7 @@ struct MenuBarIconView: View {
     let isLoading: Bool
     /// Worst metric for the currently displayed service — drives ring colour.
     let worstPercent: Int
+    let showsSecondaryMetric: Bool
     let showsUpdateBadge: Bool
 
     init(
@@ -25,13 +27,15 @@ struct MenuBarIconView: View {
         limitReached: Bool,
         isLoading: Bool,
         worstPercent: Int,
-        showsUpdateBadge: Bool = false
+        showsUpdateBadge: Bool = false,
+        showsSecondaryMetric: Bool = true
     ) {
         self.usedPercent = usedPercent
         self.secondaryPercent = secondaryPercent
         self.limitReached = limitReached
         self.isLoading = isLoading
         self.worstPercent = worstPercent
+        self.showsSecondaryMetric = showsSecondaryMetric
         self.showsUpdateBadge = showsUpdateBadge
     }
 
@@ -42,7 +46,8 @@ struct MenuBarIconView: View {
             limitReached: input.limitReached,
             isLoading: input.isLoading,
             worstPercent: input.worstPercent,
-            showsUpdateBadge: showsUpdateBadge
+            showsUpdateBadge: showsUpdateBadge,
+            showsSecondaryMetric: input.showsSecondaryMetric
         )
     }
 
@@ -60,7 +65,8 @@ struct MenuBarIconView: View {
             limitReached: limitReached,
             isLoading: isLoading,
             size: 22,
-            worstPercent: worstPercent
+            worstPercent: worstPercent,
+            showsSecondaryMetric: showsSecondaryMetric
         )
         if showsUpdateBadge { MenuBarUpdateBadge.draw(in: image) }
         return image
@@ -113,7 +119,8 @@ struct DoubleMenuBarIconView: View {
             limitReached: input.limitReached,
             isLoading: input.isLoading,
             size: gaugeSize,
-            worstPercent: input.worstPercent
+            worstPercent: input.worstPercent,
+            showsSecondaryMetric: input.showsSecondaryMetric
         )
     }
 }

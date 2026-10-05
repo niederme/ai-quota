@@ -86,7 +86,7 @@ public actor OpenAIClient {
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             let raw = try decoder.decode(WhamUsageResponse.self, from: data)
             recordAttempt(source: context.source, httpStatus: http.statusCode, category: .success)
-            return CodexUsage(from: raw)
+            return CodexUsage(from: raw).retainingLastConfirmedWindows(from: SharedDefaults.loadCachedUsage())
         } catch {
             recordAttempt(source: context.source, httpStatus: http.statusCode, category: .invalidResponse)
             let preview = String(data: data.prefix(2000), encoding: .utf8) ?? "<non-UTF8>"

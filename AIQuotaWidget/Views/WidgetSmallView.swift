@@ -31,17 +31,18 @@ struct WidgetSmallView: View {
             } else {
                 if let u = entry.codexUsage {
                     let hasHourlyWindow = u.hasHourlyWindow
+                    let weeklyOnly = u.reportsWeeklyOnlyWindow
                     WidgetGaugeView(
-                        primaryPercent: hasHourlyWindow ? u.hourlyUsedPercent : 0,
-                        primaryLimitReached: hasHourlyWindow && u.hourlyUsedPercent >= 100,
-                        showsPrimaryMetric: hasHourlyWindow,
+                        primaryPercent: weeklyOnly ? u.weeklyUsedPercent : (hasHourlyWindow ? u.hourlyUsedPercent : 0),
+                        primaryLimitReached: weeklyOnly ? u.isWeeklyExhausted : (hasHourlyWindow && u.hourlyUsedPercent >= 100),
+                        showsPrimaryMetric: weeklyOnly || hasHourlyWindow,
                         secondaryPercent: u.weeklyUsedPercent,
-                        showsSecondaryMetric: true,
+                        showsSecondaryMetric: !weeklyOnly,
                         icon: "logo-openai",
                         label: "Codex",
-                        primaryLabel: "5h",
+                        primaryLabel: weeklyOnly ? "7d" : "5h",
                         secondaryLabel: "7-day",
-                        resetSeconds: u.hourlyResetAfterSeconds,
+                        resetSeconds: weeklyOnly ? u.weeklyResetAfterSeconds : u.hourlyResetAfterSeconds,
                         weeklyResetSeconds: u.weeklyResetAfterSeconds,
                         secondaryLimitReached: u.isWeeklyExhausted,
                         size: 90
