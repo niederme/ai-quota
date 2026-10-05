@@ -359,13 +359,15 @@ struct ServiceDetailContent<Account: View>: View {
     @State private var showAccount = false
     @State private var showResetWebsite = false
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported")
-                        .font(.callout)
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 8) {
+                    if usesPlanSubtitle == false {
+                        planLabel
+                    }
                     if let reading {
                         TimelineView(.periodic(from: .now, by: 30)) { context in
                             Text("Usage · " + overviewFreshnessLabel(reading.fetchedAt, at: context.date,
@@ -405,12 +407,13 @@ struct ServiceDetailContent<Account: View>: View {
                     }
                     .accessibilityHint("Opens Codex Resets in the in-app browser")
                 }
-            }.padding(.horizontal, 16).padding(.vertical, 24)
+            }.padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 24)
         }
         .background { BrandSurfaceBackground().ignoresSafeArea() }
         .toolbarBackground(.hidden, for: .navigationBar)
         .navigationTitle(name)
         .toolbarTitleDisplayMode(.inlineLarge)
+        .modifier(ServicePlanSubtitle(plan: usesPlanSubtitle ? planText : ""))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Refresh", systemImage: "arrow.clockwise", action: refresh)
@@ -432,6 +435,32 @@ struct ServiceDetailContent<Account: View>: View {
         }
         .sheet(isPresented: $showResetWebsite) {
             ProbeBrowser(url: CodexResetNotice.website)
+        }
+    }
+    private var planText: String {
+        reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported"
+    }
+    private var usesPlanSubtitle: Bool {
+        if #available(iOS 26.0, *) {
+            return !typeSize.isAccessibilitySize && planText.count <= 24
+        }
+        return false
+    }
+    private var planLabel: some View {
+        Text(planText)
+            .font(.callout).foregroundStyle(OverviewStyle.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
+}
+
+private struct ServicePlanSubtitle: ViewModifier {
+    let plan: String
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.navigationSubtitle(plan)
+        } else {
+            content
         }
     }
 }

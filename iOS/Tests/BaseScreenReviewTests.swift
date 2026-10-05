@@ -71,22 +71,25 @@ final class BaseScreenReviewTests: XCTestCase {
         """.utf8), now: now)
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
         let previous = scene.windows.first(where: \.isKeyWindow)
-        for (name, scheme, size) in [("dark", ColorScheme.dark, DynamicTypeSize.large), ("light", .light, .large), ("accessible", .dark, .accessibility3), ("empty", .dark, .large), ("monthly", .light, .accessibility3), ("failed", .dark, .large), ("missing", .dark, .large)] {
+        for (name, scheme, size) in [("dark", ColorScheme.dark, DynamicTypeSize.large), ("light", .light, .large), ("accessible", .dark, .accessibility3), ("empty", .dark, .large), ("monthly", .light, .accessibility3), ("failed", .dark, .large), ("missing", .dark, .large), ("long-plan", .light, .accessibility3), ("refresh-error", .dark, .large)] {
             let monthly = try JSONDecoder().decode(QuotaReading.self, from: Data("""
             {"fetchedAt":\(now.addingTimeInterval(-3600).timeIntervalSinceReferenceDate),"weekly":{"usedPercent":4,"durationSeconds":2592000,"resetsAt":\(now.addingTimeInterval(-60).timeIntervalSinceReferenceDate)},"metadata":{"plan":"free","usageSpent":0,"usageCurrency":"USD"}}
             """.utf8))
-            let displayedReading: QuotaReading? = name == "missing" ? nil : name == "monthly" ? monthly : name == "empty"
+            let longPlan = try JSONDecoder().decode(QuotaReading.self, from: Data("""
+            {"fetchedAt":\(now.timeIntervalSinceReferenceDate),"metadata":{"plan":"Enterprise workspace with a long reported name"}}
+            """.utf8))
+            let displayedReading: QuotaReading? = name == "long-plan" ? longPlan : name == "missing" ? nil : name == "monthly" ? monthly : name == "empty"
                 ? QuotaReading(fetchedAt: now, shortTerm: nil, weekly: reading.weekly) : reading
             let displayedHistory = name == "empty"
                 ? try CodexUsageHistory.decode(Data("{\"data\":[]}".utf8), now: now) : history
             let content = ServiceAccountSheet(showsClose: false) {
                 ServiceDetailContent(name: "Codex", icon: "logo-openai", reading: displayedReading,
-                    connected: true, busy: false, error: nil, failure: name == "failed" ? .reconnect : nil, history: displayedHistory, historyUnavailable: name == "failed", refresh: {}) { Text("Account") }
+                    connected: true, busy: name == "refresh-error", error: name == "refresh-error" ? "Couldn’t refresh. Saved reading retained." : nil, failure: name == "failed" ? .reconnect : nil, history: displayedHistory, historyUnavailable: name == "failed", refresh: {}) { Text("Account") }
             }.environment(\.colorScheme, scheme).environment(\.dynamicTypeSize, size)
             let window = UIWindow(windowScene: scene)
             window.rootViewController = UIHostingController(rootView: content)
             window.makeKeyAndVisible()
-            try await Task.sleep(for: .milliseconds(800))
+            try await Task.sleep(for: .milliseconds(1600))
             let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
                 window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
             }
@@ -136,10 +139,13 @@ final class BaseScreenReviewTests: XCTestCase {
         """.utf8), now: now)
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
         let previous = scene.windows.first(where: \.isKeyWindow)
-        for (name, scheme, size) in [("dark", ColorScheme.dark, DynamicTypeSize.large), ("light", .light, .large), ("accessible", .dark, .accessibility3)] {
+        for (name, scheme, size) in [("dark", ColorScheme.dark, DynamicTypeSize.large), ("light", .light, .large), ("accessible", .dark, .accessibility3), ("missing", .light, .large), ("long-plan", .dark, .accessibility3), ("refresh-error", .light, .large)] {
+            let longPlan = try JSONDecoder().decode(QuotaReading.self, from: Data("""
+            {"fetchedAt":\(now.timeIntervalSinceReferenceDate),"metadata":{"plan":"Enterprise workspace with a long reported name"}}
+            """.utf8))
             let content = ServiceAccountSheet(showsClose: false) {
-                ServiceDetailContent(name: "Claude", icon: "logo-claude", reading: reading,
-                    connected: true, busy: false, error: nil, failure: nil, history: history, refresh: {}) { Text("Account") }
+                ServiceDetailContent(name: "Claude", icon: "logo-claude", reading: name == "missing" ? nil : name == "long-plan" ? longPlan : reading,
+                    connected: true, busy: name == "refresh-error", error: name == "refresh-error" ? "Couldn’t refresh. Saved reading retained." : nil, failure: nil, history: history, refresh: {}) { Text("Account") }
             }.environment(\.colorScheme, scheme).environment(\.dynamicTypeSize, size)
             let window = UIWindow(windowScene: scene)
             window.rootViewController = UIHostingController(rootView: content)

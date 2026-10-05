@@ -10,7 +10,6 @@ struct ClaudeAnalyticsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Analytics").font(.title2.bold())
             VStack(alignment: .leading, spacing: 12) {
                 Text("This week by product").font(.headline)
                 if let breakdown = reading?.claudeBreakdown {
