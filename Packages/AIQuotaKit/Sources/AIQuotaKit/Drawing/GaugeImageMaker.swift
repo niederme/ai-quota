@@ -35,9 +35,11 @@ public enum GaugeImageMaker {
 
         let s  = size
         let cx = s / 2, cy = s / 2
-        let lw = s * 0.12              // slightly thinner to fit two rings
-        let r1 = s * 0.41              // outer ring (5h / primary)
-        let r2 = r1 - lw              // inner ring (7-day / secondary), touching
+        let dualLineWidth = s * 0.12
+        let lw = s * (showsSecondaryMetric ? 0.12 : 0.13)
+        // Thicken inward so the outer edge and 22-point footprint stay fixed.
+        let r1 = s * 0.41 - (lw - dualLineWidth) / 2
+        let r2 = r1 - lw              // inner ring (secondary), touching
 
         ctx.setLineWidth(lw)
 
