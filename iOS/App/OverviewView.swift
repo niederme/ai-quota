@@ -363,17 +363,23 @@ struct ServiceDetailContent<Account: View>: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                if name == "Codex" {
-                    CodexAllowanceSummary(reading: reading, failed: failure != nil || error != nil, busy: busy)
-                } else {
-                    CodexAllowanceSummary(reading: reading, failed: failure != nil || error != nil, busy: busy)
-                }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported")
+                        .font(.callout)
+                    if let reading {
+                        TimelineView(.periodic(from: .now, by: 30)) { context in
+                            Text("Usage · " + overviewFreshnessLabel(reading.fetchedAt, at: context.date,
+                                 saved: failure != nil || error != nil))
+                                .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                        }
+                    }
+                }.frame(maxWidth: .infinity, alignment: .leading)
                 if failure == .reconnect || failure == .renewal {
-                    Label("Reconnect to update allowance. Your last reading is retained.",
+                    Label("Reconnect to update details. Your last reading is retained.",
                           systemImage: "person.crop.circle.badge.exclamationmark")
                         .font(.callout).foregroundStyle(OverviewStyle.warning)
                 } else if failure != nil, error == nil {
-                    Label("Couldn’t update allowance. Your last reading is retained.",
+                    Label("Couldn’t update details. Your last reading is retained.",
                           systemImage: "exclamationmark.triangle")
                         .font(.callout).foregroundStyle(OverviewStyle.warning)
                 }
@@ -426,64 +432,6 @@ struct ServiceDetailContent<Account: View>: View {
         }
         .sheet(isPresented: $showResetWebsite) {
             ProbeBrowser(url: CodexResetNotice.website)
-        }
-    }
-}
-
-/// Allowance is provider data; spending and history remain separate below this card.
-private struct ServiceAllowanceCard: View {
-    let name: String
-    let icon: String
-    let reading: QuotaReading?
-    let busy: Bool
-    let failed: Bool
-    @Environment(\.dynamicTypeSize) private var typeSize
-
-    var body: some View {
-        TimelineView(.periodic(from: .now, by: 30)) { context in
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(name).font(.headline)
-                    Text(reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported")
-                        .font(.subheadline).foregroundStyle(OverviewStyle.secondary)
-                }
-                let layout = typeSize.isAccessibilitySize
-                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: 16))
-                    : AnyLayout(HStackLayout(alignment: .top, spacing: 24))
-                layout {
-                    ProviderDialCardContent(name: name, icon: icon, availableWidth: 0,
-                                      reading: reading, connected: true,
-                                      busy: busy && reading == nil, error: nil, allowanceOnly: true)
-                    VStack(alignment: .leading, spacing: 16) {
-                        ForEach(reading?.windows ?? []) { window in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("\(Int(window.usedPercent.rounded()))% used · \(window.label)")
-                                    .font(.title2.bold()).monospacedDigit()
-                                Text(window.resetDescription(relativeTo: context.date))
-                                    .font(.footnote.weight(.semibold))
-                            }
-                            .foregroundStyle(OverviewStyle.accent)
-                            .fixedSize(horizontal: false, vertical: true)
-                        }
-                        if reading?.windows.isEmpty ?? true {
-                            Text(busy ? "Loading allowance…" : "Allowance not reported")
-                                .font(.body).foregroundStyle(OverviewStyle.secondary)
-                        }
-                    }.frame(maxWidth: .infinity, alignment: .leading)
-                }
-                if let reading {
-                    Text("Allowance · " + overviewFreshnessLabel(reading.fetchedAt, at: context.date, saved: failed))
-                        .font(.footnote).foregroundStyle(OverviewStyle.secondary)
-                }
-                if busy {
-                    Label("Updating details", systemImage: "arrow.clockwise")
-                        .font(.footnote).foregroundStyle(OverviewStyle.secondary)
-                }
-            }
-            .foregroundStyle(OverviewStyle.primary)
-            .padding(24)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .modifier(OverviewCardMaterial())
         }
     }
 }

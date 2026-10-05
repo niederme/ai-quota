@@ -259,34 +259,3 @@ struct CodexTrendCard: View {
 }
 
 /// Allowance appears as reported progress rows, without repeating overview rings.
-struct CodexAllowanceSummary: View {
-    let reading: QuotaReading?
-    let failed: Bool
-    let busy: Bool
-    var body: some View {
-        TimelineView(.periodic(from: .now, by: 30)) { context in
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Plan allowance").font(.headline)
-                Text(reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported")
-                    .font(.callout).foregroundStyle(OverviewStyle.secondary)
-                ForEach(reading?.windows ?? []) { window in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(window.label).font(.callout).foregroundStyle(OverviewStyle.secondary)
-                        Text("\(Int(window.usedPercent.rounded()))% used").font(.title.bold()).monospacedDigit()
-                        ProgressView(value: min(100, max(0, window.usedPercent)), total: 100).tint(OverviewStyle.accent)
-                            .accessibilityLabel(window.label + " used")
-                        Text(window.resetDescription(relativeTo: context.date)).font(.footnote)
-                            .foregroundStyle(OverviewStyle.secondary)
-                    }
-                }
-                if reading?.windows.isEmpty ?? true {
-                    Text(busy ? "Loading allowance…" : "Allowance not reported").font(.callout)
-                }
-                if let reading {
-                    Text("Allowance · " + overviewFreshnessLabel(reading.fetchedAt, at: context.date, saved: failed))
-                        .font(.footnote).foregroundStyle(OverviewStyle.secondary)
-                }
-            }.foregroundStyle(OverviewStyle.primary).modifier(AnalyticsCard())
-        }
-    }
-}
