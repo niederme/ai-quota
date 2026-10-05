@@ -15,19 +15,14 @@ struct CodexAnalyticsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            let layout = typeSize.isAccessibilitySize
-                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 12))
-                : AnyLayout(HStackLayout(alignment: .center, spacing: 16))
-            layout {
-                Text("Analytics").font(.title2.bold())
-                if !typeSize.isAccessibilitySize { Spacer() }
+            VStack(alignment: .leading, spacing: 8) {
                 Picker("Usage period", selection: $period) {
                     Text("7 days").tag(7)
                     Text("30 days").tag(30)
                 }.pickerStyle(.segmented).frame(maxWidth: 180)
+                Text("Plan usage credits · not messages or extra charges.")
+                    .font(.footnote).foregroundStyle(OverviewStyle.secondary)
             }
-            Text("Usage credits, including your plan. These are not message counts or extra charges.")
-                .font(.footnote).foregroundStyle(OverviewStyle.secondary)
             if let history {
                 TimelineView(.periodic(from: .now, by: 30)) { context in
                     Text("History · " + overviewFreshnessLabel(history.fetchedAt, at: context.date, saved: historyUnavailable))
