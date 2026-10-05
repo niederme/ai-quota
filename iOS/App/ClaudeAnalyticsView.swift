@@ -53,7 +53,7 @@ struct ClaudeAnalyticsView: View {
                 } else {
                     Text(busy ? "Fetching weekly breakdown…" : "Weekly breakdown unavailable")
                         .font(.callout.weight(.semibold))
-                    Text("Product details appear when Claude reports them. Allowance is shown separately above.")
+                    Text("Product details appear when Claude reports them.")
                         .font(.callout).foregroundStyle(OverviewStyle.secondary)
                     if !busy { Button("Try again", action: refresh) }
                 }
