@@ -10,6 +10,7 @@
 		016897F2F3C03D3BD1F940E8 /* OnboardingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D3DAB2AE10FEF44FAAAEEEE /* OnboardingTests.swift */; };
 		02D378445912866CB0DC998B /* ClaudeProbeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25D0C914A09E992523B60A79 /* ClaudeProbeModel.swift */; };
 		045BF5454A00DF2152B504B9 /* WidgetIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F1F18DB5A7FD4515D863D71 /* WidgetIntent.swift */; };
+		066948F25E92DC96EDD5187B /* LockScreenWidgetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 419400F7BFA8341777F59D91 /* LockScreenWidgetTests.swift */; };
 		09C3707BB5896209FE461CA7 /* DemoViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B298FC20B9D43BA1C027CE6E /* DemoViews.swift */; };
 		0A551ADD42969BAB772A2B1B /* BudgetStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8078C57920AA96E74607EA71 /* BudgetStripView.swift */; };
 		0C3D35A9CE3B5A6F4B5C7816 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDE2263EBEB7008EF6988081 /* WebKit.framework */; };
@@ -21,6 +22,7 @@
 		168599BDC65516BFAFB4B2DF /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AFDFAA7F9E0650962EC80DC /* OnboardingView.swift */; };
 		17126B49397A4A50A1B6325F /* MenuBarIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB657B3EE7EFE0906CC89C7E /* MenuBarIconView.swift */; };
 		182E7BC50A120FEEBA58E14A /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2DD6DC0C92D6E6CBCA60A64 /* WidgetStore.swift */; };
+		18EC848EC90BD55FFC140C56 /* LockScreenResetPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3B0E5DE08ACE9177CD91F9C /* LockScreenResetPresentation.swift */; };
 		18F490DA24873632F7F02099 /* HomeWidgetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3805EE8533FA745C2DDA0491 /* HomeWidgetTests.swift */; };
 		1EDE4F3056D8B3FE3D63FD79 /* QuotaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5F53FC0B0CEEDEB3DD6488A /* QuotaViewModel.swift */; };
 		2494810777DC407773DE4C13 /* DemoDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CC237C662A19D0C0A77A43 /* DemoDriver.swift */; };
@@ -125,6 +127,7 @@
 		DB0D128A3383DCB3DA228D4F /* TokenStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9302F08CDA8C2099F522EB6 /* TokenStoreTests.swift */; };
 		DE51EF987644B16CFE0AE195 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = FB0002B3439366F7C9621561 /* Sparkle */; };
 		DF73B1ABD010C0FC8B4B0FE5 /* NotificationsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88FA3DF197FD04781EF8C4EF /* NotificationsStepView.swift */; };
+		DF958270C822B6C5C2AB8798 /* LockScreenResetPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3B0E5DE08ACE9177CD91F9C /* LockScreenResetPresentation.swift */; };
 		E104D194CAEB9FF42758406C /* AIQuotaKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6BDA6DD3060568B481F493B5 /* AIQuotaKit */; };
 		E160ECCBCF34150E6B3A8A61 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AFDFAA7F9E0650962EC80DC /* OnboardingView.swift */; };
 		E35629D70F3650759EDF8865 /* ServicesStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C66610C3B005AD239F7EDE75 /* ServicesStepView.swift */; };
@@ -248,6 +251,7 @@
 		39129D16B4B1A86FA705A17C /* HomeQuotaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeQuotaView.swift; sourceTree = "<group>"; };
 		3E3E5BEBFAE5CBFD5ABBEB22 /* AIQuotaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIQuotaApp.swift; sourceTree = "<group>"; };
 		3FC79333A7787720CC4F63B8 /* AIQuotaWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIQuotaWidget.swift; sourceTree = "<group>"; };
+		419400F7BFA8341777F59D91 /* LockScreenWidgetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenWidgetTests.swift; sourceTree = "<group>"; };
 		4392F2EBD4EFDCA51009B2E9 /* AIQuotaWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIQuotaWidgetBundle.swift; sourceTree = "<group>"; };
 		447D727A548E73A82C29281D /* CodexResetNotice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexResetNotice.swift; sourceTree = "<group>"; };
 		4A827B61B801F45B571C22D4 /* SharedQuotaStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedQuotaStore.swift; sourceTree = "<group>"; };
@@ -291,6 +295,7 @@
 		B298FC20B9D43BA1C027CE6E /* DemoViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoViews.swift; sourceTree = "<group>"; };
 		B2B4A02F2F3618A00A9FE938 /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
 		B2DD6DC0C92D6E6CBCA60A64 /* WidgetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetStore.swift; sourceTree = "<group>"; };
+		B3B0E5DE08ACE9177CD91F9C /* LockScreenResetPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenResetPresentation.swift; sourceTree = "<group>"; };
 		B7EF7635B21E03FC04EB0055 /* CodexAnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexAnalyticsView.swift; sourceTree = "<group>"; };
 		BC43070E1A6F758DB7AF31A6 /* CodexWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexWidget.swift; sourceTree = "<group>"; };
 		BE646C3065C7605692946277 /* AIQuota.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AIQuota.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -546,6 +551,7 @@
 				0C2641A9E19D22252D201446 /* DemoModeTests.swift */,
 				B167CA4D488EA6D6B904363D /* ForegroundRefreshTests.swift */,
 				3805EE8533FA745C2DDA0491 /* HomeWidgetTests.swift */,
+				419400F7BFA8341777F59D91 /* LockScreenWidgetTests.swift */,
 				DEF02E14FDE3406AB3CFB999 /* MobileAnalyticsTests.swift */,
 				1D3DAB2AE10FEF44FAAAEEEE /* OnboardingTests.swift */,
 				8924102467BA8034DBE2CECD /* SharedQuotaStoreTests.swift */,
@@ -560,6 +566,7 @@
 				E2681A208A2007E5167B5903 /* CompactQuotaView.swift */,
 				F67E72577EE3060D479BB8A0 /* DemoQuotaData.swift */,
 				39129D16B4B1A86FA705A17C /* HomeQuotaView.swift */,
+				B3B0E5DE08ACE9177CD91F9C /* LockScreenResetPresentation.swift */,
 				926FEB7F8D7432AC85C40F34 /* Mobile.entitlements */,
 				4A827B61B801F45B571C22D4 /* SharedQuotaStore.swift */,
 				33016447347AF46F0499E374 /* Widget.entitlements */,
@@ -1102,6 +1109,7 @@
 				455DE785DF5BFE80EBD70996 /* CompactQuotaView.swift in Sources */,
 				8216D0F3164D0E0251628667 /* DemoQuotaData.swift in Sources */,
 				7264701CDFFD31E6E42BAB6A /* HomeQuotaView.swift in Sources */,
+				DF958270C822B6C5C2AB8798 /* LockScreenResetPresentation.swift in Sources */,
 				5792CB0B6EA5C20E80281372 /* SharedQuotaStore.swift in Sources */,
 				182E7BC50A120FEEBA58E14A /* WidgetStore.swift in Sources */,
 			);
@@ -1167,6 +1175,7 @@
 				D2372B4B0F6E0889E747673E /* DemoQuotaData.swift in Sources */,
 				09C3707BB5896209FE461CA7 /* DemoViews.swift in Sources */,
 				E8EF46CD148FBE9562C21B18 /* HomeQuotaView.swift in Sources */,
+				18EC848EC90BD55FFC140C56 /* LockScreenResetPresentation.swift in Sources */,
 				A9E731415728005F78C17CC9 /* MobileAccessApp.swift in Sources */,
 				8A411DE18F08C54C94DD92E6 /* MobileAnalytics.swift in Sources */,
 				2FCFA2535E9E9290F1988907 /* MobileSettingsView.swift in Sources */,
@@ -1192,6 +1201,7 @@
 				135CCD8C4FA58980E1204E20 /* DemoModeTests.swift in Sources */,
 				31A3D31590EC997EACC431C6 /* ForegroundRefreshTests.swift in Sources */,
 				18F490DA24873632F7F02099 /* HomeWidgetTests.swift in Sources */,
+				066948F25E92DC96EDD5187B /* LockScreenWidgetTests.swift in Sources */,
 				8345576EE21F0AB14ECE70BD /* MobileAnalyticsTests.swift in Sources */,
 				016897F2F3C03D3BD1F940E8 /* OnboardingTests.swift in Sources */,
 				41C02C66278A722573030C3B /* SharedQuotaStoreTests.swift in Sources */,
