@@ -75,6 +75,16 @@ the widest full string exceeds the 78-point combined column. The rendered candid
 uses uniform 11-point system text for provider, quotas and reset, with 32-point ring
 frames. Its hierarchy is internally consistent, but deliberately smaller than the
 one-service 14-point layout because two services share one rectangle. This tradeoff
-needs review; it has NOT been installed on Karin Air. Five Lock Screen tests passed.
+needs visual review. Five Lock Screen tests passed. The candidate was subsequently
+built and installed in place on Karin Air under the authorized local iteration.
 Native candidate Library ID: libfile_fdb5963ee3ec8191b9d72f5f6a490b22.
-The currently installed combined variant still uses the previous 24-hour copy.
+The currently installed combined variant uses the corrected AM/PM copy. Actual
+combined gallery/placed review and Home/provider selection checks await the user
+showing those screens; Device Hub is view-only for this physical phone.
+
+The final exhaustive combined fit check covers every 3-letter weekday, hour,
+minute and AM/PM combination at 11-point medium. Five strings exceeded a 78-point
+column by a fraction of a point; central spacing was reduced from 4 to 2 points,
+creating 79-point columns. All five Lock Screen tests now pass, including every
+copy-width assertion and the native state renders. The same candidate Library ID
+was updated to version 1. Final signed build succeeded; installed for local review.

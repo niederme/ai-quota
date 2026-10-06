@@ -147,7 +147,7 @@ struct CompactProvider: AppIntentTimelineProvider {
 struct CompactLockScreenWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "CompactLockScreen", intent: CompactConfiguration.self, provider: CompactProvider()) { entry in
-            HStack(alignment: .center, spacing: 4) {
+            HStack(alignment: .center, spacing: 2) {
                 ForEach(entry.values, id: \.service) { value in
                     if entry.values.count == 1 {
                         ServiceDetailsView(value: value, date: entry.date)

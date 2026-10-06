@@ -45,17 +45,19 @@ import MobileAccessCore
     }
     func testLargestThreeLetterTimeFitsWithoutScaling() {
         let font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        let combinedFont = UIFont.systemFont(ofSize: 11, weight: .medium)
         for day in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] {
             for hour in 1...12 { for minute in 0...59 { for period in ["AM", "PM"] {
                 let text = "\(day) \(hour):" + String(format: "%02d", minute) + " " + period
                 XCTAssertLessThanOrEqual((text as NSString).size(withAttributes: [.font: font]).width, 98, text)
+                XCTAssertLessThanOrEqual((text as NSString).size(withAttributes: [.font: combinedFont]).width, 79, text)
             } } }
         }
     }
     func testCombinedAllowanceDetailsRendersAtNativeSize() throws {
         for dual in [false, true] { for dark in [false, true] {
             let sample = try reading(reset: now.addingTimeInterval(86400), dual: dual)
-            let view = HStack(spacing: 4) {
+            let view = HStack(spacing: 2) {
                 ForEach(QuotaService.allCases, id: \.self) { service in
                     CompactQuotaView(service: service, reading: sample, needsApp: false, date: self.now, compact: true)
                 }
