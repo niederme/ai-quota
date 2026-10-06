@@ -18,17 +18,17 @@ struct HomeQuotaView: View {
                 if let value = values.first {
                     HStack(alignment: .top, spacing: 14) {
                         gauge(value, size: 90).frame(width: 120)
-                        Divider()
+                        Divider().padding(.bottom, 16)
                         details(value).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     }
                 }
             case .dualMedium:
                 let visible = enrolledValues
-                HStack(spacing: 0) {
+                HStack(alignment: .top, spacing: 0) {
                     ForEach(Array(visible.enumerated()), id: \.element.service) { index, value in
-                        if index > 0 { Divider().padding(.vertical, 8) }
+                        if index > 0 { Divider().padding(.bottom, 16) }
                         Link(destination: value.service.url) {
-                            gauge(value, size: visible.count == 1 ? 90 : 80)
+                            gauge(value, size: 90)
                                 .frame(maxWidth: .infinity)
                         }
                     }
@@ -36,30 +36,35 @@ struct HomeQuotaView: View {
             case .large:
                 VStack(spacing: 10) {
                     HStack {
-                        Text("AIQuota").font(.subheadline.bold())
+                        Text("AIQuota").font(.system(size: 15, weight: .bold))
                         Spacer()
                         Text("Allowance used").foregroundStyle(.secondary)
-                    }.font(.caption.bold())
+                    }.font(.system(size: 11, weight: .bold))
                     Divider()
                     HStack(spacing: 12) {
                         ForEach(Array(values.enumerated()), id: \.element.service) { index, value in
-                            if index > 0 { Divider() }
+                            if index > 0 { Divider().padding(.bottom, 16) }
                             Link(destination: value.service.url) {
                                 VStack(spacing: 10) {
-                                    gauge(value, size: 96)
-                                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                    gauge(value, size: 90)
+                                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                                     Divider()
                                     details(value)
                                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                                 }
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                             }
                         }
                     }.frame(maxHeight: .infinity)
 
                 }
             }
-        }.buttonStyle(.plain).foregroundStyle(.primary).padding(12).frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .buttonStyle(.plain).foregroundStyle(.primary)
+        // Keep the ring frame fixed at the chosen inset, even when reset rows vanish.
+        // Four-point bottom clearance also fits the complete stack in a 158-point widget.
+        .padding(.horizontal, 12).padding(.top, 20).padding(.bottom, 4)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
     // A failed enrolled service stays visible. Only truly empty slots may collapse.
     private var enrolledValues: [ProviderReading] {
@@ -88,7 +93,7 @@ struct HomeQuotaView: View {
                         Image(value.service.logo).resizable().scaledToFit().frame(width: size * 0.16, height: size * 0.16)
                     }
                     Text(percent(value.reading?.primaryWindow) + " " + (value.reading?.primaryWindow?.compactLabel ?? ""))
-                        .font(.system(size: size * (value.reading?.secondaryWindow == nil ? 0.15 : 0.175), weight: .bold)).lineLimit(1).minimumScaleFactor(0.7)
+                        .font(.system(size: size * (value.reading?.secondaryWindow == nil ? 0.15 : 0.175), weight: .bold)).lineLimit(1)
                         .foregroundStyle(value.reading?.primaryWindow == nil ? Color.secondary : tint(value))
                     if let secondary = value.reading?.secondaryWindow {
                         Text(percent(secondary) + " " + secondary.compactLabel)
@@ -129,7 +134,7 @@ struct HomeQuotaView: View {
         Group {
             if window == nil { Text("\(label) not reported") }
             else if let window { Text("\(label) \(window.resetDescription(relativeTo: date, compact: true))") }
-        }.foregroundStyle(.secondary).lineLimit(1).minimumScaleFactor(0.85)
+        }.foregroundStyle(.secondary).lineLimit(1)
     }
     private func details(_ value: ProviderReading) -> some View {
         VStack(alignment: .leading, spacing: 5) {

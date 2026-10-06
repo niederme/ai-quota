@@ -135,3 +135,52 @@ extension HomeWidgetTests {
         XCTAssertEqual(monthly.primaryWindow?.compactLabel, "m")
     }
 }
+
+extension HomeWidgetTests {
+    func testProviderAndQuotaShapeKeepRingAnchoredAcrossRegisteredFamilies() throws {
+        let now = Date.now
+        func reading(dual: Bool) throws -> QuotaReading {
+            var windows: [String: Any] = ["secondary_window": ["used_percent": 28, "limit_window_seconds": 604800,
+                    "reset_at": now.addingTimeInterval(4 * 86400).timeIntervalSince1970]]
+            if dual { windows["primary_window"] = ["used_percent": 12, "limit_window_seconds": 18000,
+                    "reset_at": now.addingTimeInterval(3600).timeIntervalSince1970] }
+            let value = try QuotaReading.decode(JSONSerialization.data(withJSONObject: ["rate_limit": windows]), now: now)
+            return QuotaReading(fetchedAt: now, shortTerm: value.shortTerm, weekly: value.weekly,
+                metadata: AccountMetadata(plan: "pro", balanceUSD: 9.40, usageSpent: 12.40, usageCurrency: "USD"))
+        }
+        func firstRingRow(_ image: UIImage, startY: Int) throws -> Int {
+            let cg = try XCTUnwrap(image.cgImage)
+            var pixels = [UInt8](repeating: 0, count: cg.width * cg.height * 4)
+            let context = try XCTUnwrap(CGContext(data: &pixels, width: cg.width, height: cg.height, bitsPerComponent: 8,
+                bytesPerRow: cg.width * 4, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            context.draw(cg, in: CGRect(x: 0, y: 0, width: cg.width, height: cg.height))
+            for y in startY..<cg.height { for x in 0..<cg.width {
+                let i = (y * cg.width + x) * 4
+                if (0..<3).contains(where: { abs(Int(pixels[i + $0]) - Int(pixels[$0])) > 10 }) { return y }
+            } }
+            XCTFail("No ring pixels"); return -1
+        }
+        let layouts: [(String, HomeQuotaView.Layout, CGFloat, CGFloat)] = [
+            ("small-minimum", .small, 158, 158), ("small", .small, 170, 170),
+            ("single-medium", .singleMedium, 338, 158), ("dual-medium", .dualMedium, 338, 158),
+            ("large", .large, 338, 354)]
+        for (name, layout, width, height) in layouts { for dark in [false, true] {
+            var ringRows: [Int] = []
+            for service in QuotaService.allCases { for dual in [false, true] {
+                let value = ProviderReading(service: service, reading: try reading(dual: dual), needsApp: false)
+                let values = layout == .dualMedium || layout == .large ? [value, .init(service: service == .codex ? .claude : .codex, reading: value.reading, needsApp: false)] : [value]
+                let content = HomeQuotaView(values: values, date: now, layout: layout).frame(width: width, height: height)
+                    .background(Color(uiColor: .systemGroupedBackground)).environment(\.colorScheme, dark ? .dark : .light)
+                    .environment(\.dynamicTypeSize, .accessibility3)
+                let renderer = ImageRenderer(content: content); renderer.scale = 1
+                let image = try XCTUnwrap(renderer.uiImage)
+                ringRows.append(try firstRingRow(image, startY: layout == .large ? 50 : 0))
+                let attachment = XCTAttachment(image: image); attachment.name = "production-home-\(name)-\(service)-\(dual)-\(dark)"; attachment.lifetime = .keepAlways; add(attachment)
+                let path = FileManager.default.temporaryDirectory.appendingPathComponent("production-home-\(name)-\(service)-\(dual)-\(dark).png")
+                try image.pngData()?.write(to: path); print("WIDGET_REVIEW " + path.path)
+            } }
+            XCTAssertLessThanOrEqual(try XCTUnwrap(ringRows.max()) - XCTUnwrap(ringRows.min()), 1, "\(name): provider/quota shape moved the ring")
+            if layout != .large { XCTAssertLessThanOrEqual(abs(try XCTUnwrap(ringRows.first) - 16), 1, "\(name): chosen painted-ring top inset") }
+        } }
+    }
+}

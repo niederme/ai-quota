@@ -11,31 +11,33 @@ struct CompactQuotaView: View {
     private var stale: Bool { needsApp || WidgetFreshness.isOld(reading, at: date) }
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 4) {
-                miniGauge.frame(width: 28, height: 28)
-                Text(reading?.metadata?.plan == "Demo" ? "Demo" : service.name).font(.system(size: compact ? 11 : 13, weight: .medium))
-                    .lineLimit(1).minimumScaleFactor(0.8)
+            HStack(spacing: 2) {
+                miniGauge.frame(width: 32, height: 32)
+                Text(reading?.metadata?.plan == "Demo" ? "Demo" : service.name).font(.system(size: 11, weight: .medium))
+                    .lineLimit(1)
             }
             VStack(alignment: .leading, spacing: 0) {
                 percentage(reading?.primaryWindow, label: reading?.primaryWindow?.compactLabel ?? "")
                     .foregroundStyle(.primary)
                 if let secondary = reading?.secondaryWindow {
                     percentage(secondary, label: secondary.compactLabel).foregroundStyle(.secondary)
+                } else if let reset = LockScreenResetPresentation.make(reading: reading, needsApp: needsApp, at: date) {
+                    Text(reset.text).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary).lineLimit(1)
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(service.name) \(reading?.metadata?.plan == "Demo" ? "sample" : "allowance") used")
-        .accessibilityValue("\(reading?.accessibilitySummary ?? "Allowance unavailable"). \(stale ? "Reading needs refreshing." : "")")
+        .accessibilityValue("\(reading?.accessibilitySummary ?? "Allowance unavailable"). \(stale ? "Reading needs refreshing." : "") \(LockScreenResetPresentation.make(reading: reading, needsApp: needsApp, at: date)?.accessibilityText ?? "")")
         .accessibilityHint("Opens AIQuota")
     }
     private func percentage(_ window: QuotaWindow?, label: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
             Text(window.map { "\(Int($0.usedPercent.rounded()))%" } ?? "N/A")
-                .font(.system(size: 18, weight: .semibold, design: .rounded)).monospacedDigit()
-            Text(label).font(.system(size: 10, weight: .regular))
-        }.lineLimit(1).minimumScaleFactor(0.75)
+                .font(.system(size: 11, weight: .medium)).monospacedDigit()
+            Text(label).font(.system(size: 11, weight: .medium))
+        }.lineLimit(1)
     }
     private var miniGauge: some View {
         ZStack {
@@ -125,24 +127,40 @@ struct CodexDial: View {
 struct ServiceDetailsView: View {
     let value: ProviderReading
     let date: Date
-    var body: some View {
-                HStack(spacing: 5) {
-                    CodexDial(value: value, date: date, logoScale: 0.8).frame(width: 56, height: 56)
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(value.service.name).font(.system(size: 16, weight: .medium)).lineLimit(1).minimumScaleFactor(0.8)
-                        metric(value.reading?.primaryWindow, label: value.reading?.primaryWindow?.compactLabel ?? "").foregroundStyle(.primary)
-                        if let secondary = value.reading?.secondaryWindow {
-                            metric(secondary, label: secondary.compactLabel).foregroundStyle(.secondary)
-                        }
-                    }.frame(maxWidth: .infinity, alignment: .leading)
-                }
-
+    private var reset: LockScreenResetPresentation? {
+        .make(reading: value.reading, needsApp: value.needsApp, at: date)
     }
-    private func metric(_ window: QuotaWindow?, label: String) -> some View {
+    private var accessibilityValue: String {
+        var parts = [value.reading?.accessibilitySummary ?? "Allowance unavailable"]
+        if let reset { parts.append(reset.accessibilityText) }
+        if value.needsApp || WidgetFreshness.isOld(value.reading, at: date) {
+            parts.append("Reading needs refreshing.")
+        }
+        return parts.joined(separator: ". ")
+    }
+    var body: some View {
+        HStack(spacing: 2) {
+            CodexDial(value: value, date: date, logoScale: 0.8).frame(width: 60, height: 60)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(value.service.name).font(.system(size: 14, weight: .regular)).lineLimit(1)
+                metric(value.reading?.primaryWindow).foregroundStyle(.primary)
+                if let secondary = value.reading?.secondaryWindow {
+                    metric(secondary).foregroundStyle(.secondary).offset(y: 1)
+                } else if let reset {
+                    Text(reset.text).font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.secondary).lineLimit(1).offset(y: 1)
+                }
+            }.frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(value.service.name) \(value.reading?.metadata?.plan == "Demo" ? "sample" : "allowance") used")
+        .accessibilityValue(accessibilityValue)
+        .accessibilityHint("Opens AIQuota")
+    }
+    private func metric(_ window: QuotaWindow?) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
-            Text(window.map { "\(Int($0.usedPercent.rounded()))%" } ?? "N/A")
-                .font(.system(size: 16, weight: .semibold, design: .rounded)).monospacedDigit()
-            Text(label).font(.system(size: 16, weight: .regular))
-        }.lineLimit(1).minimumScaleFactor(0.8)
+            Text(window.map { "\(Int($0.usedPercent.rounded()))%" } ?? "N/A").monospacedDigit()
+            Text(window?.compactLabel ?? "")
+        }.font(.system(size: 14, weight: .medium)).lineLimit(1)
     }
 }
