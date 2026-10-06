@@ -147,9 +147,13 @@ struct CompactProvider: AppIntentTimelineProvider {
 struct CompactLockScreenWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "CompactLockScreen", intent: CompactConfiguration.self, provider: CompactProvider()) { entry in
-            HStack(alignment: .center, spacing: 10) {
+            HStack(alignment: .center, spacing: 4) {
                 ForEach(entry.values, id: \.service) { value in
-                    CompactQuotaView(service: value.service, reading: value.reading, needsApp: value.needsApp, date: entry.date, compact: entry.values.count > 1)
+                    if entry.values.count == 1 {
+                        ServiceDetailsView(value: value, date: entry.date)
+                    } else {
+                        CompactQuotaView(service: value.service, reading: value.reading, needsApp: value.needsApp, date: entry.date, compact: true)
+                    }
                 }
             }
             .widgetURL(URL(string: "aiquota-probe://overview"))

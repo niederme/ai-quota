@@ -52,6 +52,25 @@ import MobileAccessCore
             } } }
         }
     }
+    func testCombinedAllowanceDetailsRendersAtNativeSize() throws {
+        for dual in [false, true] { for dark in [false, true] {
+            let sample = try reading(reset: now.addingTimeInterval(86400), dual: dual)
+            let view = HStack(spacing: 4) {
+                ForEach(QuotaService.allCases, id: \.self) { service in
+                    CompactQuotaView(service: service, reading: sample, needsApp: false, date: self.now, compact: true)
+                }
+            }.frame(width: 160, height: 72).background(Color(uiColor: .systemGroupedBackground))
+                .environment(\.colorScheme, dark ? .dark : .light)
+            let renderer = ImageRenderer(content: view); renderer.scale = 3
+            let image = try XCTUnwrap(renderer.uiImage)
+            XCTAssertEqual(image.size, CGSize(width: 160, height: 72))
+            let path = FileManager.default.temporaryDirectory.appendingPathComponent("combined-lock-\(dual ? "dual" : "single")-\(dark ? "dark" : "light").png")
+            try image.pngData()?.write(to: path); print("WIDGET_REVIEW " + path.path)
+            let attachment = XCTAttachment(image: image); attachment.lifetime = .keepAlways; add(attachment)
+        } }
+        var utc = Calendar(identifier: .gregorian); utc.timeZone = try XCTUnwrap(TimeZone(secondsFromGMT: 0))
+        XCTAssertEqual(LockScreenResetPresentation.make(reading: try reading(reset: now.addingTimeInterval(86400)), needsApp: false, at: now, calendar: utc)?.compactText, "Tue 00:00")
+    }
     func testProductionViewStateMatrixRenders() throws {
         let samples: [(String, QuotaReading?, Bool)] = [
             ("single", try reading(reset: now.addingTimeInterval(86400)), false),

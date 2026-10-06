@@ -18,7 +18,7 @@ struct HomeQuotaView: View {
                 if let value = values.first {
                     HStack(alignment: .top, spacing: 14) {
                         gauge(value, size: 90).frame(width: 120)
-                        Divider()
+                        Divider().padding(.bottom, 16)
                         details(value).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                     }
                 }
@@ -26,7 +26,7 @@ struct HomeQuotaView: View {
                 let visible = enrolledValues
                 HStack(alignment: .top, spacing: 0) {
                     ForEach(Array(visible.enumerated()), id: \.element.service) { index, value in
-                        if index > 0 { Divider().padding(.vertical, 8) }
+                        if index > 0 { Divider().padding(.bottom, 16) }
                         Link(destination: value.service.url) {
                             gauge(value, size: 90)
                                 .frame(maxWidth: .infinity)
@@ -43,7 +43,7 @@ struct HomeQuotaView: View {
                     Divider()
                     HStack(spacing: 12) {
                         ForEach(Array(values.enumerated()), id: \.element.service) { index, value in
-                            if index > 0 { Divider() }
+                            if index > 0 { Divider().padding(.bottom, 16) }
                             Link(destination: value.service.url) {
                                 VStack(spacing: 10) {
                                     gauge(value, size: 90)
