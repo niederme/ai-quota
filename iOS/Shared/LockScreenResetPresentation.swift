@@ -4,7 +4,6 @@ import MobileAccessCore
 /// Account-reported reset only; public reset announcements are unrelated.
 struct LockScreenResetPresentation: Equatable {
     let text: String
-    let compactText: String
     let accessibilityText: String
 
     static func make(reading: QuotaReading?, needsApp: Bool, at date: Date,
@@ -30,10 +29,7 @@ struct LockScreenResetPresentation: Equatable {
         spoken.timeZone = calendar.timeZone
         spoken.dateStyle = .full
         spoken.timeStyle = .short
-        let fullText = weekday + " " + time.string(from: reset)
-        time.dateFormat = "HH:mm"
-        return Self(text: fullText,
-                    compactText: weekday + " " + time.string(from: reset),
+        return Self(text: weekday + " " + time.string(from: reset),
                     accessibilityText: "Reset expected " + spoken.string(from: reset))
     }
 }

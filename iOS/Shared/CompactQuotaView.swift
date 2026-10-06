@@ -13,7 +13,7 @@ struct CompactQuotaView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 2) {
                 miniGauge.frame(width: 32, height: 32)
-                Text(reading?.metadata?.plan == "Demo" ? "Demo" : service.name).font(.system(size: 12, weight: .medium))
+                Text(reading?.metadata?.plan == "Demo" ? "Demo" : service.name).font(.system(size: 11, weight: .medium))
                     .lineLimit(1)
             }
             VStack(alignment: .leading, spacing: 0) {
@@ -22,7 +22,7 @@ struct CompactQuotaView: View {
                 if let secondary = reading?.secondaryWindow {
                     percentage(secondary, label: secondary.compactLabel).foregroundStyle(.secondary)
                 } else if let reset = LockScreenResetPresentation.make(reading: reading, needsApp: needsApp, at: date) {
-                    Text(reset.compactText).font(.system(size: 12, weight: .medium)).foregroundStyle(.secondary).lineLimit(1)
+                    Text(reset.text).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary).lineLimit(1)
                 }
             }
         }
@@ -35,8 +35,8 @@ struct CompactQuotaView: View {
     private func percentage(_ window: QuotaWindow?, label: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
             Text(window.map { "\(Int($0.usedPercent.rounded()))%" } ?? "N/A")
-                .font(.system(size: 12, weight: .medium)).monospacedDigit()
-            Text(label).font(.system(size: 12, weight: .medium))
+                .font(.system(size: 11, weight: .medium)).monospacedDigit()
+            Text(label).font(.system(size: 11, weight: .medium))
         }.lineLimit(1)
     }
     private var miniGauge: some View {

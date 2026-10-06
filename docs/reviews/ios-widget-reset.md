@@ -65,3 +65,16 @@ Combined native review Library IDs:
 - single: libfile_510a24e80d7881919ecc98aa9afff35b
 
 Live placed Lock Screen crop Library ID: libfile_466e70d58b948191bb470ec85996d9e5.
+
+## AM/PM correction candidate (supersedes combined 24-hour proposal)
+
+The 24-hour combined copy above was not authorized by the approved AM/PM wording.
+The source now restores the same three-letter weekday + 12-hour AM/PM string used
+by Service details, and removes the separate compact time formatter. At 12 points
+the widest full string exceeds the 78-point combined column. The rendered candidate
+uses uniform 11-point system text for provider, quotas and reset, with 32-point ring
+frames. Its hierarchy is internally consistent, but deliberately smaller than the
+one-service 14-point layout because two services share one rectangle. This tradeoff
+needs review; it has NOT been installed on Karin Air. Five Lock Screen tests passed.
+Native candidate Library ID: libfile_fdb5963ee3ec8191b9d72f5f6a490b22.
+The currently installed combined variant still uses the previous 24-hour copy.

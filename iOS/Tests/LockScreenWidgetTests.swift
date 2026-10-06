@@ -69,7 +69,7 @@ import MobileAccessCore
             let attachment = XCTAttachment(image: image); attachment.lifetime = .keepAlways; add(attachment)
         } }
         var utc = Calendar(identifier: .gregorian); utc.timeZone = try XCTUnwrap(TimeZone(secondsFromGMT: 0))
-        XCTAssertEqual(LockScreenResetPresentation.make(reading: try reading(reset: now.addingTimeInterval(86400)), needsApp: false, at: now, calendar: utc)?.compactText, "Tue 00:00")
+        XCTAssertEqual(LockScreenResetPresentation.make(reading: try reading(reset: now.addingTimeInterval(86400)), needsApp: false, at: now, calendar: utc)?.text, "Tue 12:00 AM")
     }
     func testProductionViewStateMatrixRenders() throws {
         let samples: [(String, QuotaReading?, Bool)] = [
