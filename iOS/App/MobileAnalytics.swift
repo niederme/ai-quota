@@ -22,6 +22,7 @@ final class MobileAnalyticsAppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         // Restore consent before SwiftUI can produce events.
+        MobileBackgroundRefresh.shared.register()
         _ = MobileAnalytics.shared
         return true
     }

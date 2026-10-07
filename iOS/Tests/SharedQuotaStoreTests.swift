@@ -61,7 +61,7 @@ final class SharedQuotaStoreTests: XCTestCase {
         try await clean(store)
     }
 
-    func testClaudeRateLimitBlocksSubsequentAppAndWidgetRequests() async throws {
+    func testClaudeRateLimitBlocksAppWidgetAndBackgroundRequests() async throws {
         let store = store(.claude)
         try await store.withLease { try store.saveCredentials(credentials()) }
         do {
@@ -72,7 +72,7 @@ final class SharedQuotaStoreTests: XCTestCase {
         } catch { }
         let cooldown = try XCTUnwrap(store.root).appendingPathComponent("claude-cooldown.json")
         let original = try Data(contentsOf: cooldown)
-        for source in ["app", "widget"] {
+        for source in ["app", "widget", "background"] {
             do {
                 _ = try await store.fetch(CodexTokens.self, source: source, renew: { $0 }, usage: { _ in
                     XCTFail("Cooldown must prevent a request")
