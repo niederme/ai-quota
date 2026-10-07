@@ -8,11 +8,15 @@ struct CompactQuotaView: View {
     let needsApp: Bool
     let date: Date
     var compact = false
-    private var stale: Bool { needsApp || WidgetFreshness.isOld(reading, at: date) }
+    var updateFailed = false
+    private var stale: Bool { WidgetReadingStatus.isSaved(reading, needsApp: needsApp, updateFailed: updateFailed, at: date) }
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 2) {
-                miniGauge.frame(width: 32, height: 32)
+                miniGauge.opacity(stale ? 0.45 : 1).frame(width: 32, height: 32)
+                    .overlay(alignment: .bottomTrailing) {
+                        if stale && !needsApp { Image(systemName: "clock.fill").font(.system(size: 9)).accessibilityHidden(true) }
+                    }
                 Text(reading?.metadata?.plan == "Demo" ? "Demo" : service.name).font(.system(size: 11, weight: .medium))
                     .lineLimit(1)
             }
@@ -21,7 +25,7 @@ struct CompactQuotaView: View {
                     .foregroundStyle(.primary)
                 if let secondary = reading?.secondaryWindow {
                     percentage(secondary, label: secondary.compactLabel).foregroundStyle(.secondary)
-                } else if let reset = LockScreenResetPresentation.make(reading: reading, needsApp: needsApp, at: date) {
+                } else if !stale, let reset = LockScreenResetPresentation.make(reading: reading, needsApp: needsApp, at: date) {
                     Text(reset.text).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary).lineLimit(1)
                 }
             }
@@ -29,7 +33,7 @@ struct CompactQuotaView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(service.name) \(reading?.metadata?.plan == "Demo" ? "sample" : "allowance") used")
-        .accessibilityValue("\(reading?.accessibilitySummary ?? "Allowance unavailable"). \(stale ? "Reading needs refreshing." : "") \(LockScreenResetPresentation.make(reading: reading, needsApp: needsApp, at: date)?.accessibilityText ?? "")")
+        .accessibilityValue("\(reading?.accessibilitySummary ?? "Allowance unavailable"). \(needsApp ? "Reconnect in AIQuota." : "") \(stale ? WidgetReadingStatus.savedLabel(reading, at: date) + ". Reading needs refreshing." : "") \(LockScreenResetPresentation.make(reading: reading, needsApp: needsApp || updateFailed, at: date)?.accessibilityText ?? "")")
         .accessibilityHint("Opens AIQuota")
     }
     private func percentage(_ window: QuotaWindow?, label: String) -> some View {
@@ -69,13 +73,14 @@ struct ProviderReading: Sendable {
     let service: QuotaService
     let reading: QuotaReading?
     let needsApp: Bool
+    var updateFailed = false
 }
 
 struct CodexDial: View {
     let value: ProviderReading
     let date: Date
     var logoScale: CGFloat = 1
-    private var stale: Bool { WidgetFreshness.isOld(value.reading, at: date) || value.needsApp }
+    private var stale: Bool { WidgetReadingStatus.isSaved(value.reading, needsApp: value.needsApp, updateFailed: value.updateFailed, at: date) }
     private var warning: Bool { WidgetFreshness.limitReached(value.reading) }
     var body: some View {
         GeometryReader { geometry in
@@ -104,9 +109,13 @@ struct CodexDial: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .padding(3)
+        .opacity(stale ? 0.45 : 1)
+        .overlay(alignment: .bottomTrailing) {
+            if stale && !value.needsApp { Image(systemName: "clock.fill").font(.system(size: 11)).accessibilityHidden(true) }
+        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(value.service.name) \(value.reading?.metadata?.plan == "Demo" ? "sample" : "allowance") used")
-        .accessibilityValue("\(value.reading?.accessibilitySummary ?? "Allowance unavailable"). \(stale ? "Reading needs refreshing." : "") \(warning ? "An allowance limit is reached." : "")")
+        .accessibilityValue("\(value.reading?.accessibilitySummary ?? "Allowance unavailable"). \(value.needsApp ? "Reconnect in AIQuota." : "") \(stale ? WidgetReadingStatus.savedLabel(value.reading, at: date) + ". Reading needs refreshing." : "") \(warning ? "An allowance limit is reached." : "")")
         .accessibilityHint("Opens AIQuota")
     }
 
@@ -128,13 +137,14 @@ struct ServiceDetailsView: View {
     let value: ProviderReading
     let date: Date
     private var reset: LockScreenResetPresentation? {
-        .make(reading: value.reading, needsApp: value.needsApp, at: date)
+        value.updateFailed ? nil : .make(reading: value.reading, needsApp: value.needsApp, at: date)
     }
     private var accessibilityValue: String {
         var parts = [value.reading?.accessibilitySummary ?? "Allowance unavailable"]
         if let reset { parts.append(reset.accessibilityText) }
-        if value.needsApp || WidgetFreshness.isOld(value.reading, at: date) {
-            parts.append("Reading needs refreshing.")
+        if value.needsApp { parts.append("Reconnect in AIQuota.") }
+        if WidgetReadingStatus.isSaved(value.reading, needsApp: value.needsApp, updateFailed: value.updateFailed, at: date) {
+            parts.append(WidgetReadingStatus.savedLabel(value.reading, at: date) + ". Reading needs refreshing.")
         }
         return parts.joined(separator: ". ")
     }

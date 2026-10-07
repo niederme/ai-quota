@@ -37,7 +37,7 @@ struct MobileSettingsView: View {
                     }
                 }
             } header: { Text("General") } footer: {
-                Text("While the app is open, Auto refreshes every 5 minutes, or every minute near a limit. iOS controls background widget updates. Opening the app also checks for fresh usage.")
+                Text("While the app is open, Auto refreshes every 5 minutes, or every minute near a limit. iOS schedules background app and widget updates; their timing is not guaranteed. Opening the app also checks for fresh usage.")
             }.listRowBackground(OverviewStyle.track)
             Section {
                 Button { destination = .codex } label: {

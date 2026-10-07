@@ -72,7 +72,7 @@ struct HomeQuotaView: View {
         return enrolled.count == 1 ? enrolled : values
     }
     private func name(_ value: ProviderReading) -> String { value.service == .claude ? "Claude Code" : "Codex" }
-    private func stale(_ value: ProviderReading) -> Bool { value.needsApp || WidgetFreshness.isOld(value.reading, at: date) }
+    private func stale(_ value: ProviderReading) -> Bool { WidgetReadingStatus.isSaved(value.reading, needsApp: value.needsApp, updateFailed: value.updateFailed, at: date) }
     private func tint(_ value: ProviderReading) -> Color {
         guard !stale(value) else { return .secondary }
         let used = max(value.reading?.shortTerm?.usedPercent ?? 0, value.reading?.weekly?.usedPercent ?? 0)
@@ -102,6 +102,11 @@ struct HomeQuotaView: View {
                     }
                 }.foregroundStyle(tint(value)).monospacedDigit()
             }.frame(width: size, height: size)
+                .overlay(alignment: .bottomTrailing) {
+                    if stale(value) && value.reading != nil && !value.needsApp {
+                        Image(systemName: "clock.fill").font(.system(size: 11)).foregroundStyle(.secondary).accessibilityHidden(true)
+                    }
+                }
                 .padding(.bottom, -size * 0.08)
             Text(value.reading?.metadata?.plan == "Demo" ? name(value) + " · Demo" : name(value)).font(.system(size: 12, weight: .bold)).lineLimit(1)
             if value.needsApp {
@@ -109,7 +114,7 @@ struct HomeQuotaView: View {
             } else if value.reading == nil {
                 Text("Sign in to AIQuota").foregroundStyle(.secondary)
             } else if stale(value) {
-                Text("Saved reading").foregroundStyle(.secondary)
+                Text(WidgetReadingStatus.savedLabel(value.reading, at: date)).foregroundStyle(.secondary)
             } else {
                 if let primary = value.reading?.primaryWindow {
                     reset(primary, label: primary.resetLabel)
@@ -147,7 +152,7 @@ struct HomeQuotaView: View {
                     row(value.service == .codex ? "Spent" : "Credits used", amount, icon: "plus.circle.fill", color: .orange)
                 }
                 if value.needsApp { Text("Connection needs attention").foregroundStyle(.secondary) }
-                else if stale(value) { Text("Saved reading").foregroundStyle(.secondary) }
+                else if stale(value) { Text(WidgetReadingStatus.savedLabel(value.reading, at: date)).foregroundStyle(.secondary) }
                 else if let window = reading.windows.last { reset(window, label: window.resetLabel) }
             } else {
                 Text(value.needsApp ? "Reconnect in AIQuota" : "Sign in to AIQuota").fontWeight(.semibold)

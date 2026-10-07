@@ -54,6 +54,7 @@ struct OverviewView: View {
         .onChange(of: codex.connected) { _, _ in updateAnalyticsServices() }
         .onChange(of: claude.connected) { _, _ in updateAnalyticsServices() }
         .onChange(of: scenePhase) { _, phase in
+            if phase == .background { MobileBackgroundRefresh.shared.scheduleNext() }
             if phase == .active { MobileAnalytics.shared.recordDailyActiveIfNeeded() }
         }
         .onChange(of: hasConnectedService) { _, connected in
