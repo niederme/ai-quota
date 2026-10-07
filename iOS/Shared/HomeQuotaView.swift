@@ -74,7 +74,7 @@ struct HomeQuotaView: View {
     private func name(_ value: ProviderReading) -> String { value.service == .claude ? "Claude Code" : "Codex" }
     private func stale(_ value: ProviderReading) -> Bool { WidgetReadingStatus.isSaved(value.reading, needsApp: value.needsApp, updateFailed: value.updateFailed, at: date) }
     private func tint(_ value: ProviderReading) -> Color {
-        guard !stale(value) else { return .secondary }
+        guard value.reading != nil, !stale(value) else { return .secondary }
         let used = max(value.reading?.shortTerm?.usedPercent ?? 0, value.reading?.weekly?.usedPercent ?? 0)
         return used >= 95 ? .red : used >= 85 ? Color(red: 1, green: 0.65, blue: 0) : accent
     }
