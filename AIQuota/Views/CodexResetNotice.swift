@@ -16,6 +16,8 @@ final class CodexResetNotice {
         decoder.dateDecodingStrategy = .iso8601
         return try! decoder.decode(CodexResetAnnouncement.self, from: data)
     }()
+    static let demoLastResetDate = ISO8601DateFormatter().date(from: "2026-01-01T12:00:00Z")!
+    var lastResetDate: Date? { status?.lastRegularResetDate(at: .now) }
     private(set) var status: CodexResetStatus?
     private var checkedAt = Date.now
     private var nextFetch = Date.distantPast
