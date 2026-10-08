@@ -95,8 +95,6 @@ struct PopoverView: View {
 
             statsRow
 
-            if viewModel.isCodexAuthenticated { resetNoticeRow }
-
             updateAvailableRow
             Divider()
             footer
@@ -112,7 +110,7 @@ struct PopoverView: View {
                         Text(announcement.title)
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(.primary)
-                        Label("Read more on Codex Resets", systemImage: "arrow.up.right")
+                        Label("Read more", systemImage: "arrow.up.right")
                             .font(.system(size: 11))
                             .foregroundStyle(CircularGaugeView.accent)
                     }
@@ -138,14 +136,6 @@ struct PopoverView: View {
             .background(CircularGaugeView.accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-        } else {
-            Button { NSWorkspace.shared.open(CodexResetNotice.website) } label: {
-                Label("Check Codex resets", systemImage: "arrow.up.right")
-                    .font(.system(size: 11))
-                    .foregroundStyle(CircularGaugeView.accent)
-            }
-            .buttonStyle(.plain)
-            .padding(.bottom, 10)
         }
     }
 
@@ -240,16 +230,24 @@ struct PopoverView: View {
         }
     }
 
+    private var codexColumn: some View {
+        VStack(spacing: 0) {
+            codexGaugeSlot
+            if viewModel.isCodexAuthenticated { resetNoticeRow }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
     @ViewBuilder
     private var gaugeRow: some View {
         if viewModel.isCodexEnrolled && viewModel.isClaudeEnrolled {
             HStack(alignment: .top, spacing: 0) {
-                codexGaugeSlot.frame(maxWidth: .infinity)
+                codexColumn.frame(maxWidth: .infinity)
                 Divider()
                 claudeGaugeSlot.frame(maxWidth: .infinity)
             }
         } else if viewModel.isCodexEnrolled {
-            codexGaugeSlot
+            codexColumn
         } else {
             claudeGaugeSlot
         }

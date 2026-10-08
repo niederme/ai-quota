@@ -421,16 +421,52 @@ private struct AccountDiagnosticsRows: View {
     @State private var claudeAttempts: [ClaudeSourceAttempt] = []
     @AppStorage(ClaudeOAuthKeychainReader.consentDefaultsKey) private var reuseClaudeCodeKeychain = false
 
+    @State private var resetNotice = CodexResetNotice()
+
+    private var lastResetDate: Date? {
+        #if DEMO_MODE
+        CodexResetNotice.demoLastResetDate
+        #else
+        resetNotice.lastResetDate
+        #endif
+    }
+
     var body: some View {
-        AccountServiceStatusRow(
-            label: "Codex",
-            logo: "logo-openai",
-            isAuthenticated: viewModel.isCodexAuthenticated,
-            statusDetail: statusDetail(isAuthenticated: viewModel.isCodexAuthenticated, attempt: codexAttempts.last),
-            statusColor: statusColor(isAuthenticated: viewModel.isCodexAuthenticated, attempt: codexAttempts.last),
-            signIn: { Task { await viewModel.signIn() } },
-            signOut: { viewModel.signOut() }
-        )
+        VStack(alignment: .leading, spacing: 8) {
+            AccountServiceStatusRow(
+                label: "Codex",
+                logo: "logo-openai",
+                isAuthenticated: viewModel.isCodexAuthenticated,
+                statusDetail: statusDetail(isAuthenticated: viewModel.isCodexAuthenticated, attempt: codexAttempts.last),
+                statusColor: statusColor(isAuthenticated: viewModel.isCodexAuthenticated, attempt: codexAttempts.last),
+                signIn: { Task { await viewModel.signIn() } },
+                signOut: { viewModel.signOut() }
+            )
+
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Button("Codex Resets…") {
+                    NSWorkspace.shared.open(CodexResetNotice.website)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+
+                if let date = lastResetDate {
+                    Text("Last reset on \(date.formatted(date: .abbreviated, time: .omitted))")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.leading, 28)
+        }
+        .task {
+            #if !DEMO_MODE
+            while !Task.isCancelled {
+                await resetNotice.refresh()
+                do { try await Task.sleep(for: .seconds(60)) }
+                catch { return }
+            }
+            #endif
+        }
 
         AccountServiceStatusRow(
             label: "Claude Code",
