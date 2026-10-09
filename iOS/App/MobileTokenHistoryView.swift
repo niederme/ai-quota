@@ -24,11 +24,6 @@ struct MobileTokenHistoryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Token activity").font(.subheadline.weight(.semibold))
-                Spacer()
-                Text("52 weeks").font(.caption).foregroundStyle(.secondary)
-            }
             if let history, presentation == .populated {
                 let days = history.days()
                 let positives = days.filter { !$0.isFuture }.compactMap(\.tokens).filter { $0 > 0 }.sorted()
@@ -112,6 +107,7 @@ struct MobileTokenHistoryView: View {
             }
         }
         .accessibilityElement(children: .contain)
+        .accessibilityLabel("Token activity, past 52 weeks")
         .onChange(of: history?.fetchedAt) { _, _ in selected = nil }
     }
     private var graphHeight: CGFloat { max(64, availableWidth * 10 / 52) }

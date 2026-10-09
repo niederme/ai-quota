@@ -8,7 +8,9 @@ final class TokenHistoryFlowTests: XCTestCase {
         if app.buttons["Exit demo"].firstMatch.waitForExistence(timeout: 3) { app.buttons["Exit demo"].firstMatch.tap() }
         let demo = app.buttons["Try Demo"].firstMatch
         XCTAssertTrue(demo.waitForExistence(timeout: 10)); demo.tap()
-        XCTAssertTrue(app.staticTexts["Token activity"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.otherElements["tokenActivityGrid"].firstMatch.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["Token activity"].exists)
+        XCTAssertFalse(app.staticTexts["52 weeks"].exists)
         XCTAssertTrue(app.staticTexts["Codex usage reset announced"].exists)
         XCTAssertFalse(app.buttons["Check Codex resets"].exists)
         app.buttons["Dismiss reset announcement"].tap()
