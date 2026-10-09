@@ -61,18 +61,6 @@ struct AIQuotaApp: App {
     }
 
     var body: some Scene {
-        #if DEBUG
-        Window("AIQuota Token History Preview", id: "token-history-preview") {
-                PopoverView()
-                    .environment(viewModel)
-                    .environment(updaterViewModel)
-                    .preferredColorScheme(ProcessInfo.processInfo.arguments.contains("-AIQuotaPreviewLight") ? .light : .dark)
-                    .onAppear { viewModel.refreshOnPopoverOpenIfNeeded() }
-            }
-            .windowResizability(.contentSize)
-            .defaultLaunchBehavior(ProcessInfo.processInfo.arguments.contains("-AIQuotaTokenHistoryPreview") ? .presented : .suppressed)
-        #endif
-
         MenuBarExtra {
             PopoverView()
                 .environment(viewModel)

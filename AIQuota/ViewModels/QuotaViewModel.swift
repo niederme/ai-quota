@@ -14,6 +14,7 @@ final class QuotaViewModel {
 
     // MARK: - Codex (OpenAI)
 
+    var isReadOnlyPreview = false
     var codexTokenHistory: CodexTokenHistory?
     var isTokenHistoryLoading = false
     var tokenHistoryUnavailable = false
@@ -24,7 +25,7 @@ final class QuotaViewModel {
     private var tokenHistoryScope = CodexTokenHistoryScope()
 
     func refreshTokenHistory(force: Bool = false) {
-        guard !Self.isDemoBuild, isCodexAuthenticated else { return }
+        guard !isReadOnlyPreview, !Self.isDemoBuild, isCodexAuthenticated else { return }
         guard tokenHistoryTask == nil else { return }
         if codexTokenHistory == nil { isTokenHistoryLoading = true }
         let generation = tokenHistoryGeneration
@@ -286,7 +287,7 @@ final class QuotaViewModel {
 
     // MARK: - Init
 
-    init() {
+    init(readOnlyPreview: Bool = false) {
         let claude = ClaudeAuthCoordinator()
         let codex  = CodexAuthCoordinator()
 
@@ -295,6 +296,10 @@ final class QuotaViewModel {
         self.claudeClient      = ClaudeClient(coordinator: claude)
         self.codexClient       = OpenAIClient(coordinator: codex)
         self.resetCoordinator  = AppResetCoordinator(claude: claude, codex: codex)
+        #if DEBUG
+        isReadOnlyPreview = readOnlyPreview
+        if readOnlyPreview { return }
+        #endif
         self.isCodexRecoveryPending = enrolledServices.contains(.codex)
         self.isClaudeRecoveryPending = enrolledServices.contains(.claude)
 

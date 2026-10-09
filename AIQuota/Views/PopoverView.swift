@@ -37,7 +37,7 @@ struct PopoverView: View {
         }
         .task(id: viewModel.isCodexAuthenticated) {
             #if !DEMO_MODE
-            guard viewModel.isCodexAuthenticated else { return }
+            guard !viewModel.isReadOnlyPreview, viewModel.isCodexAuthenticated else { return }
             while !Task.isCancelled {
                 await resetNotice.refresh()
                 do { try await Task.sleep(for: .seconds(60)) }
