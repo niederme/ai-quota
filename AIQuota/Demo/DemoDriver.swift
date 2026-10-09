@@ -173,7 +173,6 @@ final class DemoDriver {
         // landing on the same beat as the 5h limit for maximum drama.
         map[20] = 0
         // Frame 21: auto-reload kicks in — balance jumps from 0 → 250.
-        // The scripted top-up notification fires on this frame.
         map[21] = 250
         // Frame 22 (final): healthy balance, auto-reload on, warning softened
         map[22] = 238
@@ -186,7 +185,7 @@ final class DemoDriver {
     // Frame 20: reload is configured but off and credits hit zero, which shows
     // the exception bar.
     // Frames 21–22: auto-reload is on; normal/caution states stay text-only,
-    // and the balance jump at frame 21 fires the top-up notification.
+    // while the balance jumps at frame 21 without an alert.
 
     private let codexAutoReloadFrames: [Int: CodexAutoReload] = {
         var map: [Int: CodexAutoReload] = [:]
@@ -237,8 +236,9 @@ final class DemoDriver {
     private var ticker: DispatchSourceTimer?
     private var cycleStartedAt: TimeInterval = 0
     private var cycleNumber = 0
-    private var notificationTask: Task<Void, Never>?
-    private let demoNotificationIDs = ["demo.codex.low", "demo.codex.plan", "demo.codex.topup"]
+    private var sentDemoNotificationIDs: Set<String> = []
+    private let demoNotificationIDs = ["demo.codex.amber", "demo.claude.red"]
+    private let obsoleteNotificationIDs = ["demo.codex.low", "demo.codex.plan", "demo.codex.topup"]
 
     // MARK: - Public API
 
@@ -253,6 +253,10 @@ final class DemoDriver {
             reason: "Continuous AIQuota demo playback"
         )
         UNUserNotificationCenter.current().delegate = notificationPresenter
+        let center = UNUserNotificationCenter.current()
+        let allDemoIDs = demoNotificationIDs + obsoleteNotificationIDs
+        center.removePendingNotificationRequests(withIdentifiers: allDemoIDs)
+        center.removeDeliveredNotifications(withIdentifiers: allDemoIDs)
         Task {
             let settings = await UNUserNotificationCenter.current().notificationSettings()
             if settings.authorizationStatus == .notDetermined {
@@ -280,10 +284,6 @@ final class DemoDriver {
     private func restartCycle() {
         claudeIndex = 0
         codexIndex  = 0
-        notificationTask?.cancel()
-        let center = UNUserNotificationCenter.current()
-        center.removePendingNotificationRequests(withIdentifiers: demoNotificationIDs)
-        center.removeDeliveredNotifications(withIdentifiers: demoNotificationIDs)
         target?.prepareForDemo()
 
         // Apply frame 0 of each service immediately — no loading state shown.
@@ -351,6 +351,11 @@ final class DemoDriver {
                               codexLoading: target.isCodexLoading,
                               codexAutoReload: target.codexAutoReload)
 
+        if claudeIndex - 1 == 22 {
+            notifyDemo(id: "demo.claude.red", title: "Claude 7-day limit reached",
+                       body: "Your Claude 7-day allowance is exhausted. Resets in 4 days.")
+        }
+
     }
 
     // MARK: Codex advancement
@@ -390,35 +395,32 @@ final class DemoDriver {
                               codexLoading: false,
                               codexAutoReload: autoReload)
 
-        // Three deliberately paced demo alerts. Do not run production evaluators:
-        // they would add noise and write simulated balances into real alert history.
-        switch codexIndex - 1 {
-        case 5:
-            notifyDemo(id: "demo.codex.low", title: "Codex is almost at its 5-hour limit",
-                       body: "You’ve used 96% of your 5-hour allowance.")
-        case 6:
-            notifyDemo(id: "demo.codex.plan", title: "Codex plan changed to Pro",
-                       body: "Previously Plus. Connection checked and usage is up to date.")
-        case 21:
-            notifyDemo(id: "demo.codex.topup", title: "Codex credits topped up",
-                       body: "Auto-reload added credits. Your balance is now $10.00.")
-        default:
-            break
+        // Send one amber alert, without writing simulated usage to real alert history.
+        if codexIndex - 1 == 19 {
+            notifyDemo(id: "demo.codex.amber", title: "Codex 5-hour usage high",
+                       body: "You've used 85% of your Codex 5-hour allowance.")
         }
 
     }
     private func notifyDemo(id: String, title: String, body: String) {
-        notificationTask?.cancel()
-        notificationTask = Task {
+        guard sentDemoNotificationIDs.insert(id).inserted else { return }
+        Task {
             let center = UNUserNotificationCenter.current()
             let settings = await center.notificationSettings()
             guard !Task.isCancelled,
-                  settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
+                  settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else {
+                sentDemoNotificationIDs.remove(id)
+                return
+            }
             let content = UNMutableNotificationContent()
             content.title = title
             content.body = body
             content.sound = .default
-            try? await center.add(UNNotificationRequest(identifier: id, content: content, trigger: nil))
+            do {
+                try await center.add(UNNotificationRequest(identifier: id, content: content, trigger: nil))
+            } catch {
+                sentDemoNotificationIDs.remove(id)
+            }
         }
     }
 }
