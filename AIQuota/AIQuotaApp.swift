@@ -29,12 +29,12 @@ struct AIQuotaApp: App {
         LegacyDefaultsMigration.migrateIfNeeded(bundleIdentifier: "com.niederme.AIQuota")
         LaunchServicesSync.repairIfNeeded()
         #endif
-        let viewModel = QuotaViewModel()
-        _viewModel = State(initialValue: viewModel)
         #if DEMO_MODE
-        let demoDriver = DemoDriver()
-        demoDriver.startIfNeeded(driving: viewModel)
-        _demoDriver = State(initialValue: demoDriver)
+        let demoSession = DemoSession.shared
+        _viewModel = State(initialValue: demoSession.viewModel)
+        _demoDriver = State(initialValue: demoSession.driver)
+        #else
+        _viewModel = State(initialValue: QuotaViewModel())
         #endif
         let updaterViewModel = UpdaterViewModel()
         self.updaterViewModel = updaterViewModel
@@ -119,6 +119,26 @@ struct AIQuotaApp: App {
     }
 
 }
+
+#if DEMO_MODE
+/// Keep playback and its view model alive for the whole process, regardless of
+/// how SwiftUI recreates the menu bar label or popover.
+@MainActor
+private final class DemoSession {
+    static let shared = DemoSession()
+
+    let viewModel: QuotaViewModel
+    let driver: DemoDriver
+
+    private init() {
+        let viewModel = QuotaViewModel()
+        let driver = DemoDriver()
+        self.viewModel = viewModel
+        self.driver = driver
+        driver.startIfNeeded(driving: viewModel)
+    }
+}
+#endif
 
 /// Keep the status item's observation inside a View so usage frames redraw
 /// the icon even when the popover's view hierarchy is not present.

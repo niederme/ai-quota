@@ -1,4 +1,5 @@
 import Foundation
+import Dispatch
 import AIQuotaKit
 import UserNotifications
 
@@ -6,9 +7,31 @@ import UserNotifications
 
 #if DEMO_MODE
 
+/// Pure clock math shared by both scripted services. Sheet visibility is not an input.
+private enum DemoPlaybackClock {
+    static func frameIndex(at elapsed: TimeInterval, ticks: [Double], startHold: TimeInterval) -> Int {
+        var nextTransition = startHold
+        for index in 1..<ticks.count {
+            if elapsed < nextTransition { return index - 1 }
+            nextTransition += ticks[index]
+        }
+        return ticks.count - 1
+    }
+
+    static func timeToFinal(ticks: [Double], startHold: TimeInterval) -> TimeInterval {
+        startHold + ticks.dropFirst().dropLast().reduce(0, +)
+    }
+
+    static func position(at uptime: TimeInterval, startedAt: TimeInterval,
+                         cycleDuration: TimeInterval) -> (cycle: Int, phase: TimeInterval) {
+        let elapsed = max(0, uptime - startedAt)
+        return (Int(elapsed / cycleDuration), elapsed.truncatingRemainder(dividingBy: cycleDuration))
+    }
+}
+
 /// Drives a `QuotaViewModel` through a scripted timelapse of all usage states.
-/// Claude and Codex advance on **independent** timers — reflecting heavier Claude
-/// usage. Activate by calling `startIfNeeded(driving:)` once. Playback continues
+/// Claude and Codex advance on independent keyframe timelines. Activate by
+/// calling `startIfNeeded(driving:)` once. Playback continues
 /// independently of the menu bar popover and loops after the final frame.
 @MainActor
 final class DemoDriver {
@@ -205,15 +228,15 @@ final class DemoDriver {
     private let endHold: TimeInterval = 2
 
     private let notificationPresenter = DemoNotificationPresenter()
-    private weak var target: QuotaViewModel?
+    private var target: QuotaViewModel?
     private var started = false
     private var playbackActivity: NSObjectProtocol?
 
     private var claudeIndex = 0
     private var codexIndex  = 0
-    private var claudeTimer: Timer?
-    private var codexTimer:  Timer?
-    private var restartTimer: Timer?
+    private var ticker: DispatchSourceTimer?
+    private var cycleStartedAt: TimeInterval = 0
+    private var cycleNumber = 0
     private var notificationTask: Task<Void, Never>?
     private let demoNotificationIDs = ["demo.codex.low", "demo.codex.plan", "demo.codex.topup"]
 
@@ -237,17 +260,24 @@ final class DemoDriver {
             }
         }
         reset()
+        let ticker = DispatchSource.makeTimerSource(queue: .main)
+        ticker.schedule(deadline: .now(), repeating: .milliseconds(100), leeway: .milliseconds(20))
+        ticker.setEventHandler { [weak self] in
+            Task { @MainActor [weak self] in self?.advanceToNow() }
+        }
+        self.ticker = ticker
+        ticker.resume()
     }
 
-    /// Restart the sequence from frame 0, either after the end hold or with ⌘R.
+    /// Restart the sequence from frame 0 with ⌘R.
     func reset() {
         guard target != nil else { return }
-        claudeTimer?.invalidate()
-        codexTimer?.invalidate()
-        restartTimer?.invalidate()
-        claudeTimer = nil
-        codexTimer  = nil
-        restartTimer = nil
+        cycleStartedAt = ProcessInfo.processInfo.systemUptime
+        cycleNumber = 0
+        restartCycle()
+    }
+
+    private func restartCycle() {
         claudeIndex = 0
         codexIndex  = 0
         notificationTask?.cancel()
@@ -261,31 +291,33 @@ final class DemoDriver {
         applyNextCodexFrame()
     }
 
-    private func scheduleRestartIfFinished() {
-        guard claudeIndex == claudeFrames.count,
-              codexIndex == codexFrames.count,
-              restartTimer == nil else { return }
-        let timer = Timer(timeInterval: endHold, repeats: false) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.reset() }
+    private var cycleDuration: TimeInterval {
+        max(DemoPlaybackClock.timeToFinal(ticks: claudeFrames.map(\.tick), startHold: startHold),
+            DemoPlaybackClock.timeToFinal(ticks: codexFrames.map(\.tick), startHold: startHold)) + endHold
+    }
+
+    /// The clock is monotonic: a delayed tick catches up to the correct frame.
+    /// Opening or closing the popover cannot restart or suspend the cycle.
+    private func advanceToNow() {
+        let position = DemoPlaybackClock.position(
+            at: ProcessInfo.processInfo.systemUptime,
+            startedAt: cycleStartedAt,
+            cycleDuration: cycleDuration
+        )
+        let currentCycle = position.cycle
+        if currentCycle != cycleNumber {
+            cycleNumber = currentCycle
+            restartCycle()
         }
-        restartTimer = timer
-        RunLoop.main.add(timer, forMode: .common)
+        let desiredClaude = DemoPlaybackClock.frameIndex(at: position.phase,
+                                                         ticks: claudeFrames.map(\.tick), startHold: startHold)
+        let desiredCodex = DemoPlaybackClock.frameIndex(at: position.phase,
+                                                        ticks: codexFrames.map(\.tick), startHold: startHold)
+        while claudeIndex <= desiredClaude { applyNextClaudeFrame() }
+        while codexIndex <= desiredCodex { applyNextCodexFrame() }
     }
 
     // MARK: Claude advancement
-
-    private func scheduleNextClaude() {
-        guard claudeIndex < claudeFrames.count else { return }
-        // A frame's tick is how long it stays on screen; the frame just
-        // shown is claudeIndex - 1. Frame 0 gets an exact two-second hold.
-        let base = claudeFrames[claudeIndex - 1].tick
-        let duration = claudeIndex == 1 ? startHold : base
-        let timer = Timer(timeInterval: duration, repeats: false) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.applyNextClaudeFrame() }
-        }
-        claudeTimer = timer
-        RunLoop.main.add(timer, forMode: .common)
-    }
 
     private func applyNextClaudeFrame() {
         guard claudeIndex < claudeFrames.count, let target else { return }
@@ -319,27 +351,9 @@ final class DemoDriver {
                               codexLoading: target.isCodexLoading,
                               codexAutoReload: target.codexAutoReload)
 
-        if claudeIndex < claudeFrames.count {
-            scheduleNextClaude()
-        } else {
-            scheduleRestartIfFinished()
-        }
     }
 
     // MARK: Codex advancement
-
-    private func scheduleNextCodex() {
-        guard codexIndex < codexFrames.count else { return }
-        // A frame's tick is how long it stays on screen; the frame just
-        // shown is codexIndex - 1. Frame 0 gets an exact two-second hold.
-        let base = codexFrames[codexIndex - 1].tick
-        let duration = codexIndex == 1 ? startHold : base
-        let timer = Timer(timeInterval: duration, repeats: false) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.applyNextCodexFrame() }
-        }
-        codexTimer = timer
-        RunLoop.main.add(timer, forMode: .common)
-    }
 
     private func applyNextCodexFrame() {
         guard codexIndex < codexFrames.count, let target else { return }
@@ -392,11 +406,6 @@ final class DemoDriver {
             break
         }
 
-        if codexIndex < codexFrames.count {
-            scheduleNextCodex()
-        } else {
-            scheduleRestartIfFinished()
-        }
     }
     private func notifyDemo(id: String, title: String, body: String) {
         notificationTask?.cancel()
