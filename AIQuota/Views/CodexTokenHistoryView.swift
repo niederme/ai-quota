@@ -14,7 +14,7 @@ struct CodexTokenHistoryView: View {
                 Spacer()
                 Text("52 weeks").font(.system(size: 12)).foregroundStyle(.secondary)
             }
-            if let history = viewModel.codexTokenHistory {
+            if let history = viewModel.codexTokenHistory, history.days().contains(where: { !$0.isFuture && $0.tokens != nil }) {
                 let days = history.days()
                 let positives = days.filter { !$0.isFuture }.compactMap(\.tokens).filter { $0 > 0 }.sorted()
                 let ceiling = positives.isEmpty ? 1 : positives[min(positives.count - 1, Int(Double(positives.count - 1) * 0.95))]
@@ -45,24 +45,22 @@ struct CodexTokenHistoryView: View {
                 }
                 .frame(height: 44)
                 GeometryReader { geometry in
-                    let stride = geometry.size.width / 52
-                    ForEach(0..<52, id: \.self) { week in
-                        if let label = monthLabel(days: days, week: week) {
-                            Text(label)
+                    ForEach(monthLabels(days: days, width: geometry.size.width), id: \.week) { label in
+                            Text(label.text)
                                 .font(.system(size: 8.5)).foregroundStyle(.secondary)
                                 .frame(width: 20, alignment: .leading)
-                                .offset(x: min(geometry.size.width - 20, CGFloat(week) * stride))
-                        }
+                                .offset(x: label.x)
                     }
                 }.frame(height: 11)
                 Text(selected.map(description) ?? (viewModel.tokenHistoryFailed ? "Saved history · refresh unavailable" : "Outlined: no record · dates in UTC"))
                     .font(.system(size: 10)).foregroundStyle(.secondary)
-                    .lineLimit(1)
+                    .fixedSize(horizontal: false, vertical: true)
             } else {
                 HStack(spacing: 6) {
                     if viewModel.isTokenHistoryLoading { ProgressView().controlSize(.mini) }
-                    Text(viewModel.isTokenHistoryLoading ? "Loading token history…" : viewModel.tokenHistoryFailed ? "Token history could not be loaded" : "Token history unavailable for this account")
+                    Text(viewModel.codexTokenHistory != nil ? "No token history yet" : viewModel.isTokenHistoryLoading ? "Loading token history…" : viewModel.tokenHistoryFailed ? "Token history could not be loaded" : "Token history unavailable for this account")
                         .font(.system(size: 11)).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                     Spacer(minLength: 0)
                     if viewModel.tokenHistoryFailed {
                         Button("Retry") { viewModel.refreshTokenHistory(force: true) }.font(.system(size: 11))
@@ -70,8 +68,23 @@ struct CodexTokenHistoryView: View {
                 }.frame(minHeight: 44)
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Codex token activity, past 52 weeks")
+        .accessibilityIdentifier("codexTokenActivity")
         .task { viewModel.refreshTokenHistory() }
         .onChange(of: viewModel.codexTokenHistory?.fetchedAt) { selected = nil }
+    }
+
+    private func monthLabels(days: [CodexTokenHistory.Day], width: CGFloat) -> [(week: Int, text: String, x: CGFloat)] {
+        var labels: [(week: Int, text: String, x: CGFloat)] = []
+        for week in 0..<52 {
+            guard let text = monthLabel(days: days, week: week) else { continue }
+            let x = min(width - 20, CGFloat(week) * (width + 1.2) / 52)
+            // Keep the same dated calendar positions, omitting crowded labels in a narrow service column.
+            guard labels.last.map({ x - $0.x >= 24 }) ?? true else { continue }
+            labels.append((week, text, x))
+        }
+        return labels
     }
 
     private func monthLabel(days: [CodexTokenHistory.Day], week: Int) -> String? {

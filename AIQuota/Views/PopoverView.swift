@@ -90,15 +90,12 @@ struct PopoverView: View {
                 Divider()
             }
 
+            if viewModel.isCodexAuthenticated {
+                resetNoticeRow
+            }
+
             gaugeRow
                 .padding(.top, 16).padding(.bottom, 10)
-
-            if viewModel.isCodexAuthenticated {
-                Divider()
-                CodexTokenHistoryView()
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 8)
-            }
 
             statsRow
 
@@ -114,9 +111,13 @@ struct PopoverView: View {
             HStack(alignment: .top, spacing: 8) {
                 Button { NSWorkspace.shared.open(CodexResetNotice.website) } label: {
                     VStack(alignment: .leading, spacing: 5) {
+                        Text("Codex reset")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(CircularGaugeView.accent)
                         Text(announcement.title)
                             .font(.system(size: 12, weight: .semibold))
                             .foregroundStyle(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
                         Label("Read more", systemImage: "arrow.up.right")
                             .font(.system(size: 11))
                             .foregroundStyle(CircularGaugeView.accent)
@@ -240,9 +241,16 @@ struct PopoverView: View {
     private var codexColumn: some View {
         VStack(spacing: 0) {
             codexGaugeSlot
-            if viewModel.isCodexAuthenticated { resetNoticeRow }
+            if viewModel.isCodexAuthenticated {
+                CodexTokenHistoryView()
+                    .padding(.horizontal, 14)
+                    .padding(.top, 8)
+            }
         }
         .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Codex service")
+        .accessibilityIdentifier("codexServiceColumn")
     }
 
     @ViewBuilder
