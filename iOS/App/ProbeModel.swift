@@ -18,6 +18,10 @@ final class ProbeModel {
     private(set) var challenge: DeviceChallenge? {
         didSet { if challenge == nil { try? SignInCodeStore.clear() } }
     }
+    private(set) var tokenHistory: CodexTokenHistory?
+    private(set) var tokenHistoryUnavailable = false
+    private var tokenHistoryScope = CodexTokenHistoryScope()
+    private var tokenHistoryAttempt: Date?
     private(set) var history: CodexUsageHistory?
     private(set) var historyUnavailable = false
     private let historyCacheKey = "mobileProbe.codexHistory"
@@ -37,6 +41,7 @@ final class ProbeModel {
         if isDemo {
             reading = DemoQuotaData.reading(.codex)
             history = DemoQuotaData.history()
+            tokenHistory = DemoQuotaData.tokenHistory()
             message = "Sample usage. No account connected."
             return
         }
@@ -75,6 +80,7 @@ final class ProbeModel {
                         try shared.saveCredentials(newTokens)
                         try TokenStore.clear()
                     }
+                    clearTokenHistory()
                     history = nil
                     historyUnavailable = false
                     UserDefaults.standard.removeObject(forKey: historyCacheKey)
@@ -105,6 +111,9 @@ final class ProbeModel {
     func refreshOnOpen() {
         guard !isDemo else { refresh(); return }
         guard !busy, connected else { return }
+        // Invalidate token history before the foreground quota throttle on account changes.
+        let current = try? shared.load(CodexTokens.self)
+        if tokenHistoryScope.update(scopeID: current.map(CodexAPI.tokenHistoryScope)) { clearTokenHistory() }
         // A widget may have published a newer successful reading while the app was inactive.
         if let cached = shared.reading(), cached.fetchedAt > (reading?.fetchedAt ?? .distantPast) {
             reading = cached
@@ -115,7 +124,14 @@ final class ProbeModel {
         quietlyRefreshing = reading != nil
         run { [self] in try await fetch(forceRenewal: false, minimumAge: 30) }
     }
+    func retryTokenHistory() {
+        guard !busy else { return }
+        tokenHistoryAttempt = nil
+        refresh()
+    }
     private func fetch(forceRenewal: Bool, minimumAge: TimeInterval = 0) async throws {
+        let current = try? shared.load(CodexTokens.self)
+        if tokenHistoryScope.update(scopeID: current.map(CodexAPI.tokenHistoryScope)) { clearTokenHistory() }
         let backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "Refresh allowance") { [weak self] in
             Task { @MainActor in self?.work?.cancel() }
         }
@@ -133,6 +149,7 @@ final class ProbeModel {
         let value = try await shared.fetch(source: "app", forceRenewal: forceRenewal, minimumAge: minimumAge)
         try Task.checkCancellation()
         tokens = try shared.load(CodexTokens.self)
+        if tokenHistoryScope.update(scopeID: tokens.map(CodexAPI.tokenHistoryScope)) { clearTokenHistory() }
         reading = value
         connectionFailure = nil
         UserDefaults.standard.set(try JSONEncoder().encode(value), forKey: cacheKey)
@@ -141,6 +158,8 @@ final class ProbeModel {
         message = "Usage updated."
         // History is optional: an unavailable analytics endpoint must not mark quota stale.
         if let tokens {
+            await refreshTokenHistory(tokens)
+            try Task.checkCancellation()
             do {
                 let updated = try await api.usageHistory(tokens)
                 try Task.checkCancellation()
@@ -149,6 +168,34 @@ final class ProbeModel {
                 UserDefaults.standard.set(try JSONEncoder().encode(updated), forKey: historyCacheKey)
             } catch is CancellationError { throw CancellationError() }
             catch { historyUnavailable = true }
+        }
+    }
+    private func clearTokenHistory() {
+        tokenHistory = nil
+        tokenHistoryUnavailable = false
+        tokenHistoryAttempt = nil
+    }
+    private func refreshTokenHistory(_ credential: CodexTokens) async {
+        let scope = CodexAPI.tokenHistoryScope(credential)
+        if tokenHistoryScope.update(scopeID: scope) { clearTokenHistory() }
+        if let tokenHistoryAttempt, Date.now.timeIntervalSince(tokenHistoryAttempt) < 900 { return }
+        tokenHistoryAttempt = .now
+        let requestGeneration = generation
+        do {
+            let updated = try await api.tokenHistory(credential)
+            try Task.checkCancellation()
+            guard generation == requestGeneration,
+                  let current = try shared.load(CodexTokens.self), CodexAPI.tokenHistoryScope(current) == scope else {
+                clearTokenHistory(); return
+            }
+            tokenHistory = updated
+            tokenHistoryUnavailable = updated == nil
+        } catch {
+            guard generation == requestGeneration, !Task.isCancelled else { return }
+            guard let current = try? shared.load(CodexTokens.self), CodexAPI.tokenHistoryScope(current) == scope else {
+                clearTokenHistory(); return
+            }
+            tokenHistoryUnavailable = true
         }
     }
     private func run(_ action: @escaping @MainActor () async throws -> Void) {
@@ -193,6 +240,7 @@ final class ProbeModel {
     func resetForNewUser() async throws {
         guard !isDemo else { return }
         let pending = work
+        clearTokenHistory()
         cancel()
         busy = true
         defer { busy = false }
@@ -213,6 +261,7 @@ final class ProbeModel {
         WidgetCenter.shared.reloadAllTimelines()
         UserDefaults.standard.removeObject(forKey: cacheKey)
         UserDefaults.standard.removeObject(forKey: historyCacheKey)
+        clearTokenHistory()
         history = nil
         historyUnavailable = false
         foregroundRefresh.reset()

@@ -1,5 +1,4 @@
 import SwiftUI
-import Charts
 import MobileAccessCore
 
 struct OverviewView: View {
@@ -87,6 +86,7 @@ struct OverviewView: View {
                             ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 780) - 32, reading: codex.reading,
                                              connected: codex.connected, busy: codex.loading, error: codex.error, failure: codex.connectionFailure,
                                              history: codex.history, historyUnavailable: codex.historyUnavailable,
+                                             tokenHistory: codex.tokenHistory, tokenHistoryUnavailable: codex.tokenHistoryUnavailable, retryTokenHistory: { codex.retryTokenHistory() },
                                              onReconnect: { selectedService = .codexAccount }) {
                                 selectedService = .codex
                             }
@@ -560,12 +560,16 @@ struct ProviderDialCard: View {
     var failure: SharedQuotaStore.Failure? = nil
     var history: CodexUsageHistory? = nil
     var historyUnavailable = false
+    var tokenHistory: CodexTokenHistory? = nil
+    var tokenHistoryUnavailable = false
+    var retryTokenHistory: (() -> Void)? = nil
     var onReconnect: (() -> Void)? = nil
     let onOpen: () -> Void
     var body: some View {
         ProviderDialCardContent(name: name, icon: icon, availableWidth: availableWidth,
             reading: reading, connected: connected, busy: busy, error: error, failure: failure,
-            onOpen: onOpen, onReconnect: onReconnect, history: history, historyUnavailable: historyUnavailable)
+            onOpen: onOpen, onReconnect: onReconnect, history: history, historyUnavailable: historyUnavailable,
+            tokenHistory: tokenHistory, tokenHistoryUnavailable: tokenHistoryUnavailable, retryTokenHistory: retryTokenHistory)
     }
 }
 
@@ -651,6 +655,9 @@ struct ProviderDialCardContent: View {
     var onReconnect: (() -> Void)? = nil
     var history: CodexUsageHistory? = nil
     var historyUnavailable = false
+    var tokenHistory: CodexTokenHistory? = nil
+    var tokenHistoryUnavailable = false
+    var retryTokenHistory: (() -> Void)? = nil
     var largeDial = false
     var allowanceOnly = false
     @Environment(\.colorSchemeContrast) private var contrast
@@ -670,7 +677,7 @@ struct ProviderDialCardContent: View {
     var body: some View {
         if allowanceOnly {
             dial
-        } else if let onOpen, !needsReconnect {
+        } else if let onOpen, !needsReconnect, name != "Codex" {
             Button(action: onOpen) { cardContent }
                 .buttonStyle(.plain)
                 .accessibilityHint("Opens \(name) service sheet")
@@ -680,11 +687,13 @@ struct ProviderDialCardContent: View {
     }
     private var cardContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            summary
-            if name == "Codex", connected, let history, history.hasChartData {
+            if name == "Codex", let onOpen, !needsReconnect {
+                Button(action: onOpen) { summary }.buttonStyle(.plain)
+                    .accessibilityHint("Opens Codex service sheet")
+            } else { summary }
+            if name == "Codex", connected {
                 Divider()
-                OverviewHistoryStrip(history: history, unavailable: historyUnavailable)
-                    .modifier(ChartLoadingState(loading: busy, history: true))
+                MobileTokenHistoryView(history: tokenHistory, unavailable: tokenHistoryUnavailable, loading: busy, retry: retryTokenHistory)
             }
         }
         .modifier(UsageLoadingState(loading: busy))
@@ -819,37 +828,7 @@ struct ProviderDialCardContent: View {
     }
 }
 
-struct OverviewHistoryStrip: View {
-    let history: CodexUsageHistory
-    var unavailable = false
-    private var maximum: Double { max(1, history.days.compactMap(\.credits).max() ?? 0) }
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if history.hasChartData {
-                Chart(Array(history.chartDays.enumerated()), id: \.element.id) { index, day in
-                    if let credits = day.credits {
-                        BarMark(x: .value("Day", String(index)), y: .value("Usage credits", credits))
-                            .foregroundStyle(OverviewStyle.accent)
-                            .cornerRadius(2)
-                            .accessibilityLabel(day.date)
-                            .accessibilityValue("\(credits.formatted(.number.precision(.fractionLength(0...2)))) usage credits")
-                    }
-                }
-                .chartXScale(domain: (0..<30).map { String($0) })
-                .chartYScale(domain: 0...maximum)
-                .chartXAxis(.hidden).chartYAxis(.hidden).chartLegend(.hidden)
-                .frame(height: 44)
-            }
-            Text(history.chartRangeLabel)
-                .font(.caption2).foregroundStyle(OverviewStyle.secondary)
-            if unavailable || Date.now.timeIntervalSince(history.fetchedAt) > 1800 {
-                Text("Saved history · \(history.fetchedAt.formatted(date: .abbreviated, time: .shortened))")
-                    .font(.caption2).foregroundStyle(OverviewStyle.secondary)
-            }
-        }.accessibilityElement(children: .contain)
-            .accessibilityLabel("Daily Codex usage credits. Gaps are unreported days.")
-    }
-}
+
 
 func overviewFreshnessLabel(_ fetchedAt: Date, at now: Date, saved: Bool) -> String {
     let elapsed = max(0, Int(now.timeIntervalSince(fetchedAt)))

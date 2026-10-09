@@ -29,7 +29,7 @@ final class BaseScreenReviewTests: XCTestCase {
                 ScrollView {
                     VStack(spacing: 24) {
                         ProviderDialCardContent(name: "Codex", icon: "logo-openai", availableWidth: 370,
-                            reading: codex, connected: true, busy: false, error: nil, history: history)
+                            reading: codex, connected: true, busy: false, error: nil, history: history, tokenHistory: DemoQuotaData.tokenHistory(now: now))
                         ProviderDialCardContent(name: "Claude", icon: "logo-claude", availableWidth: 370,
                             reading: claude, connected: true, busy: false, error: nil)
                         Text("Updated 2 minutes ago").font(.caption).foregroundStyle(OverviewStyle.secondary)

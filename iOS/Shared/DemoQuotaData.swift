@@ -4,6 +4,13 @@ import MobileAccessCore
 
 /// Sample data is generated in memory and never written to the live account stores.
 enum DemoQuotaData {
+    static func tokenHistory(now: Date = .now) -> CodexTokenHistory? {
+        let rows = (0..<250).filter { $0 % 11 != 0 }.map { offset in
+            let key = CodexTokenHistory.dateFormatter().string(from: now.addingTimeInterval(-Double(offset) * 86400))
+            return "{\"start_date\":\"\(key)\",\"tokens\":\(offset % 13 == 0 ? 0 : (offset * 7919) % 9000000)}"
+        }.joined(separator: ",")
+        return try? CodexTokenHistory.decode(Data("{\"page\":{\"activity_graph\":{\"daily_usage_buckets\":[\(rows)]}}}".utf8), fetchedAt: now)
+    }
     static let enabledKey = "demo.enabled"
     static var defaults: UserDefaults { UserDefaults(suiteName: WidgetStore.group) ?? .standard }
     static var isEnabled: Bool { defaults.bool(forKey: enabledKey) }

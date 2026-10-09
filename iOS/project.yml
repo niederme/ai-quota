@@ -11,7 +11,7 @@ targetTemplates:
         DEVELOPMENT_TEAM: 289GY9L343
         CODE_SIGN_STYLE: Automatic
         MARKETING_VERSION: "0.1.0"
-        CURRENT_PROJECT_VERSION: "51"
+        CURRENT_PROJECT_VERSION: "52"
 targets:
   AIQuota-iOS:
     type: application
@@ -61,6 +61,8 @@ targets:
           - CFBundleURLSchemes: [aiquota-probe]
         SignInCodeKeychainGroup: $(AppIdentifierPrefix)com.niederme.AIQuota.SignInCode
         CFBundleDisplayName: AIQuota
+        AIQuotaSourceCommit: $(AIQUOTA_SOURCE_COMMIT)
+        AIQuotaBaseCommit: $(AIQUOTA_BASE_COMMIT)
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         ITSAppUsesNonExemptEncryption: false

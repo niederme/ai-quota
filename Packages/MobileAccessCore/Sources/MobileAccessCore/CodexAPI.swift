@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 public enum AccessError: Error, LocalizedError, Sendable, Equatable {
     case http(Int), invalidResponse, noWindows, expired, storage
@@ -166,6 +167,21 @@ public struct CodexAPI: Sendable {
     public static let clientID = "app_EMoamEEZ73f0CkXaXp7hrann"
     private let transport: any HTTPTransport
     public init(transport: any HTTPTransport = ProviderTransport()) { self.transport = transport }
+    /// Opaque in-memory account/credential scope; never persisted or logged.
+    public static func tokenHistoryScope(_ tokens: CodexTokens) -> String {
+        SHA256.hash(data: Data(((tokens.accountID ?? "") + "\0" + tokens.accessToken).utf8))
+            .map { String(format: "%02x", $0) }.joined()
+    }
+    public func tokenHistory(_ tokens: CodexTokens, now: Date = .now) async throws -> CodexTokenHistory? {
+        var request = URLRequest(url: URL(string: "https://chatgpt.com/backend-api/profiles/me/page")!)
+        request.setValue("Bearer \(tokens.accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue(tokens.accountID, forHTTPHeaderField: "ChatGPT-Account-Id")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        let response = try await transport.send(request)
+        if response.status == 403 || response.status == 404 { return nil }
+        try validate(response)
+        return try CodexTokenHistory.decode(response.data, fetchedAt: now, scopeID: Self.tokenHistoryScope(tokens))
+    }
     public func requestChallenge() async throws -> DeviceChallenge {
         let r = try await postJSON("https://auth.openai.com/api/accounts/deviceauth/usercode", ["client_id": Self.clientID])
         try validate(r)

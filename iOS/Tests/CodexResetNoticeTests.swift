@@ -88,7 +88,7 @@ private final class ResetNoticeURLProtocol: URLProtocol, @unchecked Sendable {
                     VStack(spacing: 24) {
                         CodexResetNoticeBanner(announcement: announcement, openDetails: {}, dismiss: {}, loading: name == "loading")
                         ProviderDialCardContent(name: "Codex", icon: "logo-openai", availableWidth: 370,
-                            reading: reading, connected: true, busy: name == "loading", error: nil)
+                            reading: reading, connected: true, busy: name == "loading", error: nil, tokenHistory: DemoQuotaData.tokenHistory(now: now))
                     }.padding(16)
                 }
                 .background { OverviewBackground().ignoresSafeArea() }
