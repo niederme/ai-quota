@@ -90,13 +90,17 @@ struct CodexTokenHistoryView: View {
     private var gridHeight: CGFloat { 7 * cellSide + 6 * cellGap }
 
     private func monthLabels(days: [CodexTokenHistory.Day], width: CGFloat) -> [(week: Int, text: String, x: CGFloat)] {
-        var labels: [(week: Int, text: String, x: CGFloat)] = []
-        for week in 0..<52 {
-            guard let text = monthLabel(days: days, week: week) else { continue }
-            let x = min(width - 20, CGFloat(week) * (width + 1.2) / 52)
-            // Labels use the same content coordinates as the daily cells, so both scroll together.
-            guard labels.last.map({ x - $0.x >= 17 }) ?? true else { continue }
-            labels.append((week, text, x))
+        let labelWidth: CGFloat = 20
+        let labelGap: CGFloat = 4
+        var labels = (0..<52).compactMap { week -> (week: Int, text: String, x: CGFloat)? in
+            guard let text = monthLabel(days: days, week: week) else { return nil }
+            return (week, text, CGFloat(week) * (cellSide + cellGap))
+        }
+        // Place the last label inside the graph, then reserve space for every
+        // neighboring label rather than allowing the final two boxes to overlap.
+        for index in labels.indices.reversed() {
+            let rightEdge = index == labels.count - 1 ? width : labels[index + 1].x - labelGap
+            labels[index].x = max(0, min(labels[index].x, rightEdge - labelWidth))
         }
         return labels
     }
