@@ -53,11 +53,13 @@ struct MobileTokenHistoryView: View {
                             let day = days[week * 7 + row]
                             if !day.isFuture { selected = day }
                         })
+                        .accessibilityElement(children: .contain)
                         .accessibilityIdentifier("tokenActivityGrid")
                         ZStack(alignment: .topLeading) {
                             ForEach(0..<52, id: \.self) { week in
                                 if let label = monthLabel(days, week: week) {
                                     Text(label).font(.system(size: 8)).foregroundStyle(.secondary)
+                                        .frame(width: 18, alignment: week >= 49 ? .trailing : .leading)
                                         .offset(x: min(geometry.size.width - 18, CGFloat(week) * (side + gap)))
                                 }
                             }
