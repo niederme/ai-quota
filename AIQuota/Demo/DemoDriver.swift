@@ -8,8 +8,8 @@ import UserNotifications
 
 /// Drives a `QuotaViewModel` through a scripted timelapse of all usage states.
 /// Claude and Codex advance on **independent** timers — reflecting heavier Claude
-/// usage. Activate by calling `startIfNeeded(driving:)` once. Resets automatically
-/// whenever the AIQuota menu bar popover opens.
+/// usage. Activate by calling `startIfNeeded(driving:)` once. Playback continues
+/// independently of the menu bar popover and loops after the final frame.
 @MainActor
 final class DemoDriver {
 
@@ -71,7 +71,7 @@ final class DemoDriver {
         .init(fiveH: 100, sevenD: 100, resetSecs: 15300, weeklyResetDays: 4, tick: 1.4), // both red
         .init(fiveH:   0, sevenD: 100, resetSecs: 18000, weeklyResetDays: 4, tick: 0.5), // 5h back, week gone
 
-        // FINAL FRAME — held indefinitely (tick unused): weekly spent by
+        // FINAL FRAME — held until both services finish: weekly spent by
         // mid-week, extra usage over the cap, 4 days until relief.
         .init(fiveH:  36, sevenD: 100, resetSecs: 11400, weeklyResetDays: 4, tick: 0),
     ]
@@ -113,7 +113,7 @@ final class DemoDriver {
         .init(fiveH:  85, sevenD:  56, resetSecs:  2400, weeklyResetDays: 4, tick: 1.3), // amber
         .init(fiveH: 100, sevenD:  57, resetSecs: 15700, weeklyResetDays: 4, tick: 1.4), // red + credits empty
         .init(fiveH:   0, sevenD:  57, resetSecs: 18000, weeklyResetDays: 4, tick: 0.6), // reload kicks in
-        // FINAL FRAME — held indefinitely (tick unused)
+        // FINAL FRAME — held until both services finish (tick unused)
         .init(fiveH:  21, sevenD:  58, resetSecs: 14700, weeklyResetDays: 4, tick: 0),
     ]
 
@@ -193,32 +193,35 @@ final class DemoDriver {
         // cap on the frame where the 5h resets but the week stays gone.
         let cycle4: [Double] = [3850, 4150, 4400, 4650, 4900, 5000]
         for (i, cents) in cycle4.enumerated() { map[18 + i] = extra(cents) }
-        // Final frame (24) is held forever, so the exception strip stays on
-        // screen at the demo's resting state.
+        // Final frame (24) shows the exception strip before the loop restarts.
         map[24] = extra(5150)
         return map
     }()
 
     // MARK: - State
 
-    /// Hold on frame 0 for this long before the time-lapse starts, so the
-    /// freshly opened popover has a beat of calm before things move.
-    private let startHold: TimeInterval = 5
+    /// Hold the opening and final states for two seconds each cycle.
+    private let startHold: TimeInterval = 2
+    private let endHold: TimeInterval = 2
 
     private let notificationPresenter = DemoNotificationPresenter()
     private weak var target: QuotaViewModel?
+    private var started = false
 
     private var claudeIndex = 0
     private var codexIndex  = 0
     private var claudeTimer: Timer?
     private var codexTimer:  Timer?
+    private var restartTimer: Timer?
     private var notificationTask: Task<Void, Never>?
     private let demoNotificationIDs = ["demo.codex.low", "demo.codex.plan", "demo.codex.topup"]
 
     // MARK: - Public API
 
-    /// Store the view model target. Call once from `.task` in `AIQuotaApp`.
-    func prepare(for viewModel: QuotaViewModel) {
+    /// Start once when the menu bar item appears; popover visibility has no effect.
+    func startIfNeeded(driving viewModel: QuotaViewModel) {
+        guard !started else { return }
+        started = true
         target = viewModel
         UNUserNotificationCenter.current().delegate = notificationPresenter
         Task {
@@ -227,14 +230,18 @@ final class DemoDriver {
                 await NotificationManager.shared.requestPermission()
             }
         }
+        reset()
     }
 
-    /// Restart the sequence from frame 0. Call from `.onAppear` and ⌘R.
+    /// Restart the sequence from frame 0, either after the end hold or with ⌘R.
     func reset() {
+        guard target != nil else { return }
         claudeTimer?.invalidate()
         codexTimer?.invalidate()
+        restartTimer?.invalidate()
         claudeTimer = nil
         codexTimer  = nil
+        restartTimer = nil
         claudeIndex = 0
         codexIndex  = 0
         notificationTask?.cancel()
@@ -248,13 +255,15 @@ final class DemoDriver {
         applyNextCodexFrame()
     }
 
-    /// Stop timers without resetting progress. Call from `.onDisappear`.
-    func pause() {
-        notificationTask?.cancel()
-        claudeTimer?.invalidate()
-        codexTimer?.invalidate()
-        claudeTimer = nil
-        codexTimer  = nil
+    private func scheduleRestartIfFinished() {
+        guard claudeIndex == claudeFrames.count,
+              codexIndex == codexFrames.count,
+              restartTimer == nil else { return }
+        let timer = Timer(timeInterval: endHold, repeats: false) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.reset() }
+        }
+        restartTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
     }
 
     // MARK: Claude advancement
@@ -262,14 +271,14 @@ final class DemoDriver {
     private func scheduleNextClaude() {
         guard claudeIndex < claudeFrames.count else { return }
         // A frame's tick is how long it stays on screen; the frame just
-        // shown is claudeIndex - 1. The final frame schedules nothing, so
-        // it is held indefinitely.
+        // shown is claudeIndex - 1. Frame 0 gets an exact two-second hold.
         let base = claudeFrames[claudeIndex - 1].tick
-        var duration = base * Double.random(in: 0.75...1.25)
-        if claudeIndex == 1 { duration += startHold }  // hold on the opening frame
-        claudeTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
+        let duration = claudeIndex == 1 ? startHold : base * Double.random(in: 0.75...1.25)
+        let timer = Timer(timeInterval: duration, repeats: false) { [weak self] _ in
             Task { @MainActor [weak self] in self?.applyNextClaudeFrame() }
         }
+        claudeTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
     }
 
     private func applyNextClaudeFrame() {
@@ -306,6 +315,8 @@ final class DemoDriver {
 
         if claudeIndex < claudeFrames.count {
             scheduleNextClaude()
+        } else {
+            scheduleRestartIfFinished()
         }
     }
 
@@ -314,16 +325,16 @@ final class DemoDriver {
     private func scheduleNextCodex() {
         guard codexIndex < codexFrames.count else { return }
         // A frame's tick is how long it stays on screen; the frame just
-        // shown is codexIndex - 1. The final frame schedules nothing, so
-        // it is held indefinitely.
+        // shown is codexIndex - 1. Frame 0 gets an exact two-second hold.
         let base = codexFrames[codexIndex - 1].tick
-        var duration = base * Double.random(in: 0.75...1.25)
-        if codexIndex == 1 { duration += startHold }  // hold on the opening frame
+        var duration = codexIndex == 1 ? startHold : base * Double.random(in: 0.75...1.25)
         // Hold notification frames for six seconds even at the fastest jitter.
         if [5, 6, 21].contains(codexIndex - 1) { duration = max(duration, 6) }
-        codexTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
+        let timer = Timer(timeInterval: duration, repeats: false) { [weak self] _ in
             Task { @MainActor [weak self] in self?.applyNextCodexFrame() }
         }
+        codexTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
     }
 
     private func applyNextCodexFrame() {
@@ -379,6 +390,8 @@ final class DemoDriver {
 
         if codexIndex < codexFrames.count {
             scheduleNextCodex()
+        } else {
+            scheduleRestartIfFinished()
         }
     }
     private func notifyDemo(id: String, title: String, body: String) {

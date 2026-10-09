@@ -83,13 +83,9 @@ struct AIQuotaApp: App {
                     }
                 }
                 #if DEMO_MODE
-                // prepare must precede reset — .task would run after .onAppear,
-                // leaving the driver targetless on the first (auto-opened) show.
                 .onAppear {
-                    demoDriver.prepare(for: viewModel)
-                    demoDriver.reset()
+                    demoDriver.startIfNeeded(driving: viewModel)
                 }
-                .onDisappear { demoDriver.pause() }
                 .background {
                     Button("") { demoDriver.reset() }
                         .keyboardShortcut("r", modifiers: .command)
@@ -101,6 +97,7 @@ struct AIQuotaApp: App {
                 .onboardingLauncher(viewModel: viewModel)
                 #if DEMO_MODE
                 .demoAutoOpen()
+                .onAppear { demoDriver.startIfNeeded(driving: viewModel) }
                 #endif
         }
         .menuBarExtraStyle(.window)
