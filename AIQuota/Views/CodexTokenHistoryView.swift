@@ -8,12 +8,6 @@ struct CodexTokenHistoryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text("Token activity").font(.system(size: 12, weight: .medium))
-                    .help("Daily token counts from your ChatGPT profile; independent of quota credits. Outlined cells have no reported record, muted cells are confirmed zero.")
-                Spacer()
-                Text("52 weeks").font(.system(size: 12)).foregroundStyle(.secondary)
-            }
             if let history = viewModel.codexTokenHistory, history.days().contains(where: { !$0.isFuture && $0.tokens != nil }) {
                 let days = history.days()
                 let positives = days.filter { !$0.isFuture }.compactMap(\.tokens).filter { $0 > 0 }.sorted()
@@ -52,9 +46,15 @@ struct CodexTokenHistoryView: View {
                                 .offset(x: label.x)
                     }
                 }.frame(height: 11)
-                Text(selected.map(description) ?? (viewModel.tokenHistoryFailed ? "Saved history · refresh unavailable" : "Outlined: no record · dates in UTC"))
-                    .font(.system(size: 10)).foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                if let selected {
+                    Text(description(selected))
+                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else if viewModel.tokenHistoryFailed {
+                    Text("Saved history · refresh unavailable")
+                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             } else {
                 HStack(spacing: 6) {
                     if viewModel.isTokenHistoryLoading { ProgressView().controlSize(.mini) }
@@ -70,6 +70,7 @@ struct CodexTokenHistoryView: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Codex token activity, past 52 weeks")
+        .help("Daily Codex token counts from your ChatGPT profile. Outlined cells have no reported record; muted cells are confirmed zero. Dates are in UTC.")
         .accessibilityIdentifier("codexTokenActivity")
         .task { viewModel.refreshTokenHistory() }
         .onChange(of: viewModel.codexTokenHistory?.fetchedAt) { selected = nil }
