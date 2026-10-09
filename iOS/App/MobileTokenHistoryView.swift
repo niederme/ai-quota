@@ -23,7 +23,7 @@ struct MobileTokenHistoryView: View {
     private var presentation: Presentation { Self.presentation(history: history, unavailable: unavailable, loading: loading) }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             if let history, presentation == .populated {
                 let days = history.days()
                 let positives = days.filter { !$0.isFuture }.compactMap(\.tokens).filter { $0 > 0 }.sorted()
@@ -31,7 +31,7 @@ struct MobileTokenHistoryView: View {
                 GeometryReader { geometry in
                     let gap = 1.0
                     let side = max(1, (geometry.size.width - 51 * gap) / 52)
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 4) {
                         HStack(alignment: .top, spacing: gap) {
                             ForEach(0..<52, id: \.self) { week in
                                 VStack(spacing: gap) {
@@ -53,6 +53,7 @@ struct MobileTokenHistoryView: View {
                                 }
                             }
                         }
+                        .frame(minHeight: 44, alignment: .top)
                         .contentShape(Rectangle())
                         .gesture(DragGesture(minimumDistance: 0).onChanged { value in
                             let week = min(51, max(0, Int(value.location.x / (side + gap))))
@@ -110,7 +111,7 @@ struct MobileTokenHistoryView: View {
         .accessibilityLabel("Token activity, past 52 weeks")
         .onChange(of: history?.fetchedAt) { _, _ in selected = nil }
     }
-    private var graphHeight: CGFloat { max(64, availableWidth * 10 / 52) }
+    private var graphHeight: CGFloat { max(44, 7 * max(1, (availableWidth - 51) / 52) + 6) + 16 }
     private var skeleton: some View {
         GeometryReader { geometry in
             let gap = 1.0

@@ -688,13 +688,12 @@ struct ProviderDialCardContent: View {
         }
     }
     private var cardContent: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             if name == "Codex", let onOpen, !needsReconnect {
                 Button(action: onOpen) { summary.modifier(UsageLoadingState(loading: busy && reading == nil)) }.buttonStyle(.plain)
                     .accessibilityHint("Opens Codex service sheet")
             } else { summary.modifier(UsageLoadingState(loading: busy && reading == nil)) }
             if name == "Codex", connected {
-                Divider()
                 MobileTokenHistoryView(history: tokenHistory, unavailable: tokenHistoryUnavailable || (tokenHistory == nil && error != nil), loading: tokenHistoryLoading ?? busy, availableWidth: availableWidth - 32, retry: retryTokenHistory)
             }
         }
