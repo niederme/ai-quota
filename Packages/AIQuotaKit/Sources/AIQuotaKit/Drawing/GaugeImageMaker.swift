@@ -5,10 +5,10 @@ import CoreGraphics
 /// Shared arc-gauge image renderer used by both the main app menu bar icon and the widget.
 public enum GaugeImageMaker {
 
-    /// Renders a dual-arc gauge into an `NSImage` of the given point size.
+    /// Renders a primary arc and an optional secondary arc into an `NSImage` of the given point size.
     /// - Parameters:
-    ///   - primaryPercent: 0–100, short window (5h) consumption for the displayed service.
-    ///   - secondaryPercent: 0–100, long window (7-day) consumption for the displayed service.
+    ///   - primaryPercent: 0–100 consumption of the primary reported allowance.
+    ///   - secondaryPercent: 0–100 consumption of the secondary allowance, when shown.
     ///   - limitReached: whether any service has hit its cap.
     ///   - isLoading: retained for API compatibility; callers may use it to
     ///     coordinate external loading affordances while the gauge keeps its
@@ -22,7 +22,8 @@ public enum GaugeImageMaker {
         limitReached: Bool,
         isLoading: Bool,
         size: CGFloat,
-        worstPercent: Int? = nil
+        worstPercent: Int? = nil,
+        showsSecondaryMetric: Bool = true
     ) -> NSImage {
         let img = NSImage(size: NSSize(width: size, height: size))
         img.lockFocusFlipped(false)         // y-up, origin bottom-left
@@ -34,9 +35,11 @@ public enum GaugeImageMaker {
 
         let s  = size
         let cx = s / 2, cy = s / 2
-        let lw = s * 0.12              // slightly thinner to fit two rings
-        let r1 = s * 0.41              // outer ring (5h / primary)
-        let r2 = r1 - lw              // inner ring (7-day / secondary), touching
+        let dualLineWidth = s * 0.12
+        let lw = s * (showsSecondaryMetric ? 0.12 : 0.13)
+        // Thicken inward so the outer edge and 22-point footprint stay fixed.
+        let r1 = s * 0.41 - (lw - dualLineWidth) / 2
+        let r2 = r1 - lw              // inner ring (secondary), touching
 
         ctx.setLineWidth(lw)
 
@@ -47,10 +50,12 @@ public enum GaugeImageMaker {
                    startAngle: deg(225), endAngle: deg(315), clockwise: true)
         ctx.strokePath()
 
-        ctx.setStrokeColor(CGColor(red: 1, green: 1, blue: 1, alpha: 0.12))
-        ctx.addArc(center: CGPoint(x: cx, y: cy), radius: r2,
-                   startAngle: deg(225), endAngle: deg(315), clockwise: true)
-        ctx.strokePath()
+        if showsSecondaryMetric {
+            ctx.setStrokeColor(CGColor(red: 1, green: 1, blue: 1, alpha: 0.12))
+            ctx.addArc(center: CGPoint(x: cx, y: cy), radius: r2,
+                       startAngle: deg(225), endAngle: deg(315), clockwise: true)
+            ctx.strokePath()
+        }
 
         // Fills: flat caps — needle dot marks the tip, no rounded bleed at 225°
         // (keeping .round here would add a bubble at the arc start too)
@@ -60,9 +65,9 @@ public enum GaugeImageMaker {
         // ring reads as primary; both brighten together when either crosses a
         // threshold, keeping the palette coherent.
         let pct1: Double = Double(primaryPercent) / 100.0
-        let pct2: Double = Double(secondaryPercent) / 100.0
+        let pct2: Double = showsSecondaryMetric ? Double(secondaryPercent) / 100.0 : 0
         let worstLimitReached = limitReached || pct2 >= 1.0
-        let colorPct: Double = Double(worstPercent ?? max(primaryPercent, secondaryPercent)) / 100.0
+        let colorPct: Double = Double(worstPercent ?? max(primaryPercent, showsSecondaryMetric ? secondaryPercent : 0)) / 100.0
         let sharedColor = ringColor(pct: colorPct, limitReached: worstLimitReached)
 
         // ── Outer fill: primary (5h) ───────────────────────────────────────

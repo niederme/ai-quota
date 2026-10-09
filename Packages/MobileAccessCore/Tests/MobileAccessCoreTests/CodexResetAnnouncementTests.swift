@@ -23,6 +23,22 @@ final class CodexResetAnnouncementTests: XCTestCase {
         XCTAssertNil(try response(status: "cancelled").announcement(at: now))
         XCTAssertNil(try response(type: "unknown").announcement(at: now))
     }
+    func testLastResetDateRequiresFreshCompletedRegularReset() throws {
+        let completed = """
+        {"id":"completed-1","reset_type":"regular","announced_at":"2026-09-22T11:00:00Z"}
+        """
+        let expected = ISO8601DateFormatter().date(from: "2026-09-22T11:00:00Z")!
+        XCTAssertEqual(try response(completed: completed).lastRegularResetDate(at: now), expected)
+        XCTAssertNil(try response().lastRegularResetDate(at: now))
+        XCTAssertNil(try response(completed: completed.replacingOccurrences(of: "regular", with: "banked")).lastRegularResetDate(at: now))
+        XCTAssertNil(try response(completed: completed.replacingOccurrences(of: "11:00:00", with: "13:00:00")).lastRegularResetDate(at: now))
+        XCTAssertNil(try response(generated: "2026-09-22T11:29:00Z", completed: completed).lastRegularResetDate(at: now))
+        // Dismissing an upcoming announcement does not remove historical evidence.
+        let status = try response(completed: completed)
+        XCTAssertNil(status.announcement(at: now, dismissedID: "announcement-1"))
+        XCTAssertEqual(status.lastRegularResetDate(at: now), expected)
+    }
+
     func testBankedCreditIsNotDescribedAsAutomaticReset() throws {
         XCTAssertEqual(try response(type: "banked").announcement(at: now)?.title, "Codex reset credit announced")
     }

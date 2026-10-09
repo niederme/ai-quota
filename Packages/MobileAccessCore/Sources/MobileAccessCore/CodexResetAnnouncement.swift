@@ -59,6 +59,17 @@ public struct CodexResetStatus: Decodable, Sendable {
     public let data: Payload
     public let meta: Metadata
 
+    /// The tracker-reported completed regular reset, separate from account reset times
+    /// and from banked reset credits. Hide unavailable, stale, or future evidence.
+    public func lastRegularResetDate(at now: Date) -> Date? {
+        guard meta.api_version == "v1",
+              now.timeIntervalSince(meta.generated_at) >= -300,
+              now.timeIntervalSince(meta.generated_at) < 30 * 60,
+              let reset = data.latest_reset, reset.reset_type == "regular",
+              !reset.id.isEmpty, reset.announced_at <= now else { return nil }
+        return reset.announced_at
+    }
+
     public func announcement(at now: Date, dismissedID: String? = nil) -> CodexResetAnnouncement? {
         guard meta.api_version == "v1",
               now.timeIntervalSince(meta.generated_at) >= -300,

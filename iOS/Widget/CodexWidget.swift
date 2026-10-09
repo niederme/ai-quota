@@ -34,7 +34,7 @@ private func loadReading(_ service: QuotaService) async -> ProviderReading {
         let reconnect = (error as? AccessError) == .expired || (error as? AccessError) == .http(401)
             || (error as? ClaudeAccessError)?.requiresReconnect == true
             || SharedQuotaStore.Failure.classify(error) == .renewal
-        return ProviderReading(service: service, reading: store.reading(), needsApp: reconnect && (hasSavedCredentials(store) || store.reading() != nil))
+        return ProviderReading(service: service, reading: store.reading(), needsApp: reconnect && (hasSavedCredentials(store) || store.reading() != nil), updateFailed: true)
     }
 }
 private func snapshotReading(_ service: QuotaService) -> ProviderReading {
@@ -42,7 +42,7 @@ private func snapshotReading(_ service: QuotaService) -> ProviderReading {
         return ProviderReading(service: service, reading: DemoQuotaData.reading(service), needsApp: false)
     }
     let store = SharedQuotaStore(service)
-    return ProviderReading(service: service, reading: store.reading(), needsApp: store.failure().map { $0 != .temporary } ?? false)
+    return ProviderReading(service: service, reading: store.reading(), needsApp: store.failure().map { $0 != .temporary } ?? false, updateFailed: store.failure() != nil)
 }
 private func timeline(_ values: [ProviderReading]) -> Timeline<QuotaEntry> {
     let now = Date.now
@@ -147,9 +147,13 @@ struct CompactProvider: AppIntentTimelineProvider {
 struct CompactLockScreenWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "CompactLockScreen", intent: CompactConfiguration.self, provider: CompactProvider()) { entry in
-            HStack(alignment: .center, spacing: 10) {
+            HStack(alignment: .center, spacing: 2) {
                 ForEach(entry.values, id: \.service) { value in
-                    CompactQuotaView(service: value.service, reading: value.reading, needsApp: value.needsApp, date: entry.date, compact: entry.values.count > 1)
+                    if entry.values.count == 1 {
+                        ServiceDetailsView(value: value, date: entry.date)
+                    } else {
+                        CompactQuotaView(service: value.service, reading: value.reading, needsApp: value.needsApp, date: entry.date, compact: true, updateFailed: value.updateFailed)
+                    }
                 }
             }
             .widgetURL(URL(string: "aiquota-probe://overview"))

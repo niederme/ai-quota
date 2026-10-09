@@ -213,3 +213,31 @@ private actor ChangingClaudeProfile: HTTPTransport {
     #expect(reading.secondaryWindow == nil)
     #expect(reading.accessibilitySummary == "5 hours: 4 percent used")
 }
+
+@Test func claudeProductPercentagesRemainIndependentAndPersist() throws {
+    let data = Data(#"{"seven_day":{"utilization":6},"seven_day_breakdown":{"as_of":"2026-09-18T17:48:57.074605+00:00","window_started_at":"2026-09-16T18:00:00.015546+00:00","rows":[{"key":"code","display_name":"Claude Code","percent":89},{"key":"chat","display_name":"Chats","percent":12}]}}"#.utf8)
+    let reading = try ClaudeAPI.decodeUsage(data, now: timestamp)
+    #expect(reading.weekly?.usedPercent == 6)
+    #expect(reading.claudeBreakdown?.rows.map(\.percent) == [89, 12])
+    #expect(try JSONDecoder().decode(QuotaReading.self, from: JSONEncoder().encode(reading)) == reading)
+}
+@Test func malformedClaudeProductsNeverDiscardQuota() throws {
+    for product in ["null", "{}", #"{"as_of":"bad","window_started_at":"bad","rows":[]}"#,
+                    #"{"as_of":"2026-09-18T17:48:57Z","window_started_at":"2026-09-16T18:00:00Z","rows":[{"key":"code","display_name":"Code","percent":101}]}"#,
+                    #"{"as_of":"2026-09-18T17:48:57Z","window_started_at":"2026-09-16T18:00:00Z","rows":[{"key":"code","display_name":"Code","percent":0},{"key":"code","display_name":"Code","percent":12}]}"#] {
+        let reading = try ClaudeAPI.decodeUsage(Data("{\"seven_day\":{\"utilization\":6},\"seven_day_breakdown\":\(product)}".utf8), now: timestamp)
+        #expect(reading.weekly?.usedPercent == 6)
+        #expect(reading.claudeBreakdown == nil)
+    }
+    let old = #"{"fetchedAt":1,"shortTerm":null,"weekly":{"usedPercent":12,"durationSeconds":604800,"resetsAt":null}}"#
+    #expect(try JSONDecoder().decode(QuotaReading.self, from: Data(old.utf8)).claudeBreakdown == nil)
+}
+@Test func claudeProfileLookupPreservesProductBreakdown() async throws {
+    let api = ClaudeAPI(transport: ClaudeMock { request in
+        if request.url?.path.hasSuffix("profile") == true { return reply(#"{"organization":{"organization_type":"claude_pro"}}"#) }
+        return reply(#"{"seven_day":{"utilization":6},"seven_day_breakdown":{"as_of":"2026-09-18T17:48:57Z","window_started_at":"2026-09-16T18:00:00Z","rows":[{"key":"code","display_name":"Claude Code","percent":0}]}}"#)
+    })
+    let reading = try await api.usage(ClaudeTokens(accessToken: "synthetic", refreshToken: nil, expiresAt: timestamp), now: timestamp)
+    #expect(reading.metadata?.plan == "Pro")
+    #expect(reading.claudeBreakdown?.rows.first?.percent == 0)
+}

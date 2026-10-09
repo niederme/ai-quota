@@ -48,6 +48,7 @@ private extension QuotaEntry {
         case .codex:
             guard let usage = codexUsage else { return nil }
             let hasHourlyWindow = usage.hasHourlyWindow
+            let weeklyOnly = usage.reportsWeeklyOnlyWindow
             var detailRows = [
                 WidgetDetailRowData(
                     label: "Remaining",
@@ -87,14 +88,14 @@ private extension QuotaEntry {
             return WidgetServiceSnapshot(
                 label: "Codex",
                 icon: "logo-openai",
-                primaryPercent: hasHourlyWindow ? usage.hourlyUsedPercent : 0,
-                primaryLimitReached: hasHourlyWindow && usage.hourlyUsedPercent >= 100,
-                showsPrimaryMetric: hasHourlyWindow,
+                primaryPercent: weeklyOnly ? usage.weeklyUsedPercent : (hasHourlyWindow ? usage.hourlyUsedPercent : 0),
+                primaryLimitReached: weeklyOnly ? usage.isWeeklyExhausted : (hasHourlyWindow && usage.hourlyUsedPercent >= 100),
+                showsPrimaryMetric: weeklyOnly || hasHourlyWindow,
                 secondaryPercent: usage.weeklyUsedPercent,
-                showsSecondaryMetric: true,
-                primaryLabel: "5h",
+                showsSecondaryMetric: !weeklyOnly,
+                primaryLabel: weeklyOnly ? "7d" : "5h",
                 secondaryLabel: "7-day",
-                resetSeconds: usage.hourlyResetAfterSeconds,
+                resetSeconds: weeklyOnly ? usage.weeklyResetAfterSeconds : usage.hourlyResetAfterSeconds,
                 weeklyResetSeconds: usage.weeklyResetAfterSeconds,
                 secondaryLimitReached: usage.isWeeklyExhausted,
                 detailRows: detailRows,
@@ -589,17 +590,18 @@ struct WidgetMediumView: View {
         case .codex:
             if let u = entry.codexUsage {
                 let hasHourlyWindow = u.hasHourlyWindow
+                let weeklyOnly = u.reportsWeeklyOnlyWindow
                 WidgetGaugeView(
-                    primaryPercent: hasHourlyWindow ? u.hourlyUsedPercent : 0,
-                    primaryLimitReached: hasHourlyWindow && u.hourlyUsedPercent >= 100,
-                    showsPrimaryMetric: hasHourlyWindow,
+                    primaryPercent: weeklyOnly ? u.weeklyUsedPercent : (hasHourlyWindow ? u.hourlyUsedPercent : 0),
+                    primaryLimitReached: weeklyOnly ? u.isWeeklyExhausted : (hasHourlyWindow && u.hourlyUsedPercent >= 100),
+                    showsPrimaryMetric: weeklyOnly || hasHourlyWindow,
                     secondaryPercent: u.weeklyUsedPercent,
-                    showsSecondaryMetric: true,
+                    showsSecondaryMetric: !weeklyOnly,
                     icon: "logo-openai",
                     label: "Codex",
-                    primaryLabel: "5h",
+                    primaryLabel: weeklyOnly ? "7d" : "5h",
                     secondaryLabel: "7-day",
-                    resetSeconds: u.hourlyResetAfterSeconds,
+                    resetSeconds: weeklyOnly ? u.weeklyResetAfterSeconds : u.hourlyResetAfterSeconds,
                     weeklyResetSeconds: u.weeklyResetAfterSeconds,
                     secondaryLimitReached: u.isWeeklyExhausted,
                     size: size

@@ -35,8 +35,10 @@ struct WidgetGaugeView: View {
     }
 
     // Scaled dimensions — outer ring wider, inner narrower, 2pt-equivalent gap between them.
-    // At size=100: outerLW=9, innerLW=7, gap=2 → innerPad=10
-    private var outerLW: CGFloat { size * 0.090 }
+    // At size=100: dual outer=9, inner=7, gap=2; single outer=11.
+    // Inset half the extra stroke so the outer footprint stays fixed.
+    private var outerLW: CGFloat { size * (showsSecondaryMetric ? 0.090 : 0.110) }
+    private var primaryInset: CGFloat { showsSecondaryMetric ? 0 : size * 0.010 }
     private var innerLW: CGFloat { size * 0.070 }
     private var innerPad: CGFloat { outerLW / 2 + size * 0.020 + innerLW / 2 }
     private var iconPt:   CGFloat { size * 0.16 }
@@ -56,22 +58,24 @@ struct WidgetGaugeView: View {
                     .trim(from: 0, to: 0.75)
                     .stroke(.fill.tertiary, style: StrokeStyle(lineWidth: outerLW, lineCap: .butt))
                     .rotationEffect(.degrees(135))
+                    .padding(primaryInset)
 
                 if showsPrimaryMetric {
                     Circle()
                         .trim(from: 0, to: 0.75 * primaryFill)
                         .stroke(statusColor, style: StrokeStyle(lineWidth: outerLW, lineCap: .butt))
                         .rotationEffect(.degrees(135))
+                        .padding(primaryInset)
                 }
 
-                // ── Inner track (touching) ────────────────────────────
-                Circle()
-                    .trim(from: 0, to: 0.75)
-                    .stroke(.fill.tertiary, style: StrokeStyle(lineWidth: innerLW, lineCap: .butt))
-                    .rotationEffect(.degrees(135))
-                    .padding(innerPad)
-
                 if showsSecondaryMetric {
+                    // ── Inner track (touching) ────────────────────────────
+                    Circle()
+                        .trim(from: 0, to: 0.75)
+                        .stroke(.fill.tertiary, style: StrokeStyle(lineWidth: innerLW, lineCap: .butt))
+                        .rotationEffect(.degrees(135))
+                        .padding(innerPad)
+
                     Circle()
                         .trim(from: 0, to: 0.75 * secondaryFill)
                         .stroke(statusColor.opacity(secondaryOpacity), style: StrokeStyle(lineWidth: innerLW, lineCap: .butt))

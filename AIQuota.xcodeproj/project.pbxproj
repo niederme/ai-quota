@@ -10,6 +10,7 @@
 		016897F2F3C03D3BD1F940E8 /* OnboardingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D3DAB2AE10FEF44FAAAEEEE /* OnboardingTests.swift */; };
 		02D378445912866CB0DC998B /* ClaudeProbeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25D0C914A09E992523B60A79 /* ClaudeProbeModel.swift */; };
 		045BF5454A00DF2152B504B9 /* WidgetIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F1F18DB5A7FD4515D863D71 /* WidgetIntent.swift */; };
+		066948F25E92DC96EDD5187B /* LockScreenWidgetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 419400F7BFA8341777F59D91 /* LockScreenWidgetTests.swift */; };
 		09C3707BB5896209FE461CA7 /* DemoViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B298FC20B9D43BA1C027CE6E /* DemoViews.swift */; };
 		0A551ADD42969BAB772A2B1B /* BudgetStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8078C57920AA96E74607EA71 /* BudgetStripView.swift */; };
 		0C3D35A9CE3B5A6F4B5C7816 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDE2263EBEB7008EF6988081 /* WebKit.framework */; };
@@ -21,15 +22,20 @@
 		168599BDC65516BFAFB4B2DF /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AFDFAA7F9E0650962EC80DC /* OnboardingView.swift */; };
 		17126B49397A4A50A1B6325F /* MenuBarIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB657B3EE7EFE0906CC89C7E /* MenuBarIconView.swift */; };
 		182E7BC50A120FEEBA58E14A /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2DD6DC0C92D6E6CBCA60A64 /* WidgetStore.swift */; };
+		18EC848EC90BD55FFC140C56 /* LockScreenResetPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3B0E5DE08ACE9177CD91F9C /* LockScreenResetPresentation.swift */; };
 		18F490DA24873632F7F02099 /* HomeWidgetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3805EE8533FA745C2DDA0491 /* HomeWidgetTests.swift */; };
 		1EDE4F3056D8B3FE3D63FD79 /* QuotaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5F53FC0B0CEEDEB3DD6488A /* QuotaViewModel.swift */; };
+		20A50536C5B68ACFC91525B2 /* WidgetReadingStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 399730C0D95FEF44FF128682 /* WidgetReadingStatusTests.swift */; };
+		248A84446476180600474073 /* MobileBackgroundRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22397551BCDC46E340DA0D00 /* MobileBackgroundRefresh.swift */; };
 		2494810777DC407773DE4C13 /* DemoDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CC237C662A19D0C0A77A43 /* DemoDriver.swift */; };
 		24BC6BA77116E7B799ADB68C /* CodexResetNoticeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D52F88BFBFBF549EA3102907 /* CodexResetNoticeTests.swift */; };
 		2C69185386A36C7DF06FA250 /* WidgetSmallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABA7E1FF303A5852FC6BCC6 /* WidgetSmallView.swift */; };
 		2FCFA2535E9E9290F1988907 /* MobileSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC6483FA9D6F3174B3E47F3D /* MobileSettingsView.swift */; };
 		31617F1EEAF0A9A374712D99 /* DemoAutoOpen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AD1CC15EEE16B262B2BBC8D /* DemoAutoOpen.swift */; };
 		31A3D31590EC997EACC431C6 /* ForegroundRefreshTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B167CA4D488EA6D6B904363D /* ForegroundRefreshTests.swift */; };
+		3568D6582714BA2727EE1ED5 /* ClaudeAnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7478EF1D21286EACF2376DC4 /* ClaudeAnalyticsView.swift */; };
 		3613E6EC6F19D0D27161FD72 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 9209085EEB25A6FC729B4DD8 /* AppIcon.icon */; };
+		3892FBCE6F29D61C6870986E /* WidgetReadingStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 952D934237812E7F9D3348A7 /* WidgetReadingStatus.swift */; };
 		41AD8FA8B9500380BF0806C8 /* AIQuotaKit in Frameworks */ = {isa = PBXBuildFile; productRef = 4107956DD8A43F21A1968899 /* AIQuotaKit */; };
 		41C02C66278A722573030C3B /* SharedQuotaStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8924102467BA8034DBE2CECD /* SharedQuotaStoreTests.swift */; };
 		455DE785DF5BFE80EBD70996 /* CompactQuotaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2681A208A2007E5167B5903 /* CompactQuotaView.swift */; };
@@ -46,6 +52,7 @@
 		5792CB0B6EA5C20E80281372 /* SharedQuotaStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A827B61B801F45B571C22D4 /* SharedQuotaStore.swift */; };
 		588EA4A84FC234A5AE6FFB86 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FB0180B641391BD6AFC75C41 /* Assets.xcassets */; };
 		58ADD48C63EBA8A71BF208C3 /* MobileAccessCore in Frameworks */ = {isa = PBXBuildFile; productRef = 3C9D80974CEBA587B65698CF /* MobileAccessCore */; };
+		5A962882B72B70D22D68FD67 /* WidgetReadingStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 952D934237812E7F9D3348A7 /* WidgetReadingStatus.swift */; };
 		5CF50DFE3EEB715DC76B3F30 /* AIQuotaWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4392F2EBD4EFDCA51009B2E9 /* AIQuotaWidgetBundle.swift */; };
 		5D5FB5B02ADE5849EDD7D764 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 9209085EEB25A6FC729B4DD8 /* AppIcon.icon */; };
 		5D841348FB1352DB4D417246 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8C0ACC770721BA686B7B6401 /* Assets.xcassets */; };
@@ -74,6 +81,7 @@
 		7804C0D72C84FB4E3C150FD2 /* AIQuotaKit in Frameworks */ = {isa = PBXBuildFile; productRef = FDE48747144C193C30BDEB55 /* AIQuotaKit */; };
 		79ABA17A6898FB25ACBF5812 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 033BEE818868F742F0C74E02 /* Assets.xcassets */; };
 		7C3015F3AC3BBE6C797538DF /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = CE9CEC32F8358117242A269F /* FirebaseAnalyticsCore */; };
+		7CF47B58B590EFF9D53F33E6 /* ClaudeAnalyticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 065ADF5600B820E82899F732 /* ClaudeAnalyticsTests.swift */; };
 		8216D0F3164D0E0251628667 /* DemoQuotaData.swift in Sources */ = {isa = PBXBuildFile; fileRef = F67E72577EE3060D479BB8A0 /* DemoQuotaData.swift */; };
 		8345576EE21F0AB14ECE70BD /* MobileAnalyticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEF02E14FDE3406AB3CFB999 /* MobileAnalyticsTests.swift */; };
 		8A411DE18F08C54C94DD92E6 /* MobileAnalytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D95553FAC04DFF7EC1268BF /* MobileAnalytics.swift */; };
@@ -123,8 +131,10 @@
 		DB0D128A3383DCB3DA228D4F /* TokenStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9302F08CDA8C2099F522EB6 /* TokenStoreTests.swift */; };
 		DE51EF987644B16CFE0AE195 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = FB0002B3439366F7C9621561 /* Sparkle */; };
 		DF73B1ABD010C0FC8B4B0FE5 /* NotificationsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88FA3DF197FD04781EF8C4EF /* NotificationsStepView.swift */; };
+		DF958270C822B6C5C2AB8798 /* LockScreenResetPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3B0E5DE08ACE9177CD91F9C /* LockScreenResetPresentation.swift */; };
 		E104D194CAEB9FF42758406C /* AIQuotaKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6BDA6DD3060568B481F493B5 /* AIQuotaKit */; };
 		E160ECCBCF34150E6B3A8A61 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AFDFAA7F9E0650962EC80DC /* OnboardingView.swift */; };
+		E33E9AF4802830F62830D735 /* BackgroundRefreshTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DBB1105806AD7DD4ABC91E9 /* BackgroundRefreshTests.swift */; };
 		E35629D70F3650759EDF8865 /* ServicesStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C66610C3B005AD239F7EDE75 /* ServicesStepView.swift */; };
 		E3F95AF78B2FB568C2E16BB1 /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2DD6DC0C92D6E6CBCA60A64 /* WidgetStore.swift */; };
 		E8EEDCE93DA5BCE1A7910DFE /* AIQuotaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3E5BEBFAE5CBFD5ABBEB22 /* AIQuotaApp.swift */; };
@@ -225,6 +235,7 @@
 /* Begin PBXFileReference section */
 		033BEE818868F742F0C74E02 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		05DE0EF729DDBD14B958D28B /* AIQuota.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AIQuota.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		065ADF5600B820E82899F732 /* ClaudeAnalyticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeAnalyticsTests.swift; sourceTree = "<group>"; };
 		07B0B4CEC9ACF96AC981FA29 /* CircularGaugeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircularGaugeView.swift; sourceTree = "<group>"; };
 		08623C761259E3CC718C6D4D /* DemoFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoFlowTests.swift; sourceTree = "<group>"; };
 		0C2641A9E19D22252D201446 /* DemoModeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoModeTests.swift; sourceTree = "<group>"; };
@@ -234,6 +245,7 @@
 		16BD0A4CB52E425D9A5A6C34 /* AIQuotaKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = AIQuotaKit; path = Packages/AIQuotaKit; sourceTree = SOURCE_ROOT; };
 		1D3DAB2AE10FEF44FAAAEEEE /* OnboardingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingTests.swift; sourceTree = "<group>"; };
 		1F1F18DB5A7FD4515D863D71 /* WidgetIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetIntent.swift; sourceTree = "<group>"; };
+		22397551BCDC46E340DA0D00 /* MobileBackgroundRefresh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileBackgroundRefresh.swift; sourceTree = "<group>"; };
 		23DBF6CBC5AEF8D221D5EA51 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		25D0C914A09E992523B60A79 /* ClaudeProbeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeProbeModel.swift; sourceTree = "<group>"; };
 		29F97C407C158BC0A25FD792 /* AnalyticsAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsAppDelegate.swift; sourceTree = "<group>"; };
@@ -243,8 +255,10 @@
 		38387E43C5A9684DEC0061A8 /* CopySignInCode.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CopySignInCode.entitlements; sourceTree = "<group>"; };
 		384CCB3989C01F13B3E22D43 /* WidgetGaugeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetGaugeView.swift; sourceTree = "<group>"; };
 		39129D16B4B1A86FA705A17C /* HomeQuotaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeQuotaView.swift; sourceTree = "<group>"; };
+		399730C0D95FEF44FF128682 /* WidgetReadingStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetReadingStatusTests.swift; sourceTree = "<group>"; };
 		3E3E5BEBFAE5CBFD5ABBEB22 /* AIQuotaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIQuotaApp.swift; sourceTree = "<group>"; };
 		3FC79333A7787720CC4F63B8 /* AIQuotaWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIQuotaWidget.swift; sourceTree = "<group>"; };
+		419400F7BFA8341777F59D91 /* LockScreenWidgetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenWidgetTests.swift; sourceTree = "<group>"; };
 		4392F2EBD4EFDCA51009B2E9 /* AIQuotaWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIQuotaWidgetBundle.swift; sourceTree = "<group>"; };
 		447D727A548E73A82C29281D /* CodexResetNotice.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexResetNotice.swift; sourceTree = "<group>"; };
 		4A827B61B801F45B571C22D4 /* SharedQuotaStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedQuotaStore.swift; sourceTree = "<group>"; };
@@ -260,11 +274,13 @@
 		667DECCAD3629416AE8E1184 /* MobileAccessApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileAccessApp.swift; sourceTree = "<group>"; };
 		6AFDFAA7F9E0650962EC80DC /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		716B00F14F1370CDAC33B5EB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		7478EF1D21286EACF2376DC4 /* ClaudeAnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeAnalyticsView.swift; sourceTree = "<group>"; };
 		75BFE6CB3C576B063879A2CF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		76B773676A8FBADF9E560DB2 /* WidgetMediumView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetMediumView.swift; sourceTree = "<group>"; };
 		76D9EEAA0A27FF50A5E170F4 /* AIQuotaWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AIQuotaWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		76E18E8C8140F72679EA68EB /* MobileAccessCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = MobileAccessCore; path = Packages/MobileAccessCore; sourceTree = SOURCE_ROOT; };
 		7AEFC74142619076ED0AB5BA /* WidgetsStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetsStepView.swift; sourceTree = "<group>"; };
+		7DBB1105806AD7DD4ABC91E9 /* BackgroundRefreshTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundRefreshTests.swift; sourceTree = "<group>"; };
 		8078C57920AA96E74607EA71 /* BudgetStripView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetStripView.swift; sourceTree = "<group>"; };
 		872D4B7AB7221C3A55960CE1 /* WelcomeStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeStepView.swift; sourceTree = "<group>"; };
 		88FA3DF197FD04781EF8C4EF /* NotificationsStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsStepView.swift; sourceTree = "<group>"; };
@@ -276,6 +292,7 @@
 		9209085EEB25A6FC729B4DD8 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		926FEB7F8D7432AC85C40F34 /* Mobile.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Mobile.entitlements; sourceTree = "<group>"; };
 		94EF7D48855FADE21AE0B407 /* AIQuotaWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AIQuotaWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		952D934237812E7F9D3348A7 /* WidgetReadingStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetReadingStatus.swift; sourceTree = "<group>"; };
 		A2B1CD537E4DD95CEBAE23D6 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		A5AA4AC3B53857352A4672A2 /* CopySignInCodeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopySignInCodeViewController.swift; sourceTree = "<group>"; };
 		AAA0FF873D42E78CA9F94932 /* AIQuotaWidget-iOS.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = "AIQuotaWidget-iOS.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -287,6 +304,7 @@
 		B298FC20B9D43BA1C027CE6E /* DemoViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoViews.swift; sourceTree = "<group>"; };
 		B2B4A02F2F3618A00A9FE938 /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
 		B2DD6DC0C92D6E6CBCA60A64 /* WidgetStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetStore.swift; sourceTree = "<group>"; };
+		B3B0E5DE08ACE9177CD91F9C /* LockScreenResetPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenResetPresentation.swift; sourceTree = "<group>"; };
 		B7EF7635B21E03FC04EB0055 /* CodexAnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexAnalyticsView.swift; sourceTree = "<group>"; };
 		BC43070E1A6F758DB7AF31A6 /* CodexWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexWidget.swift; sourceTree = "<group>"; };
 		BE646C3065C7605692946277 /* AIQuota.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AIQuota.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -446,6 +464,7 @@
 			isa = PBXGroup;
 			children = (
 				033BEE818868F742F0C74E02 /* Assets.xcassets */,
+				7478EF1D21286EACF2376DC4 /* ClaudeAnalyticsView.swift */,
 				25D0C914A09E992523B60A79 /* ClaudeProbeModel.swift */,
 				64469AA7AC51D1904D08039F /* ClaudeProbeView.swift */,
 				126972287BBBDE180220E188 /* ClaudeTokenStore.swift */,
@@ -455,6 +474,7 @@
 				23DBF6CBC5AEF8D221D5EA51 /* Info.plist */,
 				667DECCAD3629416AE8E1184 /* MobileAccessApp.swift */,
 				8D95553FAC04DFF7EC1268BF /* MobileAnalytics.swift */,
+				22397551BCDC46E340DA0D00 /* MobileBackgroundRefresh.swift */,
 				EC6483FA9D6F3174B3E47F3D /* MobileSettingsView.swift */,
 				A2B1CD537E4DD95CEBAE23D6 /* OnboardingView.swift */,
 				544AA7837A218AFDE7979ECA /* OverviewView.swift */,
@@ -533,17 +553,21 @@
 		93C3533137E35584B6D3FC89 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				7DBB1105806AD7DD4ABC91E9 /* BackgroundRefreshTests.swift */,
 				FB52A74E8799BDEFB61FFF62 /* BaseScreenReviewTests.swift */,
+				065ADF5600B820E82899F732 /* ClaudeAnalyticsTests.swift */,
 				C2B17E24014F0F3200B311E8 /* CodexAnalyticsTests.swift */,
 				D52F88BFBFBF549EA3102907 /* CodexResetNoticeTests.swift */,
 				E965708E9D49E52DD918B557 /* CreditsDisplayTests.swift */,
 				0C2641A9E19D22252D201446 /* DemoModeTests.swift */,
 				B167CA4D488EA6D6B904363D /* ForegroundRefreshTests.swift */,
 				3805EE8533FA745C2DDA0491 /* HomeWidgetTests.swift */,
+				419400F7BFA8341777F59D91 /* LockScreenWidgetTests.swift */,
 				DEF02E14FDE3406AB3CFB999 /* MobileAnalyticsTests.swift */,
 				1D3DAB2AE10FEF44FAAAEEEE /* OnboardingTests.swift */,
 				8924102467BA8034DBE2CECD /* SharedQuotaStoreTests.swift */,
 				F9302F08CDA8C2099F522EB6 /* TokenStoreTests.swift */,
+				399730C0D95FEF44FF128682 /* WidgetReadingStatusTests.swift */,
 			);
 			path = Tests;
 			sourceTree = "<group>";
@@ -554,9 +578,11 @@
 				E2681A208A2007E5167B5903 /* CompactQuotaView.swift */,
 				F67E72577EE3060D479BB8A0 /* DemoQuotaData.swift */,
 				39129D16B4B1A86FA705A17C /* HomeQuotaView.swift */,
+				B3B0E5DE08ACE9177CD91F9C /* LockScreenResetPresentation.swift */,
 				926FEB7F8D7432AC85C40F34 /* Mobile.entitlements */,
 				4A827B61B801F45B571C22D4 /* SharedQuotaStore.swift */,
 				33016447347AF46F0499E374 /* Widget.entitlements */,
+				952D934237812E7F9D3348A7 /* WidgetReadingStatus.swift */,
 				B2DD6DC0C92D6E6CBCA60A64 /* WidgetStore.swift */,
 			);
 			path = Shared;
@@ -1096,7 +1122,9 @@
 				455DE785DF5BFE80EBD70996 /* CompactQuotaView.swift in Sources */,
 				8216D0F3164D0E0251628667 /* DemoQuotaData.swift in Sources */,
 				7264701CDFFD31E6E42BAB6A /* HomeQuotaView.swift in Sources */,
+				DF958270C822B6C5C2AB8798 /* LockScreenResetPresentation.swift in Sources */,
 				5792CB0B6EA5C20E80281372 /* SharedQuotaStore.swift in Sources */,
+				3892FBCE6F29D61C6870986E /* WidgetReadingStatus.swift in Sources */,
 				182E7BC50A120FEEBA58E14A /* WidgetStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1151,6 +1179,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				9CADD704324B208A365C1BFA /* AnalyticsClient.swift in Sources */,
+				3568D6582714BA2727EE1ED5 /* ClaudeAnalyticsView.swift in Sources */,
 				02D378445912866CB0DC998B /* ClaudeProbeModel.swift in Sources */,
 				54D97639738DEFE148A79621 /* ClaudeProbeView.swift in Sources */,
 				6F44F52DD00584662FE36290 /* ClaudeTokenStore.swift in Sources */,
@@ -1160,8 +1189,10 @@
 				D2372B4B0F6E0889E747673E /* DemoQuotaData.swift in Sources */,
 				09C3707BB5896209FE461CA7 /* DemoViews.swift in Sources */,
 				E8EF46CD148FBE9562C21B18 /* HomeQuotaView.swift in Sources */,
+				18EC848EC90BD55FFC140C56 /* LockScreenResetPresentation.swift in Sources */,
 				A9E731415728005F78C17CC9 /* MobileAccessApp.swift in Sources */,
 				8A411DE18F08C54C94DD92E6 /* MobileAnalytics.swift in Sources */,
+				248A84446476180600474073 /* MobileBackgroundRefresh.swift in Sources */,
 				2FCFA2535E9E9290F1988907 /* MobileSettingsView.swift in Sources */,
 				B6E8AA43262B29E996180780 /* OnboardingView.swift in Sources */,
 				92C5CD5A911ED25F3C88D445 /* OverviewView.swift in Sources */,
@@ -1169,6 +1200,7 @@
 				F5056A18C223AC3EBA06A946 /* SharedQuotaStore.swift in Sources */,
 				A27DDA505B42FB7634AA0E49 /* SignInCodeStore.swift in Sources */,
 				E945BF2B00318FE39A03B755 /* TokenStore.swift in Sources */,
+				5A962882B72B70D22D68FD67 /* WidgetReadingStatus.swift in Sources */,
 				E3F95AF78B2FB568C2E16BB1 /* WidgetStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1177,17 +1209,21 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E33E9AF4802830F62830D735 /* BackgroundRefreshTests.swift in Sources */,
 				1480C81463CDB8E0AEB89C84 /* BaseScreenReviewTests.swift in Sources */,
+				7CF47B58B590EFF9D53F33E6 /* ClaudeAnalyticsTests.swift in Sources */,
 				D95772B447C6100505A3D72B /* CodexAnalyticsTests.swift in Sources */,
 				24BC6BA77116E7B799ADB68C /* CodexResetNoticeTests.swift in Sources */,
 				A8887B9AC256A6326AB5AA9D /* CreditsDisplayTests.swift in Sources */,
 				135CCD8C4FA58980E1204E20 /* DemoModeTests.swift in Sources */,
 				31A3D31590EC997EACC431C6 /* ForegroundRefreshTests.swift in Sources */,
 				18F490DA24873632F7F02099 /* HomeWidgetTests.swift in Sources */,
+				066948F25E92DC96EDD5187B /* LockScreenWidgetTests.swift in Sources */,
 				8345576EE21F0AB14ECE70BD /* MobileAnalyticsTests.swift in Sources */,
 				016897F2F3C03D3BD1F940E8 /* OnboardingTests.swift in Sources */,
 				41C02C66278A722573030C3B /* SharedQuotaStoreTests.swift in Sources */,
 				DB0D128A3383DCB3DA228D4F /* TokenStoreTests.swift in Sources */,
+				20A50536C5B68ACFC91525B2 /* WidgetReadingStatusTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1289,7 +1325,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 46;
+				CURRENT_PROJECT_VERSION = 51;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1334,7 +1370,7 @@
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Mobile.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 46;
+				CURRENT_PROJECT_VERSION = 51;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iOS/App/Info.plist;
@@ -1358,7 +1394,7 @@
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Mobile.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 46;
+				CURRENT_PROJECT_VERSION = 51;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iOS/App/Info.plist;
@@ -1401,7 +1437,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 46;
+				CURRENT_PROJECT_VERSION = 51;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1490,7 +1526,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuota/Resources/AIQuota-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 396;
+				CURRENT_PROJECT_VERSION = 400;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuota/Resources/Info-TestFlight.plist";
@@ -1510,7 +1546,7 @@
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Mobile.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 46;
+				CURRENT_PROJECT_VERSION = 51;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iOS/App/Info.plist;
@@ -1532,7 +1568,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 46;
+				CURRENT_PROJECT_VERSION = 51;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1555,7 +1591,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Widget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 46;
+				CURRENT_PROJECT_VERSION = 51;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/Widget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1578,7 +1614,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuotaWidget/Resources/AIQuotaWidget-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 396;
+				CURRENT_PROJECT_VERSION = 400;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuotaWidget/Resources/Info-TestFlight.plist";
@@ -1623,7 +1659,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuota/Resources/AIQuota-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 396;
+				CURRENT_PROJECT_VERSION = 400;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuota/Resources/Info-TestFlight.plist";
@@ -1642,7 +1678,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuotaWidget/Resources/AIQuotaWidget-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 396;
+				CURRENT_PROJECT_VERSION = 400;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuotaWidget/Resources/Info-TestFlight.plist";
@@ -1664,7 +1700,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Widget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 46;
+				CURRENT_PROJECT_VERSION = 51;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/Widget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1688,7 +1724,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuota/Resources/AIQuota-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 396;
+				CURRENT_PROJECT_VERSION = 400;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuota/Resources/Info-TestFlight.plist";
@@ -1706,7 +1742,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/CopySignInCode/CopySignInCode.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 46;
+				CURRENT_PROJECT_VERSION = 51;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/CopySignInCode/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1728,7 +1764,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 46;
+				CURRENT_PROJECT_VERSION = 51;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1770,7 +1806,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 46;
+				CURRENT_PROJECT_VERSION = 51;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1793,7 +1829,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/CopySignInCode/CopySignInCode.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 46;
+				CURRENT_PROJECT_VERSION = 51;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/CopySignInCode/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1816,7 +1852,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuotaWidget/Resources/AIQuotaWidget-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 396;
+				CURRENT_PROJECT_VERSION = 400;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuotaWidget/Resources/Info-TestFlight.plist";
@@ -1838,7 +1874,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 46;
+				CURRENT_PROJECT_VERSION = 51;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1882,7 +1918,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Widget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 46;
+				CURRENT_PROJECT_VERSION = 51;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/Widget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1904,7 +1940,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/CopySignInCode/CopySignInCode.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 46;
+				CURRENT_PROJECT_VERSION = 51;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/CopySignInCode/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;

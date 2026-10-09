@@ -545,6 +545,9 @@ final class QuotaViewModel {
                 logger.info("[CodexRefresh] bonus spend fetch failed — leaving monthly spend hidden")
             }
 
+            // A partial response may return the last confirmed cached snapshot.
+            // Do not relabel its freshness or emit new activity for retained data.
+            guard result.fetchedAt > (codexUsage?.fetchedAt ?? .distantPast) else { return }
             recordServiceActivityIfNeeded(from: codexUsage, to: result)
             codexUsage = result
             lastRefreshedAt = .now
@@ -574,6 +577,8 @@ final class QuotaViewModel {
                     if let spent = try? await bonusSpendResult {
                         result = result.withBonusCreditsSpentThisMonth(spent)
                     }
+                    // Retained cached data is not a completed fresh allowance reading.
+                    guard result.fetchedAt > (codexUsage?.fetchedAt ?? .distantPast) else { return }
                     recordServiceActivityIfNeeded(from: codexUsage, to: result)
                     codexUsage = result
                     lastRefreshedAt = .now

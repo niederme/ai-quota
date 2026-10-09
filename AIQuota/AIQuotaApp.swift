@@ -171,14 +171,16 @@ private struct MenuBarStatusLabel: View {
     private func menuBarGaugeInput(for service: ServiceType) -> MenuBarGaugeInput {
         switch service {
         case .codex:
-            let used = viewModel.codexUsage?.hourlyUsedPercent ?? 0
+            let weeklyOnly = viewModel.codexUsage?.reportsWeeklyOnlyWindow == true
+            let used = weeklyOnly ? (viewModel.codexUsage?.weeklyUsedPercent ?? 0) : (viewModel.codexUsage?.hourlyUsedPercent ?? 0)
             let secondary = viewModel.codexUsage?.weeklyUsedPercent ?? 0
             return MenuBarGaugeInput(
                 usedPercent: used,
                 secondaryPercent: secondary,
                 limitReached: viewModel.codexUsage?.limitReached ?? false,
                 isLoading: viewModel.isLoading,
-                worstPercent: max(used, secondary)
+                worstPercent: max(used, secondary),
+                showsSecondaryMetric: !weeklyOnly
             )
         case .claude:
             let used = viewModel.claudeUsage?.usedPercent ?? 0

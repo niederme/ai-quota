@@ -17,6 +17,23 @@ public struct WhamUsageResponse: Decodable, Sendable {
         public let primaryWindow: Window?   // short window (~5h)
         public let secondaryWindow: Window? // weekly window (7 days)
 
+        /// Missing keys are partial responses; only explicit null is absence evidence.
+        public let secondaryWindowExplicitlyNull: Bool
+
+        private enum CodingKeys: String, CodingKey {
+            case allowed, limitReached, primaryWindow, secondaryWindow
+        }
+
+        public init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            allowed = try container.decodeIfPresent(Bool.self, forKey: .allowed)
+            limitReached = try container.decodeIfPresent(Bool.self, forKey: .limitReached)
+            primaryWindow = try container.decodeIfPresent(Window.self, forKey: .primaryWindow)
+            secondaryWindow = try container.decodeIfPresent(Window.self, forKey: .secondaryWindow)
+            secondaryWindowExplicitlyNull = try container.contains(.secondaryWindow)
+                && container.decodeNil(forKey: .secondaryWindow)
+        }
+
         public struct Window: Decodable, Sendable {
             public let usedPercent: Int?
             public let limitWindowSeconds: Int?
@@ -95,6 +112,23 @@ public struct CodexUsage: Codable, Sendable, Equatable {
 
     public let fetchedAt: Date
 
+    /// Confirmed shape of the reported allowance, not a permanent plan capability.
+    /// Nil covers older caches and missing/incomplete provider payloads.
+    public enum ReportedWindowShape: String, Codable, Sendable {
+        case weeklyOnly, dual
+    }
+    public let reportedWindowShape: ReportedWindowShape?
+    public var reportsWeeklyOnlyWindow: Bool { reportedWindowShape == .weeklyOnly }
+
+    /// Keep freshness and values together when a successful but partial refresh
+    /// cannot establish the allowance shape. Transport failures already retain cache.
+    public func retainingLastConfirmedWindows(from previous: CodexUsage?) -> CodexUsage {
+        if reportedWindowShape == nil, let previous, previous.reportedWindowShape != nil {
+            return previous
+        }
+        return self
+    }
+
     // MARK: Computed
 
     public var weeklyPercentFraction: Double { Double(weeklyUsedPercent) / 100.0 }
@@ -130,6 +164,22 @@ public struct CodexUsage: Codable, Sendable, Equatable {
         weeklyResetAt = weekly?.resetAt.map { Date(timeIntervalSince1970: TimeInterval($0)) } ?? .distantFuture
         weeklyResetAfterSeconds = weekly?.resetAfterSeconds ?? 0
 
+        func complete(_ window: WhamUsageResponse.RateLimitInfo.Window?) -> Bool {
+            guard let window, let used = window.usedPercent, (0...100).contains(used),
+                  let reset = window.resetAt, reset > 0,
+                  let remaining = window.resetAfterSeconds, remaining >= 0 else { return false }
+            return true
+        }
+        if primary?.limitWindowSeconds == 604800,
+           rateLimit?.secondaryWindowExplicitlyNull == true, complete(primary) {
+            reportedWindowShape = .weeklyOnly
+        } else if complete(primary), complete(secondary),
+                  let duration = primary?.limitWindowSeconds, duration > 0, duration < 6 * 86400,
+                  secondary?.limitWindowSeconds == 604800 {
+            reportedWindowShape = .dual
+        } else {
+            reportedWindowShape = nil
+        }
         hourlyWindowReported = hourly?.usedPercent != nil
         hourlyUsedPercent = hourly?.usedPercent ?? 0
         hourlyResetAt = hourly?.resetAt.map { Date(timeIntervalSince1970: TimeInterval($0)) } ?? .distantFuture
@@ -187,8 +237,10 @@ public struct CodexUsage: Codable, Sendable, Equatable {
         hourlyWindowSeconds: Int, limitReached: Bool, allowed: Bool, planType: String,
         creditBalance: Double?, bonusCreditsSpentThisMonth: Double? = nil,
         approxLocalMessages: [Int]?, approxCloudMessages: [Int]?,
-        fetchedAt: Date, hourlyWindowReported: Bool? = nil
+        fetchedAt: Date, hourlyWindowReported: Bool? = nil,
+        reportedWindowShape: ReportedWindowShape? = nil
     ) {
+        self.reportedWindowShape = reportedWindowShape
         self.hourlyWindowReported = hourlyWindowReported
         self.weeklyUsedPercent = weeklyUsedPercent
         self.weeklyResetAt = weeklyResetAt
@@ -223,7 +275,8 @@ public struct CodexUsage: Codable, Sendable, Equatable {
             bonusCreditsSpentThisMonth: spent,
             approxLocalMessages: approxLocalMessages,
             approxCloudMessages: approxCloudMessages,
-            fetchedAt: fetchedAt, hourlyWindowReported: hourlyWindowReported
+            fetchedAt: fetchedAt, hourlyWindowReported: hourlyWindowReported,
+            reportedWindowShape: reportedWindowShape
         )
     }
 }
