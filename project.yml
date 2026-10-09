@@ -73,7 +73,7 @@ targetTemplates:
   StoreDistribution:
     settings:
       base:
-        CURRENT_PROJECT_VERSION: "402"
+        CURRENT_PROJECT_VERSION: "403"
         SWIFT_VERSION: "6.0"
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) APP_STORE"
         CODE_SIGN_STYLE: Automatic
