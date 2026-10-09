@@ -114,7 +114,7 @@ final class DemoDriver {
         .init(fiveH:  19, sevenD:   5, resetSecs: 13200, weeklyResetDays: 6, tick: 1.1),
         .init(fiveH:  41, sevenD:   8, resetSecs: 10500, weeklyResetDays: 6, tick: 1.1),
         .init(fiveH:  66, sevenD:  12, resetSecs:  6900, weeklyResetDays: 6, tick: 1.1),
-        .init(fiveH:  84, sevenD:  15, resetSecs:  2700, weeklyResetDays: 6, tick: 1.3), // amber
+        .init(fiveH:  85, sevenD:  15, resetSecs:  2700, weeklyResetDays: 6, tick: 1.3), // amber
         .init(fiveH:  96, sevenD:  17, resetSecs:   600, weeklyResetDays: 6, tick: 1.1),
         .init(fiveH:  24, sevenD:   4, resetSecs:   600, weeklyResetDays: 6, tick: 3.0), // Pro upgrade: illustrative refreshed allowances
         .init(fiveH:  30, sevenD:   5, resetSecs:   300, weeklyResetDays: 6, tick: 1.1),
@@ -351,9 +351,9 @@ final class DemoDriver {
                               codexLoading: target.isCodexLoading,
                               codexAutoReload: target.codexAutoReload)
 
-        if claudeIndex - 1 == 22 {
-            notifyDemo(id: "demo.claude.red", title: "Claude 7-day limit reached",
-                       body: "Your Claude 7-day allowance is exhausted. Resets in 4 days.")
+        if claudeIndex - 1 == 10 {
+            notifyDemo(id: "demo.claude.red", title: "Claude 5-hour limit reached",
+                       body: "Your Claude 5-hour allowance is exhausted.")
         }
 
     }
@@ -396,7 +396,7 @@ final class DemoDriver {
                               codexAutoReload: autoReload)
 
         // Send one amber alert, without writing simulated usage to real alert history.
-        if codexIndex - 1 == 19 {
+        if codexIndex - 1 == 4 {
             notifyDemo(id: "demo.codex.amber", title: "Codex 5-hour usage high",
                        body: "You've used 85% of your Codex 5-hour allowance.")
         }
