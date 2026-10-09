@@ -14,6 +14,52 @@ final class QuotaViewModel {
 
     // MARK: - Codex (OpenAI)
 
+    var codexTokenHistory: CodexTokenHistory?
+    var isTokenHistoryLoading = false
+    var tokenHistoryUnavailable = false
+    var tokenHistoryFailed = false
+    private var tokenHistoryTask: Task<Void, Never>?
+    private var tokenHistoryAttempt: Date?
+    private var tokenHistoryGeneration = 0
+
+    func refreshTokenHistory(force: Bool = false) {
+        guard !Self.isDemoBuild, isCodexAuthenticated else { return }
+        guard tokenHistoryTask == nil else { return }
+        if !force, let attempt = tokenHistoryAttempt, Date.now.timeIntervalSince(attempt) < 900 { return }
+        tokenHistoryAttempt = .now
+        isTokenHistoryLoading = true
+        let generation = tokenHistoryGeneration
+        tokenHistoryTask = Task {
+            defer {
+                if generation == tokenHistoryGeneration {
+                    isTokenHistoryLoading = false
+                    tokenHistoryTask = nil
+                }
+            }
+            do {
+                let history = try await codexClient.fetchTokenHistory()
+                guard !Task.isCancelled, generation == tokenHistoryGeneration, isCodexAuthenticated else { return }
+                codexTokenHistory = history
+                tokenHistoryUnavailable = history == nil
+                tokenHistoryFailed = false
+            } catch {
+                guard !Task.isCancelled, generation == tokenHistoryGeneration else { return }
+                tokenHistoryFailed = true
+            }
+        }
+    }
+
+    private func clearTokenHistory() {
+        tokenHistoryGeneration += 1
+        tokenHistoryTask?.cancel()
+        tokenHistoryTask = nil
+        codexTokenHistory = nil
+        tokenHistoryAttempt = nil
+        isTokenHistoryLoading = false
+        tokenHistoryUnavailable = false
+        tokenHistoryFailed = false
+    }
+
     var codexUsage: CodexUsage?
     var codexAutoReload: CodexAutoReload?
     var isCodexLoading = false
@@ -139,6 +185,7 @@ final class QuotaViewModel {
     /// Full reset: signs out all services, clears cached data, resets settings
     /// and onboarding state — the app behaves exactly like a fresh install.
     func resetToNewUser() async {
+        clearTokenHistory()
         // Step 1: stop refresh and await quiescence.
         // Capture the task reference *before* stopAutoRefresh() sets refreshTask = nil,
         // otherwise the await below is always a no-op.
@@ -353,6 +400,7 @@ final class QuotaViewModel {
     }
 
     private func clearCodexUsageSnapshot() {
+        clearTokenHistory()
         codexUsage = nil
         codexAutoReload = nil
         SharedDefaults.clearUsage()
@@ -516,6 +564,7 @@ final class QuotaViewModel {
         guard !Self.isDemoBuild else { return }
         guard isCodexAuthenticated else { return }
         guard !isCodexLoading else { return }
+        refreshTokenHistory()
         let previousPlan = codexUsage?.planType
         let gen = codexRefreshGeneration
         isCodexLoading = true
@@ -802,6 +851,7 @@ final class QuotaViewModel {
     /// User-initiated refresh. Cancels any in-flight auto-refresh and restarts
     /// immediately, bypassing the `isLoading` guard that blocks concurrent calls.
     func manualRefresh() {
+        refreshTokenHistory(force: true)
         codexRefreshGeneration += 1
         claudeRefreshGeneration += 1
         isCodexLoading = false

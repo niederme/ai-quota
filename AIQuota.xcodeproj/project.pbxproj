@@ -16,6 +16,7 @@
 		0C3D35A9CE3B5A6F4B5C7816 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDE2263EBEB7008EF6988081 /* WebKit.framework */; };
 		0CCE6E70E54EBBEBC9BBA987 /* CircularGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07B0B4CEC9ACF96AC981FA29 /* CircularGaugeView.swift */; };
 		0FFAE5C2EF85BB9398E469A8 /* AIQuotaWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 94EF7D48855FADE21AE0B407 /* AIQuotaWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		12D133ABF07739AFB6901704 /* CodexTokenHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F0D57082E84D75A742EACD6 /* CodexTokenHistoryView.swift */; };
 		135CCD8C4FA58980E1204E20 /* DemoModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C2641A9E19D22252D201446 /* DemoModeTests.swift */; };
 		1480C81463CDB8E0AEB89C84 /* BaseScreenReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB52A74E8799BDEFB61FFF62 /* BaseScreenReviewTests.swift */; };
 		1575BAA1F4C10951443BA5C8 /* AnalyticsConsentStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89176CF3C6B8574A223A6E55 /* AnalyticsConsentStepView.swift */; };
@@ -112,6 +113,7 @@
 		B2719944C98CCEAFFCA0BBB9 /* NotificationsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88FA3DF197FD04781EF8C4EF /* NotificationsStepView.swift */; };
 		B337EC2AC2655557CDE13EC2 /* LaunchServicesSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11BE061D1CEB4B5B6F120AD /* LaunchServicesSync.swift */; };
 		B4AC1E0B3686BE905CAA1BDB /* CodexWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC43070E1A6F758DB7AF31A6 /* CodexWidget.swift */; };
+		B5798BD9B8F0FAA048C8D6E3 /* CodexTokenHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F0D57082E84D75A742EACD6 /* CodexTokenHistoryView.swift */; };
 		B5FDF2BA2E1AF047B995BACE /* AIQuotaKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6F3F89B4746C627C8A2D541C /* AIQuotaKit */; };
 		B634179F85F5BA71ADF5A25D /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 9209085EEB25A6FC729B4DD8 /* AppIcon.icon */; };
 		B6E8AA43262B29E996180780 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2B1CD537E4DD95CEBAE23D6 /* OnboardingView.swift */; };
@@ -240,6 +242,7 @@
 		08623C761259E3CC718C6D4D /* DemoFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoFlowTests.swift; sourceTree = "<group>"; };
 		0C2641A9E19D22252D201446 /* DemoModeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoModeTests.swift; sourceTree = "<group>"; };
 		0CC4153FE01FA354752C247C /* AnalyticsClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsClient.swift; sourceTree = "<group>"; };
+		0F0D57082E84D75A742EACD6 /* CodexTokenHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexTokenHistoryView.swift; sourceTree = "<group>"; };
 		0FFBABD81D84B816E058A18A /* TokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenStore.swift; sourceTree = "<group>"; };
 		126972287BBBDE180220E188 /* ClaudeTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeTokenStore.swift; sourceTree = "<group>"; };
 		16BD0A4CB52E425D9A5A6C34 /* AIQuotaKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = AIQuotaKit; path = Packages/AIQuotaKit; sourceTree = SOURCE_ROOT; };
@@ -595,6 +598,7 @@
 				8078C57920AA96E74607EA71 /* BudgetStripView.swift */,
 				07B0B4CEC9ACF96AC981FA29 /* CircularGaugeView.swift */,
 				6431F46B98404C9C4848EDD3 /* CodexResetNotice.swift */,
+				0F0D57082E84D75A742EACD6 /* CodexTokenHistoryView.swift */,
 				4D136AA90C5E64F0E69E5B51 /* CountdownView.swift */,
 				FB657B3EE7EFE0906CC89C7E /* MenuBarIconView.swift */,
 				B2B4A02F2F3618A00A9FE938 /* PopoverView.swift */,
@@ -1096,6 +1100,7 @@
 				0A551ADD42969BAB772A2B1B /* BudgetStripView.swift in Sources */,
 				0CCE6E70E54EBBEBC9BBA987 /* CircularGaugeView.swift in Sources */,
 				54D1BD6E21C799626498FC45 /* CodexResetNotice.swift in Sources */,
+				12D133ABF07739AFB6901704 /* CodexTokenHistoryView.swift in Sources */,
 				70C41E7913EC6AF154B3961A /* CountdownView.swift in Sources */,
 				31617F1EEAF0A9A374712D99 /* DemoAutoOpen.swift in Sources */,
 				2494810777DC407773DE4C13 /* DemoDriver.swift in Sources */,
@@ -1141,6 +1146,7 @@
 				F3545CC3A5D937C4E3F40A3A /* BudgetStripView.swift in Sources */,
 				BD011637B9A98BF66EB809CD /* CircularGaugeView.swift in Sources */,
 				CE982590107BD940D7B5FCEF /* CodexResetNotice.swift in Sources */,
+				B5798BD9B8F0FAA048C8D6E3 /* CodexTokenHistoryView.swift in Sources */,
 				98F43072074B245C01E279A4 /* CountdownView.swift in Sources */,
 				A9A9F27E1D37CC53BEA92471 /* DemoAutoOpen.swift in Sources */,
 				4BDBDF48A5EC8E1D8DE63AEE /* DemoDriver.swift in Sources */,

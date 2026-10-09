@@ -19,6 +19,23 @@ public actor OpenAIClient {
         self.session = URLSession(configuration: config)
     }
 
+    /// Optional profile history. Failures must not invalidate working quota authentication.
+    public func fetchTokenHistory() async throws -> CodexTokenHistory? {
+        let context = try await coordinator.accessContext()
+        var request = URLRequest(url: baseURL.appendingPathComponent("/backend-api/profiles/me/page"))
+        request.setValue("Bearer \(context.accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let accountID = context.accountID {
+            request.setValue(accountID, forHTTPHeaderField: "ChatGPT-Account-Id")
+        }
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw NetworkError.networkUnavailable }
+        if http.statusCode == 403 || http.statusCode == 404 { return nil }
+        guard http.statusCode == 200 else { throw NetworkError.httpError(statusCode: http.statusCode) }
+        // Never log the private profile response, including on decoding failure.
+        return try CodexTokenHistory.decode(data)
+    }
+
     public func fetchUsage() async throws -> CodexUsage {
         let context: CodexAccessContext
         do {

@@ -24,7 +24,7 @@ struct PopoverView: View {
     }
 
     private var popoverWidth: CGFloat {
-        viewModel.enrolledServices.count == 1 ? 240 : 340
+        viewModel.isCodexEnrolled ? 360 : (viewModel.enrolledServices.count == 1 ? 240 : 340)
     }
 
     var body: some View {
@@ -92,6 +92,13 @@ struct PopoverView: View {
 
             gaugeRow
                 .padding(.top, 16).padding(.bottom, 10)
+
+            if viewModel.isCodexAuthenticated {
+                Divider()
+                CodexTokenHistoryView()
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 8)
+            }
 
             statsRow
 
