@@ -20,6 +20,7 @@ final class ProbeModel {
     }
     private(set) var tokenHistory: CodexTokenHistory?
     private(set) var tokenHistoryUnavailable = false
+    private(set) var tokenHistoryLoading = false
     private var tokenHistoryScope = CodexTokenHistoryScope()
     private var tokenHistoryAttempt: Date?
     private(set) var history: CodexUsageHistory?
@@ -173,6 +174,7 @@ final class ProbeModel {
     private func clearTokenHistory() {
         tokenHistory = nil
         tokenHistoryUnavailable = false
+        tokenHistoryLoading = false
         tokenHistoryAttempt = nil
     }
     private func refreshTokenHistory(_ credential: CodexTokens) async {
@@ -181,6 +183,8 @@ final class ProbeModel {
         if let tokenHistoryAttempt, Date.now.timeIntervalSince(tokenHistoryAttempt) < 900 { return }
         tokenHistoryAttempt = .now
         let requestGeneration = generation
+        tokenHistoryLoading = true
+        defer { if generation == requestGeneration { tokenHistoryLoading = false } }
         do {
             let updated = try await api.tokenHistory(credential)
             try Task.checkCancellation()
@@ -188,7 +192,9 @@ final class ProbeModel {
                   let current = try shared.load(CodexTokens.self), CodexAPI.tokenHistoryScope(current) == scope else {
                 clearTokenHistory(); return
             }
-            tokenHistory = updated
+            // An absent/unsupported graph is a failed refresh, not an empty history.
+            // Keep the current account's valid snapshot; a decoded empty array is authoritative.
+            if let updated { tokenHistory = updated }
             tokenHistoryUnavailable = updated == nil
         } catch {
             guard generation == requestGeneration, !Task.isCancelled else { return }

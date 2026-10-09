@@ -6,9 +6,21 @@ struct MobileTokenHistoryView: View {
     let history: CodexTokenHistory?
     let unavailable: Bool
     let loading: Bool
+    var availableWidth: CGFloat = 288
     var retry: (() -> Void)? = nil
     @State private var selected: CodexTokenHistory.Day?
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var skeletonBright = false
+
+    enum Presentation: Equatable { case loading, empty, unavailable, populated }
+    static func presentation(history: CodexTokenHistory?, unavailable: Bool, loading: Bool, now: Date = .now) -> Presentation {
+        if let history {
+            return history.days(now: now).contains { !$0.isFuture && $0.tokens != nil } ? .populated : .empty
+        }
+        return loading ? .loading : .unavailable
+    }
+    private var presentation: Presentation { Self.presentation(history: history, unavailable: unavailable, loading: loading) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -17,7 +29,7 @@ struct MobileTokenHistoryView: View {
                 Spacer()
                 Text("52 weeks").font(.caption).foregroundStyle(.secondary)
             }
-            if let history {
+            if let history, presentation == .populated {
                 let days = history.days()
                 let positives = days.filter { !$0.isFuture }.compactMap(\.tokens).filter { $0 > 0 }.sorted()
                 let ceiling = positives.isEmpty ? 1 : positives[min(positives.count - 1, Int(Double(positives.count - 1) * 0.95))]
@@ -66,28 +78,65 @@ struct MobileTokenHistoryView: View {
                         }.frame(height: 12)
                     }
                 }
-                .aspectRatio(52.0 / 10.0, contentMode: .fit)
+                .frame(height: graphHeight)
                 Text(selected.map(description) ?? "Outlined: no record · dates in UTC")
                     .font(.caption2).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("tokenActivityDetail")
-                if unavailable {
-                    HStack {
-                        Text("Saved token history · refresh unavailable").font(.caption2).foregroundStyle(.secondary)
-                        if let retry { Button("Retry", action: retry).font(.caption) }
+            } else {
+                ZStack {
+                    if presentation == .loading {
+                        skeleton
+                    } else {
+                        VStack(spacing: 4) {
+                            Text(presentation == .empty ? "No token history yet" : "Token history unavailable")
+                                .font(.caption.weight(.medium))
+                            Text(presentation == .empty ? "No daily records in the past 52 weeks." : "Couldn’t retrieve daily records for this account.")
+                                .font(.caption2).foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                        }.padding(.horizontal, 8)
                     }
                 }
-            } else {
+                .frame(maxWidth: .infinity).frame(height: graphHeight)
+                .accessibilityIdentifier("tokenActivityPlaceholder")
+                Text(presentation == .loading ? "Loading token history…" : "No record does not mean zero tokens.")
+                    .font(.caption2).foregroundStyle(.secondary)
+                    .accessibilityIdentifier("tokenActivityDetail")
+            }
+            if unavailable || loading && history != nil {
                 HStack(spacing: 8) {
-                    if loading { ProgressView().controlSize(.small) }
-                    Text(loading ? "Loading token history…" : "Token history unavailable for this account")
-                        .font(.caption).foregroundStyle(.secondary)
+                    Text(loading ? "Updating token history…" : history != nil ? "Saved token history · refresh unavailable" : "Try refreshing your token history.")
+                        .font(.caption2).foregroundStyle(.secondary)
                     if unavailable, !loading, let retry { Button("Retry", action: retry).font(.caption) }
-                }.frame(minHeight: 54)
+                }
             }
         }
         .accessibilityElement(children: .contain)
         .onChange(of: history?.fetchedAt) { _, _ in selected = nil }
+    }
+    private var graphHeight: CGFloat { max(64, availableWidth * 10 / 52) }
+    private var skeleton: some View {
+        GeometryReader { geometry in
+            let gap = 1.0
+            let side = max(1, (geometry.size.width - 51 * gap) / 52)
+            HStack(alignment: .top, spacing: gap) {
+                ForEach(0..<52, id: \.self) { _ in
+                    VStack(spacing: gap) {
+                        ForEach(0..<7, id: \.self) { _ in
+                            RoundedRectangle(cornerRadius: 1)
+                                .fill(Color.secondary.opacity(skeletonBright ? 0.20 : 0.10))
+                                .frame(width: side, height: side)
+                        }
+                    }
+                }
+            }
+        }
+        .accessibilityHidden(true)
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true)) { skeletonBright = true }
+        }
+        .onDisappear { skeletonBright = false }
     }
     private func fill(_ day: CodexTokenHistory.Day, ceiling: Double) -> Color {
         guard !day.isFuture, let tokens = day.tokens else { return .clear }
