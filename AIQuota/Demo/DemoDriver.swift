@@ -34,7 +34,7 @@ final class DemoDriver {
     // simulated day, so the 7-day window is exhausted after ~2.5 days with
     // 4 days still to go before it resets — while extra usage burns dollars.
     // Base ticks: normal 1.0s · amber 1.2s · red 1.4s · reset 0.5s → ~25s total.
-    // ±25% jitter applied in scheduleNextClaude for a natural feel.
+    // Fixed frame ticks keep each repeated cycle predictable.
     // Frame 0 is applied immediately on open — no loading state.
 
     private let claudeFrames: [ServiceFrame] = [
@@ -82,7 +82,7 @@ final class DemoDriver {
     // gauges tell one coherent story. The drama here is the credits arc:
     // balance drains to zero, the exception bar appears, auto-reload tops up.
     // Base ticks: normal 1.1s · amber 1.3s · red 1.4s · reset 0.5s → ~25s total.
-    // ±25% jitter applied in scheduleNextCodex for a natural feel.
+    // Fixed frame ticks keep each repeated cycle predictable.
 
     private let codexFrames: [ServiceFrame] = [
         // Cycle 1 — Plus approaches its limit, then Pro provides more headroom.
@@ -207,6 +207,7 @@ final class DemoDriver {
     private let notificationPresenter = DemoNotificationPresenter()
     private weak var target: QuotaViewModel?
     private var started = false
+    private var playbackActivity: NSObjectProtocol?
 
     private var claudeIndex = 0
     private var codexIndex  = 0
@@ -218,11 +219,16 @@ final class DemoDriver {
 
     // MARK: - Public API
 
-    /// Start once when the menu bar item appears; popover visibility has no effect.
+    /// Start once at app launch; popover visibility has no effect.
     func startIfNeeded(driving viewModel: QuotaViewModel) {
         guard !started else { return }
         started = true
         target = viewModel
+        // A closed, dockless menu bar app can otherwise be throttled by App Nap.
+        playbackActivity = ProcessInfo.processInfo.beginActivity(
+            options: .userInitiatedAllowingIdleSystemSleep,
+            reason: "Continuous AIQuota demo playback"
+        )
         UNUserNotificationCenter.current().delegate = notificationPresenter
         Task {
             let settings = await UNUserNotificationCenter.current().notificationSettings()
@@ -273,7 +279,7 @@ final class DemoDriver {
         // A frame's tick is how long it stays on screen; the frame just
         // shown is claudeIndex - 1. Frame 0 gets an exact two-second hold.
         let base = claudeFrames[claudeIndex - 1].tick
-        let duration = claudeIndex == 1 ? startHold : base * Double.random(in: 0.75...1.25)
+        let duration = claudeIndex == 1 ? startHold : base
         let timer = Timer(timeInterval: duration, repeats: false) { [weak self] _ in
             Task { @MainActor [weak self] in self?.applyNextClaudeFrame() }
         }
@@ -327,9 +333,7 @@ final class DemoDriver {
         // A frame's tick is how long it stays on screen; the frame just
         // shown is codexIndex - 1. Frame 0 gets an exact two-second hold.
         let base = codexFrames[codexIndex - 1].tick
-        var duration = codexIndex == 1 ? startHold : base * Double.random(in: 0.75...1.25)
-        // Hold notification frames for six seconds even at the fastest jitter.
-        if [5, 6, 21].contains(codexIndex - 1) { duration = max(duration, 6) }
+        let duration = codexIndex == 1 ? startHold : base
         let timer = Timer(timeInterval: duration, repeats: false) { [weak self] _ in
             Task { @MainActor [weak self] in self?.applyNextCodexFrame() }
         }

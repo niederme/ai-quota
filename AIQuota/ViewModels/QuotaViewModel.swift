@@ -224,6 +224,7 @@ final class QuotaViewModel {
         self.isCodexRecoveryPending = enrolledServices.contains(.codex)
         self.isClaudeRecoveryPending = enrolledServices.contains(.claude)
 
+        #if !DEMO_MODE
         // Load cached data immediately
         codexUsage  = SharedDefaults.loadCachedUsage()
         claudeUsage = SharedDefaults.loadCachedClaudeUsage()
@@ -302,6 +303,7 @@ final class QuotaViewModel {
                 group.addTask { await self.restoreEnrolledClaudeIfNeeded() }
             }
         }
+        #endif
     }
 
     private func restoreEnrolledCodexIfNeeded() async {
@@ -985,6 +987,8 @@ extension QuotaViewModel {
         stopAutoRefresh()
         claudeState      = .authenticated
         codexState       = .authenticated
+        isClaudeRecoveryPending = false
+        isCodexRecoveryPending = false
         enrolledServices = [.claude, .codex]
         claudeUsage      = nil
         codexUsage       = nil

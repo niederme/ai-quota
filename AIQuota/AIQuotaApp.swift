@@ -29,9 +29,12 @@ struct AIQuotaApp: App {
         LegacyDefaultsMigration.migrateIfNeeded(bundleIdentifier: "com.niederme.AIQuota")
         LaunchServicesSync.repairIfNeeded()
         #endif
-        _viewModel = State(initialValue: QuotaViewModel())
+        let viewModel = QuotaViewModel()
+        _viewModel = State(initialValue: viewModel)
         #if DEMO_MODE
-        _demoDriver = State(initialValue: DemoDriver())
+        let demoDriver = DemoDriver()
+        demoDriver.startIfNeeded(driving: viewModel)
+        _demoDriver = State(initialValue: demoDriver)
         #endif
         let updaterViewModel = UpdaterViewModel()
         self.updaterViewModel = updaterViewModel
@@ -83,9 +86,6 @@ struct AIQuotaApp: App {
                     }
                 }
                 #if DEMO_MODE
-                .onAppear {
-                    demoDriver.startIfNeeded(driving: viewModel)
-                }
                 .background {
                     Button("") { demoDriver.reset() }
                         .keyboardShortcut("r", modifiers: .command)
@@ -94,9 +94,8 @@ struct AIQuotaApp: App {
                 #endif
         } label: {
             MenuBarStatusLabel(viewModel: viewModel, updaterViewModel: updaterViewModel)
+                #if !DEMO_MODE
                 .onboardingLauncher(viewModel: viewModel)
-                #if DEMO_MODE
-                .onAppear { demoDriver.startIfNeeded(driving: viewModel) }
                 #endif
         }
         .menuBarExtraStyle(.window)
