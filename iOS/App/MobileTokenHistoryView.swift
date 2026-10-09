@@ -75,10 +75,12 @@ struct MobileTokenHistoryView: View {
                     }
                 }
                 .frame(height: graphHeight)
-                Text(selected.map(description) ?? "Outlined: no record · dates in UTC")
-                    .font(.caption2).foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("tokenActivityDetail")
+                if let selected {
+                    Text(description(selected))
+                        .font(.caption2).foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("tokenActivityDetail")
+                }
             } else {
                 ZStack {
                     if presentation == .loading {
@@ -109,6 +111,7 @@ struct MobileTokenHistoryView: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Token activity, past 52 weeks")
+        .accessibilityHint("Outlined cells have no record. Dates are in UTC.")
         .onChange(of: history?.fetchedAt) { _, _ in selected = nil }
     }
     private var graphHeight: CGFloat { max(44, 7 * max(1, (availableWidth - 51) / 52) + 6) + 16 }
