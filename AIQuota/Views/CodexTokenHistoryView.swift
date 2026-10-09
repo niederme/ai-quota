@@ -4,7 +4,6 @@ import AIQuotaKit
 struct CodexTokenHistoryView: View {
     @Environment(QuotaViewModel.self) private var viewModel
     @Environment(\.colorScheme) private var colorScheme
-    @State private var selected: CodexTokenHistory.Day?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -12,13 +11,16 @@ struct CodexTokenHistoryView: View {
                 let days = history.days()
                 let positives = days.filter { !$0.isFuture }.compactMap(\.tokens).filter { $0 > 0 }.sorted()
                 let ceiling = positives.isEmpty ? 1 : positives[min(positives.count - 1, Int(Double(positives.count - 1) * 0.95))]
-                ScrollView(.horizontal) {
+                GeometryReader { geometry in
+                    let weekCount = min(52, max(1, Int(((geometry.size.width + cellGap) / (cellSide + cellGap)).rounded())))
+                    let recentDays = Array(days.suffix(weekCount * 7))
+                    let side = max(1, (geometry.size.width - CGFloat(weekCount - 1) * cellGap) / CGFloat(weekCount))
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(alignment: .top, spacing: cellGap) {
-                            ForEach(0..<52, id: \.self) { week in
+                            ForEach(0..<weekCount, id: \.self) { week in
                                 VStack(spacing: cellGap) {
                                     ForEach(0..<7, id: \.self) { row in
-                                        let day = days[week * 7 + row]
+                                        let day = recentDays[week * 7 + row]
                                         RoundedRectangle(cornerRadius: 1)
                                             .fill(fill(day, ceiling: ceiling))
                                             .overlay {
@@ -26,39 +28,27 @@ struct CodexTokenHistoryView: View {
                                                     .strokeBorder(day.isToday ? Color.primary : Color.secondary.opacity(day.tokens == nil ? 0.3 : 0), lineWidth: day.isToday ? 1 : 0.65)
                                                     .opacity(day.isFuture ? 0 : 1)
                                             }
-                                            .frame(width: cellSide, height: cellSide)
+                                            .frame(width: side, height: side)
                                             .help(description(day))
                                             .accessibilityLabel(description(day))
                                             .accessibilityHidden(day.isFuture)
-                                            .onHover { hovering in selected = hovering && !day.isFuture ? day : nil }
-                                            .onTapGesture { if !day.isFuture { selected = day } }
                                     }
                                 }
                             }
                         }
-                        .frame(height: gridHeight)
                         ZStack(alignment: .topLeading) {
-                            ForEach(monthLabels(days: days, width: contentWidth), id: \.week) { label in
+                            ForEach(monthLabels(days: recentDays, width: geometry.size.width, step: side + cellGap), id: \.week) { label in
                                 Text(label.text)
                                     .font(.system(size: 8.5)).foregroundStyle(.secondary)
                                     .frame(width: 20, alignment: .leading)
                                     .offset(x: label.x)
                             }
                         }
-                        .frame(width: contentWidth, height: 11, alignment: .topLeading)
+                        .frame(width: geometry.size.width, height: 11, alignment: .topLeading)
                     }
-                    .frame(width: contentWidth, alignment: .leading)
-                    .padding(.bottom, 6)
                 }
-                .defaultScrollAnchor(.trailing)
-                .scrollBounceBehavior(.basedOnSize)
-                .frame(height: gridHeight + 21)
-                .accessibilityIdentifier("codexTokenHistoryScroll")
-                if let selected {
-                    Text(description(selected))
-                        .font(.system(size: 10)).foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else if viewModel.tokenHistoryFailed {
+                .frame(height: 59)
+                if viewModel.tokenHistoryFailed {
                     Text("Saved history · refresh unavailable")
                         .font(.system(size: 10)).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -73,34 +63,31 @@ struct CodexTokenHistoryView: View {
                     if viewModel.tokenHistoryFailed {
                         Button("Retry") { viewModel.refreshTokenHistory(force: true) }.font(.system(size: 11))
                     }
-                }.frame(minHeight: 44)
+                }.frame(minHeight: 59)
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Codex token activity, past 52 weeks")
-        .help("Daily Codex token counts from your ChatGPT profile. Outlined cells have no reported record; muted cells are confirmed zero. Dates are in UTC. Scroll horizontally to view earlier dates.")
+        .accessibilityLabel("Codex token activity, recent daily history")
+        .help("Recent daily Codex token counts from your ChatGPT profile. Outlined cells have no reported record; muted cells are confirmed zero. Dates are in UTC.")
         .accessibilityIdentifier("codexTokenActivity")
         .task { viewModel.refreshTokenHistory() }
-        .onChange(of: viewModel.codexTokenHistory?.fetchedAt) { selected = nil }
     }
 
     private let cellSide: CGFloat = 5.2
     private let cellGap: CGFloat = 1.2
-    private var contentWidth: CGFloat { 52 * cellSide + 51 * cellGap }
-    private var gridHeight: CGFloat { 7 * cellSide + 6 * cellGap }
-
-    private func monthLabels(days: [CodexTokenHistory.Day], width: CGFloat) -> [(week: Int, text: String, x: CGFloat)] {
-        let labelWidth: CGFloat = 20
-        let labelGap: CGFloat = 4
-        var labels = (0..<52).compactMap { week -> (week: Int, text: String, x: CGFloat)? in
+    private func monthLabels(days: [CodexTokenHistory.Day], width: CGFloat, step: CGFloat) -> [(week: Int, text: String, x: CGFloat)] {
+        let candidates = (0..<(days.count / 7)).compactMap { week -> (week: Int, text: String, x: CGFloat)? in
             guard let text = monthLabel(days: days, week: week) else { return nil }
-            return (week, text, CGFloat(week) * (cellSide + cellGap))
+            return (week, text, min(width - 20, CGFloat(week) * step))
         }
-        // Place the last label inside the graph, then reserve space for every
-        // neighboring label rather than allowing the final two boxes to overlap.
-        for index in labels.indices.reversed() {
-            let rightEdge = index == labels.count - 1 ? width : labels[index + 1].x - labelGap
-            labels[index].x = max(0, min(labels[index].x, rightEdge - labelWidth))
+        var labels: [(week: Int, text: String, x: CGFloat)] = []
+        for candidate in candidates {
+            if labels.last.map({ candidate.x - $0.x >= 40 }) ?? true { labels.append(candidate) }
+        }
+        // Keep the current month for orientation, omitting a crowded neighbor.
+        if let last = candidates.last, labels.last?.week != last.week {
+            if let previous = labels.last, last.x - previous.x < 40 { labels.removeLast() }
+            labels.append(last)
         }
         return labels
     }
