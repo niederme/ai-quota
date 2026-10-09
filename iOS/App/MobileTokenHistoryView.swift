@@ -41,11 +41,11 @@ struct MobileTokenHistoryView: View {
                                             .fill(fill(day, ceiling: ceiling))
                                             .overlay {
                                                 RoundedRectangle(cornerRadius: 1)
-                                                    .strokeBorder(day.isToday ? Color.primary : Color.secondary.opacity(day.tokens == nil ? 0.35 : 0), lineWidth: day.isToday ? 1 : 0.5)
+                                                    .strokeBorder(Color.secondary.opacity(day.tokens == nil ? 0.35 : 0), lineWidth: 0.5)
                                                     .opacity(day.isFuture ? 0 : 1)
                                             }
                                             .frame(width: side, height: side)
-                                            .accessibilityLabel(description(day))
+                                            .accessibilityLabel(day.isToday ? "Today, \(description(day))" : description(day))
                                             .accessibilityHidden(day.isFuture)
                                             .accessibilityAddTraits(.isButton)
                                             .accessibilityAction { selected = day }

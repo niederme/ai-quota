@@ -66,10 +66,16 @@ final class TokenHistoryReviewTests: XCTestCase {
         let previous = scene.windows.first(where: \.isKeyWindow)
         let populated = try XCTUnwrap(DemoQuotaData.tokenHistory())
         let empty = try XCTUnwrap(CodexTokenHistory.decode(Data("{\"page\":{\"activity_graph\":{\"daily_usage_buckets\":[]}}}".utf8)))
+        let today = CodexTokenHistory.dateFormatter().string(from: .now)
+        func todayHistory(tokens: Int) throws -> CodexTokenHistory {
+            try XCTUnwrap(CodexTokenHistory.decode(Data("{\"page\":{\"activity_graph\":{\"daily_usage_buckets\":[{\"start_date\":\"\(today)\",\"tokens\":\(tokens)}]}}}".utf8)))
+        }
         let states: [(String, CodexTokenHistory?, Bool, Bool)] = [
             ("loading", nil, false, true), ("empty", empty, false, false),
             ("unavailable", nil, true, false), ("populated", populated, false, false),
-            ("refreshing", populated, false, true), ("saved", populated, true, false)
+            ("refreshing", populated, false, true), ("saved", populated, true, false),
+            ("today-zero", try todayHistory(tokens: 0), false, false),
+            ("today-tokens", try todayHistory(tokens: 1200), false, false)
         ]
         for (theme, scheme) in [("light", ColorScheme.light), ("dark", .dark)] {
             let window = UIWindow(windowScene: scene)
