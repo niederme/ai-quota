@@ -93,10 +93,9 @@ struct AIQuotaApp: App {
                 }
                 #endif
         } label: {
-            menuBarIcon
+            MenuBarStatusLabel(viewModel: viewModel, updaterViewModel: updaterViewModel)
                 .onboardingLauncher(viewModel: viewModel)
                 #if DEMO_MODE
-                .demoAutoOpen()
                 .onAppear { demoDriver.startIfNeeded(driving: viewModel) }
                 #endif
         }
@@ -120,10 +119,16 @@ struct AIQuotaApp: App {
         .windowResizability(.contentSize)
     }
 
-    // MARK: - Menu bar gauge selection
+}
+
+/// Keep the status item's observation inside a View so usage frames redraw
+/// the icon even when the popover's view hierarchy is not present.
+private struct MenuBarStatusLabel: View {
+    let viewModel: QuotaViewModel
+    let updaterViewModel: UpdaterViewModel
 
     @ViewBuilder
-    private var menuBarIcon: some View {
+    var body: some View {
         if shouldShowBothMenuBarGauges {
             DoubleMenuBarIconView(
                 left: menuBarGaugeInput(for: .codex),
