@@ -35,7 +35,6 @@
 			<string>com.niederme.oauth</string>
 		</dict>
 	</array>
-	<!-- Export compliance: only OS-provided encryption (HTTPS, Keychain) -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSApplicationCategoryType</key>
@@ -44,5 +43,9 @@
 	<string>Copyright © 2026. All rights reserved.</string>
 	<key>AIQuotaAppStoreBuild</key>
 	<true/>
+	<key>AIQuotaSourceCommit</key>
+	<string>$(AIQUOTA_SOURCE_COMMIT)</string>
+	<key>AIQuotaBaseCommit</key>
+	<string>$(AIQUOTA_BASE_COMMIT)</string>
 </dict>
 </plist>

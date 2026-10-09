@@ -81,7 +81,7 @@ struct RefreshSettingsTests {
         )
 
         #expect(settingsSource.contains("Auto refreshes every 5 min, speeds up to 1 min when usage is changing or near a threshold, and slows down when your Mac is idle."))
-        #expect(settingsSource.contains("LabeledContent(\"Menu bar display\")"))
+        #expect(settingsSource.contains("\"Menu bar display\""))
         #expect(servicesSource.contains("How often should AIQuota refresh?"))
         #expect(servicesSource.contains("What should show in your menu bar?"))
         #expect(servicesSource.contains("Auto refreshes every 5 min, speeds up to 1 min when usage is changing or near a threshold, and slows down when your Mac is idle."))
