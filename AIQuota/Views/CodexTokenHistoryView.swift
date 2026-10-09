@@ -10,6 +10,7 @@ struct CodexTokenHistoryView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text("Token activity").font(.system(size: 12, weight: .medium))
+                    .help("Daily token counts from your ChatGPT profile; independent of quota credits. Outlined cells have no reported record, muted cells are confirmed zero.")
                 Spacer()
                 Text("52 weeks").font(.system(size: 12)).foregroundStyle(.secondary)
             }
@@ -34,6 +35,7 @@ struct CodexTokenHistoryView: View {
                                         .frame(width: side, height: side)
                                         .help(description(day))
                                         .accessibilityLabel(description(day))
+                                        .accessibilityHidden(day.isFuture)
                                         .onHover { hovering in selected = hovering && !day.isFuture ? day : nil }
                                         .onTapGesture { if !day.isFuture { selected = day } }
                                 }
@@ -69,6 +71,7 @@ struct CodexTokenHistoryView: View {
             }
         }
         .task { viewModel.refreshTokenHistory() }
+        .onChange(of: viewModel.codexTokenHistory?.fetchedAt) { selected = nil }
     }
 
     private func monthLabel(days: [CodexTokenHistory.Day], week: Int) -> String? {

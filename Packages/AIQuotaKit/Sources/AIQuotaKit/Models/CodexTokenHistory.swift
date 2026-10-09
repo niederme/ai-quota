@@ -4,6 +4,7 @@ import Foundation
 public struct CodexTokenHistory: Sendable {
     public let tokensByDate: [String: Double]
     public let fetchedAt: Date
+    public let scopeID: String?
 
     public struct Day: Identifiable, Sendable {
         public let date: Date
@@ -21,7 +22,7 @@ public struct CodexTokenHistory: Sendable {
         struct Bucket: Decodable { let start_date: String; let tokens: Double }
     }
 
-    public static func decode(_ data: Data, fetchedAt: Date = .now) throws -> Self? {
+    public static func decode(_ data: Data, fetchedAt: Date = .now, scopeID: String? = nil) throws -> Self? {
         let response = try JSONDecoder().decode(Response.self, from: data)
         guard let buckets = response.page?.activity_graph?.daily_usage_buckets else { return nil }
         var values: [String: Double] = [:]
@@ -35,7 +36,7 @@ public struct CodexTokenHistory: Sendable {
             }
             values[bucket.start_date] = bucket.tokens
         }
-        return Self(tokensByDate: values, fetchedAt: fetchedAt)
+        return Self(tokensByDate: values, fetchedAt: fetchedAt, scopeID: scopeID)
     }
 
     public static var calendar: Calendar {
@@ -67,5 +68,21 @@ public struct CodexTokenHistory: Sendable {
             let key = formatter.string(from: date)
             return Day(date: date, key: key, tokens: tokensByDate[key], isFuture: date > today, isToday: date == today)
         }
+    }
+}
+
+/// Unknown identities are never treated as the same account across refreshes.
+public struct CodexTokenHistoryScope: Sendable {
+    private var initialized = false
+    private var scopeID: String?
+
+    public init() {}
+
+    /// Returns true when an existing in-memory history must be discarded.
+    public mutating func update(scopeID: String?) -> Bool {
+        let changed = !initialized || scopeID == nil || self.scopeID != scopeID
+        self.scopeID = scopeID
+        initialized = true
+        return changed
     }
 }

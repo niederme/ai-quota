@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 import OSLog
 
 public actor OpenAIClient {
@@ -19,6 +20,17 @@ public actor OpenAIClient {
         self.session = URLSession(configuration: config)
     }
 
+    /// Opaque in-memory scope, never logged or persisted. Including the credential
+    /// distinguishes users in a shared workspace; token rotation safely drops history.
+    public func tokenHistoryScopeID() async throws -> String? {
+        Self.tokenHistoryScope(for: try await coordinator.accessContext())
+    }
+
+    static func tokenHistoryScope(for context: CodexAccessContext) -> String {
+        let identity = Data(((context.accountID ?? "") + ":" + context.accessToken).utf8)
+        return SHA256.hash(data: identity).description
+    }
+
     /// Optional profile history. Failures must not invalidate working quota authentication.
     public func fetchTokenHistory() async throws -> CodexTokenHistory? {
         let context = try await coordinator.accessContext()
@@ -33,7 +45,7 @@ public actor OpenAIClient {
         if http.statusCode == 403 || http.statusCode == 404 { return nil }
         guard http.statusCode == 200 else { throw NetworkError.httpError(statusCode: http.statusCode) }
         // Never log the private profile response, including on decoding failure.
-        return try CodexTokenHistory.decode(data)
+        return try CodexTokenHistory.decode(data, scopeID: Self.tokenHistoryScope(for: context))
     }
 
     public func fetchUsage() async throws -> CodexUsage {

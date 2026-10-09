@@ -21,13 +21,12 @@ final class QuotaViewModel {
     private var tokenHistoryTask: Task<Void, Never>?
     private var tokenHistoryAttempt: Date?
     private var tokenHistoryGeneration = 0
+    private var tokenHistoryScope = CodexTokenHistoryScope()
 
     func refreshTokenHistory(force: Bool = false) {
         guard !Self.isDemoBuild, isCodexAuthenticated else { return }
         guard tokenHistoryTask == nil else { return }
-        if !force, let attempt = tokenHistoryAttempt, Date.now.timeIntervalSince(attempt) < 900 { return }
-        tokenHistoryAttempt = .now
-        isTokenHistoryLoading = true
+        if codexTokenHistory == nil { isTokenHistoryLoading = true }
         let generation = tokenHistoryGeneration
         tokenHistoryTask = Task {
             defer {
@@ -36,14 +35,41 @@ final class QuotaViewModel {
                     tokenHistoryTask = nil
                 }
             }
+            var verifiedAccount = false
+            var requestScopeID: String?
             do {
-                let history = try await codexClient.fetchTokenHistory()
+                let scopeID = try await codexClient.tokenHistoryScopeID()
                 guard !Task.isCancelled, generation == tokenHistoryGeneration, isCodexAuthenticated else { return }
+                if tokenHistoryScope.update(scopeID: scopeID) {
+                    codexTokenHistory = nil
+                    tokenHistoryAttempt = nil
+                    tokenHistoryUnavailable = false
+                    tokenHistoryFailed = false
+                }
+                verifiedAccount = true
+                requestScopeID = scopeID
+                if !force, let attempt = tokenHistoryAttempt, Date.now.timeIntervalSince(attempt) < 900 { return }
+                tokenHistoryAttempt = .now
+                isTokenHistoryLoading = true
+                let history = try await codexClient.fetchTokenHistory()
+                let currentScopeID = try await codexClient.tokenHistoryScopeID()
+                guard !Task.isCancelled, generation == tokenHistoryGeneration, isCodexAuthenticated else { return }
+                guard currentScopeID == scopeID, history == nil || history?.scopeID == scopeID else {
+                    codexTokenHistory = nil
+                    tokenHistoryAttempt = nil
+                    _ = tokenHistoryScope.update(scopeID: currentScopeID)
+                    return
+                }
                 codexTokenHistory = history
                 tokenHistoryUnavailable = history == nil
                 tokenHistoryFailed = false
             } catch {
+                let currentScopeID = try? await codexClient.tokenHistoryScopeID()
                 guard !Task.isCancelled, generation == tokenHistoryGeneration else { return }
+                if !verifiedAccount || requestScopeID == nil || currentScopeID != requestScopeID {
+                    codexTokenHistory = nil
+                    tokenHistoryAttempt = nil
+                }
                 tokenHistoryFailed = true
             }
         }
@@ -51,6 +77,7 @@ final class QuotaViewModel {
 
     private func clearTokenHistory() {
         tokenHistoryGeneration += 1
+        tokenHistoryScope = CodexTokenHistoryScope()
         tokenHistoryTask?.cancel()
         tokenHistoryTask = nil
         codexTokenHistory = nil
@@ -939,6 +966,7 @@ final class QuotaViewModel {
     }
 
     func signOut() {
+        clearTokenHistory()
         stopAutoRefresh()
         Task {
             try? await codexCoordinator.signOut()

@@ -43,3 +43,34 @@ struct CodexTokenHistoryTests {
         #expect(Set(leap.map(\.key)).count == 364)
     }
 }
+
+struct CodexTokenHistoryScopeTests {
+    @Test func changesDiscardPriorAccountAndUnknownScope() {
+        var scope = CodexTokenHistoryScope()
+        let changed = [
+            scope.update(scopeID: "account-a"),
+            scope.update(scopeID: "account-a"),
+            scope.update(scopeID: "account-b"),
+            scope.update(scopeID: "account-b"),
+            scope.update(scopeID: nil),
+            scope.update(scopeID: nil),
+            scope.update(scopeID: "account-a"),
+        ]
+        #expect(changed == [true, false, true, false, true, true, true])
+    }
+
+    @Test func sharedWorkspaceCredentialsDoNotShareHistoryScope() {
+        let first = CodexAccessContext(accessToken: "fixture-a", accountID: "shared-workspace", source: .codexOAuth)
+        let other = CodexAccessContext(accessToken: "fixture-b", accountID: "shared-workspace", source: .codexOAuth)
+        let otherWorkspace = CodexAccessContext(accessToken: "fixture-a", accountID: "other-workspace", source: .codexOAuth)
+        #expect(OpenAIClient.tokenHistoryScope(for: first) == OpenAIClient.tokenHistoryScope(for: first))
+        #expect(OpenAIClient.tokenHistoryScope(for: first) != OpenAIClient.tokenHistoryScope(for: other))
+        #expect(OpenAIClient.tokenHistoryScope(for: first) != OpenAIClient.tokenHistoryScope(for: otherWorkspace))
+    }
+
+    @Test func responseRetainsRequestAccountIdentity() throws {
+        let data = Data("{\"page\":{\"activity_graph\":{\"daily_usage_buckets\":[]}}}".utf8)
+        let history = try #require(try CodexTokenHistory.decode(data, scopeID: "account-a"))
+        #expect(history.scopeID == "account-a")
+    }
+}
