@@ -1,4 +1,5 @@
 import Foundation
+import Dispatch
 import AIQuotaKit
 import UserNotifications
 
@@ -6,10 +7,32 @@ import UserNotifications
 
 #if DEMO_MODE
 
+/// Pure clock math shared by both scripted services. Sheet visibility is not an input.
+private enum DemoPlaybackClock {
+    static func frameIndex(at elapsed: TimeInterval, ticks: [Double], startHold: TimeInterval) -> Int {
+        var nextTransition = startHold
+        for index in 1..<ticks.count {
+            if elapsed < nextTransition { return index - 1 }
+            nextTransition += ticks[index]
+        }
+        return ticks.count - 1
+    }
+
+    static func timeToFinal(ticks: [Double], startHold: TimeInterval) -> TimeInterval {
+        startHold + ticks.dropFirst().dropLast().reduce(0, +)
+    }
+
+    static func position(at uptime: TimeInterval, startedAt: TimeInterval,
+                         cycleDuration: TimeInterval) -> (cycle: Int, phase: TimeInterval) {
+        let elapsed = max(0, uptime - startedAt)
+        return (Int(elapsed / cycleDuration), elapsed.truncatingRemainder(dividingBy: cycleDuration))
+    }
+}
+
 /// Drives a `QuotaViewModel` through a scripted timelapse of all usage states.
-/// Claude and Codex advance on **independent** timers — reflecting heavier Claude
-/// usage. Activate by calling `startIfNeeded(driving:)` once. Resets automatically
-/// whenever the AIQuota menu bar popover opens.
+/// Claude and Codex advance on independent keyframe timelines. Activate by
+/// calling `startIfNeeded(driving:)` once. Playback continues
+/// independently of the menu bar popover and loops after the final frame.
 @MainActor
 final class DemoDriver {
 
@@ -34,7 +57,7 @@ final class DemoDriver {
     // simulated day, so the 7-day window is exhausted after ~2.5 days with
     // 4 days still to go before it resets — while extra usage burns dollars.
     // Base ticks: normal 1.0s · amber 1.2s · red 1.4s · reset 0.5s → ~25s total.
-    // ±25% jitter applied in scheduleNextClaude for a natural feel.
+    // Fixed frame ticks keep each repeated cycle predictable.
     // Frame 0 is applied immediately on open — no loading state.
 
     private let claudeFrames: [ServiceFrame] = [
@@ -71,7 +94,7 @@ final class DemoDriver {
         .init(fiveH: 100, sevenD: 100, resetSecs: 15300, weeklyResetDays: 4, tick: 1.4), // both red
         .init(fiveH:   0, sevenD: 100, resetSecs: 18000, weeklyResetDays: 4, tick: 0.5), // 5h back, week gone
 
-        // FINAL FRAME — held indefinitely (tick unused): weekly spent by
+        // FINAL FRAME — held until both services finish: weekly spent by
         // mid-week, extra usage over the cap, 4 days until relief.
         .init(fiveH:  36, sevenD: 100, resetSecs: 11400, weeklyResetDays: 4, tick: 0),
     ]
@@ -82,7 +105,7 @@ final class DemoDriver {
     // gauges tell one coherent story. The drama here is the credits arc:
     // balance drains to zero, the exception bar appears, auto-reload tops up.
     // Base ticks: normal 1.1s · amber 1.3s · red 1.4s · reset 0.5s → ~25s total.
-    // ±25% jitter applied in scheduleNextCodex for a natural feel.
+    // Fixed frame ticks keep each repeated cycle predictable.
 
     private let codexFrames: [ServiceFrame] = [
         // Cycle 1 — Plus approaches its limit, then Pro provides more headroom.
@@ -91,7 +114,7 @@ final class DemoDriver {
         .init(fiveH:  19, sevenD:   5, resetSecs: 13200, weeklyResetDays: 6, tick: 1.1),
         .init(fiveH:  41, sevenD:   8, resetSecs: 10500, weeklyResetDays: 6, tick: 1.1),
         .init(fiveH:  66, sevenD:  12, resetSecs:  6900, weeklyResetDays: 6, tick: 1.1),
-        .init(fiveH:  84, sevenD:  15, resetSecs:  2700, weeklyResetDays: 6, tick: 1.3), // amber
+        .init(fiveH:  85, sevenD:  15, resetSecs:  2700, weeklyResetDays: 6, tick: 1.3), // amber
         .init(fiveH:  96, sevenD:  17, resetSecs:   600, weeklyResetDays: 6, tick: 1.1),
         .init(fiveH:  24, sevenD:   4, resetSecs:   600, weeklyResetDays: 6, tick: 3.0), // Pro upgrade: illustrative refreshed allowances
         .init(fiveH:  30, sevenD:   5, resetSecs:   300, weeklyResetDays: 6, tick: 1.1),
@@ -113,7 +136,7 @@ final class DemoDriver {
         .init(fiveH:  85, sevenD:  56, resetSecs:  2400, weeklyResetDays: 4, tick: 1.3), // amber
         .init(fiveH: 100, sevenD:  57, resetSecs: 15700, weeklyResetDays: 4, tick: 1.4), // red + credits empty
         .init(fiveH:   0, sevenD:  57, resetSecs: 18000, weeklyResetDays: 4, tick: 0.6), // reload kicks in
-        // FINAL FRAME — held indefinitely (tick unused)
+        // FINAL FRAME — held until both services finish (tick unused)
         .init(fiveH:  21, sevenD:  58, resetSecs: 14700, weeklyResetDays: 4, tick: 0),
     ]
 
@@ -150,7 +173,6 @@ final class DemoDriver {
         // landing on the same beat as the 5h limit for maximum drama.
         map[20] = 0
         // Frame 21: auto-reload kicks in — balance jumps from 0 → 250.
-        // The scripted top-up notification fires on this frame.
         map[21] = 250
         // Frame 22 (final): healthy balance, auto-reload on, warning softened
         map[22] = 238
@@ -163,7 +185,7 @@ final class DemoDriver {
     // Frame 20: reload is configured but off and credits hit zero, which shows
     // the exception bar.
     // Frames 21–22: auto-reload is on; normal/caution states stay text-only,
-    // and the balance jump at frame 21 fires the top-up notification.
+    // while the balance jumps at frame 21 without an alert.
 
     private let codexAutoReloadFrames: [Int: CodexAutoReload] = {
         var map: [Int: CodexAutoReload] = [:]
@@ -193,54 +215,75 @@ final class DemoDriver {
         // cap on the frame where the 5h resets but the week stays gone.
         let cycle4: [Double] = [3850, 4150, 4400, 4650, 4900, 5000]
         for (i, cents) in cycle4.enumerated() { map[18 + i] = extra(cents) }
-        // Final frame (24) is held forever, so the exception strip stays on
-        // screen at the demo's resting state.
+        // Final frame (24) shows the exception strip before the loop restarts.
         map[24] = extra(5150)
         return map
     }()
 
     // MARK: - State
 
-    /// Hold on frame 0 for this long before the time-lapse starts, so the
-    /// freshly opened popover has a beat of calm before things move.
-    private let startHold: TimeInterval = 5
+    /// Hold the opening and final states for two seconds each cycle.
+    private let startHold: TimeInterval = 2
+    private let endHold: TimeInterval = 2
 
     private let notificationPresenter = DemoNotificationPresenter()
-    private weak var target: QuotaViewModel?
+    private var target: QuotaViewModel?
+    private var started = false
+    private var playbackActivity: NSObjectProtocol?
 
     private var claudeIndex = 0
     private var codexIndex  = 0
-    private var claudeTimer: Timer?
-    private var codexTimer:  Timer?
-    private var notificationTask: Task<Void, Never>?
-    private let demoNotificationIDs = ["demo.codex.low", "demo.codex.plan", "demo.codex.topup"]
+    private var ticker: DispatchSourceTimer?
+    private var cycleStartedAt: TimeInterval = 0
+    private var cycleNumber = 0
+    private var sentDemoNotificationIDs: Set<String> = []
+    private let demoNotificationIDs = ["demo.codex.amber", "demo.claude.red"]
+    private let obsoleteNotificationIDs = ["demo.codex.low", "demo.codex.plan", "demo.codex.topup"]
 
     // MARK: - Public API
 
-    /// Store the view model target. Call once from `.task` in `AIQuotaApp`.
-    func prepare(for viewModel: QuotaViewModel) {
+    /// Start once at app launch; popover visibility has no effect.
+    func startIfNeeded(driving viewModel: QuotaViewModel) {
+        guard !started else { return }
+        started = true
         target = viewModel
+        // A closed, dockless menu bar app can otherwise be throttled by App Nap.
+        playbackActivity = ProcessInfo.processInfo.beginActivity(
+            options: .userInitiatedAllowingIdleSystemSleep,
+            reason: "Continuous AIQuota demo playback"
+        )
         UNUserNotificationCenter.current().delegate = notificationPresenter
+        let center = UNUserNotificationCenter.current()
+        let allDemoIDs = demoNotificationIDs + obsoleteNotificationIDs
+        center.removePendingNotificationRequests(withIdentifiers: allDemoIDs)
+        center.removeDeliveredNotifications(withIdentifiers: allDemoIDs)
         Task {
             let settings = await UNUserNotificationCenter.current().notificationSettings()
             if settings.authorizationStatus == .notDetermined {
                 await NotificationManager.shared.requestPermission()
             }
         }
+        reset()
+        let ticker = DispatchSource.makeTimerSource(queue: .main)
+        ticker.schedule(deadline: .now(), repeating: .milliseconds(100), leeway: .milliseconds(20))
+        ticker.setEventHandler { [weak self] in
+            Task { @MainActor [weak self] in self?.advanceToNow() }
+        }
+        self.ticker = ticker
+        ticker.resume()
     }
 
-    /// Restart the sequence from frame 0. Call from `.onAppear` and ⌘R.
+    /// Restart the sequence from frame 0 with ⌘R.
     func reset() {
-        claudeTimer?.invalidate()
-        codexTimer?.invalidate()
-        claudeTimer = nil
-        codexTimer  = nil
+        guard target != nil else { return }
+        cycleStartedAt = ProcessInfo.processInfo.systemUptime
+        cycleNumber = 0
+        restartCycle()
+    }
+
+    private func restartCycle() {
         claudeIndex = 0
         codexIndex  = 0
-        notificationTask?.cancel()
-        let center = UNUserNotificationCenter.current()
-        center.removePendingNotificationRequests(withIdentifiers: demoNotificationIDs)
-        center.removeDeliveredNotifications(withIdentifiers: demoNotificationIDs)
         target?.prepareForDemo()
 
         // Apply frame 0 of each service immediately — no loading state shown.
@@ -248,29 +291,33 @@ final class DemoDriver {
         applyNextCodexFrame()
     }
 
-    /// Stop timers without resetting progress. Call from `.onDisappear`.
-    func pause() {
-        notificationTask?.cancel()
-        claudeTimer?.invalidate()
-        codexTimer?.invalidate()
-        claudeTimer = nil
-        codexTimer  = nil
+    private var cycleDuration: TimeInterval {
+        max(DemoPlaybackClock.timeToFinal(ticks: claudeFrames.map(\.tick), startHold: startHold),
+            DemoPlaybackClock.timeToFinal(ticks: codexFrames.map(\.tick), startHold: startHold)) + endHold
+    }
+
+    /// The clock is monotonic: a delayed tick catches up to the correct frame.
+    /// Opening or closing the popover cannot restart or suspend the cycle.
+    private func advanceToNow() {
+        let position = DemoPlaybackClock.position(
+            at: ProcessInfo.processInfo.systemUptime,
+            startedAt: cycleStartedAt,
+            cycleDuration: cycleDuration
+        )
+        let currentCycle = position.cycle
+        if currentCycle != cycleNumber {
+            cycleNumber = currentCycle
+            restartCycle()
+        }
+        let desiredClaude = DemoPlaybackClock.frameIndex(at: position.phase,
+                                                         ticks: claudeFrames.map(\.tick), startHold: startHold)
+        let desiredCodex = DemoPlaybackClock.frameIndex(at: position.phase,
+                                                        ticks: codexFrames.map(\.tick), startHold: startHold)
+        while claudeIndex <= desiredClaude { applyNextClaudeFrame() }
+        while codexIndex <= desiredCodex { applyNextCodexFrame() }
     }
 
     // MARK: Claude advancement
-
-    private func scheduleNextClaude() {
-        guard claudeIndex < claudeFrames.count else { return }
-        // A frame's tick is how long it stays on screen; the frame just
-        // shown is claudeIndex - 1. The final frame schedules nothing, so
-        // it is held indefinitely.
-        let base = claudeFrames[claudeIndex - 1].tick
-        var duration = base * Double.random(in: 0.75...1.25)
-        if claudeIndex == 1 { duration += startHold }  // hold on the opening frame
-        claudeTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.applyNextClaudeFrame() }
-        }
-    }
 
     private func applyNextClaudeFrame() {
         guard claudeIndex < claudeFrames.count, let target else { return }
@@ -304,27 +351,14 @@ final class DemoDriver {
                               codexLoading: target.isCodexLoading,
                               codexAutoReload: target.codexAutoReload)
 
-        if claudeIndex < claudeFrames.count {
-            scheduleNextClaude()
+        if claudeIndex - 1 == 10 {
+            notifyDemo(id: "demo.claude.red", title: "Claude 5-hour limit reached",
+                       body: "Your Claude 5-hour allowance is exhausted.")
         }
+
     }
 
     // MARK: Codex advancement
-
-    private func scheduleNextCodex() {
-        guard codexIndex < codexFrames.count else { return }
-        // A frame's tick is how long it stays on screen; the frame just
-        // shown is codexIndex - 1. The final frame schedules nothing, so
-        // it is held indefinitely.
-        let base = codexFrames[codexIndex - 1].tick
-        var duration = base * Double.random(in: 0.75...1.25)
-        if codexIndex == 1 { duration += startHold }  // hold on the opening frame
-        // Hold notification frames for six seconds even at the fastest jitter.
-        if [5, 6, 21].contains(codexIndex - 1) { duration = max(duration, 6) }
-        codexTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { [weak self] _ in
-            Task { @MainActor [weak self] in self?.applyNextCodexFrame() }
-        }
-    }
 
     private func applyNextCodexFrame() {
         guard codexIndex < codexFrames.count, let target else { return }
@@ -361,38 +395,32 @@ final class DemoDriver {
                               codexLoading: false,
                               codexAutoReload: autoReload)
 
-        // Three deliberately paced demo alerts. Do not run production evaluators:
-        // they would add noise and write simulated balances into real alert history.
-        switch codexIndex - 1 {
-        case 5:
-            notifyDemo(id: "demo.codex.low", title: "Codex is almost at its 5-hour limit",
-                       body: "You’ve used 96% of your 5-hour allowance.")
-        case 6:
-            notifyDemo(id: "demo.codex.plan", title: "Codex plan changed to Pro",
-                       body: "Previously Plus. Connection checked and usage is up to date.")
-        case 21:
-            notifyDemo(id: "demo.codex.topup", title: "Codex credits topped up",
-                       body: "Auto-reload added credits. Your balance is now $10.00.")
-        default:
-            break
+        // Send one amber alert, without writing simulated usage to real alert history.
+        if codexIndex - 1 == 4 {
+            notifyDemo(id: "demo.codex.amber", title: "Codex 5-hour usage high",
+                       body: "You've used 85% of your Codex 5-hour allowance.")
         }
 
-        if codexIndex < codexFrames.count {
-            scheduleNextCodex()
-        }
     }
     private func notifyDemo(id: String, title: String, body: String) {
-        notificationTask?.cancel()
-        notificationTask = Task {
+        guard sentDemoNotificationIDs.insert(id).inserted else { return }
+        Task {
             let center = UNUserNotificationCenter.current()
             let settings = await center.notificationSettings()
             guard !Task.isCancelled,
-                  settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
+                  settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else {
+                sentDemoNotificationIDs.remove(id)
+                return
+            }
             let content = UNMutableNotificationContent()
             content.title = title
             content.body = body
             content.sound = .default
-            try? await center.add(UNNotificationRequest(identifier: id, content: content, trigger: nil))
+            do {
+                try await center.add(UNNotificationRequest(identifier: id, content: content, trigger: nil))
+            } catch {
+                sentDemoNotificationIDs.remove(id)
+            }
         }
     }
 }

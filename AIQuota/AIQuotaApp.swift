@@ -29,9 +29,12 @@ struct AIQuotaApp: App {
         LegacyDefaultsMigration.migrateIfNeeded(bundleIdentifier: "com.niederme.AIQuota")
         LaunchServicesSync.repairIfNeeded()
         #endif
-        _viewModel = State(initialValue: QuotaViewModel())
         #if DEMO_MODE
-        _demoDriver = State(initialValue: DemoDriver())
+        let demoSession = DemoSession.shared
+        _viewModel = State(initialValue: demoSession.viewModel)
+        _demoDriver = State(initialValue: demoSession.driver)
+        #else
+        _viewModel = State(initialValue: QuotaViewModel())
         #endif
         let updaterViewModel = UpdaterViewModel()
         self.updaterViewModel = updaterViewModel
@@ -83,13 +86,6 @@ struct AIQuotaApp: App {
                     }
                 }
                 #if DEMO_MODE
-                // prepare must precede reset — .task would run after .onAppear,
-                // leaving the driver targetless on the first (auto-opened) show.
-                .onAppear {
-                    demoDriver.prepare(for: viewModel)
-                    demoDriver.reset()
-                }
-                .onDisappear { demoDriver.pause() }
                 .background {
                     Button("") { demoDriver.reset() }
                         .keyboardShortcut("r", modifiers: .command)
@@ -97,10 +93,9 @@ struct AIQuotaApp: App {
                 }
                 #endif
         } label: {
-            menuBarIcon
+            MenuBarStatusLabel(viewModel: viewModel, updaterViewModel: updaterViewModel)
+                #if !DEMO_MODE
                 .onboardingLauncher(viewModel: viewModel)
-                #if DEMO_MODE
-                .demoAutoOpen()
                 #endif
         }
         .menuBarExtraStyle(.window)
@@ -123,10 +118,36 @@ struct AIQuotaApp: App {
         .windowResizability(.contentSize)
     }
 
-    // MARK: - Menu bar gauge selection
+}
+
+#if DEMO_MODE
+/// Keep playback and its view model alive for the whole process, regardless of
+/// how SwiftUI recreates the menu bar label or popover.
+@MainActor
+private final class DemoSession {
+    static let shared = DemoSession()
+
+    let viewModel: QuotaViewModel
+    let driver: DemoDriver
+
+    private init() {
+        let viewModel = QuotaViewModel()
+        let driver = DemoDriver()
+        self.viewModel = viewModel
+        self.driver = driver
+        driver.startIfNeeded(driving: viewModel)
+    }
+}
+#endif
+
+/// Keep the status item's observation inside a View so usage frames redraw
+/// the icon even when the popover's view hierarchy is not present.
+private struct MenuBarStatusLabel: View {
+    let viewModel: QuotaViewModel
+    let updaterViewModel: UpdaterViewModel
 
     @ViewBuilder
-    private var menuBarIcon: some View {
+    var body: some View {
         if shouldShowBothMenuBarGauges {
             DoubleMenuBarIconView(
                 left: menuBarGaugeInput(for: .codex),
