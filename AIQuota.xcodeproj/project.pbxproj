@@ -1315,7 +1315,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 395;
+				CURRENT_PROJECT_VERSION = 407;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1328,7 +1328,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.9.28;
+				MARKETING_VERSION = 2.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1343,7 +1343,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 53;
+				CURRENT_PROJECT_VERSION = 58;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1352,7 +1352,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.niederme.AIQuota-iOSUITests";
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -1388,7 +1388,7 @@
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Mobile.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 53;
+				CURRENT_PROJECT_VERSION = 58;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iOS/App/Info.plist;
@@ -1397,7 +1397,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -1412,7 +1412,7 @@
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Mobile.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 53;
+				CURRENT_PROJECT_VERSION = 58;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iOS/App/Info.plist;
@@ -1421,7 +1421,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -1455,7 +1455,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 53;
+				CURRENT_PROJECT_VERSION = 58;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1464,7 +1464,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.niederme.AIQuota-iOSTests";
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -1507,7 +1507,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 395;
+				CURRENT_PROJECT_VERSION = 407;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -1526,7 +1526,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.9.28;
+				MARKETING_VERSION = 2.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -1544,7 +1544,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuota/Resources/AIQuota-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 401;
+				CURRENT_PROJECT_VERSION = 408;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuota/Resources/Info-TestFlight.plist";
@@ -1564,7 +1564,7 @@
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Mobile.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 53;
+				CURRENT_PROJECT_VERSION = 58;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iOS/App/Info.plist;
@@ -1573,7 +1573,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -1586,7 +1586,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 53;
+				CURRENT_PROJECT_VERSION = 58;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1595,7 +1595,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.niederme.AIQuota-iOSUITests";
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -1609,7 +1609,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Widget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 53;
+				CURRENT_PROJECT_VERSION = 58;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/Widget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1618,7 +1618,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota.mobilewidget;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -1632,7 +1632,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuotaWidget/Resources/AIQuotaWidget-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 401;
+				CURRENT_PROJECT_VERSION = 408;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuotaWidget/Resources/Info-TestFlight.plist";
@@ -1677,7 +1677,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuota/Resources/AIQuota-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 401;
+				CURRENT_PROJECT_VERSION = 408;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuota/Resources/Info-TestFlight.plist";
@@ -1696,7 +1696,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuotaWidget/Resources/AIQuotaWidget-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 401;
+				CURRENT_PROJECT_VERSION = 408;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuotaWidget/Resources/Info-TestFlight.plist";
@@ -1718,7 +1718,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Widget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 53;
+				CURRENT_PROJECT_VERSION = 58;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/Widget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1727,7 +1727,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota.mobilewidget;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -1742,7 +1742,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuota/Resources/AIQuota-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 401;
+				CURRENT_PROJECT_VERSION = 408;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuota/Resources/Info-TestFlight.plist";
@@ -1760,7 +1760,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/CopySignInCode/CopySignInCode.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 53;
+				CURRENT_PROJECT_VERSION = 58;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/CopySignInCode/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1769,7 +1769,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota.copySignInCode;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -1782,7 +1782,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 53;
+				CURRENT_PROJECT_VERSION = 58;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1791,7 +1791,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.niederme.AIQuota-iOSTests";
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -1824,7 +1824,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 53;
+				CURRENT_PROJECT_VERSION = 58;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1833,7 +1833,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.niederme.AIQuota-iOSUITests";
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -1847,7 +1847,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/CopySignInCode/CopySignInCode.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 53;
+				CURRENT_PROJECT_VERSION = 58;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/CopySignInCode/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1856,7 +1856,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota.copySignInCode;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -1870,7 +1870,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuotaWidget/Resources/AIQuotaWidget-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 401;
+				CURRENT_PROJECT_VERSION = 408;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuotaWidget/Resources/Info-TestFlight.plist";
@@ -1892,7 +1892,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 53;
+				CURRENT_PROJECT_VERSION = 58;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1901,7 +1901,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.niederme.AIQuota-iOSTests";
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -1936,7 +1936,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Widget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 53;
+				CURRENT_PROJECT_VERSION = 58;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/Widget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1945,7 +1945,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota.mobilewidget;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -1958,7 +1958,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/CopySignInCode/CopySignInCode.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 53;
+				CURRENT_PROJECT_VERSION = 58;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/CopySignInCode/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1967,7 +1967,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.niederme.AIQuota.copySignInCode;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 6.0;
@@ -2009,7 +2009,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 395;
+				CURRENT_PROJECT_VERSION = 407;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -2028,7 +2028,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.9.28;
+				MARKETING_VERSION = 2.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

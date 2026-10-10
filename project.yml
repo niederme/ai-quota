@@ -17,8 +17,8 @@ options:
 # CURRENT_PROJECT_VERSION = Sparkle / bundle build number — bump for every release.
 settings:
   base:
-    MARKETING_VERSION: "1.9.28"
-    CURRENT_PROJECT_VERSION: "395"
+    MARKETING_VERSION: "2.0"
+    CURRENT_PROJECT_VERSION: "407"
 
 packages:
   MobileAccessCore:
@@ -73,7 +73,7 @@ targetTemplates:
   StoreDistribution:
     settings:
       base:
-        CURRENT_PROJECT_VERSION: "406"
+        CURRENT_PROJECT_VERSION: "408"
         SWIFT_VERSION: "6.0"
         SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) APP_STORE"
         CODE_SIGN_STYLE: Automatic
