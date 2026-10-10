@@ -1,6 +1,6 @@
 import XCTest
 final class TokenHistoryFlowTests: XCTestCase {
-    func testDefaultCardTapShowsTokenDetailWithoutOpeningServiceSheet() {
+    func testGraphAndSummaryOpenCodexServiceSheet() {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launchArguments = ["-onboarding.v1.completed", "NO", "-onboarding.v1.dismissed", "NO", "-onboarding.v1.step", "0"]
@@ -18,10 +18,11 @@ final class TokenHistoryFlowTests: XCTestCase {
         if !grid.isHittable { app.swipeUp() }
         XCTAssertTrue(grid.waitForExistence(timeout: 5))
         grid.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
-        let detail = app.staticTexts["tokenActivityDetail"]
-        XCTAssertTrue(detail.exists)
-        XCTAssertTrue(detail.label.contains("tokens") || detail.label.contains("no record reported"))
-        XCTAssertFalse(app.navigationBars["Codex"].exists)
-        let image = XCTAttachment(screenshot: app.screenshot()); image.name = "iOS default card token detail"; image.lifetime = .keepAlways; add(image)
+        XCTAssertTrue(app.navigationBars["Codex"].waitForExistence(timeout: 5))
+        app.buttons["Close"].tap()
+        XCTAssertFalse(app.staticTexts["tokenActivityDetail"].exists)
+        app.buttons["codexServiceCard"].tap()
+        XCTAssertTrue(app.navigationBars["Codex"].waitForExistence(timeout: 5))
+        let image = XCTAttachment(screenshot: app.screenshot()); image.name = "iOS Codex card opens service sheet"; image.lifetime = .keepAlways; add(image)
     }
 }

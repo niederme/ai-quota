@@ -27,8 +27,10 @@ private func profileCredential(_ access: String = "synthetic", account: String =
         #expect(try await CodexAPI(transport: ProfileTransport(status: status)).tokenHistory(profileCredential()) == nil)
     }
 }
-@Test func profileScopeSeparatesAccountsAndRotatedCredentials() throws {
+@Test func profileScopeSeparatesAccountsButSurvivesCredentialRenewal() throws {
     let scope = CodexAPI.tokenHistoryScope(try profileCredential())
-    #expect(scope != CodexAPI.tokenHistoryScope(try profileCredential("rotated")))
+    #expect(scope == CodexAPI.tokenHistoryScope(try profileCredential("rotated")))
     #expect(scope != CodexAPI.tokenHistoryScope(try profileCredential(account: "other")))
+    #expect(CodexAPI.tokenHistoryScope(try profileCredential("rotated", account: "")) !=
+            CodexAPI.tokenHistoryScope(try profileCredential(account: "")))
 }

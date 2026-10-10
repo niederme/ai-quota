@@ -7,8 +7,6 @@ struct MobileTokenHistoryView: View {
     let unavailable: Bool
     let loading: Bool
     var availableWidth: CGFloat = 288
-    var retry: (() -> Void)? = nil
-    @State private var selected: CodexTokenHistory.Day?
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var skeletonBright = false
@@ -47,20 +45,11 @@ struct MobileTokenHistoryView: View {
                                             .frame(width: side, height: side)
                                             .accessibilityLabel(day.isToday ? "Today, \(description(day))" : description(day))
                                             .accessibilityHidden(day.isFuture)
-                                            .accessibilityAddTraits(.isButton)
-                                            .accessibilityAction { selected = day }
                                     }
                                 }
                             }
                         }
                         .frame(minHeight: 44, alignment: .top)
-                        .contentShape(Rectangle())
-                        .gesture(DragGesture(minimumDistance: 0).onChanged { value in
-                            let week = min(51, max(0, Int(value.location.x / (side + gap))))
-                            let row = min(6, max(0, Int(value.location.y / (side + gap))))
-                            let day = days[week * 7 + row]
-                            if !day.isFuture { selected = day }
-                        })
                         .accessibilityElement(children: .contain)
                         .accessibilityIdentifier("tokenActivityGrid")
                         ZStack(alignment: .topLeading) {
@@ -75,12 +64,6 @@ struct MobileTokenHistoryView: View {
                     }
                 }
                 .frame(height: graphHeight)
-                if let selected {
-                    Text(description(selected))
-                        .font(.caption2).foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityIdentifier("tokenActivityDetail")
-                }
             } else {
                 ZStack {
                     if presentation == .loading {
@@ -105,14 +88,12 @@ struct MobileTokenHistoryView: View {
                 HStack(spacing: 8) {
                     Text(loading ? "Updating token history…" : history != nil ? "Saved token history · refresh unavailable" : "Try refreshing your token history.")
                         .font(.caption2).foregroundStyle(.secondary)
-                    if unavailable, !loading, let retry { Button("Retry", action: retry).font(.caption) }
                 }
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Token activity, past 52 weeks")
         .accessibilityHint("Outlined cells have no record. Dates are in UTC.")
-        .onChange(of: history?.fetchedAt) { _, _ in selected = nil }
     }
     private var graphHeight: CGFloat { max(44, 7 * max(1, (availableWidth - 51) / 52) + 6) + 16 }
     private var skeleton: some View {

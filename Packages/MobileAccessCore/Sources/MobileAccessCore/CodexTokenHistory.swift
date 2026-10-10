@@ -1,7 +1,7 @@
 import Foundation
 
 /// Profile token counts are independent of quota credits. Omitted dates stay unknown.
-public struct CodexTokenHistory: Sendable {
+public struct CodexTokenHistory: Codable, Sendable {
     public let tokensByDate: [String: Double]
     public let fetchedAt: Date
     public let scopeID: String?
@@ -69,6 +69,40 @@ public struct CodexTokenHistory: Sendable {
             return Day(date: date, key: key, tokens: tokensByDate[key], isFuture: date > today, isToday: date == today)
         }
     }
+}
+
+/// One validated profile snapshot. Its opaque scope prevents a saved graph from
+/// appearing for a different account after credentials change.
+public struct CodexTokenHistoryCache {
+    private let defaults: UserDefaults
+    private let key: String
+
+    public init(defaults: UserDefaults = .standard, key: String = "mobileProbe.codexTokenHistory") {
+        self.defaults = defaults
+        self.key = key
+    }
+
+    public func load(scopeID: String?) -> CodexTokenHistory? {
+        guard let scopeID, let data = defaults.data(forKey: key) else { return nil }
+        let formatter = CodexTokenHistory.dateFormatter()
+        guard let history = try? JSONDecoder().decode(CodexTokenHistory.self, from: data),
+              history.scopeID == scopeID,
+              history.tokensByDate.allSatisfy({ date, tokens in
+                  guard let parsed = formatter.date(from: date) else { return false }
+                  return formatter.string(from: parsed) == date && tokens.isFinite && tokens >= 0
+              }) else {
+            clear()
+            return nil
+        }
+        return history
+    }
+
+    public func save(_ history: CodexTokenHistory) {
+        guard history.scopeID != nil, let data = try? JSONEncoder().encode(history) else { return }
+        defaults.set(data, forKey: key)
+    }
+
+    public func clear() { defaults.removeObject(forKey: key) }
 }
 
 /// Unknown identities are never treated as the same account across refreshes.

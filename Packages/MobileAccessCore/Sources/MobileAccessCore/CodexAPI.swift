@@ -167,9 +167,12 @@ public struct CodexAPI: Sendable {
     public static let clientID = "app_EMoamEEZ73f0CkXaXp7hrann"
     private let transport: any HTTPTransport
     public init(transport: any HTTPTransport = ProviderTransport()) { self.transport = transport }
-    /// Opaque in-memory account/credential scope; never persisted or logged.
+    /// Opaque profile scope. Known account IDs survive routine access-token renewal;
+    /// unknown identities remain bound to their exact credential.
     public static func tokenHistoryScope(_ tokens: CodexTokens) -> String {
-        SHA256.hash(data: Data(((tokens.accountID ?? "") + "\0" + tokens.accessToken).utf8))
+        let identity = tokens.accountID.flatMap { $0.isEmpty ? nil : "account\0" + $0 }
+            ?? "credential\0" + tokens.accessToken
+        return SHA256.hash(data: Data(identity.utf8))
             .map { String(format: "%02x", $0) }.joined()
     }
     public func tokenHistory(_ tokens: CodexTokens, now: Date = .now) async throws -> CodexTokenHistory? {

@@ -86,7 +86,7 @@ struct OverviewView: View {
                             ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 780) - 32, reading: codex.reading,
                                              connected: codex.connected, busy: codex.loading, error: codex.error, failure: codex.connectionFailure,
                                              history: codex.history, historyUnavailable: codex.historyUnavailable,
-                                             tokenHistory: codex.tokenHistory, tokenHistoryUnavailable: codex.tokenHistoryUnavailable, tokenHistoryLoading: codex.tokenHistoryLoading || (codex.busy && codex.tokenHistory == nil), retryTokenHistory: { codex.retryTokenHistory() },
+                                             tokenHistory: codex.tokenHistory, tokenHistoryUnavailable: codex.tokenHistoryUnavailable, tokenHistoryLoading: codex.tokenHistoryLoading || (codex.busy && codex.tokenHistory == nil),
                                              onReconnect: { selectedService = .codexAccount }) {
                                 selectedService = .codex
                             }
@@ -563,14 +563,13 @@ struct ProviderDialCard: View {
     var tokenHistory: CodexTokenHistory? = nil
     var tokenHistoryUnavailable = false
     var tokenHistoryLoading: Bool? = nil
-    var retryTokenHistory: (() -> Void)? = nil
     var onReconnect: (() -> Void)? = nil
     let onOpen: () -> Void
     var body: some View {
         ProviderDialCardContent(name: name, icon: icon, availableWidth: availableWidth,
             reading: reading, connected: connected, busy: busy, error: error, failure: failure,
             onOpen: onOpen, onReconnect: onReconnect, history: history, historyUnavailable: historyUnavailable,
-            tokenHistory: tokenHistory, tokenHistoryUnavailable: tokenHistoryUnavailable, tokenHistoryLoading: tokenHistoryLoading, retryTokenHistory: retryTokenHistory)
+            tokenHistory: tokenHistory, tokenHistoryUnavailable: tokenHistoryUnavailable, tokenHistoryLoading: tokenHistoryLoading)
     }
 }
 
@@ -659,7 +658,6 @@ struct ProviderDialCardContent: View {
     var tokenHistory: CodexTokenHistory? = nil
     var tokenHistoryUnavailable = false
     var tokenHistoryLoading: Bool? = nil
-    var retryTokenHistory: (() -> Void)? = nil
     var largeDial = false
     var allowanceOnly = false
     @Environment(\.colorSchemeContrast) private var contrast
@@ -679,9 +677,10 @@ struct ProviderDialCardContent: View {
     var body: some View {
         if allowanceOnly {
             dial
-        } else if let onOpen, !needsReconnect, name != "Codex" {
+        } else if let onOpen, !needsReconnect {
             Button(action: onOpen) { cardContent }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier(name == "Codex" ? "codexServiceCard" : "claudeServiceCard")
                 .accessibilityHint("Opens \(name) service sheet")
         } else {
             cardContent
@@ -689,12 +688,9 @@ struct ProviderDialCardContent: View {
     }
     private var cardContent: some View {
         VStack(alignment: .leading, spacing: 12) {
-            if name == "Codex", let onOpen, !needsReconnect {
-                Button(action: onOpen) { summary.modifier(UsageLoadingState(loading: busy && reading == nil)) }.buttonStyle(.plain)
-                    .accessibilityHint("Opens Codex service sheet")
-            } else { summary.modifier(UsageLoadingState(loading: busy && reading == nil)) }
+            summary.modifier(UsageLoadingState(loading: busy && reading == nil))
             if name == "Codex", connected {
-                MobileTokenHistoryView(history: tokenHistory, unavailable: tokenHistoryUnavailable || (tokenHistory == nil && error != nil), loading: tokenHistoryLoading ?? busy, availableWidth: availableWidth - 32, retry: retryTokenHistory)
+                MobileTokenHistoryView(history: tokenHistory, unavailable: tokenHistoryUnavailable || (tokenHistory == nil && error != nil), loading: tokenHistoryLoading ?? busy, availableWidth: availableWidth - 32)
             }
         }
         .padding(16)

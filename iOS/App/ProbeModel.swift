@@ -7,11 +7,14 @@ import MobileAccessCore
 
 @MainActor @Observable
 final class ProbeModel {
-    private let shared = SharedQuotaStore(.codex)
+    private let shared: SharedQuotaStore
     private var foregroundRefresh = ForegroundRefreshPolicy()
     private(set) var quietlyRefreshing = false
     var loading: Bool { busy && !quietlyRefreshing }
-    private let api = CodexAPI()
+    private let api: CodexAPI
+    private let tokenHistoryCache: CodexTokenHistoryCache
+    private let fetchUsage: (@Sendable (Bool, TimeInterval) async throws -> QuotaReading)?
+    private let defaults: UserDefaults
     private var work: Task<Void, Never>?
     private var generation = UUID()
     private var tokens: CodexTokens?
@@ -37,8 +40,15 @@ final class ProbeModel {
     var connected: Bool { isDemo || tokens != nil }
     private let cacheKey = "mobileProbe.codexReading"
 
-    init(isDemo: Bool = false) {
+    init(isDemo: Bool = false, api: CodexAPI = CodexAPI(), shared: SharedQuotaStore = SharedQuotaStore(.codex),
+         defaults: UserDefaults = .standard,
+         fetchUsage: (@Sendable (Bool, TimeInterval) async throws -> QuotaReading)? = nil) {
         self.isDemo = isDemo
+        self.api = api
+        self.shared = shared
+        self.defaults = defaults
+        self.fetchUsage = fetchUsage
+        self.tokenHistoryCache = CodexTokenHistoryCache(defaults: defaults)
         if isDemo {
             reading = DemoQuotaData.reading(.codex)
             history = DemoQuotaData.history()
@@ -49,13 +59,14 @@ final class ProbeModel {
         do {
             tokens = try shared.load(CodexTokens.self) ?? TokenStore.load()
             if tokens != nil {
+                alignTokenHistory(to: tokens)
                 connectionFailure = shared.failure()
                 message = "Connected. Your usage updates automatically."
                 reading = shared.reading()
-                if let data = UserDefaults.standard.data(forKey: historyCacheKey) {
+                if let data = defaults.data(forKey: historyCacheKey) {
                     history = try? JSONDecoder().decode(CodexUsageHistory.self, from: data)
                 }
-                if reading == nil, let data = UserDefaults.standard.data(forKey: cacheKey) {
+                if reading == nil, let data = defaults.data(forKey: cacheKey) {
                     reading = try? JSONDecoder().decode(QuotaReading.self, from: data)
                 }
             }
@@ -82,9 +93,10 @@ final class ProbeModel {
                         try TokenStore.clear()
                     }
                     clearTokenHistory()
+                    tokenHistoryCache.clear()
                     history = nil
                     historyUnavailable = false
-                    UserDefaults.standard.removeObject(forKey: historyCacheKey)
+                    defaults.removeObject(forKey: historyCacheKey)
                     foregroundRefresh.reset()
                     tokens = newTokens
                     challenge = nil
@@ -113,15 +125,21 @@ final class ProbeModel {
         guard !isDemo else { refresh(); return }
         guard !busy, connected else { return }
         // Invalidate token history before the foreground quota throttle on account changes.
-        let current = try? shared.load(CodexTokens.self)
-        if tokenHistoryScope.update(scopeID: current.map(CodexAPI.tokenHistoryScope)) { clearTokenHistory() }
+        let current = try? shared.load(CodexTokens.self) ?? TokenStore.load()
+        alignTokenHistory(to: current)
         // A widget may have published a newer successful reading while the app was inactive.
         if let cached = shared.reading(), cached.fetchedAt > (reading?.fetchedAt ?? .distantPast) {
             reading = cached
             error = nil
             connectionFailure = shared.failure()
         }
-        guard foregroundRefresh.beginAutomatic(at: .now, reading: reading) else { return }
+        guard foregroundRefresh.beginAutomatic(at: .now, reading: reading) else {
+            if tokenHistory == nil, tokenHistoryAttempt == nil, let current {
+                quietlyRefreshing = reading != nil
+                run { [self] in await refreshTokenHistory(current) }
+            }
+            return
+        }
         quietlyRefreshing = reading != nil
         run { [self] in try await fetch(forceRenewal: false, minimumAge: 30) }
     }
@@ -131,8 +149,8 @@ final class ProbeModel {
         refresh()
     }
     private func fetch(forceRenewal: Bool, minimumAge: TimeInterval = 0) async throws {
-        let current = try? shared.load(CodexTokens.self)
-        if tokenHistoryScope.update(scopeID: current.map(CodexAPI.tokenHistoryScope)) { clearTokenHistory() }
+        let current = try? shared.load(CodexTokens.self) ?? TokenStore.load()
+        alignTokenHistory(to: current)
         let backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "Refresh allowance") { [weak self] in
             Task { @MainActor in self?.work?.cancel() }
         }
@@ -147,13 +165,15 @@ final class ProbeModel {
             try WidgetStore.clearAccess()
         }
         message = "Refreshing…"
-        let value = try await shared.fetch(source: "app", forceRenewal: forceRenewal, minimumAge: minimumAge)
+        let value: QuotaReading
+        if let fetchUsage { value = try await fetchUsage(forceRenewal, minimumAge) }
+        else { value = try await shared.fetch(source: "app", forceRenewal: forceRenewal, minimumAge: minimumAge) }
         try Task.checkCancellation()
         tokens = try shared.load(CodexTokens.self)
-        if tokenHistoryScope.update(scopeID: tokens.map(CodexAPI.tokenHistoryScope)) { clearTokenHistory() }
+        alignTokenHistory(to: tokens)
         reading = value
         connectionFailure = nil
-        UserDefaults.standard.set(try JSONEncoder().encode(value), forKey: cacheKey)
+        defaults.set(try JSONEncoder().encode(value), forKey: cacheKey)
         if forceRenewal { renewedAt = .now }
         WidgetCenter.shared.reloadAllTimelines()
         message = "Usage updated."
@@ -166,7 +186,7 @@ final class ProbeModel {
                 try Task.checkCancellation()
                 history = updated
                 historyUnavailable = false
-                UserDefaults.standard.set(try JSONEncoder().encode(updated), forKey: historyCacheKey)
+                defaults.set(try JSONEncoder().encode(updated), forKey: historyCacheKey)
             } catch is CancellationError { throw CancellationError() }
             catch { historyUnavailable = true }
         }
@@ -177,9 +197,15 @@ final class ProbeModel {
         tokenHistoryLoading = false
         tokenHistoryAttempt = nil
     }
+    private func alignTokenHistory(to credential: CodexTokens?) {
+        let scopeID = credential.map(CodexAPI.tokenHistoryScope)
+        guard tokenHistoryScope.update(scopeID: scopeID) else { return }
+        clearTokenHistory()
+        tokenHistory = tokenHistoryCache.load(scopeID: scopeID)
+    }
     private func refreshTokenHistory(_ credential: CodexTokens) async {
         let scope = CodexAPI.tokenHistoryScope(credential)
-        if tokenHistoryScope.update(scopeID: scope) { clearTokenHistory() }
+        alignTokenHistory(to: credential)
         if let tokenHistoryAttempt, Date.now.timeIntervalSince(tokenHistoryAttempt) < 900 { return }
         tokenHistoryAttempt = .now
         let requestGeneration = generation
@@ -194,7 +220,10 @@ final class ProbeModel {
             }
             // An absent/unsupported graph is a failed refresh, not an empty history.
             // Keep the current account's valid snapshot; a decoded empty array is authoritative.
-            if let updated { tokenHistory = updated }
+            if let updated {
+                tokenHistory = updated
+                tokenHistoryCache.save(updated)
+            }
             tokenHistoryUnavailable = updated == nil
         } catch {
             guard generation == requestGeneration, !Task.isCancelled else { return }
@@ -218,6 +247,7 @@ final class ProbeModel {
                 self.error = (error as? AccessError)?.errorDescription
                     ?? "The request did not complete. Check your connection and try again."
                 self.connectionFailure = SharedQuotaStore.Failure.classify(error)
+                if self.tokens != nil { self.tokenHistoryUnavailable = true }
                 self.message = "Couldn’t update usage. Your last reading is still shown."
             }
             guard let self, self.generation == id else { return }
@@ -265,8 +295,9 @@ final class ProbeModel {
         await WKWebsiteDataStore.default().removeData(
             ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast)
         WidgetCenter.shared.reloadAllTimelines()
-        UserDefaults.standard.removeObject(forKey: cacheKey)
-        UserDefaults.standard.removeObject(forKey: historyCacheKey)
+        defaults.removeObject(forKey: cacheKey)
+        defaults.removeObject(forKey: historyCacheKey)
+        tokenHistoryCache.clear()
         clearTokenHistory()
         history = nil
         historyUnavailable = false
