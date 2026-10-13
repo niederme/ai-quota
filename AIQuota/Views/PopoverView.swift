@@ -452,7 +452,18 @@ struct PopoverView: View {
 
     @ViewBuilder
     private func additionalGauge(for account: AdditionalAccountSession) -> some View {
-        if !account.isAuthenticated {
+        if account.isRestoring || account.state == .signingIn {
+            VStack(spacing: 8) {
+                ProgressView()
+                    .controlSize(.small)
+                Text(account.state == .signingIn
+                     ? "Connecting \(account.account.displayLabel)"
+                     : "Checking \(account.account.displayLabel) connection")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(height: 114)
+        } else if !account.isAuthenticated {
             Button("Reconnect \(account.account.displayLabel)") {
                 Task { await viewModel.reconnectAccount(id: account.id) }
             }

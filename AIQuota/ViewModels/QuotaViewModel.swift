@@ -1227,6 +1227,7 @@ final class AdditionalAccountSession: Identifiable {
     var provider: ServiceType { account.provider }
     var isAuthenticated: Bool { state == .authenticated }
     var state: AuthState = .unknown
+    var isRestoring = true
     var codexUsage: CodexUsage?
     var claudeUsage: ClaudeUsage?
     var isLoading = false
@@ -1268,6 +1269,8 @@ final class AdditionalAccountSession: Identifiable {
     }
 
     func bootstrap() async {
+        isRestoring = true
+        defer { isRestoring = false }
         switch provider {
         case .codex:
             guard let codexCoordinator else { return }
@@ -1276,6 +1279,10 @@ final class AdditionalAccountSession: Identifiable {
             }
             await codexCoordinator.bootstrap()
             state = await codexCoordinator.state
+            if state == .unauthenticated, account.workspaceID != nil {
+                _ = await codexCoordinator.restoreWithoutPromptIfPossible()
+                state = await codexCoordinator.state
+            }
         case .claude:
             guard let claudeCoordinator else { return }
             Task { [weak self] in
