@@ -1,6 +1,9 @@
 import SwiftUI
 import SafariServices
 import MobileAccessCore
+#if DEBUG
+import WebKit
+#endif
 
 @main
 struct MobileAccessApp: App {
@@ -88,6 +91,9 @@ struct ProbeView: View {
     @State private var confirmDisconnect = false
     @State private var signInPresentation: CodexSignInPresentation?
     @State private var signInBrowser: CodexBrowserSession?
+#if DEBUG
+    @State private var showBrowserResearch = false
+#endif
     var body: some View {
         Group {
             if model.isDemo {
@@ -130,6 +136,23 @@ struct ProbeView: View {
         .sheet(item: $signInPresentation) { presentation in
             CodexSignInSheet(session: presentation.session, code: presentation.code)
         }.tint(OverviewStyle.accent)
+#if DEBUG
+        .sheet(isPresented: $showBrowserResearch) {
+            BrowserSignInResearchView()
+        }
+        .safeAreaInset(edge: .bottom) {
+            if !model.isDemo {
+                Button("Research: test browser sign-in") {
+                    if model.challenge != nil { model.cancel() }
+                    showBrowserResearch = true
+                }
+                .font(.footnote)
+                .frame(minHeight: 44)
+                .frame(maxWidth: .infinity)
+                .background(OverviewStyle.base)
+            }
+        }
+#endif
     }
     private func beginSignIn() {
         requestedSignIn = true
@@ -306,3 +329,216 @@ struct CodexSignInSheet: View {
         })
     }
 }
+
+#if DEBUG
+/// An opt-in diagnostic. It never stores a credential or connects an account.
+/// The web view uses a new in-memory cookie store that is discarded with this sheet.
+private struct BrowserSignInResearchView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var host = "chatgpt.com"
+    @State private var result = "Sign in to ChatGPT here. This test will check your own monthly meter."
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Website: \(host)")
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                    Text(result)
+                        .font(.footnote)
+                        .accessibilityIdentifier("browserResearchResult")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+                BrowserSignInResearchWebView(
+                    onHost: { host = $0 },
+                    onResult: { result = $0 }
+                )
+            }
+            .navigationTitle("Browser sign-in test")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } } }
+        }
+    }
+}
+
+private struct BrowserSignInResearchWebView: UIViewRepresentable {
+    let onHost: @MainActor (String) -> Void
+    let onResult: @MainActor (String) -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(onHost: onHost, onResult: onResult) }
+
+    func makeUIView(context: Context) -> WKWebView {
+        let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = .nonPersistent()
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.navigationDelegate = context.coordinator
+        webView.uiDelegate = context.coordinator
+        context.coordinator.webView = webView
+        configuration.websiteDataStore.httpCookieStore.add(context.coordinator)
+        webView.load(URLRequest(url: URL(string: "https://chatgpt.com/auth/login")!))
+        return webView
+    }
+
+    func updateUIView(_ webView: WKWebView, context: Context) {}
+
+    static func dismantleUIView(_ webView: WKWebView, coordinator: Coordinator) {
+        coordinator.invalidate()
+        webView.configuration.websiteDataStore.httpCookieStore.remove(coordinator)
+        webView.navigationDelegate = nil
+        webView.uiDelegate = nil
+        webView.stopLoading()
+        coordinator.popup?.navigationDelegate = nil
+        coordinator.popup?.uiDelegate = nil
+        coordinator.popup?.stopLoading()
+        coordinator.popup?.removeFromSuperview()
+        coordinator.webView = nil
+    }
+
+    @MainActor final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKHTTPCookieStoreObserver {
+        weak var webView: WKWebView?
+        weak var popup: WKWebView?
+        var pendingCheck: Task<Void, Never>?
+        private let onHost: @MainActor (String) -> Void
+        private let onResult: @MainActor (String) -> Void
+        private var needsCheck = false
+        private var foundMonthlyMeter = false
+        private var lastAttempt = Date.distantPast
+        private var invalidated = false
+
+        init(onHost: @escaping @MainActor (String) -> Void,
+             onResult: @escaping @MainActor (String) -> Void) {
+            self.onHost = onHost
+            self.onResult = onResult
+        }
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            guard !invalidated else { return }
+            onHost(webView.url?.host ?? "Unknown")
+            requestMemberMeterCheck()
+        }
+
+        func cookiesDidChange(in cookieStore: WKHTTPCookieStore) {
+            requestMemberMeterCheck()
+        }
+
+        func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
+                     for navigationAction: WKNavigationAction,
+                     windowFeatures: WKWindowFeatures) -> WKWebView? {
+            guard let parent = self.webView else { return nil }
+            popup?.removeFromSuperview()
+            let child = WKWebView(frame: parent.bounds, configuration: configuration)
+            child.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            child.navigationDelegate = self
+            child.uiDelegate = self
+            parent.addSubview(child)
+            popup = child
+            return child
+        }
+
+        func webViewDidClose(_ webView: WKWebView) {
+            guard !invalidated else { return }
+            guard webView === popup else { return }
+            webView.removeFromSuperview()
+            popup = nil
+            requestMemberMeterCheck()
+        }
+
+        private func requestMemberMeterCheck() {
+            guard !invalidated, !foundMonthlyMeter else { return }
+            needsCheck = true
+            guard pendingCheck == nil else { return }
+            pendingCheck = Task { @MainActor [weak self] in
+                guard let self else { return }
+                while self.needsCheck && !self.invalidated && !self.foundMonthlyMeter && !Task.isCancelled {
+                    self.needsCheck = false
+                    let wait = max(0, 2 - Date.now.timeIntervalSince(self.lastAttempt))
+                    if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
+                    guard !Task.isCancelled, !self.invalidated, let webView = self.webView else { break }
+                    guard webView.url?.scheme == "https", webView.url?.host == "chatgpt.com" else { continue }
+                    self.lastAttempt = .now
+                    await self.checkMemberMeter(in: webView)
+                }
+                self.pendingCheck = nil
+            }
+        }
+
+        private func checkMemberMeter(in webView: WKWebView) async {
+                do {
+                    // Only a status and numeric meter values cross from WebKit into native code.
+                    let raw = try await webView.callAsyncJavaScript(Self.memberMeterScript,
+                        arguments: [:], in: nil, contentWorld: .page)
+                    guard !invalidated, !Task.isCancelled else { return }
+                    guard let response = raw as? [String: Any],
+                          let status = response["status"] as? String else { return }
+                    switch status {
+                    case "monthly":
+                        guard let used = response["used"] as? Double,
+                              let limit = response["limit"] as? Double,
+                              used.isFinite, limit.isFinite, used >= 0, limit > 0 else { return }
+                        foundMonthlyMeter = true
+                        onResult("Monthly meter found: \(used.formatted()) of \(limit.formatted()) credits used. This test has not connected the account.")
+                    case "signedIn":
+                        onResult("ChatGPT sign-in found. A monthly member meter was not returned.")
+                    case "meterUnavailable":
+                        onResult("ChatGPT sign-in found, but the monthly meter request was unavailable.")
+                    default: break
+                    }
+                } catch {
+                    // Provider errors and response bodies may contain sensitive data.
+                    if !invalidated && !Task.isCancelled {
+                        onResult("The browser test could not check the monthly meter.")
+                    }
+                }
+        }
+
+        func invalidate() {
+            invalidated = true
+            needsCheck = false
+            pendingCheck?.cancel()
+        }
+
+        private static let memberMeterScript = """
+        if (location.origin !== 'https://chatgpt.com') return { status: 'wrongOrigin' };
+        async function fetchJSON(url, options) {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 12000);
+            try {
+                const response = await fetch(url, { ...options, signal: controller.signal });
+                return { ok: response.ok, body: response.ok ? await response.json() : null };
+            } finally {
+                clearTimeout(timeout);
+            }
+        }
+        const sessionResponse = await fetchJSON('/api/auth/session', { credentials: 'include' });
+        if (!sessionResponse.ok) return { status: 'sessionUnavailable' };
+        const session = sessionResponse.body;
+        const token = session?.accessToken;
+        if (typeof token !== 'string' || !token) return { status: 'signInRequired' };
+        try {
+            const segment = token.split('.')[1];
+            if (!segment) return { status: 'signedIn' };
+            const padded = segment.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(segment.length / 4) * 4, '=');
+            const claims = JSON.parse(atob(padded));
+            const accountID = claims?.['https://api.openai.com/auth']?.chatgpt_account_id;
+            if (typeof accountID !== 'string' || !accountID) return { status: 'signedIn' };
+            const url = '/backend-api/accounts/' + encodeURIComponent(accountID) + '/spend-controls/current-user/monthly-usage';
+            const response = await fetchJSON(url, {
+                credentials: 'include',
+                headers: { Authorization: 'Bearer ' + token, 'ChatGPT-Account-Id': accountID }
+            });
+            if (!response.ok) return { status: 'meterUnavailable' };
+            const body = response.body;
+            const number = value => value == null ? NaN : Number(value);
+            const used = number(body?.current_month_usage);
+            const limit = number(body?.effective_monthly_limit?.limit);
+            if (!Number.isFinite(used) || !Number.isFinite(limit)) return { status: 'signedIn' };
+            return { status: 'monthly', used, limit };
+        } catch (_) {
+            return { status: 'meterUnavailable' };
+        }
+        """
+    }
+}
+#endif
