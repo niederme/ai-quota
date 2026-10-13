@@ -97,7 +97,7 @@ struct PopoverView: View {
                 ScrollView {
                     authenticatedBody
                 }
-                .frame(maxHeight: popoverContentMaxHeight)
+                .frame(height: popoverContentMaxHeight)
             } else {
                 authenticatedBody
             }
