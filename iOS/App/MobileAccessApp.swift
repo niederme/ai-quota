@@ -25,6 +25,8 @@ struct CodexSignInContent: View {
     let error: String?
     let openSecurity: () -> Void
     let continueSignIn: () -> Void
+    let openInSafari: () -> Void
+    let restartSignIn: () -> Void
 
     var body: some View {
         ScrollView {
@@ -57,6 +59,14 @@ struct CodexSignInContent: View {
                     Button("Copy code and continue", action: continueSignIn)
                         .modifier(OnboardingPrimaryButtonStyle())
                         .disabled(busy && code == nil)
+                    if code != nil {
+                        Button("Open in browser", systemImage: "safari", action: openInSafari)
+                            .frame(minHeight: 44)
+                        Button("Start a new sign-in", systemImage: "arrow.clockwise", action: restartSignIn)
+                            .frame(minHeight: 44)
+                        Text("If your work sign-in loses its session, start a new sign-in and try your browser with the new code.")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
                     if let error {
                         Text(error).foregroundStyle(OverviewStyle.critical)
                     }
@@ -91,7 +101,8 @@ struct ProbeView: View {
             } else {
                 CodexSignInContent(code: model.challenge?.userCode, busy: model.busy, error: model.error,
                     openSecurity: { openURL(URL(string: "https://chatgpt.com/#settings/Security")!) },
-                    continueSignIn: { beginSignIn() })
+                    continueSignIn: { beginSignIn() },
+                    openInSafari: { openSignInInSafari() }, restartSignIn: { restartSignIn() })
             }
         }
             .foregroundStyle(OverviewStyle.primary)
@@ -124,6 +135,21 @@ struct ProbeView: View {
         requestedSignIn = true
         if model.challenge != nil { presentSignIn() }
         else if !model.busy { model.connect() }
+    }
+
+    private func openSignInInSafari() {
+        guard let challenge = model.challenge else { return }
+        UIPasteboard.general.setItems([[UIPasteboard.typeAutomatic: challenge.userCode]],
+            options: [.localOnly: true, .expirationDate: Date.now.addingTimeInterval(15 * 60)])
+        openURL(challenge.verificationURL)
+    }
+
+    private func restartSignIn() {
+        signInPresentation = nil
+        signInBrowser = nil
+        requestedSignIn = false
+        model.cancel()
+        model.connect()
     }
 
     private func presentSignIn() {
