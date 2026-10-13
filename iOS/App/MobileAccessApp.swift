@@ -34,11 +34,11 @@ struct CodexSignInContent: View {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Sign in to Codex").font(.title2.bold())
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("First, check that Device Code Authorization is enabled in ChatGPT’s Security Settings, then continue.")
+                        Text("Personal accounts need Device Code Authorization enabled in ChatGPT Security Settings. Work accounts also need their workspace admin to allow device-code sign-in.")
                             .foregroundStyle(.secondary)
                         Button(action: openSecurity) {
                             HStack(spacing: 6) {
-                                Text("Open security settings")
+                                Text("Open personal security settings")
                                 Image(systemName: "arrow.up.right").accessibilityHidden(true)
                             }
                             .frame(minHeight: 44)
