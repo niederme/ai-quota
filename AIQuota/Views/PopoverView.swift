@@ -28,6 +28,13 @@ struct PopoverView: View {
             ? 360 : (viewModel.enrolledServices.count == 1 ? 240 : 340)
     }
 
+    private var popoverContentMaxHeight: CGFloat {
+        let screenHeight = menuBarWindow?.screen?.visibleFrame.height
+            ?? NSScreen.main?.visibleFrame.height
+            ?? 800
+        return min(720, max(300, screenHeight - 150))
+    }
+
     var body: some View {
         Group {
             if !viewModel.enrolledServices.isEmpty || viewModel.hasAdditionalAccounts {
@@ -86,6 +93,22 @@ struct PopoverView: View {
         VStack(spacing: 0) {
             header
 
+            if viewModel.hasAdditionalAccounts {
+                ScrollView {
+                    authenticatedBody
+                }
+                .frame(maxHeight: popoverContentMaxHeight)
+            } else {
+                authenticatedBody
+            }
+
+            Divider()
+            footer
+        }
+    }
+
+    private var authenticatedBody: some View {
+        VStack(spacing: 0) {
             ForEach(errorBanners) { banner in
                 errorBanner(banner)
                 Divider()
@@ -103,8 +126,6 @@ struct PopoverView: View {
             additionalAccountSection
 
             updateAvailableRow
-            Divider()
-            footer
         }
     }
 
@@ -396,39 +417,36 @@ struct PopoverView: View {
     private var additionalAccountSection: some View {
         if !viewModel.additionalAccounts.isEmpty {
             Divider()
-            ScrollView {
-                VStack(spacing: 0) {
-                    ForEach(viewModel.additionalAccounts) { account in
-                        VStack(spacing: 8) {
-                            HStack {
-                                Text(account.provider == .codex ? "Codex" : "Claude")
-                                    .font(.caption.bold())
-                                Spacer()
-                                Text(account.account.displayLabel)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            if let issue = account.issue {
-                                Text(issue)
-                                    .font(.caption2)
-                                    .foregroundStyle(.orange)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            additionalGauge(for: account)
-                            if let updatedAt = account.codexUsage?.fetchedAt ?? account.claudeUsage?.fetchedAt {
-                                Text("Updated \(updatedAt.formatted(date: .abbreviated, time: .shortened))")
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                            }
+            VStack(spacing: 0) {
+                ForEach(viewModel.additionalAccounts) { account in
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text(account.provider == .codex ? "Codex" : "Claude")
+                                .font(.caption.bold())
+                            Spacer()
+                            Text(account.account.displayLabel)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        if account.id != viewModel.additionalAccounts.last?.id { Divider() }
+                        if let issue = account.issue {
+                            Text(issue)
+                                .font(.caption2)
+                                .foregroundStyle(.orange)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        additionalGauge(for: account)
+                        if let updatedAt = account.codexUsage?.fetchedAt ?? account.claudeUsage?.fetchedAt {
+                            Text("Updated \(updatedAt.formatted(date: .abbreviated, time: .shortened))")
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
                     }
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    if account.id != viewModel.additionalAccounts.last?.id { Divider() }
                 }
             }
-            .frame(maxHeight: 410)
         }
     }
 
