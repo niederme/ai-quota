@@ -88,6 +88,15 @@ private func reply(_ body: String, status: Int = 200) -> HTTPResult {
     #expect(missing.shortTerm == nil)
     #expect(missing.weekly?.usedPercent == 0)
 }
+@Test func claudeEnterpriseSpendWithoutRollingWindowsIsAReading() throws {
+    let data = Data(#"{"five_hour":null,"seven_day":null,"spend":{"used":{"amount_minor":0,"exponent":2,"currency":"USD"},"limit":{"amount_minor":10000,"exponent":2,"currency":"USD"}}}"#.utf8)
+    let reading = try ClaudeAPI.decodeUsage(data, now: timestamp)
+    #expect(reading.windows.isEmpty)
+    #expect(reading.monthlyBudget?.used == 0)
+    #expect(reading.monthlyBudget?.limit == 100)
+    #expect(reading.monthlyBudget?.unit == "USD")
+    #expect(reading.monthlyBudget?.resetsAt == nil)
+}
 @Test func claudeBadReadingsStayUnavailable() {
     for raw in [#"{}"#, #"{"five_hour":{"utilization":null}}"#,
                 #"{"five_hour":{"utilization":101}}"#,

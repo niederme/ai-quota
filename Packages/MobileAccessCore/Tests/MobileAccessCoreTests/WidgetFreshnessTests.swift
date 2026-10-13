@@ -21,3 +21,15 @@ import Testing
     #expect(WidgetFreshness.isOld(nil, at: now))
     #expect(WidgetFreshness.isOld(reading, at: now.addingTimeInterval(-1)))
 }
+
+@Test func monthlyBudgetResetAndLimitAffectWidgetState() throws {
+    let now = Date(timeIntervalSince1970: 10000)
+    let reset = now.addingTimeInterval(1200)
+    let budget = try #require(MonthlyBudget(used: 100, limit: 100, unit: "USD", resetsAt: reset))
+    let reading = QuotaReading(fetchedAt: now, shortTerm: nil, weekly: nil, monthlyBudget: budget)
+    #expect(reading.primaryDisplayWindow?.usedPercent == 100)
+    #expect(WidgetFreshness.limitReached(reading))
+    #expect(WidgetFreshness.boundaries(reading, after: now) == [reset, now.addingTimeInterval(1800)])
+    #expect(!WidgetFreshness.isOld(reading, at: reset.addingTimeInterval(-1)))
+    #expect(WidgetFreshness.isOld(reading, at: reset))
+}

@@ -196,7 +196,10 @@ struct MobileNotificationControls: View {
                     }
                 })).disabled(requesting)
             } footer: {
-                if readings.values.allSatisfy({ $0.windows.isEmpty }) {
+                if readings.values.contains(where: { $0.budgetOnly != nil }) &&
+                    readings.values.allSatisfy({ $0.windows.isEmpty }) {
+                    Text("Monthly allowance alerts are not available yet. Rolling-window alerts appear when an account reports those limits.")
+                } else if readings.values.allSatisfy({ $0.windows.isEmpty }) {
                     Text("Connect an account to configure alerts. Notifications will be ready when you connect.")
                 } else {
                     Text("Choose which alerts you’d like to receive.")

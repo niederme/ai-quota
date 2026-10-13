@@ -421,12 +421,14 @@ struct PopoverView: View {
                 ForEach(viewModel.additionalAccounts) { account in
                     VStack(spacing: 8) {
                         HStack {
-                            Text(account.provider == .codex ? "Codex" : "Claude")
+                            Text(account.account.displayLabel)
                                 .font(.caption.bold())
                             Spacer()
-                            Text(account.account.displayLabel)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            if let updatedAt = account.codexUsage?.fetchedAt ?? account.claudeUsage?.fetchedAt {
+                                Text("Updated \(updatedAt.formatted(date: .omitted, time: .shortened))")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                            }
                         }
                         if let issue = account.issue {
                             Text(issue)
@@ -435,15 +437,10 @@ struct PopoverView: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         additionalGauge(for: account)
-                        if let updatedAt = account.codexUsage?.fetchedAt ?? account.claudeUsage?.fetchedAt {
-                            Text("Updated \(updatedAt.formatted(date: .abbreviated, time: .shortened))")
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                        }
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
+                    .padding(.vertical, 10)
                     if account.id != viewModel.additionalAccounts.last?.id { Divider() }
                 }
             }
@@ -476,7 +473,7 @@ struct PopoverView: View {
                 budgetGauge(
                     used: used, limit: limit, unit: budget.unit,
                     resetAt: budget.resetAt, icon: "logo-openai",
-                    label: account.account.displayLabel,
+                    label: "Codex",
                     isRefreshing: account.isLoading,
                     onRefresh: { Task { await account.refresh() } }
                 )
@@ -489,7 +486,7 @@ struct PopoverView: View {
                     secondaryLimitReached: usage.isWeeklyExhausted,
                     showsSecondaryMetric: usage.hasHourlyWindow,
                     isLoading: false, icon: "logo-openai",
-                    label: account.account.displayLabel,
+                    label: "Codex",
                     primaryLabel: usage.hasHourlyWindow ? formatWindowDuration(usage.hourlyWindowSeconds) : "7d",
                     secondaryLabel: "7d",
                     resetAt: usage.hasHourlyWindow ? usage.hourlyResetAt : usage.weeklyResetAt,
@@ -510,7 +507,7 @@ struct PopoverView: View {
                 budgetGauge(
                     used: used, limit: limit, unit: budget.unit,
                     resetAt: budget.resetAt, icon: "logo-claude",
-                    label: account.account.displayLabel,
+                    label: "Claude Code",
                     isRefreshing: account.isLoading,
                     onRefresh: { Task { await account.refresh() } }
                 )
@@ -523,7 +520,7 @@ struct PopoverView: View {
                     secondaryLimitReached: (usage.sevenDayUtilization ?? 0) >= 100,
                     showsSecondaryMetric: usage.primaryMetric.kind != .sevenDay && usage.sevenDayUtilization != nil,
                     isLoading: false, icon: "logo-claude",
-                    label: account.account.displayLabel,
+                    label: "Claude Code",
                     primaryLabel: usage.primaryMetricLabel,
                     secondaryLabel: "7d",
                     resetAt: usage.resetAt,

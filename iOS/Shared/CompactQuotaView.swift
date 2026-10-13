@@ -21,8 +21,13 @@ struct CompactQuotaView: View {
                     .lineLimit(1)
             }
             VStack(alignment: .leading, spacing: 0) {
-                percentage(reading?.primaryWindow, label: reading?.primaryWindow?.compactLabel ?? "")
-                    .foregroundStyle(.primary)
+                if let budget = reading?.budgetOnly {
+                    Text("\(budget.amountText(budget.used)) / \(budget.amountText(budget.limit))")
+                        .font(.system(size: 11, weight: .medium)).lineLimit(1).minimumScaleFactor(0.75)
+                } else {
+                    percentage(reading?.primaryWindow, label: reading?.primaryWindow?.compactLabel ?? "")
+                        .foregroundStyle(.primary)
+                }
                 if let secondary = reading?.secondaryWindow {
                     percentage(secondary, label: secondary.compactLabel).foregroundStyle(.secondary)
                 } else if !stale, let reset = LockScreenResetPresentation.make(reading: reading, needsApp: needsApp, at: date) {
@@ -45,8 +50,8 @@ struct CompactQuotaView: View {
     }
     private var miniGauge: some View {
         ZStack {
-            ring(reading?.primaryWindow, width: reading?.windows.count == 1 ? 4.2 : 3.36, opacity: 1)
-                .padding(reading?.windows.count == 1 ? 0.42 : 0)
+            ring(reading?.primaryDisplayWindow, width: (reading?.windows.count == 1 || reading?.budgetOnly != nil) ? 4.2 : 3.36, opacity: 1)
+                .padding((reading?.windows.count == 1 || reading?.budgetOnly != nil) ? 0.42 : 0)
             if let secondary = reading?.secondaryWindow {
                 ring(secondary, width: 3.36, opacity: 0.6).padding(4.36)
             }
@@ -86,8 +91,8 @@ struct CodexDial: View {
         GeometryReader { geometry in
             let size = min(geometry.size.width, geometry.size.height)
             ZStack {
-                ring(value.reading?.primaryWindow, width: value.reading?.windows.count == 1 ? size * 0.13 : size * 0.12, opacity: 1)
-                    .padding(value.reading?.windows.count == 1 ? size * 0.095 : size * 0.09)
+                ring(value.reading?.primaryDisplayWindow, width: (value.reading?.windows.count == 1 || value.reading?.budgetOnly != nil) ? size * 0.13 : size * 0.12, opacity: 1)
+                    .padding((value.reading?.windows.count == 1 || value.reading?.budgetOnly != nil) ? size * 0.095 : size * 0.09)
                 if let secondary = value.reading?.secondaryWindow {
                     ring(secondary, width: size * 0.12, opacity: 0.6)
                         .padding(size * 0.21 + 1)
@@ -153,7 +158,12 @@ struct ServiceDetailsView: View {
             CodexDial(value: value, date: date, logoScale: 0.8).frame(width: 60, height: 60)
             VStack(alignment: .leading, spacing: 0) {
                 Text(value.service.name).font(.system(size: 14, weight: .regular)).lineLimit(1)
-                metric(value.reading?.primaryWindow).foregroundStyle(.primary)
+                if let budget = value.reading?.budgetOnly {
+                    Text("\(budget.amountText(budget.used)) / \(budget.amountText(budget.limit))")
+                        .font(.system(size: 14, weight: .medium)).lineLimit(1).minimumScaleFactor(0.75)
+                } else {
+                    metric(value.reading?.primaryWindow).foregroundStyle(.primary)
+                }
                 if let secondary = value.reading?.secondaryWindow {
                     metric(secondary).foregroundStyle(.secondary).offset(y: 1)
                 } else if let reset {

@@ -480,6 +480,9 @@ private struct AccountDiagnosticsRows: View {
 
         Divider()
 
+        Text("Additional accounts")
+            .font(.subheadline.bold())
+
         HStack(spacing: 8) {
             Button("Add Codex account") {
                 Task { await viewModel.addAccount(for: .codex) }

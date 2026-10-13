@@ -150,7 +150,8 @@ public struct ClaudeAPI: Sendable {
         let metadata = AccountMetadata(plan: plan, balanceUSD: reading.metadata?.balanceUSD,
             usageSpent: reading.metadata?.usageSpent, usageCurrency: reading.metadata?.usageCurrency)
         return QuotaReading(fetchedAt: reading.fetchedAt, shortTerm: reading.shortTerm,
-                            weekly: reading.weekly, metadata: metadata, claudeBreakdown: reading.claudeBreakdown)
+                            weekly: reading.weekly, metadata: metadata, claudeBreakdown: reading.claudeBreakdown,
+                            monthlyBudget: reading.monthlyBudget)
     }
     // Profile path, organization field, and mappings match the installed first-party
     // Claude Code client. Unknown/new organization types remain explicitly unavailable.
@@ -188,7 +189,6 @@ public struct ClaudeAPI: Sendable {
         }
         let short = try window(raw.five_hour, duration: 18000)
         let weekly = try window(raw.seven_day, duration: 604800)
-        guard short != nil || weekly != nil else { throw AccessError.noWindows }
         // Match the Mac OAuth path: extra_usage values are already provider units.
         // Structured spend amounts use the supplied exponent, not a fixed cents assumption.
         let money = raw.spend?.used
@@ -196,10 +196,21 @@ public struct ClaudeAPI: Sendable {
             guard let minor = value.amount_minor?.value, let exponent = value.exponent, (0...6).contains(exponent) else { return nil }
             return minor / pow(10, Double(exponent))
         }
+        let limitMoney = raw.spend?.limit
+        let limitAmount = limitMoney.flatMap { value -> Double? in
+            guard let minor = value.amount_minor?.value, let exponent = value.exponent,
+                  (0...6).contains(exponent) else { return nil }
+            return minor / pow(10, Double(exponent))
+        }
+        let budget = MonthlyBudget(used: amount ?? raw.extra_usage?.used_credits?.value,
+                                   limit: limitAmount ?? raw.extra_usage?.monthly_limit?.value,
+                                   unit: money?.currency ?? raw.extra_usage?.currency)
+        guard short != nil || weekly != nil || budget != nil else { throw AccessError.noWindows }
         let metadata = AccountMetadata(plan: nil, balanceUSD: nil,
             usageSpent: amount ?? raw.extra_usage?.used_credits?.value,
             usageCurrency: amount != nil ? money?.currency : raw.extra_usage?.currency)
-        return QuotaReading(fetchedAt: now, shortTerm: short, weekly: weekly, metadata: metadata, claudeBreakdown: raw.seven_day_breakdown)
+        return QuotaReading(fetchedAt: now, shortTerm: short, weekly: weekly, metadata: metadata,
+                            claudeBreakdown: raw.seven_day_breakdown, monthlyBudget: budget)
     }
     private struct TokenResponse: Decodable {
         let access_token: String
@@ -220,8 +231,8 @@ public struct ClaudeAPI: Sendable {
             seven_day_breakdown = try? c.decode(ClaudeWeeklyBreakdown.self, forKey: .seven_day_breakdown)
         }
     }
-    private struct ExtraUsage: Decodable { let used_credits: MetadataNumber?; let currency: String? }
-    private struct Spend: Decodable { let used: Money? }
+    private struct ExtraUsage: Decodable { let used_credits: MetadataNumber?; let monthly_limit: MetadataNumber?; let currency: String? }
+    private struct Spend: Decodable { let used: Money?; let limit: Money? }
     private struct Money: Decodable { let amount_minor: MetadataNumber?; let exponent: Int?; let currency: String? }
     private struct Window: Decodable { let utilization: Double?; let resets_at: String? }
 }

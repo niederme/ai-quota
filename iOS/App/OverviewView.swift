@@ -386,14 +386,31 @@ struct ServiceDetailContent<Account: View>: View {
                           systemImage: "exclamationmark.triangle")
                         .font(.callout).foregroundStyle(OverviewStyle.warning)
                 }
-                Group {
-                    if name == "Codex" {
-                        CodexAnalyticsView(reading: reading, history: history,
-                                           historyUnavailable: historyUnavailable, busy: busy, refresh: refresh)
-                    } else {
-                        ClaudeAnalyticsView(reading: reading, busy: busy, failed: failure != nil || error != nil, refresh: refresh)
+                if let budget = reading?.monthlyBudget {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Monthly allowance").font(.headline)
+                        Text("\(budget.amountText(budget.used)) of \(budget.amountText(budget.limit))")
+                            .font(.title2.bold()).monospacedDigit()
+                        Text(budget.unitLabel).foregroundStyle(OverviewStyle.secondary)
+                        ProgressView(value: budget.usedPercent, total: 100)
+                            .tint(OverviewStyle.accent)
+                        Text(budget.resetDescription()).font(.footnote)
+                            .foregroundStyle(OverviewStyle.secondary)
                     }
-                }.modifier(UsageLoadingState(loading: busy && reading == nil))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(16)
+                    .modifier(OverviewCardMaterial())
+                }
+                if reading?.monthlyBudget == nil || reading?.windows.isEmpty == false {
+                    Group {
+                        if name == "Codex" {
+                            CodexAnalyticsView(reading: reading, history: history,
+                                               historyUnavailable: historyUnavailable, busy: busy, refresh: refresh)
+                        } else {
+                            ClaudeAnalyticsView(reading: reading, busy: busy, failed: failure != nil || error != nil, refresh: refresh)
+                        }
+                    }.modifier(UsageLoadingState(loading: busy && reading == nil))
+                }
                 Divider()
                 if let error {
                     Label(error, systemImage: "exclamationmark.triangle")
@@ -664,7 +681,14 @@ struct ProviderDialCardContent: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .body) private var dialSize = 124.0
     private var needsReconnect: Bool { !connected || failure == .reconnect || failure == .renewal }
-    private var worst: Double { max(reading?.shortTerm?.usedPercent ?? 0, reading?.weekly?.usedPercent ?? 0) }
+    private var worst: Double {
+        max(max(reading?.shortTerm?.usedPercent ?? 0,
+                reading?.weekly?.usedPercent ?? 0),
+            reading?.monthlyBudget?.usedPercent ?? 0)
+    }
+    private var budgetOnly: MonthlyBudget? {
+        reading?.windows.isEmpty == true ? reading?.monthlyBudget : nil
+    }
     private var tint: Color {
         if !connected || failure != nil || error != nil { return OverviewStyle.secondary }
         if worst >= 95 { return OverviewStyle.critical }
@@ -713,7 +737,8 @@ struct ProviderDialCardContent: View {
     private var details: some View {
         VStack(alignment: .leading, spacing: 8) {
             accountSummary
-            if connected, let spent = reading?.metadata?.usageSpent, spent > 0 { spending(spent) }
+            if connected, reading?.monthlyBudget == nil,
+               let spent = reading?.metadata?.usageSpent, spent > 0 { spending(spent) }
         }.padding(.top, 4).frame(maxWidth: .infinity, alignment: .leading)
     }
     private var accountSummary: some View {
@@ -734,6 +759,12 @@ struct ProviderDialCardContent: View {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(reading?.windows ?? []) { window in
                         resetCaption(window, label: window.resetLabel)
+                    }
+                    if let budget = reading?.monthlyBudget {
+                        Text(budget.unitLabel).modifier(OverviewDetailType())
+                            .foregroundStyle(OverviewStyle.secondary)
+                        Text(budget.resetDescription()).modifier(OverviewDetailType())
+                            .foregroundStyle(OverviewStyle.secondary)
                     }
                 }
                 if failure != nil || error != nil || reading == nil || worst >= 100 {
@@ -765,11 +796,14 @@ struct ProviderDialCardContent: View {
     }
 
     private var ringWidth: CGFloat {
-        (reading?.windows.count == 1 ? OverviewStyle.singleRingWidth : OverviewStyle.ringWidth) * (largeDial ? 2 : 1)
+        (reading?.windows.count == 1 || budgetOnly != nil ? OverviewStyle.singleRingWidth : OverviewStyle.ringWidth) * (largeDial ? 2 : 1)
     }
     var dial: some View {
-        ZStack {
-            arc(reading?.primaryWindow, opacity: 1)
+        let primary = reading?.primaryWindow ?? budgetOnly.map {
+            QuotaWindow(usedPercent: $0.usedPercent, durationSeconds: 30 * 86400, resetsAt: $0.resetsAt)
+        }
+        return ZStack {
+            arc(primary, opacity: 1)
                 .padding((ringWidth - OverviewStyle.ringWidth * (largeDial ? 2 : 1)) / 2)
             if let secondary = reading?.secondaryWindow {
                 arc(secondary, opacity: secondaryOpacity).padding(largeDial ? 20 : 10)
@@ -778,9 +812,17 @@ struct ProviderDialCardContent: View {
                 Image(icon).resizable().scaledToFit().frame(width: largeDial ? 36 : 18, height: largeDial ? 36 : 18)
                 if !allowanceOnly {
                 VStack(spacing: 2) {
-                    dialValue(reading?.primaryWindow, label: reading?.primaryWindow?.compactLabel ?? "")
-                    if let secondary = reading?.secondaryWindow {
-                        dialValue(secondary, label: secondary.compactLabel).opacity(secondaryOpacity)
+                    if let budget = budgetOnly {
+                        Text(budget.amountText(budget.used))
+                            .font(largeDial ? .title.bold() : .subheadline.bold())
+                        Text("of \(budget.amountText(budget.limit))")
+                            .font(largeDial ? .body : .caption2)
+                            .foregroundStyle(OverviewStyle.secondary)
+                    } else {
+                        dialValue(reading?.primaryWindow, label: reading?.primaryWindow?.compactLabel ?? "")
+                        if let secondary = reading?.secondaryWindow {
+                            dialValue(secondary, label: secondary.compactLabel).opacity(secondaryOpacity)
+                        }
                     }
                 }
                 }
