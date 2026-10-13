@@ -22,6 +22,33 @@ private let now = Date(timeIntervalSince1970: 1_800_000_000)
     #expect(reading.shortTerm?.resetsAt == nil)
     #expect(reading.weekly?.resetsAt == Date(timeIntervalSince1970: 1800500000))
 }
+@Test func enterpriseBudgetWithoutRollingWindowsIsAReading() throws {
+    let data = Data(#"{"rate_limit":null,"spend_control":{"individual_limit":{"unit":"credit","used":"0","limit":"7000","reset_at":1802592000}}}"#.utf8)
+    let reading = try QuotaReading.decode(data, now: now)
+    #expect(reading.windows.isEmpty)
+    #expect(reading.monthlyBudget?.used == 0)
+    #expect(reading.monthlyBudget?.limit == 7000)
+    #expect(reading.monthlyBudget?.resetsAt == Date(timeIntervalSince1970: 1802592000))
+    #expect(reading.accessibilitySummary.contains("0 of 7,000"))
+    #expect(try JSONDecoder().decode(QuotaReading.self, from: JSONEncoder().encode(reading)) == reading)
+}
+@Test func memberBudgetFallbackUsesOnlyAccountScopedRoute() async throws {
+    let api = CodexAPI(transport: MockTransport { request in
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer synthetic")
+        #expect(request.value(forHTTPHeaderField: "ChatGPT-Account-Id") == "work-account")
+        if request.url?.path == "/backend-api/wham/usage" {
+            return result(#"{"rate_limit":null}"#)
+        }
+        #expect(request.url?.path == "/backend-api/accounts/work-account/spend-controls/current-user/monthly-usage")
+        return result(#"{"effective_monthly_limit":{"limit":7000},"current_month_usage":0}"#)
+    })
+    let tokens = CodexTokens(accessToken: "synthetic", refreshToken: nil,
+                             accountID: "work-account", expiresAt: now.addingTimeInterval(3600))
+    let reading = try await api.usage(tokens, now: now)
+    #expect(reading.monthlyBudget?.limit == 7000)
+    #expect(reading.monthlyBudget?.used == 0)
+    #expect(reading.windows.isEmpty)
+}
 @Test func emptyAndInvalidResponsesDoNotProduceReadings() {
     #expect(throws: AccessError.noWindows) { try QuotaReading.decode(Data(#"{"rate_limit":{}}"#.utf8), now: now) }
     #expect(throws: AccessError.invalidResponse) {

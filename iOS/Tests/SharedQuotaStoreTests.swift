@@ -70,7 +70,9 @@ final class SharedQuotaStoreTests: XCTestCase {
             })
             XCTFail("Expected rate limit")
         } catch { }
-        let cooldown = try XCTUnwrap(store.root).appendingPathComponent("claude-cooldown.json")
+        let files = try FileManager.default.contentsOfDirectory(at: try XCTUnwrap(store.root), includingPropertiesForKeys: nil)
+        let cooldown = try XCTUnwrap(files.first { $0.lastPathComponent.hasPrefix("claude-cooldown.json.") })
+        XCTAssertNotEqual(cooldown.lastPathComponent, "claude-cooldown.json")
         let original = try Data(contentsOf: cooldown)
         for source in ["app", "widget", "background"] {
             do {
@@ -215,6 +217,42 @@ final class SharedQuotaStoreTests: XCTestCase {
         XCTAssertEqual(try claude.load(ClaudeTokens.self)?.refreshToken, "claude-refresh")
         try await claude.withLease { try claude.clear() }
         try await clean(codex)
+    }
+
+    func testSameProviderNamespacesIsolateReadingFailureCooldownAndClear() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let first = SharedQuotaStore(.claude, root: root, namespace: "account/one")
+        let second = SharedQuotaStore(.claude, root: root, namespace: "account:two")
+        try await first.withLease { try first.saveCredentials(credentials()) }
+        try await second.withLease { try second.saveCredentials(credentials()) }
+
+        _ = try await first.fetch(CodexTokens.self, source: "test", renew: { $0 }, usage: { _ in try sample() })
+        _ = try await second.fetch(CodexTokens.self, source: "test", renew: { $0 }, usage: { _ in try sample() })
+        let secondReading = second.reading()
+
+        for store in [first, second] {
+            do {
+                _ = try await store.fetch(CodexTokens.self, source: "test", renew: { $0 }, usage: { _ in
+                    throw ClaudeAccessError.requestFailed(stage: "usage update", status: 429)
+                })
+                XCTFail("Expected rate limit")
+            } catch { }
+        }
+        XCTAssertEqual(first.failure(), .temporary)
+        XCTAssertEqual(second.failure(), .temporary)
+        XCTAssertTrue(first.updatesPaused)
+        XCTAssertTrue(second.updatesPaused)
+
+        try await first.withLease { try first.clear() }
+        XCTAssertNil(first.reading())
+        XCTAssertNil(first.failure())
+        XCTAssertFalse(first.updatesPaused)
+        XCTAssertEqual(second.reading(), secondReading)
+        XCTAssertEqual(second.failure(), .temporary)
+        XCTAssertTrue(second.updatesPaused)
+
+        try await second.withLease { try second.clear() }
+        try? FileManager.default.removeItem(at: root)
     }
 }
 
@@ -389,5 +427,27 @@ final class ResetSchedulingTests: XCTestCase {
         try await apply(.codex, [])
         let empty = await recorder.pending.isEmpty
         XCTAssertTrue(empty)
+    }
+}
+
+@MainActor final class MobileAccountCollectionTests: XCTestCase {
+    func testAdditionalAccountsRestoreWithDistinctNamespacesAndLabels() throws {
+        let suite = "AIQuota.tests.additionalAccounts.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let accounts = MobileAccountCollection(defaults: defaults)
+        let codex = accounts.add(.codex)
+        let claude = accounts.add(.claude)
+        accounts.rename(claude.id, to: "Hearst")
+
+        XCTAssertNotEqual(codex.codex?.accountNamespace, claude.claude?.accountNamespace)
+        XCTAssertFalse(codex.connected)
+        XCTAssertFalse(claude.connected)
+
+        let restored = MobileAccountCollection(defaults: defaults)
+        XCTAssertEqual(restored.sessions.map(\.id), [codex.id, claude.id])
+        XCTAssertEqual(restored.sessions.map(\.label), ["Account 2", "Hearst"])
+        XCTAssertEqual(restored.sessions.map(\.service), [.codex, .claude])
     }
 }

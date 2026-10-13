@@ -30,7 +30,18 @@ struct SharedQuotaStore: Sendable {
          kSecAttrAccount as String: "\(namespace).\(service.rawValue)",
          kSecAttrAccessGroup as String: Bundle.main.object(forInfoDictionaryKey: "WidgetKeychainGroup") as? String ?? ""]
     }
-    private var readingURL: URL? { root?.appendingPathComponent("\(service.rawValue)-v2.json") }
+    /// `live` is the original app/widget namespace, so preserve its filenames for
+    /// existing installs. Other namespaces share a directory but need distinct,
+    /// filesystem-safe names even when their provider is the same.
+    private func scopedFilename(_ legacy: String) -> String {
+        guard namespace != "live" else { return legacy }
+        let encodedNamespace = namespace.utf8.map { String(format: "%02x", $0) }.joined()
+        return "\(legacy).\(encodedNamespace)"
+    }
+    private func fileURL(_ legacy: String) -> URL? {
+        root?.appendingPathComponent(scopedFilename(legacy), isDirectory: false)
+    }
+    private var readingURL: URL? { fileURL("\(service.rawValue)-v2.json") }
     func load<T: QuotaCredentials>(_ type: T.Type) throws -> T? {
         var q = query; q[kSecReturnData as String] = true; q[kSecMatchLimit as String] = kSecMatchLimitOne
         var item: CFTypeRef?
@@ -74,11 +85,12 @@ struct SharedQuotaStore: Sendable {
     func withLease<T: Sendable>(_ action: @Sendable () async throws -> T) async throws -> T {
         guard let root else { throw AccessError.storage }
         try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        let path = root.appendingPathComponent("\(service.rawValue)-session.lock").path
-        let fd = open(path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)
+        let path = scopedFilename("\(service.rawValue)-session.lock")
+        let lockPath = root.appendingPathComponent(path, isDirectory: false).path
+        let fd = open(lockPath, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)
         guard fd >= 0 else { throw AccessError.storage }
         defer { close(fd) }
-        try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: path)
+        try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: lockPath)
         let deadline = ContinuousClock.now.advanced(by: .seconds(35))
         while flock(fd, LOCK_EX | LOCK_NB) != 0 {
             guard errno == EWOULDBLOCK, ContinuousClock.now < deadline else { throw AccessError.storage }
@@ -197,8 +209,8 @@ struct SharedQuotaStore: Sendable {
               let until = try? JSONDecoder().decode(Date.self, from: data) else { return false }
         return until > .now
     }
-    private var cooldownURL: URL? { root?.appendingPathComponent("\(service.rawValue)-cooldown.json") }
-    private var failureURL: URL? { root?.appendingPathComponent("\(service.rawValue)-failure.json") }
+    private var cooldownURL: URL? { fileURL("\(service.rawValue)-cooldown.json") }
+    private var failureURL: URL? { fileURL("\(service.rawValue)-failure.json") }
     func failure() -> Failure? {
         guard let url = failureURL, let data = try? Data(contentsOf: url) else { return nil }
         return try? JSONDecoder().decode(Failure.self, from: data)

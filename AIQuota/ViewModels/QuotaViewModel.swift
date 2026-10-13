@@ -102,6 +102,86 @@ final class QuotaViewModel {
     var isClaudeLoading = false
     var claudeError: NetworkError?
 
+    /// Additional accounts keep their own coordinators, snapshots, and refresh state.
+    /// The original coordinator for each provider remains the legacy connection.
+    var additionalAccounts: [AdditionalAccountSession] = []
+
+    var hasAdditionalAccounts: Bool { !additionalAccounts.isEmpty }
+
+    func primaryAccount(for provider: ServiceType) -> ConnectedAccount? {
+        AccountRegistry.accounts(for: provider).first { $0.connectionKind == .legacyPrimary }
+    }
+
+    private func ensurePrimaryAccount(for provider: ServiceType) {
+        guard primaryAccount(for: provider) == nil else { return }
+        let account = AccountRegistry.upsert(
+            provider: provider,
+            displayLabel: "Personal",
+            authSource: .webSession,
+            connectionKind: .legacyPrimary
+        )
+        if AccountRegistry.selectedAccountID(for: provider) == nil {
+            AccountRegistry.selectAccount(id: account.id, for: provider)
+        }
+    }
+
+    func addAccount(for provider: ServiceType) async {
+        guard !isReadOnlyPreview, !Self.isDemoBuild else { return }
+        await bindPrimaryIdentity(for: provider)
+        let nextNumber = AccountRegistry.accounts(for: provider).count + 1
+        let account = AccountRegistry.upsert(
+            provider: provider,
+            displayLabel: nextNumber == 2 ? "Work" : "Account \(nextNumber)",
+            authSource: .webSession
+        )
+        let session = AdditionalAccountSession(account: account)
+        additionalAccounts.append(session)
+        await session.signIn()
+        if session.isAuthenticated { startAutoRefresh(immediateRefresh: false) }
+    }
+
+    private func bindPrimaryIdentity(for provider: ServiceType) async {
+        guard var account = primaryAccount(for: provider) else { return }
+        let identity: String?
+        switch provider {
+        case .codex:
+            identity = try? await codexCoordinator.accessContext().accountID
+        case .claude:
+            identity = try? await claudeCoordinator.requestContext().orgId
+        }
+        guard let identity, !identity.isEmpty else { return }
+        account.workspaceID = identity
+        account.updatedAt = .now
+        AccountRegistry.save(account)
+    }
+
+    func reconnectAccount(id: String) async {
+        guard let session = additionalAccounts.first(where: { $0.id == id }) else { return }
+        await session.signIn()
+        if session.isAuthenticated { startAutoRefresh(immediateRefresh: false) }
+    }
+
+    func signOutAccount(id: String) async {
+        guard let session = additionalAccounts.first(where: { $0.id == id }) else { return }
+        await session.signOut()
+        if !isCodexAuthenticated && !isClaudeAuthenticated &&
+            !additionalAccounts.contains(where: { $0.isAuthenticated }) {
+            stopAutoRefresh()
+        }
+    }
+
+    func removeAccount(id: String) async {
+        guard let session = additionalAccounts.first(where: { $0.id == id }) else { return }
+        await session.signOut()
+        AccountRegistry.remove(id: id)
+        additionalAccounts.removeAll { $0.id == id }
+        if !isCodexAuthenticated && !isClaudeAuthenticated &&
+            !additionalAccounts.contains(where: { $0.isAuthenticated }) {
+            stopAutoRefresh()
+        }
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
     let claudeCoordinator: ClaudeAuthCoordinator
     private let claudeClient: ClaudeClient
 
@@ -221,6 +301,14 @@ final class QuotaViewModel {
         stopAutoRefresh()
         await inFlight?.value  // actually suspends until the in-flight refresh completes
 
+        for account in additionalAccounts {
+            await account.signOut()
+        }
+        additionalAccounts.removeAll()
+        for account in AccountRegistry.accounts() {
+            AccountRegistry.remove(id: account.id)
+        }
+
         // Step 2: auth reset
         let result = await resetCoordinator.reset()
         await NotificationManager.shared.clearResetHistory(for: .codex)
@@ -234,7 +322,13 @@ final class QuotaViewModel {
         codexUsage      = nil
         codexAutoReload = nil
         SharedDefaults.clearUsage()
+        if let account = primaryAccount(for: .codex) {
+            SharedDefaults.clearUsage(forAccountID: account.id)
+        }
         SharedDefaults.clearClaudeUsage()
+        if let account = primaryAccount(for: .claude) {
+            SharedDefaults.clearClaudeUsage(forAccountID: account.id)
+        }
         SharedDefaults.clearCodexSourceAttempts()
         SharedDefaults.clearClaudeSourceAttempts()
         settings = .default
@@ -252,7 +346,9 @@ final class QuotaViewModel {
     // MARK: - Backward-compatible aliases (used by MenuBarIconView / AIQuotaApp)
 
     var usage: CodexUsage? { codexUsage }
-    var isLoading: Bool { isCodexLoading || isClaudeLoading }
+    var isLoading: Bool {
+        isCodexLoading || isClaudeLoading || additionalAccounts.contains(where: { $0.isLoading })
+    }
     var error: NetworkError? {
         get { codexError }
         set { codexError = newValue }
@@ -296,6 +392,10 @@ final class QuotaViewModel {
         self.claudeClient      = ClaudeClient(coordinator: claude)
         self.codexClient       = OpenAIClient(coordinator: codex)
         self.resetCoordinator  = AppResetCoordinator(claude: claude, codex: codex)
+        AccountRegistry.migrateLegacyAccountsIfNeeded()
+        self.additionalAccounts = AccountRegistry.accounts()
+            .filter { $0.connectionKind == .isolated }
+            .map(AdditionalAccountSession.init(account:))
         #if DEBUG
         isReadOnlyPreview = readOnlyPreview
         if readOnlyPreview { return }
@@ -328,6 +428,7 @@ final class QuotaViewModel {
                         self.trackServiceConnected(.claude)
                     }
                     if state == .authenticated {
+                        self.ensurePrimaryAccount(for: .claude)
                         self.claudeRecoveryExhausted = false
                         if self.refreshTask == nil {
                             self.startAutoRefresh()
@@ -350,6 +451,7 @@ final class QuotaViewModel {
                         SharedDefaults.enrollService(.codex)
                         self.trackServiceConnected(.codex)
                     }
+                    if state == .authenticated { self.ensurePrimaryAccount(for: .codex) }
                     if state == .authenticated && self.refreshTask == nil {
                         self.startAutoRefresh()
                     }
@@ -376,10 +478,17 @@ final class QuotaViewModel {
             await withTaskGroup(of: Void.self) { group in
                 group.addTask { await self.claudeCoordinator.bootstrap() }
                 group.addTask { await self.codexCoordinator.bootstrap() }
+                for account in self.additionalAccounts {
+                    group.addTask { await account.bootstrap() }
+                }
             }
             await withTaskGroup(of: Void.self) { group in
                 group.addTask { await self.restoreEnrolledCodexIfNeeded() }
                 group.addTask { await self.restoreEnrolledClaudeIfNeeded() }
+            }
+            if self.additionalAccounts.contains(where: { $0.isAuthenticated }),
+               self.refreshTask == nil {
+                self.startAutoRefresh()
             }
         }
         #endif
@@ -438,6 +547,9 @@ final class QuotaViewModel {
         codexUsage = nil
         codexAutoReload = nil
         SharedDefaults.clearUsage()
+        if let account = primaryAccount(for: .codex) {
+            SharedDefaults.clearUsage(forAccountID: account.id)
+        }
         WidgetCenter.shared.reloadAllTimelines()
         // Discarding the snapshot means any in-flight refresh is doomed — kill its
         // spinner too, so a definitive auth rejection can't leave stale loading UI.
@@ -448,6 +560,9 @@ final class QuotaViewModel {
     private func clearClaudeUsageSnapshot() {
         claudeUsage = nil
         SharedDefaults.clearClaudeUsage()
+        if let account = primaryAccount(for: .claude) {
+            SharedDefaults.clearClaudeUsage(forAccountID: account.id)
+        }
         WidgetCenter.shared.reloadAllTimelines()
         claudeRefreshGeneration += 1
         isClaudeLoading = false
@@ -585,11 +700,13 @@ final class QuotaViewModel {
     }
 
     func refresh() async {
-        // Run both fetches concurrently, then reload widgets once both are done
-        // so they always get a consistent snapshot.
+        // Refresh each account through its own coordinator and cache.
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.refreshCodex() }
             group.addTask { await self.refreshClaude() }
+            for account in additionalAccounts {
+                group.addTask { await account.refresh() }
+            }
         }
         WidgetCenter.shared.reloadAllTimelines()
     }
@@ -611,6 +728,10 @@ final class QuotaViewModel {
             async let bonusSpendResult = codexClient.fetchBonusCreditsSpentThisMonth()
 
             var result = try await usageResult
+            if result.monthlyBudget == nil, result.reportedWindowShape == nil,
+               let budget = try? await codexClient.fetchMemberMonthlyUsage().monthlyBudget {
+                result = result.withMonthlyBudget(budget)
+            }
 
             // Auto-reload fetch: fail-open — errors leave codexAutoReload at its previous value
             // so the credit-warning treatment never regresses due to an auxiliary endpoint hiccup.
@@ -633,6 +754,9 @@ final class QuotaViewModel {
             codexUsage = result
             lastRefreshedAt = .now
             SharedDefaults.saveUsage(result)
+            if let account = primaryAccount(for: .codex) {
+                SharedDefaults.saveUsage(result, forAccountID: account.id)
+            }
             await NotificationManager.shared.evaluate(current: result, prefs: settings.notifications)
             await NotificationManager.shared.notifyPlanChange(service: "Codex", previous: previousPlan, current: result.planType,
                 enabled: settings.notifications.enabled && settings.notifications.codexEnabled)
@@ -655,6 +779,10 @@ final class QuotaViewModel {
                     async let usageResult      = codexClient.fetchUsage()
                     async let bonusSpendResult = codexClient.fetchBonusCreditsSpentThisMonth()
                     var result = try await usageResult
+                    if result.monthlyBudget == nil, result.reportedWindowShape == nil,
+                       let budget = try? await codexClient.fetchMemberMonthlyUsage().monthlyBudget {
+                        result = result.withMonthlyBudget(budget)
+                    }
                     if let spent = try? await bonusSpendResult {
                         result = result.withBonusCreditsSpentThisMonth(spent)
                     }
@@ -664,6 +792,9 @@ final class QuotaViewModel {
                     codexUsage = result
                     lastRefreshedAt = .now
                     SharedDefaults.saveUsage(result)
+                    if let account = primaryAccount(for: .codex) {
+                        SharedDefaults.saveUsage(result, forAccountID: account.id)
+                    }
                     await NotificationManager.shared.evaluate(current: result, prefs: settings.notifications)
                     await NotificationManager.shared.notifyPlanChange(service: "Codex", previous: previousPlan, current: result.planType,
                         enabled: settings.notifications.enabled && settings.notifications.codexEnabled)
@@ -728,6 +859,9 @@ final class QuotaViewModel {
             claudeUsage = result
             lastRefreshedAt = .now
             SharedDefaults.saveClaudeUsage(result)
+            if let account = primaryAccount(for: .claude) {
+                SharedDefaults.saveClaudeUsage(result, forAccountID: account.id)
+            }
             await NotificationManager.shared.evaluate(claude: result, prefs: settings.notifications)
             await NotificationManager.shared.notifyPlanChange(service: "Claude", previous: previousPlan, current: result.planDisplayName,
                 enabled: settings.notifications.enabled && settings.notifications.claudeEnabled)
@@ -746,6 +880,9 @@ final class QuotaViewModel {
                     claudeUsage = result
                     lastRefreshedAt = .now
                     SharedDefaults.saveClaudeUsage(result)
+                    if let account = primaryAccount(for: .claude) {
+                        SharedDefaults.saveClaudeUsage(result, forAccountID: account.id)
+                    }
                     await NotificationManager.shared.evaluate(claude: result, prefs: settings.notifications)
                     await NotificationManager.shared.notifyPlanChange(service: "Claude", previous: previousPlan, current: result.planDisplayName,
                         enabled: settings.notifications.enabled && settings.notifications.claudeEnabled)
@@ -813,7 +950,8 @@ final class QuotaViewModel {
     }
 
     private func restartAutoRefresh(immediateRefresh: Bool) {
-        guard isCodexAuthenticated || isClaudeAuthenticated else { return }
+        guard isCodexAuthenticated || isClaudeAuthenticated ||
+              additionalAccounts.contains(where: { $0.isAuthenticated }) else { return }
         startAutoRefresh(immediateRefresh: immediateRefresh)
     }
 
@@ -924,7 +1062,8 @@ final class QuotaViewModel {
             }
         }
 
-        guard isCodexAuthenticated || isClaudeAuthenticated else { return }
+        guard isCodexAuthenticated || isClaudeAuthenticated ||
+              additionalAccounts.contains(where: { $0.isAuthenticated }) else { return }
         guard !isLoading else { return }
         guard shouldRefreshOnPopoverOpen else { return }
 
@@ -975,8 +1114,10 @@ final class QuotaViewModel {
     func signOut() {
         clearTokenHistory()
         stopAutoRefresh()
+        let primaryID = primaryAccount(for: .codex)?.id
         Task {
             try? await codexCoordinator.signOut()
+            if let primaryID { AccountRegistry.remove(id: primaryID) }
             await NotificationManager.shared.clearResetHistory(for: .codex)
             self.enrolledServices.remove(.codex)
             SharedDefaults.unenrollService(.codex)
@@ -987,13 +1128,17 @@ final class QuotaViewModel {
                 self.settings.menuBarService = fallback
                 self.saveSettings()
             }
-            // Refresh loop was stopped above; it will restart on next sign-in or manual refresh.
+            if self.isClaudeAuthenticated || self.additionalAccounts.contains(where: { $0.isAuthenticated }) {
+                self.startAutoRefresh(immediateRefresh: false)
+            }
         }
     }
 
     func signOutClaude() {
+        let primaryID = primaryAccount(for: .claude)?.id
         Task {
             try? await claudeCoordinator.signOut()
+            if let primaryID { AccountRegistry.remove(id: primaryID) }
             await NotificationManager.shared.clearResetHistory(for: .claude)
             self.enrolledServices.remove(.claude)
             SharedDefaults.unenrollService(.claude)
@@ -1004,6 +1149,10 @@ final class QuotaViewModel {
                 self.saveSettings()
             }
             if activeService == .claude { activeService = .codex }
+            if !self.isCodexAuthenticated &&
+                !self.additionalAccounts.contains(where: { $0.isAuthenticated }) {
+                self.stopAutoRefresh()
+            }
         }
     }
 
@@ -1024,7 +1173,10 @@ final class QuotaViewModel {
         }
         AnalyticsClient.shared.setCollectionEnabled(settings.analyticsEnabled)
         lastSavedSettings = settings
-        if isCodexAuthenticated || isClaudeAuthenticated { startAutoRefresh() }
+        if isCodexAuthenticated || isClaudeAuthenticated ||
+            additionalAccounts.contains(where: { $0.isAuthenticated }) {
+            startAutoRefresh()
+        }
     }
 
     private func trackServiceConnected(_ service: ServiceType) {
@@ -1063,6 +1215,209 @@ final class QuotaViewModel {
         value ? "true" : "false"
     }
 
+}
+
+/// A second or later connection for one provider. Each instance owns its web
+/// session, client, snapshot, and refresh lifecycle.
+@MainActor
+@Observable
+final class AdditionalAccountSession: Identifiable {
+    nonisolated let id: String
+    private(set) var account: ConnectedAccount
+    var provider: ServiceType { account.provider }
+    var isAuthenticated: Bool { state == .authenticated }
+    var state: AuthState = .unknown
+    var isRestoring = true
+    var codexUsage: CodexUsage?
+    var claudeUsage: ClaudeUsage?
+    var isLoading = false
+    var issue: String?
+
+    private let codexCoordinator: CodexAuthCoordinator?
+    private let claudeCoordinator: ClaudeAuthCoordinator?
+    private let codexClient: OpenAIClient?
+    private let claudeClient: ClaudeClient?
+    private var refreshGeneration = 0
+
+    init(account: ConnectedAccount) {
+        self.id = account.id
+        self.account = account
+        guard let storageID = UUID(uuidString: account.id) else {
+            codexCoordinator = nil
+            claudeCoordinator = nil
+            codexClient = nil
+            claudeClient = nil
+            issue = "Account storage is invalid. Remove and reconnect this account."
+            return
+        }
+        switch account.provider {
+        case .codex:
+            let coordinator = CodexAuthCoordinator(accountStorageID: storageID)
+            codexCoordinator = coordinator
+            codexClient = OpenAIClient(coordinator: coordinator, accountStorageID: storageID)
+            claudeCoordinator = nil
+            claudeClient = nil
+            codexUsage = SharedDefaults.loadCachedUsage(forAccountID: account.id)
+        case .claude:
+            let coordinator = ClaudeAuthCoordinator(accountStorageID: storageID)
+            claudeCoordinator = coordinator
+            claudeClient = ClaudeClient(coordinator: coordinator, accountStorageID: account.id)
+            codexCoordinator = nil
+            codexClient = nil
+            claudeUsage = SharedDefaults.loadCachedClaudeUsage(forAccountID: account.id)
+        }
+    }
+
+    func bootstrap() async {
+        isRestoring = true
+        defer { isRestoring = false }
+        switch provider {
+        case .codex:
+            guard let codexCoordinator else { return }
+            Task { [weak self] in
+                for await value in codexCoordinator.stateStream { self?.state = value }
+            }
+            await codexCoordinator.bootstrap()
+            state = await codexCoordinator.state
+            if state == .unauthenticated, account.workspaceID != nil {
+                _ = await codexCoordinator.restoreWithoutPromptIfPossible()
+                state = await codexCoordinator.state
+            }
+        case .claude:
+            guard let claudeCoordinator else { return }
+            Task { [weak self] in
+                for await value in claudeCoordinator.stateStream { self?.state = value }
+            }
+            await claudeCoordinator.bootstrap()
+            state = await claudeCoordinator.state
+        }
+        if isAuthenticated, await bindIdentity() {
+            await refresh()
+        }
+    }
+
+    func signIn() async {
+        issue = nil
+        if state == .unknown { await bootstrap() }
+        if state == .authenticated { await signOut() }
+        do {
+            switch provider {
+            case .codex:
+                guard let codexCoordinator else { return }
+                try await codexCoordinator.signIn()
+                state = .authenticated
+            case .claude:
+                guard let claudeCoordinator else { return }
+                try await claudeCoordinator.signIn()
+                state = .authenticated
+            }
+            guard await bindIdentity() else { return }
+            await refresh()
+        } catch {
+            issue = error.localizedDescription
+        }
+    }
+
+    func signOut() async {
+        refreshGeneration += 1
+        if state == .unknown { await bootstrap() }
+        switch provider {
+        case .codex:
+            await codexCoordinator?.reset()
+            codexUsage = nil
+            SharedDefaults.clearUsage(forAccountID: id)
+        case .claude:
+            await claudeCoordinator?.reset()
+            claudeUsage = nil
+            SharedDefaults.clearClaudeUsage(forAccountID: id)
+        }
+        state = .signedOutByUser
+        isLoading = false
+        issue = nil
+    }
+
+    func refresh() async {
+        guard isAuthenticated, !isLoading else { return }
+        let generation = refreshGeneration
+        isLoading = true
+        issue = nil
+        defer { if generation == refreshGeneration { isLoading = false } }
+
+        do {
+            switch provider {
+            case .codex:
+                guard let codexClient else { return }
+                var result = try await codexClient.fetchUsage()
+                if result.monthlyBudget == nil,
+                   result.reportedWindowShape == nil,
+                   let budget = try? await codexClient.fetchMemberMonthlyUsage().monthlyBudget {
+                    result = result.withMonthlyBudget(budget)
+                }
+                guard generation == refreshGeneration, isAuthenticated else { return }
+                codexUsage = result
+                SharedDefaults.saveUsage(result, forAccountID: id)
+            case .claude:
+                guard let claudeClient else { return }
+                let result = try await claudeClient.fetchUsage()
+                guard generation == refreshGeneration, isAuthenticated else { return }
+                claudeUsage = result
+                SharedDefaults.saveClaudeUsage(result, forAccountID: id)
+            }
+        } catch let error as NetworkError where error.isAuthError {
+            switch provider {
+            case .codex:
+                if let codexCoordinator {
+                    _ = await codexCoordinator.revalidateSessionAfterAuthFailure()
+                    state = await codexCoordinator.state
+                }
+            case .claude:
+                if let claudeCoordinator {
+                    _ = await claudeCoordinator.revalidateSessionAfterAuthFailure()
+                    state = await claudeCoordinator.state
+                }
+            }
+            guard generation == refreshGeneration else { return }
+            issue = error.localizedDescription
+        } catch {
+            guard generation == refreshGeneration else { return }
+            issue = error.localizedDescription
+        }
+    }
+
+    private func bindIdentity() async -> Bool {
+        do {
+            let identity: String?
+            switch provider {
+            case .codex:
+                identity = try await codexCoordinator?.accessContext().accountID
+            case .claude:
+                identity = try await claudeCoordinator?.requestContext().orgId
+            }
+            guard let identity, !identity.isEmpty else {
+                issue = "Could not verify this account's identity. Reconnect to try again."
+                return false
+            }
+            if let expected = account.workspaceID, expected != identity {
+                await signOut()
+                issue = "This session belongs to a different account. Reconnect the intended account."
+                return false
+            }
+            if AccountRegistry.accounts(for: provider).contains(where: {
+                $0.id != id && $0.workspaceID == identity
+            }) {
+                await signOut()
+                issue = "This account is already connected."
+                return false
+            }
+            account.workspaceID = identity
+            account.updatedAt = .now
+            AccountRegistry.save(account)
+            return true
+        } catch {
+            issue = error.localizedDescription
+            return false
+        }
+    }
 }
 
 // MARK: - Demo support

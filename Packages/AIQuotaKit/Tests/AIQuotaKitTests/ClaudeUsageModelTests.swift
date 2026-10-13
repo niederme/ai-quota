@@ -198,6 +198,8 @@ struct ClaudeUsageModelTests {
         )
 
         #expect(usage.usageCredits?.spent == 43.96)
+        #expect(usage.monthlyBudget?.unit == "USD")
+        #expect(usage.monthlyBudget?.used == 43.96)
         #expect(usage.usageCredits?.currencyCode == "USD")
         #expect(usage.usageCredits?.isUnlimited == true)
         #expect(usage.usageCredits?.needsAttention == false)

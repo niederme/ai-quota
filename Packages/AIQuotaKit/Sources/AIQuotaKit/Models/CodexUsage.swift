@@ -10,6 +10,35 @@ public struct WhamUsageResponse: Decodable, Sendable {
     public let rateLimit: RateLimitInfo?
     public let codeReviewRateLimit: RateLimitInfo?
     public let credits: Credits?
+    public let spendControl: SpendControl?
+
+    public struct SpendControl: Decodable, Sendable {
+        public let reached: Bool?
+        public let individualLimit: IndividualLimit?
+
+        public struct IndividualLimit: Decodable, Sendable {
+            public let source: String?
+            public let unit: String?
+            public let limit: Double?
+            public let used: Double?
+            public let remaining: Double?
+            public let resetAt: Int?
+
+            private enum CodingKeys: String, CodingKey {
+                case source, unit, limit, used, remaining, resetAt
+            }
+
+            public init(from decoder: Decoder) throws {
+                let c = try decoder.container(keyedBy: CodingKeys.self)
+                source = try c.decodeIfPresent(String.self, forKey: .source)
+                unit = try c.decodeIfPresent(String.self, forKey: .unit)
+                limit = try c.decodeLossyDoubleIfPresent(forKey: .limit)
+                used = try c.decodeLossyDoubleIfPresent(forKey: .used)
+                remaining = try c.decodeLossyDoubleIfPresent(forKey: .remaining)
+                resetAt = try c.decodeLossyIntIfPresent(forKey: .resetAt)
+            }
+        }
+    }
 
     public struct RateLimitInfo: Decodable, Sendable {
         public let allowed: Bool?
@@ -87,6 +116,26 @@ public struct WhamUsageResponse: Decodable, Sendable {
 // MARK: - Display model
 
 public struct CodexUsage: Codable, Sendable, Equatable {
+    public struct MonthlyBudget: Codable, Sendable, Equatable {
+        public let unit: String?
+        public let used: Double?
+        public let limit: Double?
+        public let resetAt: Date?
+
+        public init(unit: String?, used: Double?, limit: Double?, resetAt: Date? = nil) {
+            self.unit = unit
+            self.used = used
+            self.limit = limit
+            self.resetAt = resetAt
+        }
+
+        public var utilization: Double? {
+            guard let used, let limit, limit > 0 else { return nil }
+            return used / limit * 100
+        }
+    }
+
+    public let monthlyBudget: MonthlyBudget?
     // Weekly (secondary window, 604800s)
     public let weeklyUsedPercent: Int
     public let weeklyResetAt: Date
@@ -123,6 +172,9 @@ public struct CodexUsage: Codable, Sendable, Equatable {
     /// Keep freshness and values together when a successful but partial refresh
     /// cannot establish the allowance shape. Transport failures already retain cache.
     public func retainingLastConfirmedWindows(from previous: CodexUsage?) -> CodexUsage {
+        // A reported monthly member budget is a complete allowance shape for
+        // Enterprise accounts even when rate_limit is null.
+        if monthlyBudget?.limit != nil { return self }
         if reportedWindowShape == nil, let previous, previous.reportedWindowShape != nil {
             return previous
         }
@@ -138,6 +190,7 @@ public struct CodexUsage: Codable, Sendable, Equatable {
     // Optional for compatibility with caches written before presence was explicit.
     private let hourlyWindowReported: Bool?
     public var hasHourlyWindow: Bool { hourlyWindowReported ?? (hourlyResetAt != .distantFuture) }
+    public var hasWeeklyWindow: Bool { weeklyResetAt != .distantFuture }
 
     public var localMessagesUsed: Int? { approxLocalMessages?.first }
     public var localMessagesLimit: Int? { approxLocalMessages?.last }
@@ -194,6 +247,16 @@ public struct CodexUsage: Codable, Sendable, Equatable {
         bonusCreditsSpentThisMonth = nil
         approxLocalMessages = response.credits?.approxLocalMessages
         approxCloudMessages = response.credits?.approxCloudMessages
+        if let budget = response.spendControl?.individualLimit {
+            monthlyBudget = MonthlyBudget(
+                unit: budget.unit,
+                used: budget.used,
+                limit: budget.limit,
+                resetAt: budget.resetAt.map { Date(timeIntervalSince1970: TimeInterval($0)) }
+            )
+        } else {
+            monthlyBudget = nil
+        }
 
         self.fetchedAt = fetchedAt
     }
@@ -238,6 +301,7 @@ public struct CodexUsage: Codable, Sendable, Equatable {
         creditBalance: Double?, bonusCreditsSpentThisMonth: Double? = nil,
         approxLocalMessages: [Int]?, approxCloudMessages: [Int]?,
         fetchedAt: Date, hourlyWindowReported: Bool? = nil,
+        monthlyBudget: MonthlyBudget? = nil,
         reportedWindowShape: ReportedWindowShape? = nil
     ) {
         self.reportedWindowShape = reportedWindowShape
@@ -256,6 +320,7 @@ public struct CodexUsage: Codable, Sendable, Equatable {
         self.bonusCreditsSpentThisMonth = bonusCreditsSpentThisMonth
         self.approxLocalMessages = approxLocalMessages
         self.approxCloudMessages = approxCloudMessages
+        self.monthlyBudget = monthlyBudget
         self.fetchedAt = fetchedAt
     }
 
@@ -276,8 +341,68 @@ public struct CodexUsage: Codable, Sendable, Equatable {
             approxLocalMessages: approxLocalMessages,
             approxCloudMessages: approxCloudMessages,
             fetchedAt: fetchedAt, hourlyWindowReported: hourlyWindowReported,
+            monthlyBudget: monthlyBudget,
             reportedWindowShape: reportedWindowShape
         )
+    }
+
+    public func withMonthlyBudget(_ budget: MonthlyBudget?) -> CodexUsage {
+        CodexUsage(
+            weeklyUsedPercent: weeklyUsedPercent,
+            weeklyResetAt: weeklyResetAt,
+            weeklyResetAfterSeconds: weeklyResetAfterSeconds,
+            hourlyUsedPercent: hourlyUsedPercent,
+            hourlyResetAt: hourlyResetAt,
+            hourlyResetAfterSeconds: hourlyResetAfterSeconds,
+            hourlyWindowSeconds: hourlyWindowSeconds,
+            limitReached: limitReached,
+            allowed: allowed,
+            planType: planType,
+            creditBalance: creditBalance,
+            bonusCreditsSpentThisMonth: bonusCreditsSpentThisMonth,
+            approxLocalMessages: approxLocalMessages,
+            approxCloudMessages: approxCloudMessages,
+            fetchedAt: fetchedAt,
+            hourlyWindowReported: hourlyWindowReported,
+            monthlyBudget: budget,
+            reportedWindowShape: reportedWindowShape
+        )
+    }
+}
+
+/// Member monthly budget response returned by the enterprise monthly-usage route.
+public struct CodexMonthlyUsageResponse: Decodable, Sendable, Equatable {
+    public let effectiveMonthlyLimit: Limit?
+    public let currentMonthUsage: Double?
+
+    public struct Limit: Decodable, Sendable, Equatable {
+        public let limit: Double?
+
+        public init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            limit = try c.decodeLossyDoubleIfPresent(forKey: .limit)
+        }
+
+        private enum CodingKeys: String, CodingKey { case limit }
+    }
+
+    private enum CodingKeys: String, CodingKey { case effectiveMonthlyLimit, currentMonthUsage }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        effectiveMonthlyLimit = try c.decodeIfPresent(Limit.self, forKey: .effectiveMonthlyLimit)
+        if let value = try? c.decode(Double.self, forKey: .currentMonthUsage) {
+            currentMonthUsage = value
+        } else if let value = try? c.decode(String.self, forKey: .currentMonthUsage) {
+            currentMonthUsage = Double(value)
+        } else {
+            currentMonthUsage = nil
+        }
+    }
+
+    public var monthlyBudget: CodexUsage.MonthlyBudget? {
+        guard effectiveMonthlyLimit?.limit != nil || currentMonthUsage != nil else { return nil }
+        return .init(unit: "credit", used: currentMonthUsage, limit: effectiveMonthlyLimit?.limit)
     }
 }
 
@@ -338,6 +463,14 @@ struct AutoTopUpSettingsResponse: Decodable, Sendable {
 }
 
 private extension KeyedDecodingContainer {
+    func decodeLossyDoubleIfPresent(forKey key: Key) throws -> Double? {
+        if let value = try? decodeIfPresent(Double.self, forKey: key) { return value }
+        if let value = try? decodeIfPresent(String.self, forKey: key),
+           let number = Double(value.trimmingCharacters(in: .whitespacesAndNewlines)) { return number }
+        if let value = try? decodeIfPresent(Int.self, forKey: key) { return Double(value) }
+        return nil
+    }
+
     func decodeLossyIntIfPresent(forKey key: Key) throws -> Int? {
         if let value = try? decodeIfPresent(Int.self, forKey: key) {
             return value

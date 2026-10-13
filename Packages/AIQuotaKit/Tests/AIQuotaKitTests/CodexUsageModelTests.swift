@@ -127,6 +127,50 @@ struct CodexUsageModelTests {
         #expect(usage.creditBalance == 42.5)
     }
 
+    @Test("parses enterprise monthly spend control budget")
+    func parsesMonthlyBudget() throws {
+        let data = Data("""
+        { "plan_type": "team", "rate_limit": null,
+          "spend_control": { "reached": false, "individual_limit":
+            { "source": "workspace_spend_controls", "unit": "credit",
+              "limit": "7000", "used": "0.0", "remaining": "7000.0" } } }
+        """.utf8)
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let usage = CodexUsage(from: try decoder.decode(WhamUsageResponse.self, from: data))
+        #expect(usage.monthlyBudget?.unit == "credit")
+        #expect(usage.monthlyBudget?.limit == 7000)
+        #expect(usage.monthlyBudget?.used == 0)
+        #expect(!usage.hasWeeklyWindow)
+    }
+
+    @Test("a confirmed monthly budget replaces cached rolling windows")
+    func enterpriseBudgetReplacesPreviousWindows() throws {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let previousRaw = try decoder.decode(WhamUsageResponse.self, from: Data(#"{"rate_limit":{"primary_window":{"used_percent":20,"limit_window_seconds":18000,"reset_at":1800000000,"reset_after_seconds":1200},"secondary_window":{"used_percent":40,"limit_window_seconds":604800,"reset_at":1800500000,"reset_after_seconds":500000}}}"#.utf8))
+        let enterpriseRaw = try decoder.decode(WhamUsageResponse.self, from: Data(#"{"rate_limit":null,"spend_control":{"individual_limit":{"unit":"credit","used":"0","limit":"7000"}}}"#.utf8))
+        let previous = CodexUsage(from: previousRaw)
+        let current = CodexUsage(from: enterpriseRaw)
+        #expect(previous.reportedWindowShape == .dual)
+        #expect(current.retainingLastConfirmedWindows(from: previous) == current)
+    }
+
+    @Test("parses member monthly usage response")
+    func parsesMemberMonthlyUsage() throws {
+        let response = try OpenAIClient._decodeMonthlyUsageForTesting(Data("""
+        { "effective_monthly_limit": { "limit": 7000 }, "current_month_usage": 0 }
+        """.utf8))
+        #expect(response.monthlyBudget?.limit == 7000)
+        #expect(response.monthlyBudget?.used == 0)
+    }
+
+    @Test("builds member monthly usage route from account id")
+    func memberMonthlyUsageRoute() {
+        let url = OpenAIClient._memberMonthlyUsageURLForTesting(accountID: "acct-123")
+        #expect(url.path == "/backend-api/accounts/acct-123/spend-controls/current-user/monthly-usage")
+    }
+
     @Test("lossily decodes numeric Codex window fields")
     func lossilyDecodesNumericWindowFields() throws {
         let data = Data("""

@@ -24,12 +24,20 @@ struct PopoverView: View {
     }
 
     private var popoverWidth: CGFloat {
-        viewModel.isCodexEnrolled ? 360 : (viewModel.enrolledServices.count == 1 ? 240 : 340)
+        viewModel.isCodexEnrolled || viewModel.hasAdditionalAccounts
+            ? 360 : (viewModel.enrolledServices.count == 1 ? 240 : 340)
+    }
+
+    private var popoverContentMaxHeight: CGFloat {
+        let screenHeight = menuBarWindow?.screen?.visibleFrame.height
+            ?? NSScreen.main?.visibleFrame.height
+            ?? 800
+        return min(720, max(300, screenHeight - 150))
     }
 
     var body: some View {
         Group {
-            if !viewModel.enrolledServices.isEmpty {
+            if !viewModel.enrolledServices.isEmpty || viewModel.hasAdditionalAccounts {
                 authenticatedContent
             } else {
                 signInContent
@@ -85,6 +93,22 @@ struct PopoverView: View {
         VStack(spacing: 0) {
             header
 
+            if viewModel.hasAdditionalAccounts {
+                ScrollView {
+                    authenticatedBody
+                }
+                .frame(height: popoverContentMaxHeight)
+            } else {
+                authenticatedBody
+            }
+
+            Divider()
+            footer
+        }
+    }
+
+    private var authenticatedBody: some View {
+        VStack(spacing: 0) {
             ForEach(errorBanners) { banner in
                 errorBanner(banner)
                 Divider()
@@ -99,9 +123,9 @@ struct PopoverView: View {
 
             statsRow
 
+            additionalAccountSection
+
             updateAvailableRow
-            Divider()
-            footer
         }
     }
 
@@ -153,8 +177,19 @@ struct PopoverView: View {
     private var codexGaugeSlot: some View {
         if viewModel.isCodexAuthenticated {
             if let u = viewModel.codexUsage {
-                let hasHourlyWindow = u.hasHourlyWindow
-                CircularGaugeView(
+                if let budget = u.monthlyBudget,
+                   let used = budget.used, let limit = budget.limit,
+                   used.isFinite, used >= 0, limit.isFinite, limit > 0,
+                   u.reportedWindowShape == nil {
+                    budgetGauge(
+                        used: used, limit: limit, unit: budget.unit,
+                        resetAt: budget.resetAt, icon: "logo-openai",
+                        label: "Codex", isRefreshing: viewModel.isCodexLoading,
+                        onRefresh: { viewModel.manualRefresh() }
+                    )
+                } else if u.reportedWindowShape != nil {
+                    let hasHourlyWindow = u.hasHourlyWindow
+                    CircularGaugeView(
                     primaryPercent: hasHourlyWindow ? u.hourlyUsedPercent : u.weeklyUsedPercent,
                     primaryLimitReached: hasHourlyWindow ? u.hourlyUsedPercent >= 100 : u.isWeeklyExhausted,
                     showsPrimaryMetric: true,
@@ -174,16 +209,16 @@ struct PopoverView: View {
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel("Codex usage")
                 .accessibilityValue(codexAccessibilitySummary(u))
+                } else {
+                    unavailableUsage(label: "Codex") { viewModel.manualRefresh() }
+                }
             } else {
-                CircularGaugeView(
-                    primaryPercent: 0, primaryLimitReached: false,
-                    showsPrimaryMetric: true,
-                    secondaryPercent: 0, secondaryLimitReached: false,
-                    showsSecondaryMetric: true,
-                    isLoading: true, icon: "logo-openai",
-                    label: "Codex", primaryLabel: "5h", secondaryLabel: "7d",
-                    resetAt: nil, weeklyResetAt: nil, isRefreshing: true, onRefresh: {}
-                )
+                if viewModel.isCodexLoading {
+                    ProgressView("Loading Codex usage")
+                        .controlSize(.small)
+                } else {
+                    unavailableUsage(label: "Codex") { viewModel.manualRefresh() }
+                }
             }
         } else if viewModel.isCodexRecovering {
             loadingGauge(icon: "logo-openai", label: "Codex")
@@ -198,7 +233,19 @@ struct PopoverView: View {
     private var claudeGaugeSlot: some View {
         if viewModel.isClaudeAuthenticated {
             if let u = viewModel.claudeUsage {
-                CircularGaugeView(
+                if let budget = u.monthlyBudget,
+                   let used = budget.used, let limit = budget.limit,
+                   used.isFinite, used >= 0, limit.isFinite, limit > 0,
+                   u.fiveHourUtilization == nil,
+                   u.sevenDayUtilization == nil {
+                    budgetGauge(
+                        used: used, limit: limit, unit: budget.unit,
+                        resetAt: budget.resetAt, icon: "logo-claude",
+                        label: "Claude", isRefreshing: viewModel.isClaudeLoading,
+                        onRefresh: { viewModel.manualRefresh() }
+                    )
+                } else {
+                    CircularGaugeView(
                     primaryPercent: u.usedPercent,
                     primaryLimitReached: u.limitReached,
                     showsPrimaryMetric: true,
@@ -218,16 +265,14 @@ struct PopoverView: View {
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel("Claude usage")
                 .accessibilityValue(claudeAccessibilitySummary(u))
+                }
             } else {
-                CircularGaugeView(
-                    primaryPercent: 0, primaryLimitReached: false,
-                    showsPrimaryMetric: true,
-                    secondaryPercent: 0, secondaryLimitReached: false,
-                    showsSecondaryMetric: true,
-                    isLoading: true, icon: "logo-claude",
-                    label: "Claude Code", primaryLabel: "5h", secondaryLabel: "7d",
-                    resetAt: nil, weeklyResetAt: nil, isRefreshing: true, onRefresh: {}
-                )
+                if viewModel.isClaudeLoading {
+                    ProgressView("Loading Claude usage")
+                        .controlSize(.small)
+                } else {
+                    unavailableUsage(label: "Claude Code") { viewModel.manualRefresh() }
+                }
             }
         } else if viewModel.isClaudeRecovering {
             loadingGauge(icon: "logo-claude", label: "Claude Code")
@@ -240,6 +285,11 @@ struct PopoverView: View {
 
     private var codexColumn: some View {
         VStack(spacing: 0) {
+            if viewModel.hasAdditionalAccounts {
+                Text(viewModel.primaryAccount(for: .codex)?.displayLabel ?? "Existing account")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
             codexGaugeSlot
             if viewModel.isCodexAuthenticated {
                 CodexTokenHistoryView()
@@ -259,11 +309,22 @@ struct PopoverView: View {
             HStack(alignment: .top, spacing: 0) {
                 codexColumn.frame(maxWidth: .infinity)
                 Divider()
-                claudeGaugeSlot.frame(maxWidth: .infinity)
+                claudeColumn.frame(maxWidth: .infinity)
             }
         } else if viewModel.isCodexEnrolled {
             codexColumn
-        } else {
+        } else if viewModel.isClaudeEnrolled {
+            claudeColumn
+        }
+    }
+
+    private var claudeColumn: some View {
+        VStack(spacing: 0) {
+            if viewModel.hasAdditionalAccounts {
+                Text(viewModel.primaryAccount(for: .claude)?.displayLabel ?? "Existing account")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
             claudeGaugeSlot
         }
     }
@@ -298,6 +359,187 @@ struct PopoverView: View {
                     .padding(.vertical, 7)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
+        }
+    }
+
+    private func budgetValue(_ amount: Double, unit: String?) -> String {
+        let digits = amount == amount.rounded() ? 0 : 2
+        if let unit, unit.count == 3, unit.lowercased() != "credit" {
+            return amount.formatted(.currency(code: unit.uppercased()).precision(.fractionLength(digits)))
+        }
+        return amount.formatted(.number.precision(.fractionLength(digits)))
+    }
+
+    private func unavailableUsage(label: String, onRefresh: @escaping () -> Void) -> some View {
+        VStack(spacing: 8) {
+            Text(label)
+                .font(.headline.bold())
+            Text("Usage unavailable")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Button("Refresh", action: onRefresh)
+                .controlSize(.small)
+        }
+        .frame(width: 114, height: 114)
+    }
+
+    private func budgetGauge(
+        used: Double,
+        limit: Double,
+        unit: String?,
+        resetAt: Date?,
+        icon: String,
+        label: String,
+        isRefreshing: Bool,
+        onRefresh: @escaping () -> Void
+    ) -> some View {
+        let unitLabel: String
+        switch unit?.lowercased() {
+        case "credit", "credits": unitLabel = "credits this month"
+        case "usd": unitLabel = "monthly spend"
+        default: unitLabel = "monthly allowance"
+        }
+        return BudgetGaugeView(
+            used: used,
+            limit: limit,
+            usedText: budgetValue(used, unit: unit),
+            limitText: budgetValue(limit, unit: unit),
+            unitLabel: unitLabel,
+            icon: icon,
+            label: label,
+            resetAt: resetAt,
+            isRefreshing: isRefreshing,
+            onRefresh: onRefresh
+        )
+    }
+
+    @ViewBuilder
+    private var additionalAccountSection: some View {
+        if !viewModel.additionalAccounts.isEmpty {
+            Divider()
+            VStack(spacing: 0) {
+                ForEach(viewModel.additionalAccounts) { account in
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text(account.account.displayLabel)
+                                .font(.caption.bold())
+                            Spacer()
+                            if let updatedAt = account.codexUsage?.fetchedAt ?? account.claudeUsage?.fetchedAt {
+                                Text("Updated \(updatedAt.formatted(date: .omitted, time: .shortened))")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                        if let issue = account.issue {
+                            Text(issue)
+                                .font(.caption2)
+                                .foregroundStyle(.orange)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        additionalGauge(for: account)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    if account.id != viewModel.additionalAccounts.last?.id { Divider() }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func additionalGauge(for account: AdditionalAccountSession) -> some View {
+        if account.isRestoring || account.state == .signingIn {
+            VStack(spacing: 8) {
+                ProgressView()
+                    .controlSize(.small)
+                Text(account.state == .signingIn
+                     ? "Connecting \(account.account.displayLabel)"
+                     : "Checking \(account.account.displayLabel) connection")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(height: 114)
+        } else if !account.isAuthenticated {
+            Button("Reconnect \(account.account.displayLabel)") {
+                Task { await viewModel.reconnectAccount(id: account.id) }
+            }
+            .controlSize(.small)
+        } else if account.provider == .codex, let usage = account.codexUsage {
+            if let budget = usage.monthlyBudget,
+               let used = budget.used, let limit = budget.limit,
+               used.isFinite, used >= 0, limit.isFinite, limit > 0,
+               usage.reportedWindowShape == nil {
+                budgetGauge(
+                    used: used, limit: limit, unit: budget.unit,
+                    resetAt: budget.resetAt, icon: "logo-openai",
+                    label: "Codex",
+                    isRefreshing: account.isLoading,
+                    onRefresh: { Task { await account.refresh() } }
+                )
+            } else if usage.reportedWindowShape != nil {
+                CircularGaugeView(
+                    primaryPercent: usage.hasHourlyWindow ? usage.hourlyUsedPercent : usage.weeklyUsedPercent,
+                    primaryLimitReached: usage.hasHourlyWindow ? usage.hourlyUsedPercent >= 100 : usage.isWeeklyExhausted,
+                    showsPrimaryMetric: true,
+                    secondaryPercent: usage.weeklyUsedPercent,
+                    secondaryLimitReached: usage.isWeeklyExhausted,
+                    showsSecondaryMetric: usage.hasHourlyWindow,
+                    isLoading: false, icon: "logo-openai",
+                    label: "Codex",
+                    primaryLabel: usage.hasHourlyWindow ? formatWindowDuration(usage.hourlyWindowSeconds) : "7d",
+                    secondaryLabel: "7d",
+                    resetAt: usage.hasHourlyWindow ? usage.hourlyResetAt : usage.weeklyResetAt,
+                    weeklyResetAt: usage.weeklyResetAt,
+                    isRefreshing: account.isLoading,
+                    onRefresh: { Task { await account.refresh() } }
+                )
+            } else {
+                Text("Usage format unavailable")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        } else if account.provider == .claude, let usage = account.claudeUsage {
+            if let budget = usage.monthlyBudget,
+               let used = budget.used, let limit = budget.limit,
+               used.isFinite, used >= 0, limit.isFinite, limit > 0,
+               usage.fiveHourUtilization == nil, usage.sevenDayUtilization == nil {
+                budgetGauge(
+                    used: used, limit: limit, unit: budget.unit,
+                    resetAt: budget.resetAt, icon: "logo-claude",
+                    label: "Claude Code",
+                    isRefreshing: account.isLoading,
+                    onRefresh: { Task { await account.refresh() } }
+                )
+            } else {
+                CircularGaugeView(
+                    primaryPercent: usage.usedPercent,
+                    primaryLimitReached: usage.limitReached,
+                    showsPrimaryMetric: usage.primaryMetric.utilization != nil,
+                    secondaryPercent: Int(usage.sevenDayUtilization?.rounded() ?? 0),
+                    secondaryLimitReached: (usage.sevenDayUtilization ?? 0) >= 100,
+                    showsSecondaryMetric: usage.primaryMetric.kind != .sevenDay && usage.sevenDayUtilization != nil,
+                    isLoading: false, icon: "logo-claude",
+                    label: "Claude Code",
+                    primaryLabel: usage.primaryMetricLabel,
+                    secondaryLabel: "7d",
+                    resetAt: usage.resetAt,
+                    weeklyResetAt: usage.sevenDayResetsAt,
+                    isRefreshing: account.isLoading,
+                    onRefresh: { Task { await account.refresh() } }
+                )
+            }
+        } else if account.isLoading {
+            ProgressView("Loading usage")
+                .controlSize(.small)
+        } else {
+            Button(account.isAuthenticated ? "Refresh" : "Connect") {
+                Task {
+                    if account.isAuthenticated { await account.refresh() }
+                    else { await viewModel.reconnectAccount(id: account.id) }
+                }
+            }
+            .controlSize(.small)
         }
     }
 

@@ -28,7 +28,7 @@ final class ProbeModel {
     private var tokenHistoryAttempt: Date?
     private(set) var history: CodexUsageHistory?
     private(set) var historyUnavailable = false
-    private let historyCacheKey = "mobileProbe.codexHistory"
+    private var historyCacheKey: String { scopedDefaultsKey("mobileProbe.codexHistory") }
     private(set) var reading: QuotaReading?
     private(set) var signInCompletionID: UUID?
     private(set) var busy = false
@@ -38,7 +38,17 @@ final class ProbeModel {
     private(set) var connectionFailure: SharedQuotaStore.Failure?
     let isDemo: Bool
     var connected: Bool { isDemo || tokens != nil }
-    private let cacheKey = "mobileProbe.codexReading"
+    private var cacheKey: String { scopedDefaultsKey("mobileProbe.codexReading") }
+
+    /// The storage namespace for this connection. The legacy `live` namespace
+    /// remains the app's original singleton account.
+    var accountNamespace: String { shared.namespace }
+
+    private var isLegacyNamespace: Bool { shared.namespace == "live" }
+
+    private func scopedDefaultsKey(_ key: String) -> String {
+        isLegacyNamespace ? key : "\(key).\(shared.namespace)"
+    }
 
     init(isDemo: Bool = false, api: CodexAPI = CodexAPI(), shared: SharedQuotaStore = SharedQuotaStore(.codex),
          defaults: UserDefaults = .standard,
@@ -48,7 +58,12 @@ final class ProbeModel {
         self.shared = shared
         self.defaults = defaults
         self.fetchUsage = fetchUsage
-        self.tokenHistoryCache = CodexTokenHistoryCache(defaults: defaults)
+        let legacyNamespace = shared.namespace == "live"
+        self.tokenHistoryCache = CodexTokenHistoryCache(
+            defaults: defaults,
+            key: legacyNamespace ? "mobileProbe.codexTokenHistory" :
+                "mobileProbe.codexTokenHistory.\(shared.namespace)"
+        )
         if isDemo {
             reading = DemoQuotaData.reading(.codex)
             history = DemoQuotaData.history()
@@ -57,7 +72,7 @@ final class ProbeModel {
             return
         }
         do {
-            tokens = try shared.load(CodexTokens.self) ?? TokenStore.load()
+            tokens = try shared.load(CodexTokens.self) ?? (legacyNamespace ? TokenStore.load() : nil)
             if tokens != nil {
                 alignTokenHistory(to: tokens)
                 connectionFailure = shared.failure()
@@ -88,9 +103,10 @@ final class ProbeModel {
                 if let code = try await api.poll(newChallenge) {
                     let newTokens = try await api.exchange(code)
                     try Task.checkCancellation()
-                    try await shared.withLease { [shared] in
+                    let legacyNamespace = isLegacyNamespace
+                    try await shared.withLease { [shared, legacyNamespace] in
                         try shared.saveCredentials(newTokens)
-                        try TokenStore.clear()
+                        if legacyNamespace { try TokenStore.clear() }
                     }
                     clearTokenHistory()
                     tokenHistoryCache.clear()
@@ -125,7 +141,7 @@ final class ProbeModel {
         guard !isDemo else { refresh(); return }
         guard !busy, connected else { return }
         // Invalidate token history before the foreground quota throttle on account changes.
-        let current = try? shared.load(CodexTokens.self) ?? TokenStore.load()
+        let current = try? shared.load(CodexTokens.self) ?? (isLegacyNamespace ? TokenStore.load() : nil)
         alignTokenHistory(to: current)
         // A widget may have published a newer successful reading while the app was inactive.
         if let cached = shared.reading(), cached.fetchedAt > (reading?.fetchedAt ?? .distantPast) {
@@ -149,7 +165,7 @@ final class ProbeModel {
         refresh()
     }
     private func fetch(forceRenewal: Bool, minimumAge: TimeInterval = 0) async throws {
-        let current = try? shared.load(CodexTokens.self) ?? TokenStore.load()
+        let current = try? shared.load(CodexTokens.self) ?? (isLegacyNamespace ? TokenStore.load() : nil)
         alignTokenHistory(to: current)
         let backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "Refresh allowance") { [weak self] in
             Task { @MainActor in self?.work?.cancel() }
@@ -157,12 +173,15 @@ final class ProbeModel {
         defer { if backgroundTask != .invalid { UIApplication.shared.endBackgroundTask(backgroundTask) } }
 
         // Migrate once under the same lease used by widget renewal. Never overwrite newer shared credentials.
-        try await shared.withLease { [shared] in
-            if try shared.load(CodexTokens.self) == nil, let old = try TokenStore.load() {
+        let legacyNamespace = isLegacyNamespace
+        try await shared.withLease { [shared, legacyNamespace] in
+            if legacyNamespace, try shared.load(CodexTokens.self) == nil, let old = try TokenStore.load() {
                 try shared.saveCredentials(old)
             }
-            try TokenStore.clear()
-            try WidgetStore.clearAccess()
+            if legacyNamespace {
+                try TokenStore.clear()
+                try WidgetStore.clearAccess()
+            }
         }
         message = "Refreshing…"
         let value: QuotaReading
@@ -175,7 +194,7 @@ final class ProbeModel {
         connectionFailure = nil
         defaults.set(try JSONEncoder().encode(value), forKey: cacheKey)
         if forceRenewal { renewedAt = .now }
-        WidgetCenter.shared.reloadAllTimelines()
+        if isLegacyNamespace { WidgetCenter.shared.reloadAllTimelines() }
         message = "Usage updated."
         // History is optional: an unavailable analytics endpoint must not mark quota stale.
         if let tokens {
@@ -287,14 +306,19 @@ final class ProbeModel {
         message = "Connect Codex to see your usage."
     }
     private func clearConnection() async throws {
-        try await shared.withLease { [shared] in
-            try TokenStore.clear()
-            try WidgetStore.clear()
+        let legacyNamespace = isLegacyNamespace
+        try await shared.withLease { [shared, legacyNamespace] in
+            if legacyNamespace {
+                try TokenStore.clear()
+                try WidgetStore.clear()
+            }
             try shared.clear()
         }
-        await WKWebsiteDataStore.default().removeData(
-            ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast)
-        WidgetCenter.shared.reloadAllTimelines()
+        if legacyNamespace {
+            await WKWebsiteDataStore.default().removeData(
+                ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast)
+            WidgetCenter.shared.reloadAllTimelines()
+        }
         defaults.removeObject(forKey: cacheKey)
         defaults.removeObject(forKey: historyCacheKey)
         tokenHistoryCache.clear()

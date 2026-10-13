@@ -6,6 +6,7 @@ public actor OpenAIClient {
     private let logger = Logger(subsystem: "app.aiquota", category: "OpenAIClient")
     private let coordinator: CodexAuthCoordinator
     private let session: URLSession
+    private let accountStorageID: UUID?
 
     private let baseURL = URL(string: "https://chatgpt.com")!
     // Confirmed endpoint from network inspection of chatgpt.com/codex/settings/usage
@@ -13,10 +14,17 @@ public actor OpenAIClient {
     private let creditUsageEventsPath = "/backend-api/wham/usage/credit-usage-events"
     private let autoTopUpPath = "/backend-api/subscriptions/auto_top_up/settings"
 
-    public init(coordinator: CodexAuthCoordinator) {
+    public init(coordinator: CodexAuthCoordinator, accountStorageID: UUID? = nil) {
         self.coordinator = coordinator
+        self.accountStorageID = accountStorageID
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 15
+        if accountStorageID != nil {
+            // Scoped calls authenticate with this coordinator's bearer token.
+            // A process-wide ChatGPT cookie could select a different account.
+            config.httpCookieStorage = nil
+            config.httpShouldSetCookies = false
+        }
         self.session = URLSession(configuration: config)
     }
 
@@ -115,13 +123,63 @@ public actor OpenAIClient {
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             let raw = try decoder.decode(WhamUsageResponse.self, from: data)
             recordAttempt(source: context.source, httpStatus: http.statusCode, category: .success)
-            return CodexUsage(from: raw).retainingLastConfirmedWindows(from: SharedDefaults.loadCachedUsage())
+            let previous = accountStorageID.map { SharedDefaults.loadCachedUsage(forAccountID: $0.uuidString) }
+                ?? (accountStorageID == nil ? SharedDefaults.loadCachedUsage() : nil)
+            return CodexUsage(from: raw).retainingLastConfirmedWindows(from: previous)
         } catch {
             recordAttempt(source: context.source, httpStatus: http.statusCode, category: .invalidResponse)
-            let preview = String(data: data.prefix(2000), encoding: .utf8) ?? "<non-UTF8>"
-            logger.error("[OpenAIClient] decodingError: \(error) | body: \(preview)")
+            logger.error("[OpenAIClient] decodingError: \(error)")
             throw NetworkError.decodingError(underlying: error)
         }
+    }
+
+    /// Fetches the organization member monthly budget when the account exposes it.
+    /// Personal accounts may return 404; callers can treat that as unavailable.
+    public func fetchMemberMonthlyUsage() async throws -> CodexMonthlyUsageResponse {
+        let context = try await coordinator.accessContext()
+        guard let accountID = context.accountID, !accountID.isEmpty else {
+            throw NetworkError.notAuthenticated
+        }
+        var req = URLRequest(url: Self.memberMonthlyUsageURL(baseURL: baseURL, accountID: accountID))
+        req.httpMethod = "GET"
+        req.setValue("Bearer \(context.accessToken)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        req.setValue(accountID, forHTTPHeaderField: "ChatGPT-Account-Id")
+        let (data, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw NetworkError.networkUnavailable }
+        switch http.statusCode {
+        case 200...299: break
+        case 401: throw NetworkError.tokenExpired
+        case 429: throw NetworkError.rateLimited
+        default: throw NetworkError.httpError(statusCode: http.statusCode)
+        }
+        do {
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            return try decoder.decode(CodexMonthlyUsageResponse.self, from: data)
+        } catch {
+            throw NetworkError.decodingError(underlying: error)
+        }
+    }
+
+    nonisolated static func _decodeMonthlyUsageForTesting(_ data: Data) throws -> CodexMonthlyUsageResponse {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return try decoder.decode(CodexMonthlyUsageResponse.self, from: data)
+    }
+
+    nonisolated static func _memberMonthlyUsageURLForTesting(accountID: String) -> URL {
+        memberMonthlyUsageURL(baseURL: URL(string: "https://chatgpt.com")!, accountID: accountID)
+    }
+
+    private static func memberMonthlyUsageURL(baseURL: URL, accountID: String) -> URL {
+        baseURL
+            .appendingPathComponent("backend-api")
+            .appendingPathComponent("accounts")
+            .appendingPathComponent(accountID)
+            .appendingPathComponent("spend-controls")
+            .appendingPathComponent("current-user")
+            .appendingPathComponent("monthly-usage")
     }
 
     public func fetchAutoReload() async throws -> CodexAutoReload {
@@ -165,8 +223,7 @@ public actor OpenAIClient {
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             raw = try decoder.decode(AutoTopUpSettingsResponse.self, from: data)
         } catch {
-            let preview = String(data: data.prefix(2000), encoding: .utf8) ?? "<non-UTF8>"
-            logger.error("[OpenAIClient] fetchAutoReload decodingError: \(error) | body: \(preview)")
+            logger.error("[OpenAIClient] fetchAutoReload decodingError: \(error)")
             throw NetworkError.decodingError(underlying: error)
         }
 
@@ -219,8 +276,7 @@ public actor OpenAIClient {
             let raw = try decoder.decode(CodexCreditUsageEventsResponse.self, from: data)
             return raw.monthToDateTotal()
         } catch {
-            let preview = String(data: data.prefix(2000), encoding: .utf8) ?? "<non-UTF8>"
-            logger.error("[OpenAIClient] fetchBonusCreditsSpentThisMonth decodingError: \(error) | body: \(preview)")
+            logger.error("[OpenAIClient] fetchBonusCreditsSpentThisMonth decodingError: \(error)")
             throw NetworkError.decodingError(underlying: error)
         }
     }
@@ -230,6 +286,10 @@ public actor OpenAIClient {
         httpStatus: Int?,
         category: CodexSourceAttempt.ErrorCategory
     ) {
+        // Source attempts are currently stored in one shared ring. Suppress
+        // writes for scoped accounts until a per-account diagnostics store is
+        // available, preventing cross-account history leakage.
+        guard accountStorageID == nil else { return }
         SharedDefaults.appendCodexSourceAttempt(.init(
             source: source,
             httpStatus: httpStatus,

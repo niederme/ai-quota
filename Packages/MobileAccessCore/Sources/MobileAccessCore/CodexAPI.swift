@@ -94,6 +94,11 @@ public struct QuotaWindow: Codable, Sendable, Equatable, Identifiable {
     public let usedPercent: Double
     public let durationSeconds: Int
     public let resetsAt: Date?
+    public init(usedPercent: Double, durationSeconds: Int, resetsAt: Date?) {
+        self.usedPercent = usedPercent
+        self.durationSeconds = durationSeconds
+        self.resetsAt = resetsAt
+    }
     public var label: String {
         switch durationSeconds {
         case 604800: "Weekly"
@@ -108,16 +113,24 @@ public struct QuotaReading: Codable, Sendable, Equatable {
     public let shortTerm: QuotaWindow?
     // Legacy persistence key: this slot also holds monthly/other long allowances.
     public let weekly: QuotaWindow?
+    public let monthlyBudget: MonthlyBudget?
     public var windows: [QuotaWindow] { [shortTerm, weekly].compactMap { $0 } }
     public var primaryWindow: QuotaWindow? { windows.first }
     public var secondaryWindow: QuotaWindow? { windows.dropFirst().first }
+    public var budgetOnly: MonthlyBudget? { windows.isEmpty ? monthlyBudget : nil }
+    public var primaryDisplayWindow: QuotaWindow? {
+        primaryWindow ?? budgetOnly.map {
+            QuotaWindow(usedPercent: $0.usedPercent, durationSeconds: 30 * 86400, resetsAt: $0.resetsAt)
+        }
+    }
     public var accessibilitySummary: String {
-        windows.isEmpty ? "Allowance unavailable" : windows.map(\.accessibilitySummary).joined(separator: ". ")
+        let summaries = windows.map(\.accessibilitySummary) + (monthlyBudget.map { [$0.accessibilitySummary] } ?? [])
+        return summaries.isEmpty ? "Allowance unavailable" : summaries.joined(separator: ". ")
     }
     public let metadata: AccountMetadata?
     public let claudeBreakdown: ClaudeWeeklyBreakdown?
-    public init(fetchedAt: Date, shortTerm: QuotaWindow?, weekly: QuotaWindow?, metadata: AccountMetadata? = nil, claudeBreakdown: ClaudeWeeklyBreakdown? = nil) {
-        self.fetchedAt = fetchedAt; self.shortTerm = shortTerm; self.weekly = weekly; self.metadata = metadata; self.claudeBreakdown = claudeBreakdown
+    public init(fetchedAt: Date, shortTerm: QuotaWindow?, weekly: QuotaWindow?, metadata: AccountMetadata? = nil, claudeBreakdown: ClaudeWeeklyBreakdown? = nil, monthlyBudget: MonthlyBudget? = nil) {
+        self.fetchedAt = fetchedAt; self.shortTerm = shortTerm; self.weekly = weekly; self.metadata = metadata; self.claudeBreakdown = claudeBreakdown; self.monthlyBudget = monthlyBudget
     }
     public static func decode(_ data: Data, now: Date) throws -> Self {
         let raw = try JSONDecoder().decode(UsageResponse.self, from: data)
@@ -130,23 +143,39 @@ public struct QuotaReading: Codable, Sendable, Equatable {
         let parsed = try windows.map(convert)
         let short = parsed.first { $0.durationSeconds < 6 * 86400 }
         let week = parsed.first { $0.durationSeconds >= 6 * 86400 }
-        guard short != nil || week != nil else { throw AccessError.noWindows }
+        let allowance = raw.spendControl?.individualLimit
+        let budget = MonthlyBudget(used: allowance?.used?.value, limit: allowance?.limit?.value,
+                                   unit: allowance?.unit, resetsAt: allowance?.reset.map { Date(timeIntervalSince1970: $0) })
+        guard short != nil || week != nil || budget != nil else { throw AccessError.noWindows }
         let balance = raw.credits?.balance?.value
         let metadata = AccountMetadata(plan: raw.planType, balanceUSD: balance.map { $0 / 25 }, usageSpent: nil, usageCurrency: nil)
-        return Self(fetchedAt: now, shortTerm: short, weekly: week, metadata: metadata)
+        return Self(fetchedAt: now, shortTerm: short, weekly: week, metadata: metadata, monthlyBudget: budget)
     }
 }
 private struct UsageResponse: Decodable {
     let rateLimit: UsageLimit?
     let planType: String?
     let credits: Credits?
+    let spendControl: SpendControl?
     struct Credits: Decodable { let balance: MetadataNumber? }
-    enum CodingKeys: String, CodingKey { case rateLimit = "rate_limit", planType = "plan_type", credits }
+    struct SpendControl: Decodable {
+        let individualLimit: IndividualLimit?
+        enum CodingKeys: String, CodingKey { case individualLimit = "individual_limit" }
+    }
+    struct IndividualLimit: Decodable {
+        let unit: String?
+        let used: MetadataNumber?
+        let limit: MetadataNumber?
+        let reset: Double?
+        enum CodingKeys: String, CodingKey { case unit, used, limit, reset = "reset_at" }
+    }
+    enum CodingKeys: String, CodingKey { case rateLimit = "rate_limit", planType = "plan_type", credits, spendControl = "spend_control" }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         rateLimit = try c.decodeIfPresent(UsageLimit.self, forKey: .rateLimit)
         planType = try? c.decode(String.self, forKey: .planType)
         credits = try? c.decode(Credits.self, forKey: .credits)
+        spendControl = try? c.decode(SpendControl.self, forKey: .spendControl)
     }
 }
 private struct UsageLimit: Decodable {
@@ -159,6 +188,12 @@ private struct UsageWindow: Decodable {
     let seconds: Int
     let reset: Double?
     enum CodingKeys: String, CodingKey { case used = "used_percent", seconds = "limit_window_seconds", reset = "reset_at" }
+}
+
+private struct MemberMonthlyUsageResponse: Decodable {
+    let effective_monthly_limit: Limit?
+    let current_month_usage: MetadataNumber?
+    struct Limit: Decodable { let limit: MetadataNumber? }
 }
 
 public struct CodexAPI: Sendable {
@@ -217,7 +252,14 @@ public struct CodexAPI: Sendable {
         req.setValue("https://chatgpt.com/codex/settings/usage", forHTTPHeaderField: "Referer")
         let r = try await transport.send(req)
         try validate(r)
-        let reading = try QuotaReading.decode(r.data, now: now ?? .now)
+        let fetchedAt = now ?? .now
+        let reading: QuotaReading
+        do {
+            reading = try QuotaReading.decode(r.data, now: fetchedAt)
+        } catch AccessError.noWindows {
+            guard let budget = try await memberMonthlyBudget(tokens) else { throw AccessError.noWindows }
+            reading = QuotaReading(fetchedAt: fetchedAt, shortTerm: nil, weekly: nil, monthlyBudget: budget)
+        }
         guard includeSpending else { return reading }
         req.url = URL(string: "https://chatgpt.com/backend-api/wham/usage/credit-usage-events")!
         req.timeoutInterval = 5
@@ -226,7 +268,26 @@ public struct CodexAPI: Sendable {
               let spent = try? Self.decodeSpending(response.data, now: reading.fetchedAt) else { return reading }
         return QuotaReading(fetchedAt: reading.fetchedAt, shortTerm: reading.shortTerm, weekly: reading.weekly,
             metadata: AccountMetadata(plan: reading.metadata?.plan, balanceUSD: reading.metadata?.balanceUSD,
-                usageSpent: spent, usageCurrency: "USD"))
+                usageSpent: spent, usageCurrency: "USD"), monthlyBudget: reading.monthlyBudget)
+    }
+
+    private func memberMonthlyBudget(_ tokens: CodexTokens) async throws -> MonthlyBudget? {
+        guard let accountID = tokens.accountID, !accountID.isEmpty else { return nil }
+        let url = URL(string: "https://chatgpt.com")!
+            .appendingPathComponent("backend-api")
+            .appendingPathComponent("accounts")
+            .appendingPathComponent(accountID)
+            .appendingPathComponent("spend-controls/current-user/monthly-usage")
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(tokens.accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue(accountID, forHTTPHeaderField: "ChatGPT-Account-Id")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        let response = try await transport.send(request)
+        if response.status == 404 { return nil }
+        try validate(response)
+        let raw = try JSONDecoder().decode(MemberMonthlyUsageResponse.self, from: response.data)
+        return MonthlyBudget(used: raw.current_month_usage?.value,
+                             limit: raw.effective_monthly_limit?.limit?.value, unit: "credit")
     }
     /// Optional overview analytics. This never changes the successful quota reading.
     public func usageHistory(_ tokens: CodexTokens, now: Date = .now) async throws -> CodexUsageHistory {

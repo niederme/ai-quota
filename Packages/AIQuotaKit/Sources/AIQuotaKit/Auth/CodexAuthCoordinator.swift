@@ -57,9 +57,12 @@ public actor CodexAuthCoordinator {
     private var accountID: String?
     private var authSource: CodexAuthSource?
     private var oauthDisabledForSession = false
-    private let sessionEndpoint = URL(string: "https://chatgpt.com/api/auth/session")!
 
     private let logger = Logger(subsystem: "ai.quota", category: "codex-coord")
+
+    /// Stable app-owned account identifier. A scoped coordinator uses an
+    /// independent persistent WebKit data store and credential snapshot.
+    public let accountStorageID: UUID?
 
     public typealias SessionProbe = @Sendable () async -> CodexProbeResult
     public typealias HeadlessSessionReviver = @Sendable () async -> CodexWebSessionResult?
@@ -71,17 +74,34 @@ public actor CodexAuthCoordinator {
     private let oauthCredentialsLoader: OAuthCredentialsLoader
 
     public init(
+        accountStorageID: UUID? = nil,
         probe: SessionProbe? = nil,
         headlessSessionReviver: HeadlessSessionReviver? = nil,
         tokenRefresher: AccessTokenRefresher? = nil,
         oauthCredentialsLoader: OAuthCredentialsLoader? = nil
     ) {
-        self.probe = probe ?? CodexAuthCoordinator.wkProbe
-        self.headlessSessionReviver = headlessSessionReviver ?? CodexAuthCoordinator.headlessWebSessionReviver
+        self.accountStorageID = accountStorageID
+        self.probe = probe ?? CodexAuthCoordinator.wkProbe(for: accountStorageID)
+        self.headlessSessionReviver = headlessSessionReviver ?? CodexAuthCoordinator.headlessWebSessionReviver(for: accountStorageID)
         self.tokenRefresher = tokenRefresher ?? CodexAuthCoordinator.defaultTokenRefresher
         self.oauthCredentialsLoader = oauthCredentialsLoader ?? {
-            try CodexOAuthCredentialsStore.loadUsable()
+            // Codex CLI credentials are a process-global identity. Reusing them
+            // for every connected account would silently collapse all scoped
+            // coordinators onto that one identity. A caller may still provide
+            // an explicitly account-scoped loader.
+            guard accountStorageID == nil else { throw CodexOAuthCredentialsError.notFound }
+            return try CodexOAuthCredentialsStore.loadUsable()
         }
+    }
+
+    private var signedOutDefaultsKey: String {
+        guard let accountStorageID else { return Self.signedOutKey }
+        return "\(Self.signedOutKey).\(accountStorageID.uuidString.lowercased())"
+    }
+
+    private var sessionTokenKey: String {
+        guard let accountStorageID else { return "sessionToken" }
+        return "sessionToken.\(accountStorageID.uuidString.lowercased())"
     }
 
     // MARK: - State stream
@@ -114,7 +134,7 @@ public actor CodexAuthCoordinator {
 
         await clearStateIfFreshInstall()
 
-        if UserDefaults.standard.bool(forKey: Self.signedOutKey) {
+        if UserDefaults.standard.bool(forKey: signedOutDefaultsKey) {
             transition(to: .signedOutByUser)
             return
         }
@@ -150,7 +170,7 @@ public actor CodexAuthCoordinator {
         transition(to: .signingIn)
 
         if restoreFromOAuthCredentials() {
-            UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+            UserDefaults.standard.removeObject(forKey: signedOutDefaultsKey)
             transition(to: .authenticated)
             return
         }
@@ -158,7 +178,7 @@ public actor CodexAuthCoordinator {
         do {
             let result = try await runLoginWindow()
             if !result.sessionToken.isEmpty {
-                KeychainStore.save(result.sessionToken, forKey: "sessionToken")
+                KeychainStore.save(result.sessionToken, forKey: sessionTokenKey)
             }
             // Cache the access token returned directly from the WKWebView — no extra URLSession call needed.
             cachedAccessToken = result.accessToken
@@ -166,7 +186,7 @@ public actor CodexAuthCoordinator {
             accountID = CodexOAuthCredentialsStore.jwtAccountID(result.accessToken)
             authSource = .webSession
             persistSharedAuthContext(sessionToken: result.sessionToken)
-            UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+            UserDefaults.standard.removeObject(forKey: signedOutDefaultsKey)
             transition(to: .authenticated)
         } catch {
             clearPersistedSharedAuthContext()
@@ -196,7 +216,7 @@ public actor CodexAuthCoordinator {
 
         logger.notice("[CodexRecovery] trying Codex OAuth file")
         if restoreFromOAuthCredentialsForRecovery() {
-            UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+            UserDefaults.standard.removeObject(forKey: signedOutDefaultsKey)
             transition(to: .authenticated)
             return true
         }
@@ -206,7 +226,7 @@ public actor CodexAuthCoordinator {
         if case .found(let token) = probeResult {
             if await restoreFromSessionToken(token) {
                 logger.notice("[CodexRecovery] WebKit probe restored session")
-                UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+                UserDefaults.standard.removeObject(forKey: signedOutDefaultsKey)
                 transition(to: .authenticated)
                 return true
             }
@@ -226,7 +246,7 @@ public actor CodexAuthCoordinator {
         if let headlessResult = await headlessSessionReviver() {
             logger.notice("[CodexRecovery] headless WebKit revival found sessionToken=\(!headlessResult.sessionToken.isEmpty, privacy: .public)")
             restoreFromWebSession(headlessResult)
-            UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+            UserDefaults.standard.removeObject(forKey: signedOutDefaultsKey)
             transition(to: .authenticated)
             return true
         }
@@ -248,9 +268,9 @@ public actor CodexAuthCoordinator {
         }
 
         transition(to: .signingOut)
-        UserDefaults.standard.set(true, forKey: Self.signedOutKey)
+        UserDefaults.standard.set(true, forKey: signedOutDefaultsKey)
         clearTokenCache()
-        KeychainStore.delete(forKey: "sessionToken")
+        KeychainStore.delete(forKey: sessionTokenKey)
         clearPersistedSharedAuthContext()
         await clearWKCookies()
         clearURLSessionCookies()
@@ -275,7 +295,7 @@ public actor CodexAuthCoordinator {
 
         switch result {
         case .found(let token):
-            KeychainStore.save(token, forKey: "sessionToken")
+            KeychainStore.save(token, forKey: sessionTokenKey)
             persistSharedAuthContext(sessionToken: token)
             if (try? await refreshAccessToken()) != nil { return true }
             clearTokenCache()
@@ -284,7 +304,7 @@ public actor CodexAuthCoordinator {
             return false
         case .notFound, .none:
             clearTokenCache()
-            KeychainStore.delete(forKey: "sessionToken")
+            KeychainStore.delete(forKey: sessionTokenKey)
             clearPersistedSharedAuthContext()
             transition(to: .unauthenticated)
             return false
@@ -301,18 +321,18 @@ public actor CodexAuthCoordinator {
         }
         guard state == .authenticated || state == .unauthenticated || state == .signedOutByUser else {
             logger.warning("[CodexCoord] reset: timed out waiting for in-flight transition to settle; forcing signedOutByUser")
-            UserDefaults.standard.set(true, forKey: Self.signedOutKey)
+            UserDefaults.standard.set(true, forKey: signedOutDefaultsKey)
             clearTokenCache()
-            KeychainStore.delete(forKey: "sessionToken")
+            KeychainStore.delete(forKey: sessionTokenKey)
             clearPersistedSharedAuthContext()
             transition(to: .signedOutByUser)
             return
         }
 
         transition(to: .resetting)
-        UserDefaults.standard.set(true, forKey: Self.signedOutKey)
+        UserDefaults.standard.set(true, forKey: signedOutDefaultsKey)
         clearTokenCache()
-        KeychainStore.delete(forKey: "sessionToken")
+        KeychainStore.delete(forKey: sessionTokenKey)
         clearPersistedSharedAuthContext()
         await clearWKCookies()
         clearURLSessionCookies()
@@ -412,7 +432,7 @@ public actor CodexAuthCoordinator {
 
         do {
             let refreshed = try await tokenRefresher(sessionToken)
-            KeychainStore.save(sessionToken, forKey: "sessionToken")
+            KeychainStore.save(sessionToken, forKey: sessionTokenKey)
             cachedAccessToken = refreshed.token
             tokenExpiresAt = refreshed.expiresAt ?? Date.now.addingTimeInterval(86400)
             accountID = CodexOAuthCredentialsStore.jwtAccountID(refreshed.token)
@@ -427,7 +447,7 @@ public actor CodexAuthCoordinator {
 
     private func restoreFromWebSession(_ result: CodexWebSessionResult) {
         if !result.sessionToken.isEmpty {
-            KeychainStore.save(result.sessionToken, forKey: "sessionToken")
+            KeychainStore.save(result.sessionToken, forKey: sessionTokenKey)
         }
         cachedAccessToken = result.accessToken
         tokenExpiresAt = result.expiresAt ?? Date.now.addingTimeInterval(86400)
@@ -437,22 +457,32 @@ public actor CodexAuthCoordinator {
     }
 
     private func persistSharedAuthContext(sessionToken: String? = nil) {
-        let effectiveSessionToken = sessionToken ?? KeychainStore.load(forKey: "sessionToken") ?? ""
-        SharedAuthContextStore.saveCodex(
-            SharedCodexAuthContext(
-                sessionToken: effectiveSessionToken,
-                accessToken: cachedAccessToken,
-                accessTokenExpiresAt: tokenExpiresAt,
-                accountID: accountID
-            )
+        let effectiveSessionToken = sessionToken ?? KeychainStore.load(forKey: sessionTokenKey) ?? ""
+        let context = SharedCodexAuthContext(
+            sessionToken: effectiveSessionToken,
+            accessToken: cachedAccessToken,
+            accessTokenExpiresAt: tokenExpiresAt,
+            accountID: accountID
         )
+        if let accountStorageID {
+            SharedAuthContextStore.saveCodex(context, forAccountID: accountStorageID.uuidString)
+        } else {
+            SharedAuthContextStore.saveCodex(context)
+        }
     }
 
     private func clearPersistedSharedAuthContext() {
-        SharedAuthContextStore.clearCodex()
+        if let accountStorageID {
+            SharedAuthContextStore.clearCodex(forAccountID: accountStorageID.uuidString)
+        } else {
+            SharedAuthContextStore.clearCodex()
+        }
     }
 
     private func clearURLSessionCookies() {
+        // Scoped coordinators never copy their browser cookies into the process
+        // global jar, so signing one account out must leave that jar untouched.
+        guard accountStorageID == nil else { return }
         for cookie in HTTPCookieStorage.shared.cookies ?? []
             where cookie.domain.contains("chatgpt.com") || cookie.domain.contains("openai.com") {
             HTTPCookieStorage.shared.deleteCookie(cookie)
@@ -460,13 +490,15 @@ public actor CodexAuthCoordinator {
     }
 
     private func clearWKCookies() async {
+        let accountStorageID = self.accountStorageID
         await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
             Task { @MainActor in
-                WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
+                let dataStore = Self.websiteDataStore(for: accountStorageID)
+                dataStore.httpCookieStore.getAllCookies { cookies in
                     let relevant = cookies.filter { $0.domain.contains("chatgpt.com") || $0.domain.contains("openai.com") }
                     guard !relevant.isEmpty else { cont.resume(); return }
                     let g = DispatchGroup()
-                    for c in relevant { g.enter(); WKWebsiteDataStore.default().httpCookieStore.delete(c) { g.leave() } }
+                    for c in relevant { g.enter(); dataStore.httpCookieStore.delete(c) { g.leave() } }
                     g.notify(queue: .main) { cont.resume() }
                 }
             }
@@ -475,9 +507,10 @@ public actor CodexAuthCoordinator {
 
     @discardableResult
     private func verifyWKCookiesEmpty() async -> Bool {
-        await withCheckedContinuation { (cont: CheckedContinuation<Bool, Never>) in
+        let accountStorageID = self.accountStorageID
+        return await withCheckedContinuation { (cont: CheckedContinuation<Bool, Never>) in
             Task { @MainActor in
-                WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
+                Self.websiteDataStore(for: accountStorageID).httpCookieStore.getAllCookies { cookies in
                     let remaining = cookies.filter { $0.domain.contains("chatgpt.com") || $0.domain.contains("openai.com") }
                     cont.resume(returning: remaining.isEmpty)
                 }
@@ -487,25 +520,16 @@ public actor CodexAuthCoordinator {
 
     @discardableResult
     private func refreshAccessToken() async throws -> String {
-        var req = URLRequest(url: sessionEndpoint)
-        req.setValue("https://chatgpt.com", forHTTPHeaderField: "Referer")
-        req.setValue("application/json", forHTTPHeaderField: "Accept")
-        req.setValue("https://chatgpt.com", forHTTPHeaderField: "Origin")
-
-        let (data, response) = try await URLSession.shared.data(for: req)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200, !data.isEmpty else {
-            throw NetworkError.refreshFailed
+        guard let sessionToken = KeychainStore.load(forKey: sessionTokenKey), !sessionToken.isEmpty else {
+            throw NetworkError.notAuthenticated
         }
-        struct SessionResponse: Decodable { let accessToken: String; let expires: String? }
-        let decoder = JSONDecoder()
-        decoder.keyDecodingStrategy = .convertFromSnakeCase
-        let session = try decoder.decode(SessionResponse.self, from: data)
-        cachedAccessToken = session.accessToken
-        tokenExpiresAt = parseExpiry(session.expires) ?? Date.now.addingTimeInterval(86400)
-        accountID = CodexOAuthCredentialsStore.jwtAccountID(session.accessToken)
+        let session = try await tokenRefresher(sessionToken)
+        cachedAccessToken = session.token
+        tokenExpiresAt = session.expiresAt ?? Date.now.addingTimeInterval(86400)
+        accountID = CodexOAuthCredentialsStore.jwtAccountID(session.token)
         authSource = .webSession
-        persistSharedAuthContext()
-        return session.accessToken
+        persistSharedAuthContext(sessionToken: sessionToken)
+        return session.token
     }
 
     private static func defaultTokenRefresher(_ sessionToken: String) async throws -> (token: String, expiresAt: Date?) {
@@ -530,10 +554,6 @@ public actor CodexAuthCoordinator {
             token: session.accessToken,
             expiresAt: Self.parseExpiryValue(session.expires)
         )
-    }
-
-    private func parseExpiry(_ string: String?) -> Date? {
-        Self.parseExpiryValue(string)
     }
 
     private static func parseExpiryValue(_ string: String?) -> Date? {
@@ -570,9 +590,10 @@ public actor CodexAuthCoordinator {
     }
 
     private func runLoginWindow() async throws -> CodexLoginResult {
-        try await withCheckedThrowingContinuation { continuation in
+        let accountStorageID = self.accountStorageID
+        return try await withCheckedThrowingContinuation { continuation in
             Task { @MainActor in
-                let controller = CodexLoginWindowController { result in
+                let controller = CodexLoginWindowController(accountStorageID: accountStorageID) { result in
                     continuation.resume(with: result)
                 }
                 controller.show()
@@ -581,13 +602,16 @@ public actor CodexAuthCoordinator {
     }
 
     private func clearStateIfFreshInstall() async {
+        // Account containers are created after install and must not participate
+        // in the app-wide legacy migration sentinel.
+        guard accountStorageID == nil else { return }
         let sentinel = Self.freshInstallKey
         guard UserDefaults.standard.object(forKey: sentinel) == nil else { return }
         guard !(await AuthInstallState.isExistingInstall()) else {
             UserDefaults.standard.set(true, forKey: sentinel)
             return
         }
-        KeychainStore.delete(forKey: "sessionToken")
+        KeychainStore.delete(forKey: sessionTokenKey)
         SharedDefaults.clearUsage()
         SharedDefaults.clearClaudeUsage()
         // Do not clear WebKit cookies here. A misclassified update/archive build
@@ -595,19 +619,21 @@ public actor CodexAuthCoordinator {
         UserDefaults.standard.set(true, forKey: sentinel)
     }
 
-    private static var wkProbe: SessionProbe {
+    private static func wkProbe(for accountStorageID: UUID?) -> SessionProbe {
         {
             await withCheckedContinuation { cont in
                 Task { @MainActor in
-                    WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
+                    Self.websiteDataStore(for: accountStorageID).httpCookieStore.getAllCookies { cookies in
                         guard let token = cookies.first(where: {
                             $0.name == "__Secure-next-auth.session-token" && $0.domain.contains("chatgpt.com")
                         }) else {
                             cont.resume(returning: .notFound)
                             return
                         }
-                        for c in cookies where c.domain.contains("chatgpt.com") || c.domain.contains("openai.com") {
-                            HTTPCookieStorage.shared.setCookie(c)
+                        if accountStorageID == nil {
+                            for c in cookies where c.domain.contains("chatgpt.com") || c.domain.contains("openai.com") {
+                                HTTPCookieStorage.shared.setCookie(c)
+                            }
                         }
                         cont.resume(returning: .found(sessionToken: token.value))
                     }
@@ -616,17 +642,22 @@ public actor CodexAuthCoordinator {
         }
     }
 
-    private static var headlessWebSessionReviver: HeadlessSessionReviver {
+    private static func headlessWebSessionReviver(for accountStorageID: UUID?) -> HeadlessSessionReviver {
         {
             await withCheckedContinuation { continuation in
                 Task { @MainActor in
-                    let reviver = CodexHeadlessSessionReviver { result in
+                    let reviver = CodexHeadlessSessionReviver(accountStorageID: accountStorageID) { result in
                         continuation.resume(returning: result)
                     }
                     reviver.start()
                 }
             }
         }
+    }
+
+    @MainActor
+    private static func websiteDataStore(for accountStorageID: UUID?) -> WKWebsiteDataStore {
+        accountStorageID.map(WKWebsiteDataStore.init(forIdentifier:)) ?? .default()
     }
 
     @MainActor
@@ -655,9 +686,6 @@ public actor CodexAuthCoordinator {
                 }
 
                 let cookies = await webView.configuration.websiteDataStore.httpCookieStore.allCookies()
-                for cookie in cookies where cookie.domain.contains("chatgpt.com") || cookie.domain.contains("openai.com") {
-                    HTTPCookieStorage.shared.setCookie(cookie)
-                }
                 let sessionToken = cookies.first {
                     $0.name == "__Secure-next-auth.session-token" && $0.domain.contains("chatgpt.com")
                 }?.value ?? ""
@@ -705,16 +733,18 @@ private final class CodexHeadlessSessionReviver: NSObject {
     private var hasCompleted = false
     private var isFetchingSession = false
     private let onComplete: (@MainActor (CodexWebSessionResult?) -> Void)
+    private let accountStorageID: UUID?
     private let logger = Logger(subsystem: "ai.quota", category: "codex-coord")
 
-    init(onComplete: @escaping (@MainActor (CodexWebSessionResult?) -> Void)) {
+    init(accountStorageID: UUID?, onComplete: @escaping (@MainActor (CodexWebSessionResult?) -> Void)) {
+        self.accountStorageID = accountStorageID
         self.onComplete = onComplete
     }
 
     func start() {
         selfRetain = self
         let config = WKWebViewConfiguration()
-        config.websiteDataStore = .default()
+        config.websiteDataStore = accountStorageID.map(WKWebsiteDataStore.init(forIdentifier:)) ?? .default()
         let webView = WKWebView(frame: .init(x: 0, y: 0, width: 1, height: 1), configuration: config)
         webView.navigationDelegate = self
         self.webView = webView
@@ -811,14 +841,18 @@ private final class CodexLoginWindowController: NSObject {
     private var isFetchingSession = false
     private var selfRetain: CodexLoginWindowController?
     private let onComplete: (Result<CodexLoginResult, Error>) -> Void
+    private let accountStorageID: UUID?
     private let logger = Logger(subsystem: "ai.quota", category: "codex-login")
 
-    init(onComplete: @escaping (Result<CodexLoginResult, Error>) -> Void) { self.onComplete = onComplete }
+    init(accountStorageID: UUID?, onComplete: @escaping (Result<CodexLoginResult, Error>) -> Void) {
+        self.accountStorageID = accountStorageID
+        self.onComplete = onComplete
+    }
 
     func show() {
         selfRetain = self
         let config = WKWebViewConfiguration()
-        config.websiteDataStore = .default()
+        config.websiteDataStore = accountStorageID.map(WKWebsiteDataStore.init(forIdentifier:)) ?? .default()
 
         let wv = WKWebView(frame: .init(x: 0, y: 0, width: 520, height: 680), configuration: config)
         wv.navigationDelegate = self

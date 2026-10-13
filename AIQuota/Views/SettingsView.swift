@@ -478,6 +478,46 @@ private struct AccountDiagnosticsRows: View {
             signOut: { viewModel.signOutClaude() }
         )
 
+        Divider()
+
+        Text("Additional accounts")
+            .font(.subheadline.bold())
+
+        HStack(spacing: 8) {
+            Button("Add Codex account") {
+                Task { await viewModel.addAccount(for: .codex) }
+            }
+            Button("Add Claude account") {
+                Task { await viewModel.addAccount(for: .claude) }
+            }
+        }
+        .controlSize(.small)
+
+        ForEach(viewModel.additionalAccounts) { account in
+            HStack {
+                AccountServiceStatusRow(
+                    label: "\(account.provider == .codex ? "Codex" : "Claude") · \(account.account.displayLabel)",
+                    logo: account.provider == .codex ? "logo-openai" : "logo-claude",
+                    isAuthenticated: account.isAuthenticated,
+                    statusDetail: account.issue ?? (account.isAuthenticated ? "Connected" : "Not signed in"),
+                    statusColor: account.issue == nil ? (account.isAuthenticated ? .green : .secondary) : .orange,
+                    signIn: { Task { await viewModel.reconnectAccount(id: account.id) } },
+                    signOut: { Task { await viewModel.signOutAccount(id: account.id) } }
+                )
+                Button("Remove", role: .destructive) {
+                    Task { await viewModel.removeAccount(id: account.id) }
+                }
+                .controlSize(.small)
+            }
+        }
+
+        if viewModel.hasAdditionalAccounts {
+            Text("Additional accounts appear in the menu bar popover. Widgets and alerts currently follow the original connection for each service.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+
         if AppDistribution.allowsHostCredentialDiscovery {
             VStack(alignment: .leading, spacing: 4) {
                 Toggle("Reuse Claude Code Keychain credentials", isOn: $reuseClaudeCodeKeychain)

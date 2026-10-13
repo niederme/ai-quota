@@ -17,6 +17,7 @@ struct ClaudeAuthCoordinatorTests {
     }
 
     private func makeSUT(
+        accountStorageID: UUID? = nil,
         probe: @escaping ClaudeAuthCoordinator.SessionProbe,
         headlessSessionReviver: ClaudeAuthCoordinator.HeadlessSessionReviver? = nil,
         oauthCredentialsLoader: ClaudeAuthCoordinator.OAuthCredentialsLoader? = nil,
@@ -26,6 +27,7 @@ struct ClaudeAuthCoordinatorTests {
         loginWindowRunner: ClaudeAuthCoordinator.LoginWindowRunner? = nil
     ) -> ClaudeAuthCoordinator {
         ClaudeAuthCoordinator(
+            accountStorageID: accountStorageID,
             probe: probe,
             headlessSessionReviver: headlessSessionReviver ?? { .notFound },
             oauthCredentialsLoader: oauthCredentialsLoader ?? { _ in throw ClaudeOAuthCredentialsError.notFound },
@@ -34,6 +36,46 @@ struct ClaudeAuthCoordinatorTests {
             webSessionClearer: webSessionClearer ?? {},
             loginWindowRunner: loginWindowRunner
         )
+    }
+
+    @Test("scoped sign-out marker does not block another account")
+    func scopedSignOutMarkerIsIsolated() async {
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        let signedOutID = UUID()
+        let otherID = UUID()
+        let signedOutKey = "claude.signedOutByUser.\(signedOutID.uuidString.lowercased())"
+        UserDefaults.standard.set(true, forKey: signedOutKey)
+        defer {
+            UserDefaults.standard.removeObject(forKey: "app.installedAt.v2")
+            UserDefaults.standard.removeObject(forKey: signedOutKey)
+        }
+
+        let signedOut = makeSUT(accountStorageID: signedOutID, probe: { .notFound })
+        let other = makeSUT(accountStorageID: otherID, probe: { .notFound })
+        await signedOut.bootstrap()
+        await other.bootstrap()
+
+        #expect(await signedOut.state == .signedOutByUser)
+        #expect(await other.state == .unauthenticated)
+    }
+
+    @Test("scoped account does not import process-wide Claude Code credentials")
+    func scopedAccountSkipsDefaultOAuthLoader() async {
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
+        let sut = ClaudeAuthCoordinator(
+            accountStorageID: UUID(),
+            probe: { .notFound },
+            headlessSessionReviver: { .notFound },
+            keychainAccessAllowed: { true },
+            sessionValidator: { _ in .invalid },
+            webSessionClearer: {},
+            loginWindowRunner: { throw NetworkError.notAuthenticated }
+        )
+
+        await sut.bootstrap()
+
+        #expect(await sut.state == .unauthenticated)
     }
 
     @Test("Without consent, automatic recovery and credential probes skip the foreign Keychain")
