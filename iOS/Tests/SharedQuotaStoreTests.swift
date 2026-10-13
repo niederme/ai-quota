@@ -429,3 +429,25 @@ final class ResetSchedulingTests: XCTestCase {
         XCTAssertTrue(empty)
     }
 }
+
+@MainActor final class MobileAccountCollectionTests: XCTestCase {
+    func testAdditionalAccountsRestoreWithDistinctNamespacesAndLabels() throws {
+        let suite = "AIQuota.tests.additionalAccounts.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let accounts = MobileAccountCollection(defaults: defaults)
+        let codex = accounts.add(.codex)
+        let claude = accounts.add(.claude)
+        accounts.rename(claude.id, to: "Hearst")
+
+        XCTAssertNotEqual(codex.codex?.accountNamespace, claude.claude?.accountNamespace)
+        XCTAssertFalse(codex.connected)
+        XCTAssertFalse(claude.connected)
+
+        let restored = MobileAccountCollection(defaults: defaults)
+        XCTAssertEqual(restored.sessions.map(\.id), [codex.id, claude.id])
+        XCTAssertEqual(restored.sessions.map(\.label), ["Account 2", "Hearst"])
+        XCTAssertEqual(restored.sessions.map(\.service), [.codex, .claude])
+    }
+}

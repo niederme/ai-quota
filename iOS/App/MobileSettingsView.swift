@@ -14,12 +14,27 @@ struct MobileSettingsView: View {
         case codex, claude, notifications, widgets
         var id: String { rawValue }
     }
+    private struct AdditionalAccountDestination: Identifiable {
+        let id: UUID
+    }
     @State private var confirmReset = false
     @State private var resetting = false
     @State private var resetError: String?
+    @State private var additionalAccountDestination: AdditionalAccountDestination?
+    @State private var renameID: UUID?
+    @State private var renameDraft = ""
+    @State private var removeID: UUID?
     let codex: ProbeModel
     let claude: ClaudeProbeModel
+    let accounts: MobileAccountCollection
     let onboarding: OnboardingProgress
+    init(codex: ProbeModel, claude: ClaudeProbeModel,
+         accounts: MobileAccountCollection? = nil, onboarding: OnboardingProgress) {
+        self.codex = codex
+        self.claude = claude
+        self.accounts = accounts ?? MobileAccountCollection(isDemo: codex.isDemo)
+        self.onboarding = onboarding
+    }
     var body: some View {
         Form {
             Section {
@@ -46,8 +61,16 @@ struct MobileSettingsView: View {
                 Button { destination = .claude } label: {
                     MobileAccountRow(name: "Claude Code", connected: claude.connected, error: claude.error, updated: claude.reading?.fetchedAt, busy: claude.loading, isDemo: claude.isDemo)
                 }
+                additionalAccounts(service: .codex)
+                additionalAccounts(service: .claude)
             } header: { Text("Accounts") } footer: {
-                Text("Manage accounts, reconnect, and check when usage last updated.")
+                Text("Manage accounts, reconnect, and check when usage last updated. Widgets and alerts use the original connection for each service.")
+            }.listRowBackground(OverviewStyle.track)
+            Section {
+                Button("Add Codex account", systemImage: "plus") { addAccount(.codex) }
+                Button("Add Claude Code account", systemImage: "plus") { addAccount(.claude) }
+            } header: { Text("Additional accounts") } footer: {
+                Text("Choose the other account on the provider’s sign-in page. Rename it here after connecting. Widgets and alerts keep using the original connection.")
             }.listRowBackground(OverviewStyle.track)
             Section { Button("Notifications") { destination = .notifications } }.listRowBackground(OverviewStyle.track)
             Section("Onboarding") {
@@ -62,7 +85,7 @@ struct MobileSettingsView: View {
             }.listRowBackground(OverviewStyle.track)
             Section("Privacy") {
                 MobileAnalyticsConsentControls(surface: .settings, isDemo: codex.isDemo)
-                Text("Sign-in credentials stay in this device’s Keychain and are shared with its widgets. Usage is requested directly from each service.")
+                Text("Sign-in credentials stay in this device’s Keychain. The original connections are shared with widgets. Usage is requested directly from each service.")
                     .font(.footnote).foregroundStyle(OverviewStyle.secondary)
             }.listRowBackground(OverviewStyle.track)
             Section("About") {
@@ -86,6 +109,7 @@ struct MobileSettingsView: View {
                     do {
                         try await codex.resetForNewUser()
                         try await claude.resetForNewUser()
+                        try await accounts.resetAll()
                         MobileSettingsReset.clearPreferences()
                         onboarding.reset()
                         onboarding.begin()
@@ -111,9 +135,84 @@ struct MobileSettingsView: View {
                 }
             }
         }
+        .sheet(item: $additionalAccountDestination) { destination in
+            ServiceAccountSheet {
+                if let session = accounts.sessions.first(where: { $0.id == destination.id }) {
+                    if let model = session.codex {
+                        ProbeView(model: model)
+                    } else if let model = session.claude {
+                        ClaudeProbeView(model: model)
+                    } else {
+                        Text("Account unavailable")
+                    }
+                } else {
+                    Text("Account unavailable")
+                }
+            }
+        }
+        .alert("Rename account", isPresented: Binding(
+            get: { renameID != nil },
+            set: { if !$0 { renameID = nil } }
+        )) {
+            TextField("Account name", text: $renameDraft)
+            Button("Save") {
+                if let id = renameID {
+                    accounts.rename(id, to: renameDraft)
+                }
+                renameID = nil
+            }
+            Button("Cancel", role: .cancel) { renameID = nil }
+        }
+        .confirmationDialog("Remove this account?", isPresented: Binding(
+            get: { removeID != nil },
+            set: { if !$0 { removeID = nil } }
+        ), titleVisibility: .visible) {
+            Button("Remove", role: .destructive) {
+                guard let id = removeID else { return }
+                removeID = nil
+                Task {
+                    do { try await accounts.remove(id) }
+                    catch { resetError = "Couldn’t remove that account. Try again." }
+                }
+            }
+            Button("Cancel", role: .cancel) { removeID = nil }
+        } message: {
+            Text("Removes this account’s saved connection and usage from this device.")
+        }
         .sheet(isPresented: $showOnboarding, onDismiss: { setupProgress.dismiss() }) {
             OnboardingView(codex: codex, claude: claude, progress: setupProgress)
         }
+    }
+
+    @ViewBuilder
+    private func additionalAccounts(service: QuotaService) -> some View {
+        ForEach(accounts.sessions.filter { $0.service == service }) { session in
+            HStack(spacing: 8) {
+                Button { additionalAccountDestination = AdditionalAccountDestination(id: session.id) } label: {
+                    MobileAdditionalAccountRow(session: session)
+                }
+                Menu {
+                    Button("Rename", systemImage: "pencil") {
+                        renameDraft = session.label
+                        renameID = session.id
+                    }
+                    Button("Remove", systemImage: "trash", role: .destructive) { removeID = session.id }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .foregroundStyle(OverviewStyle.accent)
+                        .frame(minWidth: 44, minHeight: 44)
+                }
+                .accessibilityLabel("Manage \(session.service.name) \(session.label)")
+            }
+            .swipeActions(edge: .trailing) {
+                Button("Remove", role: .destructive) { removeID = session.id }
+            }
+        }
+    }
+
+    private func addAccount(_ service: QuotaService) {
+        let session = accounts.add(service)
+        additionalAccountDestination = AdditionalAccountDestination(id: session.id)
     }
 }
 
@@ -150,6 +249,33 @@ struct MobileAccountRow: View {
                     .foregroundStyle(.tertiary)
                     .accessibilityHidden(true)
             }
+        }
+        .font(.body)
+    }
+}
+
+private struct MobileAdditionalAccountRow: View {
+    let session: MobileAdditionalSession
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text("\(session.service.name) · \(session.label)")
+                        .fontWeight(.semibold).foregroundStyle(.primary)
+                    Spacer()
+                    Text(session.connected ? "Connected" : "Connect")
+                        .foregroundStyle(session.connected ? .secondary : OverviewStyle.accent)
+                }
+                if let updated = session.reading?.fetchedAt {
+                    Text("Updated \(updated.formatted(date: .abbreviated, time: .shortened))")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
         }
         .font(.body)
     }

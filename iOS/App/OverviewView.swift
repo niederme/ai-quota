@@ -1,5 +1,75 @@
 import SwiftUI
 import MobileAccessCore
+import Observation
+
+@MainActor struct MobileAdditionalSession: Identifiable {
+    let id: UUID
+    let service: QuotaService
+    var label: String
+    let codex: ProbeModel?
+    let claude: ClaudeProbeModel?
+    var connected: Bool { codex?.connected ?? claude?.connected ?? false }
+    var reading: QuotaReading? { codex?.reading ?? claude?.reading }
+}
+
+@MainActor @Observable
+final class MobileAccountCollection {
+    private struct Record: Codable {
+        let id: UUID
+        let service: QuotaService
+        var label: String
+    }
+    private static let registryKey = "mobileAccounts.additional.v1"
+    private let defaults: UserDefaults
+    private(set) var sessions: [MobileAdditionalSession]
+
+    init(isDemo: Bool = false, defaults: UserDefaults = UserDefaults(suiteName: WidgetStore.group) ?? .standard) {
+        self.defaults = defaults
+        let records = isDemo ? [] : (defaults.data(forKey: Self.registryKey)
+            .flatMap { try? JSONDecoder().decode([Record].self, from: $0) } ?? [])
+        sessions = records.map(Self.session)
+    }
+
+    private static func session(_ record: Record) -> MobileAdditionalSession {
+        let shared = SharedQuotaStore(record.service, namespace: "account.\(record.id.uuidString)")
+        return MobileAdditionalSession(id: record.id, service: record.service, label: record.label,
+            codex: record.service == .codex ? ProbeModel(shared: shared) : nil,
+            claude: record.service == .claude ? ClaudeProbeModel(shared: shared) : nil)
+    }
+
+    @discardableResult func add(_ service: QuotaService) -> MobileAdditionalSession {
+        let count = sessions.filter { $0.service == service }.count
+        let record = Record(id: UUID(), service: service, label: "Account \(count + 2)")
+        let session = Self.session(record)
+        sessions.append(session)
+        persist()
+        return session
+    }
+
+    func rename(_ id: UUID, to label: String) {
+        let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let index = sessions.firstIndex(where: { $0.id == id }) else { return }
+        sessions[index].label = trimmed
+        persist()
+    }
+
+    func remove(_ id: UUID) async throws {
+        guard let session = sessions.first(where: { $0.id == id }) else { return }
+        if let codex = session.codex { try await codex.resetForNewUser() }
+        if let claude = session.claude { try await claude.resetForNewUser() }
+        sessions.removeAll { $0.id == id }
+        persist()
+    }
+
+    func resetAll() async throws {
+        for session in sessions { try await remove(session.id) }
+    }
+
+    private func persist() {
+        let records = sessions.map { Record(id: $0.id, service: $0.service, label: $0.label) }
+        defaults.set(try? JSONEncoder().encode(records), forKey: Self.registryKey)
+    }
+}
 
 struct OverviewView: View {
     @AppStorage("refreshIntervalMinutes") private var refreshMinutes = 0
@@ -13,17 +83,21 @@ struct OverviewView: View {
     @AppStorage(CodexResetNotice.dismissalKey) private var dismissedResetID = ""
     @State private var navigationID = UUID()
     @State private var selectedService: OverviewService?
+    @State private var selectedAdditional: MobileAccountDestination?
     @Environment(\.scenePhase) private var scenePhase
     @State private var claude: ClaudeProbeModel
+    @State private var accounts: MobileAccountCollection
     private let isDemo: Bool
 
     init(isDemo: Bool = false) {
         self.isDemo = isDemo
         let codex = ProbeModel(isDemo: isDemo)
         let claude = ClaudeProbeModel(isDemo: isDemo)
+        let accounts = MobileAccountCollection(isDemo: isDemo)
         _codex = State(initialValue: codex)
         _claude = State(initialValue: claude)
-        _needsInitialSetup = State(initialValue: !codex.connected && !claude.connected)
+        _accounts = State(initialValue: accounts)
+        _needsInitialSetup = State(initialValue: !codex.connected && !claude.connected && !accounts.sessions.contains(where: \.connected))
     }
     @State private var existingInstallation = UserDefaults.standard.data(forKey: "mobileProbe.codexReading") != nil
         || UserDefaults.standard.data(forKey: "mobileProbe.claudeReading") != nil
@@ -33,7 +107,9 @@ struct OverviewView: View {
         return resetNotice.announcement(dismissedID: dismissedResetID)
     }
 
-    private var hasConnectedService: Bool { codex.connected || claude.connected }
+    private var hasConnectedService: Bool {
+        codex.connected || claude.connected || accounts.sessions.contains(where: \.connected)
+    }
 
     var body: some View {
         Group {
@@ -98,6 +174,25 @@ struct OverviewView: View {
                                 selectedService = .claude
                             }
                         }
+                        ForEach(accounts.sessions.filter(\.connected)) { session in
+                            if let model = session.codex {
+                                ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 780) - 32,
+                                    reading: model.reading, connected: model.connected, busy: model.loading, error: model.error,
+                                    failure: model.connectionFailure, history: model.history, historyUnavailable: model.historyUnavailable,
+                                    tokenHistory: model.tokenHistory, tokenHistoryUnavailable: model.tokenHistoryUnavailable,
+                                    tokenHistoryLoading: model.tokenHistoryLoading, accountLabel: session.label,
+                                    onReconnect: { selectedAdditional = MobileAccountDestination(id: session.id) }) {
+                                    selectedAdditional = MobileAccountDestination(id: session.id)
+                                }
+                            } else if let model = session.claude {
+                                ProviderDialCard(name: "Claude", icon: "logo-claude", availableWidth: min(geometry.size.width, 780) - 32,
+                                    reading: model.reading, connected: model.connected, busy: model.loading, error: model.error,
+                                    failure: model.connectionFailure, accountLabel: session.label,
+                                    onReconnect: { selectedAdditional = MobileAccountDestination(id: session.id) }) {
+                                    selectedAdditional = MobileAccountDestination(id: session.id)
+                                }
+                            }
+                        }
                         overviewFreshness.frame(maxWidth: .infinity)
 
                     }
@@ -112,6 +207,7 @@ struct OverviewView: View {
                     async let first: Void = codex.refreshAndWait()
                     async let second: Void = claude.refreshAndWait()
                     _ = await (first, second)
+                    await refreshAdditionalAndWait()
                 }
                 .background { OverviewBackground().ignoresSafeArea() }
             }
@@ -124,6 +220,7 @@ struct OverviewView: View {
                     navigationID = UUID()
                     codex.refreshOnOpen()
                     claude.refreshOnOpen()
+                    refreshAdditionalOnOpen()
                 }
                 if url.host == "codex" { selectedService = .codex; codex.refreshOnOpen() }
                 if url.host == "claude" { selectedService = .claude; claude.refreshOnOpen() }
@@ -132,6 +229,7 @@ struct OverviewView: View {
                 guard scenePhase == .active else { return }
                 codex.refreshOnOpen()
                 claude.refreshOnOpen()
+                refreshAdditionalOnOpen()
                 if !isDemo { await MobileResetNotifications.reconcile() }
             }
             .task(id: "\(scenePhase)-\(refreshMinutes)") {
@@ -146,6 +244,7 @@ struct OverviewView: View {
                     async let first: Void = codex.refreshAndWait()
                     async let second: Void = claude.refreshAndWait()
                     _ = await (first, second)
+                    await refreshAdditionalAndWait()
                 }
             }
             .task(id: "\(scenePhase)-\(codex.connected)") {
@@ -162,6 +261,10 @@ struct OverviewView: View {
                         MobileAnalytics.shared.manualRefresh()
                         codex.refresh()
                         claude.refresh()
+                        for session in accounts.sessions {
+                            session.codex?.refresh()
+                            session.claude?.refresh()
+                        }
                     } label: {
                         ZStack {
                             Image(systemName: "arrow.clockwise").opacity(codex.loading || claude.loading ? 0 : 1)
@@ -182,7 +285,7 @@ struct OverviewView: View {
         .task {
             guard !isDemo else { return }
             showOnboarding = onboarding.shouldPresent(
-                hasExistingAccount: codex.connected || claude.connected
+                hasExistingAccount: hasConnectedService
                     || codex.reading != nil || claude.reading != nil,
                 hasExistingInstallation: existingInstallation)
         }
@@ -192,7 +295,7 @@ struct OverviewView: View {
                 case .codexAccount: ProbeView(model: codex)
                 case .claudeAccount: ClaudeProbeView(model: claude)
                 case .settings:
-                    MobileSettingsView(codex: codex, claude: claude, onboarding: onboarding)
+                    MobileSettingsView(codex: codex, claude: claude, accounts: accounts, onboarding: onboarding)
                 case .codex:
                     if !codex.connected { ProbeView(model: codex) } else {
                     ServiceDetailContent(name: "Codex", icon: "logo-openai", reading: codex.reading,
@@ -208,11 +311,47 @@ struct OverviewView: View {
                 }
             }
         }
+        .sheet(item: $selectedAdditional) { destination in
+            ServiceAccountSheet {
+                if let session = accounts.sessions.first(where: { $0.id == destination.id }) {
+                    if let model = session.codex {
+                        if model.connected {
+                            ServiceDetailContent(name: "Codex", icon: "logo-openai", reading: model.reading,
+                                connected: model.connected, busy: model.busy, error: model.error,
+                                failure: model.connectionFailure, history: model.history,
+                                historyUnavailable: model.historyUnavailable, refresh: { model.refresh() }) {
+                                    ProbeView(model: model)
+                                }
+                        } else { ProbeView(model: model) }
+                    } else if let model = session.claude {
+                        if model.connected {
+                            ServiceDetailContent(name: "Claude", icon: "logo-claude", reading: model.reading,
+                                connected: model.connected, busy: model.busy, error: model.error,
+                                failure: model.connectionFailure, refresh: { model.refresh() }) {
+                                    ClaudeProbeView(model: model)
+                                }
+                        } else { ClaudeProbeView(model: model) }
+                    }
+                }
+            }
+        }
         .sheet(isPresented: $showOnboarding, onDismiss: { onboarding.dismiss() }) {
             OnboardingView(codex: codex, claude: claude, progress: onboarding)
         }
         .sheet(isPresented: $showResetDetails) {
             ProbeBrowser(url: CodexResetNotice.website)
+        }
+    }
+    private func refreshAdditionalOnOpen() {
+        for session in accounts.sessions {
+            session.codex?.refreshOnOpen()
+            session.claude?.refreshOnOpen()
+        }
+    }
+    private func refreshAdditionalAndWait() async {
+        for session in accounts.sessions {
+            if let model = session.codex { await model.refreshAndWait() }
+            if let model = session.claude { await model.refreshAndWait() }
         }
     }
     private var overviewFreshness: some View {
@@ -262,6 +401,10 @@ struct OverviewView: View {
 private enum OverviewService: String, Identifiable {
     case codex, claude, settings, codexAccount, claudeAccount
     var id: String { rawValue }
+}
+
+private struct MobileAccountDestination: Identifiable {
+    let id: UUID
 }
 
 struct AccountConnectionForm: View {
@@ -580,13 +723,15 @@ struct ProviderDialCard: View {
     var tokenHistory: CodexTokenHistory? = nil
     var tokenHistoryUnavailable = false
     var tokenHistoryLoading: Bool? = nil
+    var accountLabel: String? = nil
     var onReconnect: (() -> Void)? = nil
     let onOpen: () -> Void
     var body: some View {
         ProviderDialCardContent(name: name, icon: icon, availableWidth: availableWidth,
             reading: reading, connected: connected, busy: busy, error: error, failure: failure,
             onOpen: onOpen, onReconnect: onReconnect, history: history, historyUnavailable: historyUnavailable,
-            tokenHistory: tokenHistory, tokenHistoryUnavailable: tokenHistoryUnavailable, tokenHistoryLoading: tokenHistoryLoading)
+            tokenHistory: tokenHistory, tokenHistoryUnavailable: tokenHistoryUnavailable,
+            tokenHistoryLoading: tokenHistoryLoading, accountLabel: accountLabel)
     }
 }
 
@@ -675,6 +820,7 @@ struct ProviderDialCardContent: View {
     var tokenHistory: CodexTokenHistory? = nil
     var tokenHistoryUnavailable = false
     var tokenHistoryLoading: Bool? = nil
+    var accountLabel: String? = nil
     var largeDial = false
     var allowanceOnly = false
     @Environment(\.colorSchemeContrast) private var contrast
@@ -754,6 +900,10 @@ struct ProviderDialCardContent: View {
             }
             Text(connected ? (reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported") : "Not connected")
                 .modifier(OverviewDetailType(weight: .regular)).foregroundStyle(OverviewStyle.secondary)
+            if let accountLabel {
+                Text(accountLabel).modifier(OverviewDetailType(weight: .regular))
+                    .foregroundStyle(OverviewStyle.secondary)
+            }
             }
             if connected {
                 VStack(alignment: .leading, spacing: 4) {

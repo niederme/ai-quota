@@ -25,7 +25,16 @@ final class ClaudeProbeModel {
     private(set) var renewedAt: Date?
     let isDemo: Bool
     var connected: Bool { isDemo || tokens != nil }
-    private let cacheKey = "mobileProbe.claudeReading"
+    private var cacheKey: String {
+        shared.namespace == "live" ? "mobileProbe.claudeReading" :
+            "mobileProbe.claudeReading.\(shared.namespace)"
+    }
+
+    /// The storage namespace for this connection. The legacy `live` namespace
+    /// remains the app's original singleton account.
+    var accountNamespace: String { shared.namespace }
+
+    private var isLegacyNamespace: Bool { shared.namespace == "live" }
 
     init(api: ClaudeAPI = ClaudeAPI(), shared: SharedQuotaStore = SharedQuotaStore(.claude), restore: Bool = true, isDemo: Bool = false,
          fetchUsage: (@Sendable (Bool, TimeInterval) async throws -> QuotaReading)? = nil) {
@@ -40,7 +49,7 @@ final class ClaudeProbeModel {
         }
         guard restore else { return }
         do {
-            tokens = try shared.load(ClaudeTokens.self) ?? ClaudeTokenStore.load()
+            tokens = try shared.load(ClaudeTokens.self) ?? (isLegacyNamespace ? ClaudeTokenStore.load() : nil)
             if tokens != nil {
                 connectionFailure = shared.failure()
                 message = "Connected. Your usage updates automatically."
@@ -65,9 +74,10 @@ final class ClaudeProbeModel {
         run { [self] in
             let newTokens = try await api.exchange(pasted, challenge: pending)
             try Task.checkCancellation()
-            try await shared.withLease { [shared] in
+            let legacyNamespace = isLegacyNamespace
+            try await shared.withLease { [shared, legacyNamespace] in
                         try shared.saveCredentials(newTokens)
-                        try ClaudeTokenStore.clear()
+                        if legacyNamespace { try ClaudeTokenStore.clear() }
                     }
             foregroundRefresh.reset()
             tokens = newTokens
@@ -109,11 +119,12 @@ final class ClaudeProbeModel {
         defer { if backgroundTask != .invalid { UIApplication.shared.endBackgroundTask(backgroundTask) } }
 
         // Migrate once under the same lease used by widget renewal. Never overwrite newer shared credentials.
-        try await shared.withLease { [shared] in
-            if try shared.load(ClaudeTokens.self) == nil, let old = try ClaudeTokenStore.load() {
+        let legacyNamespace = isLegacyNamespace
+        try await shared.withLease { [shared, legacyNamespace] in
+            if legacyNamespace, try shared.load(ClaudeTokens.self) == nil, let old = try ClaudeTokenStore.load() {
                 try shared.saveCredentials(old)
             }
-            try ClaudeTokenStore.clear()
+            if legacyNamespace { try ClaudeTokenStore.clear() }
         }
         message = "Updating allowance…"
         let value: QuotaReading
@@ -128,7 +139,7 @@ final class ClaudeProbeModel {
         reading = value
         UserDefaults.standard.set(try JSONEncoder().encode(value), forKey: cacheKey)
         if forceRenewal { renewedAt = .now }
-        WidgetCenter.shared.reloadAllTimelines()
+        if isLegacyNamespace { WidgetCenter.shared.reloadAllTimelines() }
         message = "Usage updated."
     }
     private func run(_ action: @escaping @MainActor () async throws -> Void) {
@@ -183,11 +194,12 @@ final class ClaudeProbeModel {
         message = "Connect Claude to see your usage."
     }
     private func clearConnection() async throws {
-        try await shared.withLease { [shared] in
-            try ClaudeTokenStore.clear()
+        let legacyNamespace = isLegacyNamespace
+        try await shared.withLease { [shared, legacyNamespace] in
+            if legacyNamespace { try ClaudeTokenStore.clear() }
             try shared.clear()
         }
-        WidgetCenter.shared.reloadAllTimelines()
+        if legacyNamespace { WidgetCenter.shared.reloadAllTimelines() }
         UserDefaults.standard.removeObject(forKey: cacheKey)
         foregroundRefresh.reset()
         tokens = nil
