@@ -14,17 +14,56 @@ struct CodexAuthCoordinatorTests {
     }
 
     private func makeSUT(
+        accountStorageID: UUID? = nil,
         probe: @escaping CodexAuthCoordinator.SessionProbe,
         headlessSessionReviver: CodexAuthCoordinator.HeadlessSessionReviver? = nil,
         tokenRefresher: CodexAuthCoordinator.AccessTokenRefresher? = nil,
         oauthCredentialsLoader: CodexAuthCoordinator.OAuthCredentialsLoader? = nil
     ) -> CodexAuthCoordinator {
         CodexAuthCoordinator(
+            accountStorageID: accountStorageID,
             probe: probe,
             headlessSessionReviver: headlessSessionReviver ?? { nil },
             tokenRefresher: tokenRefresher,
             oauthCredentialsLoader: oauthCredentialsLoader ?? { throw CodexOAuthCredentialsError.notFound }
         )
+    }
+
+    @Test("scoped sign-out marker does not block another account")
+    func scopedSignOutMarkerIsIsolated() async {
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        let signedOutID = UUID()
+        let otherID = UUID()
+        let signedOutKey = "codex.signedOutByUser.\(signedOutID.uuidString.lowercased())"
+        UserDefaults.standard.set(true, forKey: signedOutKey)
+        defer {
+            UserDefaults.standard.removeObject(forKey: "app.installedAt.v2")
+            UserDefaults.standard.removeObject(forKey: signedOutKey)
+        }
+
+        let signedOut = makeSUT(accountStorageID: signedOutID, probe: { .notFound })
+        let other = makeSUT(accountStorageID: otherID, probe: { .notFound })
+        await signedOut.bootstrap()
+        await other.bootstrap()
+
+        #expect(await signedOut.state == .signedOutByUser)
+        #expect(await other.state == .unauthenticated)
+    }
+
+    @Test("scoped account does not import process-wide Codex CLI credentials")
+    func scopedAccountSkipsDefaultOAuthLoader() async {
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
+        let sut = CodexAuthCoordinator(
+            accountStorageID: UUID(),
+            probe: { .notFound },
+            headlessSessionReviver: { nil },
+            tokenRefresher: { _ in throw NetworkError.refreshFailed }
+        )
+
+        await sut.bootstrap()
+
+        #expect(await sut.state == .unauthenticated)
     }
 
     @Test("bootstrap with valid session → authenticated")

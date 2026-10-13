@@ -13,9 +13,16 @@ public enum SharedDefaults {
     private static let maxCodexSourceAttempts = 10
 
     private static var defaults: UserDefaults {
-        if let d = UserDefaults(suiteName: suite) { return d }
+        let suiteName = isRunningTests
+            ? "\(suite).tests.\(ProcessInfo.processInfo.processIdentifier)"
+            : suite
+        if let d = UserDefaults(suiteName: suiteName) { return d }
         print("⚠️ [SharedDefaults] App Group '\(suite)' unavailable — falling back to .standard (widget won't see data)")
         return .standard
+    }
+
+    private static var isRunningTests: Bool {
+        Bundle.allBundles.contains { $0.bundlePath.hasSuffix(".xctest") }
     }
 
     /// WidgetKit can reload before app-group defaults are flushed cross-process.
@@ -42,6 +49,22 @@ public enum SharedDefaults {
         persistChanges()
     }
 
+    public static func saveUsage(_ usage: CodexUsage, forAccountID accountID: String) {
+        guard let data = try? JSONEncoder().encode(usage) else { return }
+        defaults.set(data, forKey: accountKey(codexUsageKey, accountID: accountID))
+        persistChanges()
+    }
+
+    public static func loadCachedUsage(forAccountID accountID: String) -> CodexUsage? {
+        guard let data = defaults.data(forKey: accountKey(codexUsageKey, accountID: accountID)) else { return nil }
+        return try? JSONDecoder().decode(CodexUsage.self, from: data)
+    }
+
+    public static func clearUsage(forAccountID accountID: String) {
+        defaults.removeObject(forKey: accountKey(codexUsageKey, accountID: accountID))
+        persistChanges()
+    }
+
     // MARK: - Claude usage
 
     public static func saveClaudeUsage(_ usage: ClaudeUsage) {
@@ -63,6 +86,32 @@ public enum SharedDefaults {
     public static func clearClaudeUsage() {
         defaults.removeObject(forKey: claudeUsageKey)
         defaults.removeObject(forKey: claudeUsageSchemaVersionKey)
+        persistChanges()
+    }
+
+    public static func saveClaudeUsage(_ usage: ClaudeUsage, forAccountID accountID: String) {
+        guard let data = try? JSONEncoder().encode(usage) else { return }
+        defaults.set(data, forKey: accountKey(claudeUsageKey, accountID: accountID))
+        defaults.set(
+            currentClaudeUsageSchemaVersion,
+            forKey: accountKey(claudeUsageSchemaVersionKey, accountID: accountID)
+        )
+        persistChanges()
+    }
+
+    public static func loadCachedClaudeUsage(forAccountID accountID: String) -> ClaudeUsage? {
+        let versionKey = accountKey(claudeUsageSchemaVersionKey, accountID: accountID)
+        guard defaults.integer(forKey: versionKey) >= currentClaudeUsageSchemaVersion else {
+            clearClaudeUsage(forAccountID: accountID)
+            return nil
+        }
+        guard let data = defaults.data(forKey: accountKey(claudeUsageKey, accountID: accountID)) else { return nil }
+        return try? JSONDecoder().decode(ClaudeUsage.self, from: data)
+    }
+
+    public static func clearClaudeUsage(forAccountID accountID: String) {
+        defaults.removeObject(forKey: accountKey(claudeUsageKey, accountID: accountID))
+        defaults.removeObject(forKey: accountKey(claudeUsageSchemaVersionKey, accountID: accountID))
         persistChanges()
     }
 
@@ -159,5 +208,9 @@ public enum SharedDefaults {
     public static func clearEnrolledServices() {
         defaults.removeObject(forKey: enrolledServicesKey)
         persistChanges()
+    }
+
+    private static func accountKey(_ base: String, accountID: String) -> String {
+        "\(base).account.\(accountID)"
     }
 }

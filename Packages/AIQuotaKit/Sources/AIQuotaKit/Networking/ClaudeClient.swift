@@ -6,24 +6,31 @@ import OSLog
 public actor ClaudeClient {
     private let coordinator: ClaudeAuthCoordinator
     private let session: URLSession
+    private let accountStorageID: String?
+    private let isScoped: Bool
     private let baseURL = URL(string: "https://claude.ai")!
     private let logger = Logger(subsystem: "app.aiquota", category: "ClaudeClient")
     private var oauthPolicyFailures = 0
     private var oauthDisabledForSession = false
 
-    public init(coordinator: ClaudeAuthCoordinator) {
+    public init(coordinator: ClaudeAuthCoordinator, accountStorageID: String? = nil) {
         self.coordinator = coordinator
+        self.accountStorageID = accountStorageID
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 15
-        config.httpCookieStorage = HTTPCookieStorage.shared
-        config.httpShouldSetCookies = true
+        self.isScoped = accountStorageID != nil || coordinator.accountStorageID != nil
+        config.httpCookieStorage = isScoped ? nil : HTTPCookieStorage.shared
+        // Scoped coordinators provide an explicit cookie snapshot. Prevent
+        // URLSession from reading/writing the process-wide cookie jar in that
+        // mode, which could mix accounts during concurrent refreshes.
+        config.httpShouldSetCookies = !isScoped
         self.session = URLSession(configuration: config)
     }
 
     // MARK: - Public API
 
     public func fetchUsage() async throws -> ClaudeUsage {
-        if !oauthDisabledForSession {
+        if !isScoped && !oauthDisabledForSession {
             do {
                 let oauth = try await coordinator.loadOAuthCredentials(allowKeychain: false)
                 do {
@@ -153,19 +160,13 @@ public actor ClaudeClient {
 
         let status = (response as? HTTPURLResponse)?.statusCode ?? -1
         logger.info("[ClaudeClient] GET \(path) → HTTP \(status)")
-        if status != 200 {
-            let headers = (response as? HTTPURLResponse)?.allHeaderFields ?? [:]
-            logger.warning("[ClaudeClient] non-200 headers: \(headers as NSDictionary)")
-        }
-
         try checkStatus(response, data: data)
 
         do {
             let raw = try Self.decoder.decode(ClaudeUsageResponse.self, from: data)
             return Self.buildUsage(from: raw, planLabel: nil, source: .web)
         } catch {
-            let preview = String(data: data.prefix(2000), encoding: .utf8) ?? "<non-utf8>"
-            logger.error("[ClaudeClient] decodingError: \(error) | body: \(preview)")
+            logger.error("[ClaudeClient] decodingError: \(error)")
             throw NetworkError.decodingError(underlying: error)
         }
     }
@@ -213,7 +214,7 @@ public actor ClaudeClient {
         req.setValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
         req.setValue("web_claude_ai", forHTTPHeaderField: "anthropic-client-platform")
         req.setValue("1.0.0", forHTTPHeaderField: "anthropic-client-version")
-        let scopedCookies = cookies.isEmpty ? HTTPCookieStorage.shared.cookies ?? [] : cookies
+        let scopedCookies = cookies.isEmpty && !isScoped ? HTTPCookieStorage.shared.cookies ?? [] : cookies
         if let deviceId = scopedCookies.first(where: { $0.name == "anthropic-device-id" })?.value {
             req.setValue(deviceId, forHTTPHeaderField: "anthropic-device-id")
         }
@@ -401,6 +402,10 @@ public actor ClaudeClient {
         httpStatus: Int?,
         category: ClaudeSourceAttempt.ErrorCategory
     ) {
+        // The existing diagnostics ring describes the original connection.
+        // Additional accounts have their own visible error state and must not
+        // overwrite that ring with another organization's result.
+        guard !isScoped else { return }
         SharedDefaults.appendClaudeSourceAttempt(.init(
             source: source,
             httpStatus: httpStatus,

@@ -88,6 +88,18 @@ public enum SharedAuthContextStore {
         KeychainStore.delete(forKey: codexKey)
     }
 
+    public static func loadCodex(forAccountID accountID: String) -> SharedCodexAuthContext? {
+        KeychainStore.load(SharedCodexAuthContext.self, forKey: accountKey(codexKey, accountID: accountID), decoder: decoder)
+    }
+
+    public static func saveCodex(_ context: SharedCodexAuthContext, forAccountID accountID: String) {
+        KeychainStore.save(context, forKey: accountKey(codexKey, accountID: accountID), encoder: encoder)
+    }
+
+    public static func clearCodex(forAccountID accountID: String) {
+        KeychainStore.delete(forKey: accountKey(codexKey, accountID: accountID))
+    }
+
     public static func loadClaude() -> SharedClaudeAuthContext? {
         KeychainStore.load(SharedClaudeAuthContext.self, forKey: claudeKey, decoder: decoder)
     }
@@ -99,6 +111,27 @@ public enum SharedAuthContextStore {
 
     public static func clearClaude() {
         KeychainStore.delete(forKey: claudeKey)
+    }
+
+    public static func loadClaude(forAccountID accountID: String) -> SharedClaudeAuthContext? {
+        KeychainStore.load(SharedClaudeAuthContext.self, forKey: accountKey(claudeKey, accountID: accountID), decoder: decoder)
+    }
+
+    public static func saveClaude(orgId: String, cookies: [HTTPCookie], forAccountID accountID: String) {
+        let context = SharedClaudeAuthContext(orgId: orgId, cookies: cookies.map(PersistedCookie.init))
+        saveClaude(context, forAccountID: accountID)
+    }
+
+    public static func saveClaude(_ context: SharedClaudeAuthContext, forAccountID accountID: String) {
+        KeychainStore.save(context, forKey: accountKey(claudeKey, accountID: accountID), encoder: encoder)
+    }
+
+    public static func clearClaude(forAccountID accountID: String) {
+        KeychainStore.delete(forKey: accountKey(claudeKey, accountID: accountID))
+    }
+
+    private static func accountKey(_ base: String, accountID: String) -> String {
+        "\(base).account.\(accountID)"
     }
 
     private static let encoder: JSONEncoder = {

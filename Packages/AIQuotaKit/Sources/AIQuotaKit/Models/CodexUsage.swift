@@ -172,6 +172,9 @@ public struct CodexUsage: Codable, Sendable, Equatable {
     /// Keep freshness and values together when a successful but partial refresh
     /// cannot establish the allowance shape. Transport failures already retain cache.
     public func retainingLastConfirmedWindows(from previous: CodexUsage?) -> CodexUsage {
+        // A reported monthly member budget is a complete allowance shape for
+        // Enterprise accounts even when rate_limit is null.
+        if monthlyBudget?.limit != nil { return self }
         if reportedWindowShape == nil, let previous, previous.reportedWindowShape != nil {
             return previous
         }
@@ -376,11 +379,11 @@ public struct CodexMonthlyUsageResponse: Decodable, Sendable, Equatable {
         public let limit: Double?
 
         public init(from decoder: Decoder) throws {
-            let c = try decoder.singleValueContainer()
-            if let number = try? c.decode(Double.self) { limit = number; return }
-            if let string = try? c.decode(String.self) { limit = Double(string); return }
-            limit = nil
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            limit = try c.decodeLossyDoubleIfPresent(forKey: .limit)
         }
+
+        private enum CodingKeys: String, CodingKey { case limit }
     }
 
     private enum CodingKeys: String, CodingKey { case effectiveMonthlyLimit, currentMonthUsage }
