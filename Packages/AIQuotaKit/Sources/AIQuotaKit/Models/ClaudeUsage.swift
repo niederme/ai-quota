@@ -1,6 +1,26 @@
 import Foundation
 
 public struct ClaudeUsage: Codable, Sendable, Equatable {
+    public struct MonthlyBudget: Codable, Sendable, Equatable {
+        public let unit: String?
+        public let used: Double?
+        public let limit: Double?
+        public let resetAt: Date?
+
+        public init(unit: String?, used: Double?, limit: Double?, resetAt: Date? = nil) {
+            self.unit = unit
+            self.used = used
+            self.limit = limit
+            self.resetAt = resetAt
+        }
+
+        public var utilization: Double? {
+            guard let used, let limit, limit > 0 else { return nil }
+            return used / limit * 100
+        }
+    }
+
+    public let monthlyBudget: MonthlyBudget?
     public let fiveHourUtilization: Double?
     public let fiveHourResetsAt: Date?
     public let sevenDayUtilization: Double?
@@ -226,6 +246,7 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
         bonusUsage: BonusUsage? = nil,
         usageCredits: UsageCredits? = nil,
         spendLimit: SpendLimit? = nil,
+        monthlyBudget: MonthlyBudget? = nil,
         planLabel: PlanLabel? = nil,
         source: Source = .unknown,
         fetchedAt: Date
@@ -254,6 +275,7 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
             )
         }
         self.spendLimit = spendLimit
+        self.monthlyBudget = monthlyBudget
         self.planLabel = planLabel ?? Self.inferPlanLabel(
             extraUsage: extraUsage,
             spendLimit: spendLimit,
@@ -334,6 +356,7 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
         case bonusUsage
         case usageCredits
         case spendLimit
+        case monthlyBudget
         case planLabel
         case source
         case fetchedAt
@@ -349,6 +372,7 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
         let bonusUsage = try container.decodeIfPresent(BonusUsage.self, forKey: .bonusUsage)
         let usageCredits = try container.decodeIfPresent(UsageCredits.self, forKey: .usageCredits)
         let spendLimit = try container.decodeIfPresent(SpendLimit.self, forKey: .spendLimit)
+        let monthlyBudget = try container.decodeIfPresent(MonthlyBudget.self, forKey: .monthlyBudget)
         let planLabel = try container.decodeIfPresent(PlanLabel.self, forKey: .planLabel)
         let source = try container.decodeIfPresent(Source.self, forKey: .source) ?? .unknown
         let fetchedAt = try container.decode(Date.self, forKey: .fetchedAt)
@@ -361,6 +385,7 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
             bonusUsage: bonusUsage,
             usageCredits: usageCredits,
             spendLimit: spendLimit,
+            monthlyBudget: monthlyBudget,
             planLabel: planLabel,
             source: source,
             fetchedAt: fetchedAt

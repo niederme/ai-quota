@@ -11,6 +11,7 @@ public actor OpenAIClient {
     // Confirmed endpoint from network inspection of chatgpt.com/codex/settings/usage
     private let usagePath = "/backend-api/wham/usage"
     private let creditUsageEventsPath = "/backend-api/wham/usage/credit-usage-events"
+    private let memberMonthlyUsagePath = "/backend-api/wham/usage/members/monthly-usage"
     private let autoTopUpPath = "/backend-api/subscriptions/auto_top_up/settings"
 
     public init(coordinator: CodexAuthCoordinator) {
@@ -122,6 +123,38 @@ public actor OpenAIClient {
             logger.error("[OpenAIClient] decodingError: \(error) | body: \(preview)")
             throw NetworkError.decodingError(underlying: error)
         }
+    }
+
+    /// Fetches the organization member monthly budget when the account exposes it.
+    /// Personal accounts may return 404; callers can treat that as unavailable.
+    public func fetchMemberMonthlyUsage() async throws -> CodexMonthlyUsageResponse {
+        let context = try await coordinator.accessContext()
+        var req = URLRequest(url: baseURL.appendingPathComponent(memberMonthlyUsagePath))
+        req.httpMethod = "GET"
+        req.setValue("Bearer \(context.accessToken)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let accountID = context.accountID { req.setValue(accountID, forHTTPHeaderField: "ChatGPT-Account-Id") }
+        let (data, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw NetworkError.networkUnavailable }
+        switch http.statusCode {
+        case 200...299: break
+        case 401: throw NetworkError.tokenExpired
+        case 429: throw NetworkError.rateLimited
+        default: throw NetworkError.httpError(statusCode: http.statusCode)
+        }
+        do {
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            return try decoder.decode(CodexMonthlyUsageResponse.self, from: data)
+        } catch {
+            throw NetworkError.decodingError(underlying: error)
+        }
+    }
+
+    nonisolated static func _decodeMonthlyUsageForTesting(_ data: Data) throws -> CodexMonthlyUsageResponse {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return try decoder.decode(CodexMonthlyUsageResponse.self, from: data)
     }
 
     public func fetchAutoReload() async throws -> CodexAutoReload {

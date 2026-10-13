@@ -76,7 +76,7 @@ public actor ClaudeClient {
 
         let ctx = try await coordinator.requestContext()
         do {
-            let usage = try await fetchUsageData(path: "/api/organizations/\(ctx.orgId)/usage")
+            let usage = try await fetchUsageData(path: "/api/organizations/\(ctx.orgId)/usage", cookies: ctx.cookies)
             recordAttempt(source: .web, httpStatus: 200, category: .success)
             return usage
         } catch let error as NetworkError {
@@ -135,8 +135,8 @@ public actor ClaudeClient {
         }
     }
 
-    private func fetchUsageData(path: String) async throws -> ClaudeUsage {
-        let req = makeRequest(path: path)
+    private func fetchUsageData(path: String, cookies: [HTTPCookie]) async throws -> ClaudeUsage {
+        let req = makeRequest(path: path, cookies: cookies)
 
         // Use the async URLSession API so cooperative cancellation works correctly.
         // When the enclosing Task is cancelled (e.g. startAutoRefresh() restarts the
@@ -200,7 +200,7 @@ public actor ClaudeClient {
         return d
     }
 
-    private func makeRequest(path: String) -> URLRequest {
+    private func makeRequest(path: String, cookies: [HTTPCookie] = []) -> URLRequest {
         let url = URL(string: "https://claude.ai\(path)")!
         var req = URLRequest(url: url)
         req.httpMethod = "GET"
@@ -213,14 +213,19 @@ public actor ClaudeClient {
         req.setValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
         req.setValue("web_claude_ai", forHTTPHeaderField: "anthropic-client-platform")
         req.setValue("1.0.0", forHTTPHeaderField: "anthropic-client-version")
-        if let deviceId = cookie(named: "anthropic-device-id") {
+        let scopedCookies = cookies.isEmpty ? HTTPCookieStorage.shared.cookies ?? [] : cookies
+        if let deviceId = scopedCookies.first(where: { $0.name == "anthropic-device-id" })?.value {
             req.setValue(deviceId, forHTTPHeaderField: "anthropic-device-id")
         }
-        if let anonId = cookie(named: "ajs_anonymous_id") {
+        if let anonId = scopedCookies.first(where: { $0.name == "ajs_anonymous_id" })?.value {
             req.setValue(anonId, forHTTPHeaderField: "anthropic-anonymous-id")
         }
-        if let sessionId = cookie(named: "activitySessionId") {
+        if let sessionId = scopedCookies.first(where: { $0.name == "activitySessionId" })?.value {
             req.setValue(sessionId, forHTTPHeaderField: "x-activity-session-id")
+        }
+        if !cookies.isEmpty {
+            let cookieHeader = cookies.map { "\($0.name)=\($0.value)" }.joined(separator: "; ")
+            req.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
         }
         return req
     }
@@ -271,6 +276,7 @@ public actor ClaudeClient {
         let usageCredits = spendLimit == nil
             ? Self.usageCredits(from: raw.spend, fallback: bonusUsage, extraUsage: raw.extraUsage)
             : nil
+        let monthlyBudget = Self.monthlyBudget(from: raw.spend, fallback: raw.extraUsage, source: source)
         return ClaudeUsage(
             fiveHourUtilization: raw.fiveHour?.utilization,
             fiveHourResetsAt: raw.fiveHour?.resetsAt,
@@ -280,9 +286,31 @@ public actor ClaudeClient {
             bonusUsage: bonusUsage,
             usageCredits: usageCredits,
             spendLimit: spendLimit,
+            monthlyBudget: monthlyBudget,
             planLabel: planLabel,
             source: source,
             fetchedAt: fetchedAt
+        )
+    }
+
+    private static func monthlyBudget(
+        from spend: ClaudeUsageResponse.SpendBucket?,
+        fallback extra: ClaudeUsageResponse.ExtraUsageBucket?,
+        source: ClaudeUsage.Source
+    ) -> ClaudeUsage.MonthlyBudget? {
+        if let spend, let used = spend.used {
+            return ClaudeUsage.MonthlyBudget(
+                unit: used.currency,
+                used: used.amount,
+                limit: spend.limit?.amount
+            )
+        }
+        guard let extra, let used = extra.usedCredits else { return nil }
+        let divisor = source == .web && extra.currency != nil ? 100.0 : 1.0
+        return ClaudeUsage.MonthlyBudget(
+            unit: extra.currency,
+            used: used / divisor,
+            limit: extra.monthlyLimit.map { $0 / divisor }
         )
     }
 
