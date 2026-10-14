@@ -150,7 +150,8 @@ public struct ClaudeAPI: Sendable {
         let metadata = AccountMetadata(plan: plan, balanceUSD: reading.metadata?.balanceUSD,
             usageSpent: reading.metadata?.usageSpent, usageCurrency: reading.metadata?.usageCurrency)
         return QuotaReading(fetchedAt: reading.fetchedAt, shortTerm: reading.shortTerm,
-                            weekly: reading.weekly, metadata: metadata, claudeBreakdown: reading.claudeBreakdown)
+                            weekly: reading.weekly, metadata: metadata, claudeBreakdown: reading.claudeBreakdown,
+                            monthlyBudget: reading.monthlyBudget)
     }
     // Profile path, organization field, and mappings match the installed first-party
     // Claude Code client. Unknown/new organization types remain explicitly unavailable.
@@ -187,8 +188,7 @@ public struct ClaudeAPI: Sendable {
             return QuotaWindow(usedPercent: used, durationSeconds: duration, resetsAt: reset)
         }
         let short = try window(raw.five_hour, duration: 18000)
-        let weekly = try window(raw.seven_day, duration: 604800)
-        guard short != nil || weekly != nil else { throw AccessError.noWindows }
+        let weekly = try window(raw.preferredSevenDayWindow, duration: 604800)
         // Match the Mac OAuth path: extra_usage values are already provider units.
         // Structured spend amounts use the supplied exponent, not a fixed cents assumption.
         let money = raw.spend?.used
@@ -196,10 +196,20 @@ public struct ClaudeAPI: Sendable {
             guard let minor = value.amount_minor?.value, let exponent = value.exponent, (0...6).contains(exponent) else { return nil }
             return minor / pow(10, Double(exponent))
         }
+        let limitAmount = raw.spend?.limit.flatMap { value -> Double? in
+            guard let minor = value.amount_minor?.value, let exponent = value.exponent,
+                  (0...6).contains(exponent) else { return nil }
+            return minor / pow(10, Double(exponent))
+        }
+        let budget = MonthlyBudget(used: amount ?? raw.extra_usage?.used_credits?.value,
+                                   limit: limitAmount ?? raw.extra_usage?.monthly_limit?.value,
+                                   unit: money?.currency ?? raw.extra_usage?.currency)
+        guard short != nil || weekly != nil || budget != nil else { throw AccessError.noWindows }
         let metadata = AccountMetadata(plan: nil, balanceUSD: nil,
             usageSpent: amount ?? raw.extra_usage?.used_credits?.value,
             usageCurrency: amount != nil ? money?.currency : raw.extra_usage?.currency)
-        return QuotaReading(fetchedAt: now, shortTerm: short, weekly: weekly, metadata: metadata, claudeBreakdown: raw.seven_day_breakdown)
+        return QuotaReading(fetchedAt: now, shortTerm: short, weekly: weekly, metadata: metadata,
+                            claudeBreakdown: raw.seven_day_breakdown, monthlyBudget: budget)
     }
     private struct TokenResponse: Decodable {
         let access_token: String
@@ -208,20 +218,33 @@ public struct ClaudeAPI: Sendable {
     }
     private struct UsageResponse: Decodable {
         let five_hour: Window?; let seven_day: Window?
+        let seven_day_oauth_apps: Window?; let seven_day_sonnet: Window?
+        let seven_day_opus: Window?; let seven_day_cowork: Window?
         let extra_usage: ExtraUsage?; let spend: Spend?
         let seven_day_breakdown: ClaudeWeeklyBreakdown?
-        enum CodingKeys: String, CodingKey { case five_hour, seven_day, extra_usage, spend, seven_day_breakdown }
+        var preferredSevenDayWindow: Window? {
+            [seven_day, seven_day_oauth_apps, seven_day_sonnet, seven_day_opus, seven_day_cowork]
+                .compactMap { $0 }.first { $0.utilization != nil }
+        }
+        enum CodingKeys: String, CodingKey {
+            case five_hour, seven_day, seven_day_oauth_apps, seven_day_sonnet, seven_day_opus,
+                 seven_day_cowork, extra_usage, spend, seven_day_breakdown
+        }
         init(from decoder: Decoder) throws {
             let c = try decoder.container(keyedBy: CodingKeys.self)
             five_hour = try c.decodeIfPresent(Window.self, forKey: .five_hour)
             seven_day = try c.decodeIfPresent(Window.self, forKey: .seven_day)
+            seven_day_oauth_apps = try c.decodeIfPresent(Window.self, forKey: .seven_day_oauth_apps)
+            seven_day_sonnet = try c.decodeIfPresent(Window.self, forKey: .seven_day_sonnet)
+            seven_day_opus = try c.decodeIfPresent(Window.self, forKey: .seven_day_opus)
+            seven_day_cowork = try c.decodeIfPresent(Window.self, forKey: .seven_day_cowork)
             extra_usage = try? c.decode(ExtraUsage.self, forKey: .extra_usage)
             spend = try? c.decode(Spend.self, forKey: .spend)
             seven_day_breakdown = try? c.decode(ClaudeWeeklyBreakdown.self, forKey: .seven_day_breakdown)
         }
     }
-    private struct ExtraUsage: Decodable { let used_credits: MetadataNumber?; let currency: String? }
-    private struct Spend: Decodable { let used: Money? }
+    private struct ExtraUsage: Decodable { let used_credits: MetadataNumber?; let monthly_limit: MetadataNumber?; let currency: String? }
+    private struct Spend: Decodable { let used: Money?; let limit: Money? }
     private struct Money: Decodable { let amount_minor: MetadataNumber?; let exponent: Int?; let currency: String? }
     private struct Window: Decodable { let utilization: Double?; let resets_at: String? }
 }

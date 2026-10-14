@@ -124,7 +124,13 @@ struct SharedQuotaStore: Sendable {
                 let value: QuotaReading
                 do {
                     value = try await usage(credentials)
-                } catch AccessError.http(401) where !renewedBeforeUsage {
+                } catch {
+                    let unauthorized = (error as? AccessError) == .http(401) ||
+                        ((error as? ClaudeAccessError).map {
+                            if case .requestFailed(_, 401) = $0 { return true }
+                            return false
+                        } ?? false)
+                    guard unauthorized, !renewedBeforeUsage else { throw error }
                     // A plan change can invalidate an otherwise unexpired access token.
                     // Keep recovery under the app/widget lease and retry only once.
                     credentials = try await renew(credentials)

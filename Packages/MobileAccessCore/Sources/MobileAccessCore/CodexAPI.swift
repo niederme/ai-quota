@@ -94,6 +94,11 @@ public struct QuotaWindow: Codable, Sendable, Equatable, Identifiable {
     public let usedPercent: Double
     public let durationSeconds: Int
     public let resetsAt: Date?
+    public init(usedPercent: Double, durationSeconds: Int, resetsAt: Date?) {
+        self.usedPercent = usedPercent
+        self.durationSeconds = durationSeconds
+        self.resetsAt = resetsAt
+    }
     public var label: String {
         switch durationSeconds {
         case 604800: "Weekly"
@@ -108,16 +113,24 @@ public struct QuotaReading: Codable, Sendable, Equatable {
     public let shortTerm: QuotaWindow?
     // Legacy persistence key: this slot also holds monthly/other long allowances.
     public let weekly: QuotaWindow?
+    public let monthlyBudget: MonthlyBudget?
     public var windows: [QuotaWindow] { [shortTerm, weekly].compactMap { $0 } }
     public var primaryWindow: QuotaWindow? { windows.first }
     public var secondaryWindow: QuotaWindow? { windows.dropFirst().first }
+    public var budgetOnly: MonthlyBudget? { windows.isEmpty ? monthlyBudget : nil }
+    public var primaryDisplayWindow: QuotaWindow? {
+        primaryWindow ?? budgetOnly.map {
+            QuotaWindow(usedPercent: $0.usedPercent, durationSeconds: 30 * 86400, resetsAt: $0.resetsAt)
+        }
+    }
     public var accessibilitySummary: String {
-        windows.isEmpty ? "Allowance unavailable" : windows.map(\.accessibilitySummary).joined(separator: ". ")
+        let summaries = windows.map(\.accessibilitySummary) + (monthlyBudget.map { [$0.accessibilitySummary] } ?? [])
+        return summaries.isEmpty ? "Allowance unavailable" : summaries.joined(separator: ". ")
     }
     public let metadata: AccountMetadata?
     public let claudeBreakdown: ClaudeWeeklyBreakdown?
-    public init(fetchedAt: Date, shortTerm: QuotaWindow?, weekly: QuotaWindow?, metadata: AccountMetadata? = nil, claudeBreakdown: ClaudeWeeklyBreakdown? = nil) {
-        self.fetchedAt = fetchedAt; self.shortTerm = shortTerm; self.weekly = weekly; self.metadata = metadata; self.claudeBreakdown = claudeBreakdown
+    public init(fetchedAt: Date, shortTerm: QuotaWindow?, weekly: QuotaWindow?, metadata: AccountMetadata? = nil, claudeBreakdown: ClaudeWeeklyBreakdown? = nil, monthlyBudget: MonthlyBudget? = nil) {
+        self.fetchedAt = fetchedAt; self.shortTerm = shortTerm; self.weekly = weekly; self.metadata = metadata; self.claudeBreakdown = claudeBreakdown; self.monthlyBudget = monthlyBudget
     }
     public static func decode(_ data: Data, now: Date) throws -> Self {
         let raw = try JSONDecoder().decode(UsageResponse.self, from: data)
