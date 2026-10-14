@@ -10,6 +10,10 @@ struct PopoverView: View {
     /// Captured reference to the MenuBarExtra NSWindow so we can re-show it
     /// after Settings opens (which steals key focus and causes the window to close).
     @State private var menuBarWindow: NSWindow?
+    @State private var selectedService: ServiceType?
+    @State private var hoveredService: ServiceType?
+    @State private var overviewHeight: CGFloat?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var resetNotice = CodexResetNotice()
     @AppStorage(CodexResetNotice.dismissalKey) private var dismissedResetID = ""
@@ -23,14 +27,36 @@ struct PopoverView: View {
         #endif
     }
 
-    private var popoverWidth: CGFloat {
+    private var overviewWidth: CGFloat {
         viewModel.isCodexEnrolled ? 360 : (viewModel.enrolledServices.count == 1 ? 240 : 340)
+    }
+    private var popoverWidth: CGFloat { selectedService != nil ? 460 : overviewWidth }
+    private var detailHeight: CGFloat {
+        min(680, max(360, (menuBarWindow?.screen?.visibleFrame.height ?? NSScreen.main?.visibleFrame.height ?? 800) - 120))
+    }
+    private var popoverHeight: CGFloat? {
+        selectedService != nil ? detailHeight : viewModel.enrolledServices.isEmpty ? nil : overviewHeight
     }
 
     var body: some View {
-        Group {
-            if !viewModel.enrolledServices.isEmpty {
+        VStack(spacing: 0) {
+            if let selectedService {
+                ServiceDetailView(service: selectedService, height: detailHeight, close: {
+                    self.selectedService = nil
+                    hoveredService = nil
+                },
+                                  openAccount: openSettingsKeepingPopover)
+                    .frame(width: 460)
+                    .id(selectedService)
+                    .transition(.opacity)
+            } else if !viewModel.enrolledServices.isEmpty {
                 authenticatedContent
+                    .frame(width: overviewWidth)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                        if overviewHeight != height { overviewHeight = height }
+                    }
+                    .transition(.opacity)
             } else {
                 signInContent
             }
@@ -45,9 +71,18 @@ struct PopoverView: View {
             }
             #endif
         }
-        .frame(width: popoverWidth)
+        .frame(width: popoverWidth, height: popoverHeight, alignment: .topLeading)
+        .clipped()
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: selectedService)
         .background { popoverSurface }
         .background(WindowCapture { menuBarWindow = $0 })
+        .onDisappear {
+            selectedService = nil
+            hoveredService = nil
+        }
+        .onChange(of: viewModel.enrolledServices) { _, services in
+            if let selectedService, !services.contains(selectedService) { self.selectedService = nil }
+        }
         .background {
             Button("") { viewModel.manualRefresh() }
                 .keyboardShortcut("r", modifiers: .command)
@@ -80,6 +115,75 @@ struct PopoverView: View {
 
     // MARK: - Authenticated layout
 
+    private var visibleServices: [ServiceType] {
+        [.codex, .claude].filter { viewModel.enrolledServices.contains($0) }
+    }
+
+    private func canOpen(_ service: ServiceType) -> Bool {
+        service == .codex
+            ? viewModel.isCodexAuthenticated || viewModel.codexUsage != nil
+            : viewModel.isClaudeAuthenticated || viewModel.claudeUsage != nil
+    }
+
+    private func openService(_ service: ServiceType) {
+        guard canOpen(service) else { return }
+        hoveredService = nil
+        selectedService = service
+    }
+
+    private func service(at x: CGFloat) -> ServiceType? {
+        guard !visibleServices.isEmpty else { return nil }
+        let column = min(visibleServices.count - 1, max(0, Int(x / (overviewWidth / CGFloat(visibleServices.count)))))
+        return visibleServices[column]
+    }
+
+    // One tracking region spans both rows, including their padding and divider.
+    // Child controls such as Refresh and Connect keep their own button actions.
+    private var serviceArea: some View {
+        VStack(spacing: 0) {
+            gaugeRow.padding(.top, 16).padding(.bottom, 10)
+            statsRow
+        }
+        .contentShape(Rectangle())
+        .background {
+            HStack(spacing: 0) {
+                ForEach(visibleServices, id: \.self) { service in
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(.quaternary)
+                        .foregroundStyle(.primary)
+                        .opacity(hoveredService == service ? 1 : 0)
+                        .frame(maxWidth: .infinity)
+                        .padding(5)
+                }
+            }.allowsHitTesting(false)
+        }
+        .onContinuousHover { phase in
+            switch phase {
+            case .active(let location):
+                hoveredService = service(at: location.x).flatMap { canOpen($0) ? $0 : nil }
+            case .ended:
+                hoveredService = nil
+            }
+        }
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: hoveredService)
+        .onTapGesture(coordinateSpace: .local) { location in
+            if let service = service(at: location.x) { openService(service) }
+        }
+    }
+
+    private func serviceTarget<Content: View>(_ service: ServiceType, @ViewBuilder content: () -> Content) -> some View {
+        let name = service == .codex ? "Codex" : "Claude"
+        return content()
+            .focusable(canOpen(service))
+            .onKeyPress(keys: [.return, .space]) { _ in
+                guard canOpen(service) else { return .ignored }
+                openService(service)
+                return .handled
+            }
+            .accessibilityAction(named: Text("View \(name) details")) { openService(service) }
+            .accessibilityHint(canOpen(service) ? "Opens \(name) analytics and statistics" : "")
+    }
+
     @ViewBuilder
     private var authenticatedContent: some View {
         VStack(spacing: 0) {
@@ -94,10 +198,7 @@ struct PopoverView: View {
                 resetNoticeRow
             }
 
-            gaugeRow
-                .padding(.top, 16).padding(.bottom, 10)
-
-            statsRow
+            serviceArea
 
             updateAvailableRow
             Divider()
@@ -279,14 +380,14 @@ struct PopoverView: View {
     private var gaugeRow: some View {
         if viewModel.isCodexEnrolled && viewModel.isClaudeEnrolled {
             HStack(alignment: .top, spacing: 0) {
-                codexColumn.frame(maxWidth: .infinity)
+                serviceTarget(.codex) { codexColumn }.frame(maxWidth: .infinity)
                 Divider()
-                claudeGaugeSlot.frame(maxWidth: .infinity)
+                serviceTarget(.claude) { claudeGaugeSlot }.frame(maxWidth: .infinity)
             }
         } else if viewModel.isCodexEnrolled {
-            codexColumn
+            serviceTarget(.codex) { codexColumn }
         } else {
-            claudeGaugeSlot
+            serviceTarget(.claude) { claudeGaugeSlot }
         }
     }
 
@@ -298,26 +399,19 @@ struct PopoverView: View {
 
         if hasCodexStats || hasClaudeStats {
             Divider()
-            if bothEnrolled && hasCodexStats && hasClaudeStats {
+            if bothEnrolled {
                 HStack(alignment: .top, spacing: 0) {
-                    codexSecondaryStats
-                        .padding(.horizontal, 14)
+                    codexSecondaryStats.padding(.horizontal, 14)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     Divider()
-                    claudeSecondaryStats
-                        .padding(.horizontal, 14)
+                    claudeSecondaryStats.padding(.horizontal, 14)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .padding(.vertical, 7)
+                }.padding(.vertical, 7)
             } else if hasCodexStats {
-                codexSecondaryStats
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 7)
+                codexSecondaryStats.padding(.horizontal, 14).padding(.vertical, 7)
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                claudeSecondaryStats
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 7)
+                claudeSecondaryStats.padding(.horizontal, 14).padding(.vertical, 7)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }

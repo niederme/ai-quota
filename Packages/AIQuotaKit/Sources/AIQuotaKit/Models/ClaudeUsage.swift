@@ -1,4 +1,5 @@
 import Foundation
+import MobileAccessCore
 
 public struct ClaudeUsage: Codable, Sendable, Equatable {
     public let fiveHourUtilization: Double?
@@ -13,6 +14,7 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
     public let primaryMetric: Metric
     public let source: Source
     public let fetchedAt: Date
+    public let weeklyBreakdown: ClaudeWeeklyBreakdown?
 
     public enum DisplayKind: String, Codable, Sendable, Equatable {
         case fiveHour
@@ -228,7 +230,8 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
         spendLimit: SpendLimit? = nil,
         planLabel: PlanLabel? = nil,
         source: Source = .unknown,
-        fetchedAt: Date
+        fetchedAt: Date,
+        weeklyBreakdown: ClaudeWeeklyBreakdown? = nil
     ) {
         self.fiveHourUtilization = fiveHourUtilization
         self.fiveHourResetsAt = fiveHourResetsAt
@@ -268,6 +271,7 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
         )
         self.source = source
         self.fetchedAt = fetchedAt
+        self.weeklyBreakdown = weeklyBreakdown
     }
 
     public static func makePrimaryMetric(
@@ -337,6 +341,7 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
         case planLabel
         case source
         case fetchedAt
+        case weeklyBreakdown
     }
 
     public init(from decoder: Decoder) throws {
@@ -363,7 +368,8 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
             spendLimit: spendLimit,
             planLabel: planLabel,
             source: source,
-            fetchedAt: fetchedAt
+            fetchedAt: fetchedAt,
+            weeklyBreakdown: try? container.decodeIfPresent(ClaudeWeeklyBreakdown.self, forKey: .weeklyBreakdown)
         )
     }
 }

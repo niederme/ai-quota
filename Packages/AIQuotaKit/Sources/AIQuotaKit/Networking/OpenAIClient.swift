@@ -1,6 +1,7 @@
 import Foundation
 import CryptoKit
 import OSLog
+import MobileAccessCore
 
 public actor OpenAIClient {
     private let logger = Logger(subsystem: "app.aiquota", category: "OpenAIClient")
@@ -46,6 +47,29 @@ public actor OpenAIClient {
         guard http.statusCode == 200 else { throw NetworkError.httpError(statusCode: http.statusCode) }
         // Never log the private profile response, including on decoding failure.
         return try CodexTokenHistory.decode(data, scopeID: Self.tokenHistoryScope(for: context))
+    }
+
+    /// The same daily credit feed used by iOS service analytics. Optional history
+    /// failures never change the working quota connection.
+    public func fetchUsageHistory(now: Date = .now) async throws -> CodexUsageHistory {
+        let context = try await coordinator.accessContext()
+        var url = URLComponents(url: baseURL.appendingPathComponent("/backend-api/wham/usage/daily-token-usage-breakdown"), resolvingAgainstBaseURL: false)!
+        url.queryItems = [
+            URLQueryItem(name: "start_date", value: CodexUsageHistory.dateString(now.addingTimeInterval(-29 * 86400))),
+            URLQueryItem(name: "end_date", value: CodexUsageHistory.dateString(now)),
+            URLQueryItem(name: "group_by", value: "day")
+        ]
+        var request = URLRequest(url: url.url!)
+        request.timeoutInterval = 5
+        request.setValue("Bearer \(context.accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        if let accountID = context.accountID {
+            request.setValue(accountID, forHTTPHeaderField: "ChatGPT-Account-Id")
+        }
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw NetworkError.networkUnavailable }
+        guard http.statusCode == 200 else { throw NetworkError.httpError(statusCode: http.statusCode) }
+        return try CodexUsageHistory.decode(data, now: now)
     }
 
     public func fetchUsage() async throws -> CodexUsage {

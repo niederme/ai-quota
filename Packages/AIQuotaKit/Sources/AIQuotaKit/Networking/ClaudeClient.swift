@@ -1,4 +1,5 @@
 import Foundation
+import MobileAccessCore
 import OSLog
 
 // MARK: - ClaudeClient
@@ -114,7 +115,8 @@ public actor ClaudeClient {
                         subscriptionType: credentials.subscriptionType,
                         rateLimitTier: credentials.rateLimitTier
                     ),
-                    source: .oauth
+                    source: .oauth,
+                    weeklyBreakdown: Self.weeklyBreakdown(from: data)
                 )
             case 401, 403:
                 throw ClaudeOAuthFetchError.unauthorized(
@@ -162,7 +164,7 @@ public actor ClaudeClient {
 
         do {
             let raw = try Self.decoder.decode(ClaudeUsageResponse.self, from: data)
-            return Self.buildUsage(from: raw, planLabel: nil, source: .web)
+            return Self.buildUsage(from: raw, planLabel: nil, source: .web, weeklyBreakdown: Self.weeklyBreakdown(from: data))
         } catch {
             let preview = String(data: data.prefix(2000), encoding: .utf8) ?? "<non-utf8>"
             logger.error("[ClaudeClient] decodingError: \(error) | body: \(preview)")
@@ -252,14 +254,23 @@ public actor ClaudeClient {
         fetchedAt: Date
     ) throws -> ClaudeUsage {
         let raw = try decoder.decode(ClaudeUsageResponse.self, from: data)
-        return buildUsage(from: raw, planLabel: planLabel, source: source, fetchedAt: fetchedAt)
+        return buildUsage(from: raw, planLabel: planLabel, source: source, fetchedAt: fetchedAt, weeklyBreakdown: weeklyBreakdown(from: data))
+    }
+
+    private nonisolated static func weeklyBreakdown(from data: Data) -> ClaudeWeeklyBreakdown? {
+        // The shared decoder uses explicit API keys; keep it separate from the
+        // allowance decoder's convertFromSnakeCase strategy. Invalid optional
+        // analytics must not discard a valid allowance reading.
+        struct Envelope: Decodable { let seven_day_breakdown: ClaudeWeeklyBreakdown? }
+        return (try? JSONDecoder().decode(Envelope.self, from: data))?.seven_day_breakdown
     }
 
     private nonisolated static func buildUsage(
         from raw: ClaudeUsageResponse,
         planLabel: ClaudeUsage.PlanLabel?,
         source: ClaudeUsage.Source,
-        fetchedAt: Date = .now
+        fetchedAt: Date = .now,
+        weeklyBreakdown: ClaudeWeeklyBreakdown? = nil
     ) -> ClaudeUsage {
         let sevenDay = raw.preferredSevenDayWindow
         let hasNormalWindow = raw.fiveHour?.utilization != nil || sevenDay?.utilization != nil
@@ -282,7 +293,8 @@ public actor ClaudeClient {
             spendLimit: spendLimit,
             planLabel: planLabel,
             source: source,
-            fetchedAt: fetchedAt
+            fetchedAt: fetchedAt,
+            weeklyBreakdown: weeklyBreakdown
         )
     }
 

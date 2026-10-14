@@ -4,6 +4,7 @@ import CoreGraphics
 import Network
 import os
 import AIQuotaKit
+import MobileAccessCore
 import WidgetKit
 
 @MainActor
@@ -15,14 +16,14 @@ final class QuotaViewModel {
     // MARK: - Codex (OpenAI)
 
     var isReadOnlyPreview = false
-    var codexTokenHistory: CodexTokenHistory?
+    var codexTokenHistory: AIQuotaKit.CodexTokenHistory?
     var isTokenHistoryLoading = false
     var tokenHistoryUnavailable = false
     var tokenHistoryFailed = false
     private var tokenHistoryTask: Task<Void, Never>?
     private var tokenHistoryAttempt: Date?
     private var tokenHistoryGeneration = 0
-    private var tokenHistoryScope = CodexTokenHistoryScope()
+    private var tokenHistoryScope = AIQuotaKit.CodexTokenHistoryScope()
 
     func refreshTokenHistory(force: Bool = false) {
         guard !isReadOnlyPreview, !Self.isDemoBuild, isCodexAuthenticated else { return }
@@ -78,7 +79,7 @@ final class QuotaViewModel {
 
     private func clearTokenHistory() {
         tokenHistoryGeneration += 1
-        tokenHistoryScope = CodexTokenHistoryScope()
+        tokenHistoryScope = AIQuotaKit.CodexTokenHistoryScope()
         tokenHistoryTask?.cancel()
         tokenHistoryTask = nil
         codexTokenHistory = nil
@@ -86,6 +87,75 @@ final class QuotaViewModel {
         isTokenHistoryLoading = false
         tokenHistoryUnavailable = false
         tokenHistoryFailed = false
+    }
+
+    var codexUsageHistory: CodexUsageHistory?
+    var isUsageHistoryLoading = false
+    var usageHistoryFailed = false
+    private var usageHistoryTask: Task<Void, Never>?
+    private var usageHistoryAttempt: Date?
+    private var usageHistoryGeneration = 0
+    private var usageHistoryScope = AIQuotaKit.CodexTokenHistoryScope()
+
+    func refreshUsageHistory(force: Bool = false) {
+        guard !isReadOnlyPreview, !Self.isDemoBuild, isCodexAuthenticated else { return }
+        guard usageHistoryTask == nil else { return }
+        if codexUsageHistory == nil { isUsageHistoryLoading = true }
+        let generation = usageHistoryGeneration
+        usageHistoryTask = Task {
+            defer {
+                if generation == usageHistoryGeneration {
+                    isUsageHistoryLoading = false
+                    usageHistoryTask = nil
+                }
+            }
+            var verifiedAccount = false
+            var requestScopeID: String?
+            do {
+                let scopeID = try await codexClient.tokenHistoryScopeID()
+                guard !Task.isCancelled, generation == usageHistoryGeneration, isCodexAuthenticated else { return }
+                if usageHistoryScope.update(scopeID: scopeID) {
+                    codexUsageHistory = nil
+                    usageHistoryAttempt = nil
+                    usageHistoryFailed = false
+                }
+                verifiedAccount = true
+                requestScopeID = scopeID
+                if !force, let attempt = usageHistoryAttempt, Date.now.timeIntervalSince(attempt) < 900 { return }
+                usageHistoryAttempt = .now
+                isUsageHistoryLoading = true
+                let history = try await codexClient.fetchUsageHistory()
+                let currentScopeID = try await codexClient.tokenHistoryScopeID()
+                guard !Task.isCancelled, generation == usageHistoryGeneration, isCodexAuthenticated else { return }
+                guard currentScopeID == scopeID else {
+                    codexUsageHistory = nil
+                    usageHistoryAttempt = nil
+                    _ = usageHistoryScope.update(scopeID: currentScopeID)
+                    return
+                }
+                codexUsageHistory = history
+                usageHistoryFailed = false
+            } catch {
+                let currentScopeID = try? await codexClient.tokenHistoryScopeID()
+                guard !Task.isCancelled, generation == usageHistoryGeneration else { return }
+                if !verifiedAccount || requestScopeID == nil || currentScopeID != requestScopeID {
+                    codexUsageHistory = nil
+                    usageHistoryAttempt = nil
+                }
+                usageHistoryFailed = true
+            }
+        }
+    }
+
+    private func clearUsageHistory() {
+        usageHistoryGeneration += 1
+        usageHistoryScope = AIQuotaKit.CodexTokenHistoryScope()
+        usageHistoryTask?.cancel()
+        usageHistoryTask = nil
+        codexUsageHistory = nil
+        usageHistoryAttempt = nil
+        isUsageHistoryLoading = false
+        usageHistoryFailed = false
     }
 
     var codexUsage: CodexUsage?
@@ -214,6 +284,7 @@ final class QuotaViewModel {
     /// and onboarding state — the app behaves exactly like a fresh install.
     func resetToNewUser() async {
         clearTokenHistory()
+        clearUsageHistory()
         // Step 1: stop refresh and await quiescence.
         // Capture the task reference *before* stopAutoRefresh() sets refreshTask = nil,
         // otherwise the await below is always a no-op.
@@ -435,6 +506,7 @@ final class QuotaViewModel {
 
     private func clearCodexUsageSnapshot() {
         clearTokenHistory()
+        clearUsageHistory()
         codexUsage = nil
         codexAutoReload = nil
         SharedDefaults.clearUsage()
@@ -889,6 +961,7 @@ final class QuotaViewModel {
     /// immediately, bypassing the `isLoading` guard that blocks concurrent calls.
     func manualRefresh() {
         refreshTokenHistory(force: true)
+        refreshUsageHistory(force: true)
         codexRefreshGeneration += 1
         claudeRefreshGeneration += 1
         isCodexLoading = false
@@ -977,6 +1050,7 @@ final class QuotaViewModel {
 
     func signOut() {
         clearTokenHistory()
+        clearUsageHistory()
         stopAutoRefresh()
         Task {
             try? await codexCoordinator.signOut()

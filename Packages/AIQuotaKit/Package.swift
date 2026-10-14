@@ -7,10 +7,11 @@ let package = Package(
     products: [
         .library(name: "AIQuotaKit", targets: ["AIQuotaKit"])
     ],
+    dependencies: [.package(path: "../MobileAccessCore")],
     targets: [
         .target(
             name: "AIQuotaKit",
-            dependencies: [],
+            dependencies: ["MobileAccessCore"],
             path: "Sources/AIQuotaKit",
             linkerSettings: [
                 .linkedFramework("WebKit"),

@@ -28,32 +28,32 @@ struct ClaudeAnalyticsView: View {
                                         Text(row.percent.formatted(.number.precision(.fractionLength(0...1))) + "%")
                                             .font(.body.bold()).monospacedDigit()
                                         Image(systemName: "chevron.right").font(.caption)
-                                            .foregroundStyle(OverviewStyle.secondary)
+                                            .foregroundStyle(AnalyticsStyle.secondary)
                                     }.fixedSize()
                                 }
                                 GeometryReader { geometry in
                                     ZStack(alignment: .leading) {
-                                        Capsule().fill(OverviewStyle.track)
-                                        Capsule().fill(OverviewStyle.accent)
+                                        Capsule().fill(AnalyticsStyle.track)
+                                        Capsule().fill(AnalyticsStyle.accent)
                                             .frame(width: geometry.size.width * row.percent / 100)
                                     }
                                 }.frame(height: 5).accessibilityHidden(true)
                             }.padding(.vertical, 6).frame(minHeight: 44)
-                        }.buttonStyle(.plain).foregroundStyle(OverviewStyle.primary)
+                        }.buttonStyle(.plain).foregroundStyle(AnalyticsStyle.primary)
                     }
                     ClaudeBreakdownFreshness(breakdown: breakdown, failed: failed)
                     Text("Percentages reported by Claude, separate from your allowance.")
-                        .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                        .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
                     if failed {
                         Text("Couldn’t refresh product details. Last reported values remain visible.")
-                            .font(.callout).foregroundStyle(OverviewStyle.warning)
+                            .font(.callout).foregroundStyle(AnalyticsStyle.warning)
                         Button("Try again", action: refresh).disabled(busy)
                     }
                 } else {
                     Text(busy ? "Fetching weekly breakdown…" : "Weekly breakdown unavailable")
                         .font(.callout.weight(.semibold))
                     Text("Product details appear when Claude reports them.")
-                        .font(.callout).foregroundStyle(OverviewStyle.secondary)
+                        .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
                     if !busy { Button("Try again", action: refresh) }
                 }
             }.modifier(AnalyticsCard())
@@ -66,12 +66,12 @@ struct ClaudeAnalyticsView: View {
                         .font(.largeTitle.bold()).monospacedDigit()
                         .fixedSize(horizontal: false, vertical: true)
                     Text("Outside your plan allowance. Your subscription price is separate.")
-                        .font(.callout).foregroundStyle(OverviewStyle.secondary)
+                        .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
                 }.modifier(AnalyticsCard())
             } else if reading?.metadata?.usageSpent == nil {
-                Text("Spending not reported").font(.callout).foregroundStyle(OverviewStyle.secondary)
+                Text("Spending not reported").font(.callout).foregroundStyle(AnalyticsStyle.secondary)
             }
-        }.foregroundStyle(OverviewStyle.primary).tint(OverviewStyle.accent)
+        }.foregroundStyle(AnalyticsStyle.primary).tint(AnalyticsStyle.accent)
     }
 }
 
@@ -81,11 +81,17 @@ struct ClaudeBreakdownFreshness: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
             VStack(alignment: .leading, spacing: 4) {
-                Text("Products · " + overviewFreshnessLabel(breakdown.asOf, at: context.date, saved: failed))
+                Text("Products · " + analyticsFreshnessLabel(breakdown.asOf, at: context.date, saved: failed))
+                #if os(iOS)
                 Text("Reported as of " + breakdown.asOf.formatted(date: .abbreviated, time: .shortened))
                 Text("Window started " + breakdown.windowStartedAt.formatted(date: .abbreviated, time: .shortened))
-            }.font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                #endif
+            }.font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+                #if os(macOS)
+                .help("Reported as of " + breakdown.asOf.formatted(date: .abbreviated, time: .shortened)
+                      + " · Window started " + breakdown.windowStartedAt.formatted(date: .abbreviated, time: .shortened))
+                #endif
         }
     }
 }
@@ -103,9 +109,8 @@ struct ClaudeProductDetail: View {
                 Text(row.displayName).font(.title2.bold())
                 ClaudeBreakdownFreshness(breakdown: breakdown, failed: failed)
                 Text("This is the percentage Claude reported for this product. It is separate from your allowance.")
-                    .font(.callout).foregroundStyle(OverviewStyle.secondary)
-            }.foregroundStyle(OverviewStyle.primary).modifier(AnalyticsCard()).padding(20)
-        }.background { BrandSurfaceBackground().ignoresSafeArea() }
-            .navigationTitle(row.displayName).navigationBarTitleDisplayMode(.inline)
+                    .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
+            }.foregroundStyle(AnalyticsStyle.primary).modifier(AnalyticsCard()).padding(20)
+        }.modifier(AnalyticsDetailSurface(title: row.displayName))
     }
 }
