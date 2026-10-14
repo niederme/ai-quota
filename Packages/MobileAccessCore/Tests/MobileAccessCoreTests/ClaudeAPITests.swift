@@ -88,6 +88,36 @@ private func reply(_ body: String, status: Int = 200) -> HTTPResult {
     #expect(missing.shortTerm == nil)
     #expect(missing.weekly?.usedPercent == 0)
 }
+@Test func claudeEnterpriseSpendWithoutRollingWindowsIsAReading() throws {
+    let data = Data(#"{"five_hour":null,"seven_day":null,"spend":{"used":{"amount_minor":473,"exponent":2,"currency":"USD"},"limit":{"amount_minor":10000,"exponent":2,"currency":"USD"}}}"#.utf8)
+    let reading = try ClaudeAPI.decodeUsage(data, now: timestamp)
+    #expect(reading.windows.isEmpty)
+    #expect(reading.monthlyBudget?.used == 4.73)
+    #expect(reading.monthlyBudget?.limit == 100)
+    #expect(reading.monthlyBudget?.usedPercent == 4.73)
+    #expect(reading.monthlyBudget?.unit == "USD")
+    #expect(reading.monthlyBudget?.resetsAt == nil)
+    #expect(reading.primaryDisplayWindow?.usedPercent == 4.73)
+    #expect(try JSONDecoder().decode(QuotaReading.self, from: JSONEncoder().encode(reading)) == reading)
+}
+@Test func claudeEnterpriseExtraUsageAllowanceIsAReading() throws {
+    let data = Data(#"{"extra_usage":{"used_credits":4.73,"monthly_limit":100,"currency":"USD"}}"#.utf8)
+    let reading = try ClaudeAPI.decodeUsage(data, now: timestamp)
+    #expect(reading.monthlyBudget?.used == 4.73)
+    #expect(reading.monthlyBudget?.limit == 100)
+}
+@Test func claudeWeeklyVariantCanSupplyMissingGeneralWindow() throws {
+    for key in ["seven_day_oauth_apps", "seven_day_sonnet", "seven_day_opus", "seven_day_cowork"] {
+        let data = Data("{\"seven_day\":null,\"\(key)\":{\"utilization\":31}}".utf8)
+        #expect(try ClaudeAPI.decodeUsage(data, now: timestamp).weekly?.usedPercent == 31)
+    }
+}
+@Test func claudeIncompleteBudgetDoesNotInventAllowance() {
+    for raw in [#"{"spend":{"used":{"amount_minor":473,"exponent":2,"currency":"USD"}}}"#,
+                #"{"spend":{"used":{"amount_minor":473,"exponent":2,"currency":"USD"},"limit":{"amount_minor":0,"exponent":2,"currency":"USD"}}}"#] {
+        #expect(throws: AccessError.noWindows) { try ClaudeAPI.decodeUsage(Data(raw.utf8), now: timestamp) }
+    }
+}
 @Test func claudeBadReadingsStayUnavailable() {
     for raw in [#"{}"#, #"{"five_hour":{"utilization":null}}"#,
                 #"{"five_hour":{"utilization":101}}"#,
@@ -204,6 +234,19 @@ private actor ChangingClaudeProfile: HTTPTransport {
     let reading = try await api.usage(ClaudeTokens(accessToken: "synthetic", refreshToken: nil, expiresAt: timestamp))
     #expect(reading.shortTerm?.usedPercent == 8)
     #expect(reading.metadata?.plan == nil)
+}
+@Test func claudeEnterpriseProfileKeepsMonthlyAllowance() async throws {
+    let api = ClaudeAPI(transport: ClaudeMock { request in
+        if request.url?.path == "/api/oauth/profile" {
+            return reply(#"{"organization":{"organization_type":"claude_enterprise"}}"#)
+        }
+        return reply(#"{"spend":{"used":{"amount_minor":473,"exponent":2,"currency":"USD"},"limit":{"amount_minor":10000,"exponent":2,"currency":"USD"}}}"#)
+    })
+    let tokens = ClaudeTokens(accessToken: "synthetic", refreshToken: nil, expiresAt: timestamp)
+    let reading = try await api.usage(tokens, now: timestamp)
+    #expect(reading.metadata?.displayPlan == "Enterprise")
+    #expect(reading.monthlyBudget?.used == 4.73)
+    #expect(reading.monthlyBudget?.limit == 100)
 }
 
 @Test func claudeSingleWindowDoesNotInventWeeklyAllowance() throws {

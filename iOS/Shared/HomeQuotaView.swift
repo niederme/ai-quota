@@ -75,14 +75,14 @@ struct HomeQuotaView: View {
     private func stale(_ value: ProviderReading) -> Bool { WidgetReadingStatus.isSaved(value.reading, needsApp: value.needsApp, updateFailed: value.updateFailed, at: date) }
     private func tint(_ value: ProviderReading) -> Color {
         guard value.reading != nil, !stale(value) else { return .secondary }
-        let used = max(value.reading?.shortTerm?.usedPercent ?? 0, value.reading?.weekly?.usedPercent ?? 0)
+        let used = max(value.reading?.shortTerm?.usedPercent ?? 0, value.reading?.weekly?.usedPercent ?? 0, value.reading?.budgetOnly?.usedPercent ?? 0)
         return used >= 95 ? .red : used >= 85 ? Color(red: 1, green: 0.65, blue: 0) : accent
     }
     private func gauge(_ value: ProviderReading, size: CGFloat) -> some View {
         VStack(spacing: 3) {
             ZStack {
-                ring(value.reading?.primaryWindow, width: size * (value.reading?.windows.count == 1 ? 0.11 : 0.09), color: tint(value))
-                    .padding(value.reading?.windows.count == 1 ? size * 0.01 : 0)
+                ring(value.reading?.primaryDisplayWindow, width: size * ((value.reading?.windows.count == 1 || value.reading?.budgetOnly != nil) ? 0.11 : 0.09), color: tint(value))
+                    .padding((value.reading?.windows.count == 1 || value.reading?.budgetOnly != nil) ? size * 0.01 : 0)
                 if let secondary = value.reading?.secondaryWindow {
                     ring(secondary, width: size * 0.07, color: tint(value).opacity(0.5)).padding(size * 0.1)
                 }
@@ -92,9 +92,14 @@ struct HomeQuotaView: View {
                     } else {
                         Image(value.service.logo).resizable().scaledToFit().frame(width: size * 0.16, height: size * 0.16)
                     }
-                    Text(percent(value.reading?.primaryWindow) + " " + (value.reading?.primaryWindow?.compactLabel ?? ""))
+                    Text(value.reading?.budgetOnly.map { $0.amountText($0.used) } ?? (percent(value.reading?.primaryWindow) + " " + (value.reading?.primaryWindow?.compactLabel ?? "")))
                         .font(.system(size: size * (value.reading?.secondaryWindow == nil ? 0.15 : 0.175), weight: .bold)).lineLimit(1)
-                        .foregroundStyle(value.reading?.primaryWindow == nil ? Color.secondary : tint(value))
+                        .foregroundStyle(value.reading?.primaryDisplayWindow == nil ? Color.secondary : tint(value))
+                    if let budget = value.reading?.budgetOnly {
+                        Text("of \(budget.amountText(budget.limit))")
+                            .font(.system(size: size * 0.11, weight: .medium))
+                            .lineLimit(1)
+                    }
                     if let secondary = value.reading?.secondaryWindow {
                         Text(percent(secondary) + " " + secondary.compactLabel)
                             .font(.system(size: size * 0.125, weight: .semibold))
@@ -118,6 +123,8 @@ struct HomeQuotaView: View {
             } else {
                 if let primary = value.reading?.primaryWindow {
                     reset(primary, label: primary.resetLabel)
+                } else if let budget = value.reading?.budgetOnly {
+                    Text(budget.resetDescription(relativeTo: date)).foregroundStyle(.secondary).lineLimit(1)
                 }
                 if layout != .singleMedium && layout != .large, let secondary = value.reading?.secondaryWindow {
                     reset(secondary, label: secondary.resetLabel)
@@ -144,6 +151,9 @@ struct HomeQuotaView: View {
     private func details(_ value: ProviderReading) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             if let reading = value.reading {
+                if let budget = reading.budgetOnly {
+                    row("Monthly used", "\(budget.amountText(budget.used)) of \(budget.amountText(budget.limit))", icon: "sparkles")
+                }
                 if let window = value.service == .codex ? reading.windows.last : reading.primaryWindow { row("\(window.label == "Monthly" ? "Month" : window.compactLabel) left", "\(Int((100 - window.usedPercent).rounded()))%", icon: "sparkles") }
                 if let plan = reading.metadata?.displayPlan { row("Plan", plan, icon: "person.fill") }
                 if let balance = reading.metadata?.balanceUSD { row("Balance", balance.formatted(.currency(code: "USD")), icon: "creditcard.fill") }
@@ -154,6 +164,7 @@ struct HomeQuotaView: View {
                 if value.needsApp { Text("Connection needs attention").foregroundStyle(.secondary) }
                 else if stale(value) { Text(WidgetReadingStatus.savedLabel(value.reading, at: date)).foregroundStyle(.secondary) }
                 else if let window = reading.windows.last { reset(window, label: window.resetLabel) }
+                else if let budget = reading.budgetOnly { Text(budget.resetDescription(relativeTo: date)).foregroundStyle(.secondary) }
             } else {
                 Text(value.needsApp ? "Reconnect in AIQuota" : "Sign in to AIQuota").fontWeight(.semibold)
                 Text("Connect \(name(value)) in the app.").foregroundStyle(.secondary)

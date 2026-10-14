@@ -257,10 +257,13 @@ struct OnboardingView: View {
                         .font(.caption).foregroundStyle(OverviewStyle.secondary)
                 }
                 Spacer(minLength: 0)
-                if connected && error == nil {
-                    Label(codex.isDemo ? "Sample" : "Connected", systemImage: "checkmark.circle.fill").font(.caption.weight(.medium)).foregroundStyle(OverviewStyle.accent)
+                if connected {
+                    Label(codex.isDemo ? "Sample" : "Connected",
+                          systemImage: error == nil ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(error == nil ? OverviewStyle.accent : OverviewStyle.warning)
                 } else {
-                    Text(error == nil ? "Sign In" : "Reconnect").font(.callout.weight(.semibold))
+                    Text("Sign In").font(.callout.weight(.semibold))
                         .padding(.horizontal, 12).padding(.vertical, 8)
                         .foregroundStyle(.white).background(OverviewStyle.accent, in: Capsule())
                 }

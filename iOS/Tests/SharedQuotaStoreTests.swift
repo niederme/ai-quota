@@ -36,6 +36,19 @@ private actor UnauthorizedCalls {
         return try sample()
     }
 }
+private actor ClaudeUnauthorizedCalls {
+    var renewals = 0
+    var attempts = 0
+    func renew(_ old: CodexTokens) throws -> CodexTokens {
+        renewals += 1
+        return try credentials()
+    }
+    func usage(_ token: CodexTokens) throws -> QuotaReading {
+        attempts += 1
+        if attempts == 1 { throw ClaudeAccessError.requestFailed(stage: "usage update", status: 401) }
+        return try sample()
+    }
+}
 final class SharedQuotaStoreTests: XCTestCase {
     private func store(_ service: QuotaService = .codex) -> SharedQuotaStore {
         let id = UUID().uuidString
@@ -119,6 +132,18 @@ final class SharedQuotaStoreTests: XCTestCase {
 
     func testUnexpiredTokenRenewsOnceAfter401() async throws {
         let store = store(), calls = UnauthorizedCalls()
+        try await store.withLease { try store.saveCredentials(credentials()) }
+        let value = try await store.fetch(CodexTokens.self, source: "app",
+            renew: { try await calls.renew($0) }, usage: { try await calls.usage($0) })
+        let renewals = await calls.renewals, attempts = await calls.attempts
+        XCTAssertEqual(renewals, 1)
+        XCTAssertEqual(attempts, 2)
+        XCTAssertEqual(store.reading(), value)
+        XCTAssertNil(store.failure())
+        try await clean(store)
+    }
+    func testClaudeUnexpiredTokenRenewsOnceAfter401() async throws {
+        let store = store(.claude), calls = ClaudeUnauthorizedCalls()
         try await store.withLease { try store.saveCredentials(credentials()) }
         let value = try await store.fetch(CodexTokens.self, source: "app",
             renew: { try await calls.renew($0) }, usage: { try await calls.usage($0) })
