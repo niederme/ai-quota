@@ -96,6 +96,9 @@ targets:
           - Resources/Info-TestFlight.plist
           - Resources/Analytics.plist
           - Resources/GoogleService-Info.plist
+      - path: iOS/App/CodexAnalyticsView.swift
+      - path: iOS/App/ClaudeAnalyticsView.swift
+      - path: iOS/App/AnalyticsStyle.swift
     resources:
       - path: AIQuota/Resources/Assets.xcassets
     dependencies:
@@ -172,6 +175,9 @@ targets:
           - Resources/Analytics.plist
           - Resources/GoogleService-Info.plist
           - Support/LaunchServicesSync.swift
+      - path: iOS/App/CodexAnalyticsView.swift
+      - path: iOS/App/ClaudeAnalyticsView.swift
+      - path: iOS/App/AnalyticsStyle.swift
     dependencies:
       - package: MobileAccessCore
       - package: AIQuotaKit

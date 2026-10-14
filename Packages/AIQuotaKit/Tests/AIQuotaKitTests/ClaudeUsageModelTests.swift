@@ -4,6 +4,31 @@ import Testing
 
 @Suite("ClaudeUsage model")
 struct ClaudeUsageModelTests {
+    @Test("product analytics survives API decoding and cache round trips")
+    func weeklyProductBreakdown() throws {
+        let json = Data(#"{"seven_day":{"utilization":44},"seven_day_breakdown":{"as_of":"2026-10-13T09:16:00Z","window_started_at":"2026-10-09T09:16:00Z","rows":[{"key":"code","display_name":"Claude Code","percent":72},{"key":"chat","display_name":"Chats","percent":21}]}}"#.utf8)
+        let usage = try ClaudeClient._decodeUsageForTesting(json, source: .web, fetchedAt: .now)
+        #expect(usage.sevenDayUtilization == 44)
+        #expect(usage.weeklyBreakdown?.rows.map(\.displayName) == ["Claude Code", "Chats"])
+        #expect(usage.weeklyBreakdown?.rows.map(\.percent) == [72, 21])
+        let cached = try JSONDecoder().decode(ClaudeUsage.self, from: JSONEncoder().encode(usage))
+        #expect(cached == usage)
+    }
+
+    @Test("invalid optional product analytics does not discard allowance")
+    func invalidWeeklyProductBreakdown() throws {
+        for breakdown in ["null", "{}", #"{"as_of":"2026-10-13T09:16:00Z","window_started_at":"2026-10-09T09:16:00Z","rows":[{"key":"code","display_name":"Code","percent":120}]}"#] {
+            let data = Data("{\"seven_day\":{\"utilization\":44},\"seven_day_breakdown\":\(breakdown)}".utf8)
+            let usage = try ClaudeClient._decodeUsageForTesting(data, fetchedAt: .now)
+            #expect(usage.sevenDayUtilization == 44)
+            #expect(usage.weeklyBreakdown == nil)
+        }
+        // Older caches have no weeklyBreakdown key.
+        let old = try ClaudeClient._decodeUsageForTesting(Data(#"{"seven_day":{"utilization":44}}"#.utf8), fetchedAt: .now)
+        #expect(old.weeklyBreakdown == nil)
+        #expect(try JSONDecoder().decode(ClaudeUsage.self, from: JSONEncoder().encode(old)) == old)
+    }
+
     @Test("primary metric prefers 5-hour, then 7-day, then spend limit")
     func primaryMetricPrecedence() {
         let reset5h = Date(timeIntervalSince1970: 1_800)

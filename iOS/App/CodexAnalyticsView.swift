@@ -19,14 +19,17 @@ struct CodexAnalyticsView: View {
                 Picker("Usage period", selection: $period) {
                     Text("7 days").tag(7)
                     Text("30 days").tag(30)
-                }.pickerStyle(.segmented).frame(maxWidth: 180)
+                }.pickerStyle(.segmented).labelsHidden().frame(maxWidth: 180)
+                .help("Plan usage credits, not messages or extra charges.")
+                #if os(iOS)
                 Text("Plan usage credits · not messages or extra charges.")
-                    .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                    .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
+                #endif
             }
-            if let history {
+            if let history, showsHistoryFreshness(history) {
                 TimelineView(.periodic(from: .now, by: 30)) { context in
-                    Text("History · " + overviewFreshnessLabel(history.fetchedAt, at: context.date, saved: historyUnavailable))
-                        .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                    Text("History · " + analyticsFreshnessLabel(history.fetchedAt, at: context.date, saved: historyUnavailable))
+                        .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
                 }
             }
             if historyUnavailable || history == nil {
@@ -36,7 +39,7 @@ struct CodexAnalyticsView: View {
                         .font(.headline)
                     if history != nil {
                         Text("Showing the last available history. Missing days stay empty.")
-                            .font(.callout).foregroundStyle(OverviewStyle.secondary)
+                            .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
                     }
                     Button("Retry history", action: refresh).disabled(busy)
                 }.modifier(AnalyticsCard())
@@ -52,12 +55,20 @@ struct CodexAnalyticsView: View {
                     Text(spent.formatted(.currency(code: reading?.metadata?.usageCurrency ?? "USD")))
                         .font(.largeTitle.bold()).monospacedDigit()
                     Text("Beyond your subscription · " + (reading?.fetchedAt.formatted(.dateTime.month(.wide)) ?? "This month"))
-                        .font(.callout).foregroundStyle(OverviewStyle.secondary)
+                        .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
                     Text("Converted at 25 credits = $1. Excludes your subscription price and credit purchases.")
-                        .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                        .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
                 }.modifier(AnalyticsCard())
             }
-        }.foregroundStyle(OverviewStyle.primary).tint(OverviewStyle.accent)
+        }.foregroundStyle(AnalyticsStyle.primary).tint(AnalyticsStyle.accent)
+    }
+
+    private func showsHistoryFreshness(_ history: CodexUsageHistory) -> Bool {
+        #if os(macOS)
+        historyUnavailable || Date.now.timeIntervalSince(history.fetchedAt) >= 1800
+        #else
+        true
+        #endif
     }
 }
 
@@ -66,10 +77,17 @@ struct AnalyticsCard: ViewModifier {
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     func body(content: Content) -> some View {
         content.padding(20).frame(maxWidth: .infinity, alignment: .leading)
-            .background(reduceTransparency ? Color(uiColor: .secondarySystemBackground)
+            .background(reduceTransparency ? solidBackground
                         : scheme == .dark ? Color.white.opacity(0.07) : Color.white.opacity(0.7),
                         in: RoundedRectangle(cornerRadius: 24))
-            .overlay { RoundedRectangle(cornerRadius: 24).strokeBorder(OverviewStyle.primary.opacity(scheme == .dark ? 0.14 : 0.08)) }
+            .overlay { RoundedRectangle(cornerRadius: 24).strokeBorder(AnalyticsStyle.primary.opacity(scheme == .dark ? 0.14 : 0.08)) }
+    }
+    private var solidBackground: Color {
+        #if os(iOS)
+        Color(uiColor: .secondarySystemBackground)
+        #else
+        Color(nsColor: .controlBackgroundColor)
+        #endif
     }
 }
 
@@ -125,26 +143,28 @@ struct CodexTrendCard: View {
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title).font(.headline).foregroundStyle(OverviewStyle.secondary)
+            Text(title).font(.headline).foregroundStyle(AnalyticsStyle.secondary)
             if (breakdown == nil && data.reportedDays > 0) || !series.isEmpty {
                 Text(total.formatted(.number.precision(.fractionLength(0...2))))
                     .font(.largeTitle.bold()).monospacedDigit()
                 Text("usage credits" + (data.isPartial ? " · partial period" : ""))
-                    .font(.footnote).foregroundStyle(OverviewStyle.secondary)
-                if let first = data.days.first, let last = data.days.last {
+                    .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
+                if showsDateRange, let first = data.days.first, let last = data.days.last {
                     Text(Self.dateLabel(first.date) + " – " + Self.dateLabel(last.date))
-                        .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                        .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
                 }
                 chart
                 if let index = selectedIndex {
                     selectedDay(index)
                 } else {
-                    Text("Tap a day to see its reported usage.")
-                        .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                    #if os(iOS)
+                    Text(daySelectionHint)
+                        .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
+                    #endif
                 }
                 if let breakdown, data.missingAttribution(breakdown) {
                     Text("Some reported usage has no \(breakdown == .models ? "model" : "app") attribution.")
-                        .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                        .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
                 }
                 if breakdown != nil && focusedID == nil {
                     ForEach(Array(series.enumerated()), id: \.element.id) { index, item in
@@ -153,16 +173,14 @@ struct CodexTrendCard: View {
                                 CodexTrendCard(title: Self.displayName(item.id), data: data,
                                                breakdown: breakdown, focusedID: item.id)
                                     .padding(20)
-                            }.background { BrandSurfaceBackground().ignoresSafeArea() }
-                                .navigationTitle(Self.displayName(item.id))
-                                .navigationBarTitleDisplayMode(.inline)
+                            }.modifier(AnalyticsDetailSurface(title: Self.displayName(item.id)))
                         } label: {
                             seriesRow(item, index: index)
                         }.buttonStyle(.plain)
                     }
                     if series.count > 3 {
                         Text("Chart shows the three leading series. All reported categories are listed.")
-                            .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                            .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
                     }
                 }
                 Button("View daily readings") { showDays.toggle() }
@@ -175,10 +193,24 @@ struct CodexTrendCard: View {
             } else {
                 Text(breakdown == nil ? "Daily usage not reported for this period."
                      : "No \(breakdown == .models ? "model" : "app") breakdown reported for this period.")
-                    .font(.callout).foregroundStyle(OverviewStyle.secondary)
+                    .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
             }
         }.modifier(AnalyticsCard())
             .onChange(of: data.days.map(\.date)) { _, _ in selection = nil }
+    }
+    private var daySelectionHint: String {
+        #if os(macOS)
+        "Click a day to see its reported usage."
+        #else
+        "Tap a day to see its reported usage."
+        #endif
+    }
+    private var showsDateRange: Bool {
+        #if os(macOS)
+        breakdown == nil || focusedID != nil
+        #else
+        true
+        #endif
     }
     private var chart: some View {
         Chart(points) { point in
@@ -203,6 +235,9 @@ struct CodexTrendCard: View {
         .frame(height: typeSize.isAccessibilitySize ? 220 : 170)
         .accessibilityLabel(title + " trend")
         .accessibilityHint("Daily values are also available using View daily readings.")
+        #if os(macOS)
+        .help(daySelectionHint)
+        #endif
     }
     private var axisDates: [Date] {
         let first = dateDomain.lowerBound, last = dateDomain.upperBound
@@ -220,7 +255,7 @@ struct CodexTrendCard: View {
         return VStack(alignment: .leading, spacing: 4) {
             Text(Self.dateLabel(day.date)).font(.callout.weight(.semibold))
             Text(amount.map { $0.formatted(.number.precision(.fractionLength(0...2))) + " usage credits" } ?? "Not reported")
-                .font(.callout).foregroundStyle(OverviewStyle.secondary)
+                .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
     private func seriesRow(_ item: CodexHistoryPeriod.Series, index: Int) -> some View {
@@ -230,17 +265,17 @@ struct CodexTrendCard: View {
                 Text(Self.displayName(item.id)).font(.body.weight(.medium))
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 8)
-                Image(systemName: "chevron.right").font(.caption).foregroundStyle(OverviewStyle.secondary)
+                Image(systemName: "chevron.right").font(.caption).foregroundStyle(AnalyticsStyle.secondary)
             }
             Text(item.total.formatted(.number.precision(.fractionLength(0...2))) + " credits · " +
                  (data.total > 0 ? (item.total / data.total).formatted(.percent.precision(.fractionLength(0))) + " of reported usage" : ""))
-                .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-            .foregroundStyle(OverviewStyle.primary)
+            .foregroundStyle(AnalyticsStyle.primary)
     }
     static func color(_ index: Int) -> Color {
-        [OverviewStyle.accent, Color.orange, Color.green, Color.pink][index % 4]
+        [AnalyticsStyle.accent, Color.orange, Color.green, Color.pink][index % 4]
     }
     static func dateLabel(_ string: String) -> String {
         CodexHistoryPeriod.date(string)?.formatted(Date.FormatStyle(timeZone: TimeZone(secondsFromGMT: 0)!).month(.abbreviated).day()) ?? string
