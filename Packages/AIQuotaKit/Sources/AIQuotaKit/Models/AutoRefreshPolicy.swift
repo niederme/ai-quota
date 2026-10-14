@@ -48,7 +48,9 @@ public enum AutoRefreshPolicy {
 public enum AutoRefreshActivity {
     public static func changed(from previous: CodexUsage?, to current: CodexUsage) -> Bool {
         guard let previous else { return false }
-        return previous.weeklyUsedPercent != current.weeklyUsedPercent
+        return previous.monthlyBudget?.used != current.monthlyBudget?.used
+            || previous.monthlyBudget?.limit != current.monthlyBudget?.limit
+            || previous.weeklyUsedPercent != current.weeklyUsedPercent
             || previous.hourlyUsedPercent != current.hourlyUsedPercent
             || previous.limitReached != current.limitReached
             || previous.allowed != current.allowed

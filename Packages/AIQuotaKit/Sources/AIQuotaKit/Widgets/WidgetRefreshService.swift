@@ -162,10 +162,31 @@ public actor WidgetRefreshService {
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             let raw = try decoder.decode(WhamUsageResponse.self, from: data)
-            return CodexUsage(from: raw).retainingLastConfirmedWindows(from: SharedDefaults.loadCachedUsage())
+            var usage = CodexUsage(from: raw)
+            if usage.displayableMonthlyBudget == nil, usage.reportedWindowShape == nil,
+               let accountID, !accountID.isEmpty,
+               let budget = try? await fetchCodexMonthlyBudget(accessToken: accessToken, accountID: accountID) {
+                usage = usage.withMonthlyBudget(budget)
+            }
+            return usage.retainingLastConfirmedWindows(from: SharedDefaults.loadCachedUsage())
         } catch {
             throw NetworkError.decodingError(underlying: error)
         }
+    }
+
+    private func fetchCodexMonthlyBudget(accessToken: String, accountID: String) async throws -> CodexUsage.MonthlyBudget? {
+        let url = URL(string: "https://chatgpt.com/backend-api/accounts")!
+            .appendingPathComponent(accountID)
+            .appendingPathComponent("spend-controls/current-user/monthly-usage")
+        var request = URLRequest(url: url)
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(accountID, forHTTPHeaderField: "ChatGPT-Account-Id")
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else { return nil }
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return try decoder.decode(CodexMonthlyUsageResponse.self, from: data).monthlyBudget
     }
 
     private func fetchClaudeUsage(orgId: String, cookies: [HTTPCookie], now: Date) async throws -> ClaudeUsage {

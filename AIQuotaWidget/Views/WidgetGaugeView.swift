@@ -1,6 +1,68 @@
 import SwiftUI
 import AIQuotaKit
 
+struct WidgetBudgetView: View {
+    let budget: CodexUsage.MonthlyBudget
+    let size: CGFloat
+
+    private var used: Double { budget.used ?? 0 }
+    private var limit: Double { budget.limit ?? 1 }
+    private var fraction: Double { min(1, max(0, used / limit)) }
+
+    var body: some View {
+        VStack(spacing: size * 0.04) {
+            ZStack {
+                Circle()
+                    .trim(from: 0, to: 0.75)
+                    .stroke(.fill.tertiary, style: StrokeStyle(lineWidth: size * 0.11))
+                    .rotationEffect(.degrees(135))
+                Circle()
+                    .trim(from: 0, to: 0.75 * fraction)
+                    .stroke(WidgetGaugeView.accent, style: StrokeStyle(lineWidth: size * 0.11))
+                    .rotationEffect(.degrees(135))
+                VStack(spacing: 2) {
+                    Image("logo-openai")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: size * 0.16, height: size * 0.16)
+                    Text(used.formatted(.number.precision(.fractionLength(0...1))))
+                        .font(.system(size: size * 0.17, weight: .bold, design: .rounded))
+                    Text("of \(limit.formatted(.number.precision(.fractionLength(0))))")
+                        .font(.system(size: size * 0.1))
+                        .foregroundStyle(.secondary)
+                }
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            }
+            .frame(width: size, height: size)
+            Text("Codex")
+                .font(.system(size: size * 0.125, weight: .bold))
+            Text("credits this month")
+                .font(.system(size: size * 0.1))
+                .foregroundStyle(.secondary)
+        }
+        .multilineTextAlignment(.center)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Codex, \(used) of \(limit) monthly credits used")
+    }
+}
+
+struct WidgetUnavailableView: View {
+    let size: CGFloat
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Image("logo-openai")
+                .resizable().scaledToFit()
+                .frame(width: size * 0.25, height: size * 0.25)
+            Text("—").font(.title.bold()).foregroundStyle(.tertiary)
+            Text("Codex").font(.caption.bold())
+            Text("Usage unavailable").font(.system(size: 9)).foregroundStyle(.secondary)
+        }
+        .frame(width: size + 18, height: size + 18)
+    }
+}
+
 /// Non-interactive quota gauge for widget use, with an optional secondary ring.
 struct WidgetGaugeView: View {
 

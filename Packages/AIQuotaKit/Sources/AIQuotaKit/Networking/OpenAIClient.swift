@@ -110,18 +110,77 @@ public actor OpenAIClient {
             throw NetworkError.httpError(statusCode: http.statusCode)
         }
 
+        let raw: WhamUsageResponse
         do {
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
-            let raw = try decoder.decode(WhamUsageResponse.self, from: data)
-            recordAttempt(source: context.source, httpStatus: http.statusCode, category: .success)
-            return CodexUsage(from: raw).retainingLastConfirmedWindows(from: SharedDefaults.loadCachedUsage())
+            raw = try decoder.decode(WhamUsageResponse.self, from: data)
         } catch {
             recordAttempt(source: context.source, httpStatus: http.statusCode, category: .invalidResponse)
-            let preview = String(data: data.prefix(2000), encoding: .utf8) ?? "<non-UTF8>"
-            logger.error("[OpenAIClient] decodingError: \(error) | body: \(preview)")
+            logger.error("[OpenAIClient] usage decoding failed: \(error)")
             throw NetworkError.decodingError(underlying: error)
         }
+        recordAttempt(source: context.source, httpStatus: http.statusCode, category: .success)
+        var usage = CodexUsage(from: raw)
+        if usage.displayableMonthlyBudget == nil, usage.reportedWindowShape == nil,
+           let accountID = context.accountID, !accountID.isEmpty,
+           let budget = try? await fetchMemberMonthlyUsage(context: context, accountID: accountID).monthlyBudget {
+            usage = usage.withMonthlyBudget(budget)
+        }
+        return usage.retainingLastConfirmedWindows(from: SharedDefaults.loadCachedUsage())
+    }
+
+    /// Fetches the organization member monthly budget when the account exposes it.
+    /// Personal accounts may return 404; callers can treat that as unavailable.
+    public func fetchMemberMonthlyUsage() async throws -> CodexMonthlyUsageResponse {
+        let context = try await coordinator.accessContext()
+        guard let accountID = context.accountID, !accountID.isEmpty else {
+            throw NetworkError.notAuthenticated
+        }
+        return try await fetchMemberMonthlyUsage(context: context, accountID: accountID)
+    }
+
+    private func fetchMemberMonthlyUsage(context: CodexAccessContext, accountID: String) async throws -> CodexMonthlyUsageResponse {
+        var req = URLRequest(url: Self.memberMonthlyUsageURL(baseURL: baseURL, accountID: accountID))
+        req.httpMethod = "GET"
+        req.setValue("Bearer \(context.accessToken)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        req.setValue(accountID, forHTTPHeaderField: "ChatGPT-Account-Id")
+        let (data, response) = try await session.data(for: req)
+        guard let http = response as? HTTPURLResponse else { throw NetworkError.networkUnavailable }
+        switch http.statusCode {
+        case 200...299: break
+        case 401: throw NetworkError.tokenExpired
+        case 429: throw NetworkError.rateLimited
+        default: throw NetworkError.httpError(statusCode: http.statusCode)
+        }
+        do {
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            return try decoder.decode(CodexMonthlyUsageResponse.self, from: data)
+        } catch {
+            throw NetworkError.decodingError(underlying: error)
+        }
+    }
+
+    nonisolated static func _decodeMonthlyUsageForTesting(_ data: Data) throws -> CodexMonthlyUsageResponse {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return try decoder.decode(CodexMonthlyUsageResponse.self, from: data)
+    }
+
+    nonisolated static func _memberMonthlyUsageURLForTesting(accountID: String) -> URL {
+        memberMonthlyUsageURL(baseURL: URL(string: "https://chatgpt.com")!, accountID: accountID)
+    }
+
+    private static func memberMonthlyUsageURL(baseURL: URL, accountID: String) -> URL {
+        baseURL
+            .appendingPathComponent("backend-api")
+            .appendingPathComponent("accounts")
+            .appendingPathComponent(accountID)
+            .appendingPathComponent("spend-controls")
+            .appendingPathComponent("current-user")
+            .appendingPathComponent("monthly-usage")
     }
 
     public func fetchAutoReload() async throws -> CodexAutoReload {

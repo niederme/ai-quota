@@ -210,6 +210,100 @@ struct CircularGaugeView: View {
     }
 }
 
+/// A monthly allowance shown with the same ring language as rolling windows.
+/// The ring is proportional, while the center keeps the provider's actual unit.
+struct BudgetGaugeView: View {
+    let used: Double
+    let limit: Double
+    let usedText: String
+    let limitText: String
+    let unitLabel: String
+    let icon: String
+    let label: String
+    let resetAt: Date?
+    let isRefreshing: Bool
+    let onRefresh: () -> Void
+
+    private var trackStyle: AnyShapeStyle { AnyShapeStyle(.fill.tertiary) }
+
+    private var fraction: Double {
+        guard used.isFinite, limit.isFinite, limit > 0 else { return 0 }
+        return min(1, max(0, used / limit))
+    }
+
+    private var statusColor: Color {
+        if fraction >= 0.95 { return .critical }
+        if fraction >= 0.85 { return .warningAmber }
+        return CircularGaugeView.accent
+    }
+
+    var body: some View {
+        VStack(spacing: 4) {
+            ZStack {
+                Circle()
+                    .trim(from: 0, to: 0.75)
+                    .stroke(trackStyle, style: StrokeStyle(lineWidth: 9, lineCap: .butt))
+                    .rotationEffect(.degrees(135))
+                Circle()
+                    .trim(from: 0, to: 0.75 * fraction)
+                    .stroke(statusColor, style: StrokeStyle(lineWidth: 9, lineCap: .butt))
+                    .rotationEffect(.degrees(135))
+                    .animation(.easeInOut(duration: 0.5), value: fraction)
+
+                VStack(spacing: 3) {
+                    Image(icon)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 15, height: 15)
+                        .foregroundStyle(statusColor)
+                    Text(usedText)
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundStyle(statusColor)
+                        .contentTransition(.numericText())
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                    Text("of \(limitText)")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+                .frame(width: 88)
+
+                VStack {
+                    Spacer()
+                    ZStack {
+                        RefreshButton(action: onRefresh)
+                            .opacity(isRefreshing ? 0 : 1)
+                        ProgressView()
+                            .controlSize(.mini)
+                            .scaleEffect(0.8)
+                            .opacity(isRefreshing ? 1 : 0)
+                    }
+                    .padding(.bottom, 2)
+                }
+            }
+            .frame(width: 114, height: 114)
+
+            Text(label)
+                .font(.headline.bold())
+                .lineLimit(1)
+            Text(unitLabel)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text(resetAt.map { ResetTimeTextFormatter.compactWindowCaption("Monthly", resetAt: $0) }
+                 ?? "Monthly reset unavailable")
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+        .multilineTextAlignment(.center)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(label), \(usedText) of \(limitText) \(unitLabel)")
+    }
+}
+
 // MARK: - Refresh button
 
 /// A small refresh icon that highlights on hover and changes the cursor

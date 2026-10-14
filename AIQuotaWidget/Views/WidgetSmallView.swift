@@ -30,6 +30,9 @@ struct WidgetSmallView: View {
                 }
             } else {
                 if let u = entry.codexUsage {
+                    if u.reportedWindowShape == nil, let budget = u.displayableMonthlyBudget {
+                        WidgetBudgetView(budget: budget, size: 90)
+                    } else if u.reportedWindowShape != nil {
                     let hasHourlyWindow = u.hasHourlyWindow
                     let weeklyOnly = u.reportsWeeklyOnlyWindow
                     WidgetGaugeView(
@@ -47,6 +50,9 @@ struct WidgetSmallView: View {
                         secondaryLimitReached: u.isWeeklyExhausted,
                         size: 90
                     )
+                    } else {
+                        unavailableView("Codex")
+                    }
                 } else {
                     emptyView("Codex")
                 }
@@ -61,6 +67,14 @@ struct WidgetSmallView: View {
             Text("—").font(.title.bold()).foregroundStyle(.tertiary)
             Text(name).font(.caption2.bold()).foregroundStyle(.secondary)
             Text("Sign in to AIQuota").font(.system(size: 9)).foregroundStyle(.tertiary)
+        }
+    }
+
+    private func unavailableView(_ name: String) -> some View {
+        VStack(spacing: 6) {
+            Text("—").font(.title.bold()).foregroundStyle(.tertiary)
+            Text(name).font(.caption2.bold())
+            Text("Usage unavailable").font(.system(size: 9)).foregroundStyle(.tertiary)
         }
     }
 }
