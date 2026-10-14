@@ -57,6 +57,7 @@ public actor NotificationManager {
     /// per threshold per weekly window, and one "reset" notification when the week rolls over.
     public func evaluate(current: CodexUsage, prefs: NotificationPreferences) async {
         guard prefs.enabled, prefs.codexEnabled else { return }
+        guard current.reportedWindowShape != nil else { return }
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized else { return }

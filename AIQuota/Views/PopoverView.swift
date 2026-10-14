@@ -153,37 +153,59 @@ struct PopoverView: View {
     private var codexGaugeSlot: some View {
         if viewModel.isCodexAuthenticated {
             if let u = viewModel.codexUsage {
-                let hasHourlyWindow = u.hasHourlyWindow
-                CircularGaugeView(
-                    primaryPercent: hasHourlyWindow ? u.hourlyUsedPercent : u.weeklyUsedPercent,
-                    primaryLimitReached: hasHourlyWindow ? u.hourlyUsedPercent >= 100 : u.isWeeklyExhausted,
-                    showsPrimaryMetric: true,
-                    secondaryPercent: u.weeklyUsedPercent,
-                    secondaryLimitReached: u.isWeeklyExhausted,
-                    showsSecondaryMetric: hasHourlyWindow,
-                    isLoading: false,
-                    icon: "logo-openai",
-                    label: "Codex",
-                    primaryLabel: hasHourlyWindow ? formatWindowDuration(u.hourlyWindowSeconds) : "7d",
-                    secondaryLabel: "7d",
-                    resetAt: hasHourlyWindow ? (u.hourlyResetAt == .distantFuture ? nil : u.hourlyResetAt) : (u.weeklyResetAt == .distantFuture ? nil : u.weeklyResetAt),
-                    weeklyResetAt: u.weeklyResetAt == .distantFuture ? nil : u.weeklyResetAt,
-                    isRefreshing: viewModel.isCodexLoading,
-                    onRefresh: { viewModel.manualRefresh() }
-                )
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel("Codex usage")
-                .accessibilityValue(codexAccessibilitySummary(u))
+                if u.reportedWindowShape == nil,
+                   let budget = u.monthlyBudget,
+                   let used = budget.used, let limit = budget.limit,
+                   used.isFinite, used >= 0, limit.isFinite, limit > 0 {
+                    BudgetGaugeView(
+                        used: used, limit: limit,
+                        usedText: budgetValue(used, unit: budget.unit),
+                        limitText: budgetValue(limit, unit: budget.unit),
+                        unitLabel: budget.unit?.lowercased() == "credit" ? "credits this month"
+                            : (budget.unit?.lowercased() == "usd" ? "monthly spend" : "monthly allowance"),
+                        icon: "logo-openai", label: "Codex", resetAt: budget.resetAt,
+                        isRefreshing: viewModel.isCodexLoading,
+                        onRefresh: { viewModel.manualRefresh() }
+                    )
+                } else if u.reportedWindowShape != nil {
+                    let hasHourlyWindow = u.reportedWindowShape == .dual
+                    CircularGaugeView(
+                        primaryPercent: hasHourlyWindow ? u.hourlyUsedPercent : u.weeklyUsedPercent,
+                        primaryLimitReached: hasHourlyWindow ? u.hourlyUsedPercent >= 100 : u.isWeeklyExhausted,
+                        showsPrimaryMetric: true,
+                        secondaryPercent: u.weeklyUsedPercent,
+                        secondaryLimitReached: u.isWeeklyExhausted,
+                        showsSecondaryMetric: hasHourlyWindow,
+                        isLoading: false,
+                        icon: "logo-openai",
+                        label: "Codex",
+                        primaryLabel: hasHourlyWindow ? formatWindowDuration(u.hourlyWindowSeconds) : "7d",
+                        secondaryLabel: "7d",
+                        resetAt: hasHourlyWindow ? (u.hourlyResetAt == .distantFuture ? nil : u.hourlyResetAt) : (u.weeklyResetAt == .distantFuture ? nil : u.weeklyResetAt),
+                        weeklyResetAt: u.weeklyResetAt == .distantFuture ? nil : u.weeklyResetAt,
+                        isRefreshing: viewModel.isCodexLoading,
+                        onRefresh: { viewModel.manualRefresh() }
+                    )
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel("Codex usage")
+                    .accessibilityValue(codexAccessibilitySummary(u))
+                } else {
+                    unavailableCodexUsage
+                }
             } else {
-                CircularGaugeView(
-                    primaryPercent: 0, primaryLimitReached: false,
-                    showsPrimaryMetric: true,
-                    secondaryPercent: 0, secondaryLimitReached: false,
-                    showsSecondaryMetric: true,
-                    isLoading: true, icon: "logo-openai",
-                    label: "Codex", primaryLabel: "5h", secondaryLabel: "7d",
-                    resetAt: nil, weeklyResetAt: nil, isRefreshing: true, onRefresh: {}
-                )
+                if viewModel.isCodexLoading {
+                    CircularGaugeView(
+                        primaryPercent: 0, primaryLimitReached: false,
+                        showsPrimaryMetric: true,
+                        secondaryPercent: 0, secondaryLimitReached: false,
+                        showsSecondaryMetric: true,
+                        isLoading: true, icon: "logo-openai",
+                        label: "Codex", primaryLabel: "5h", secondaryLabel: "7d",
+                        resetAt: nil, weeklyResetAt: nil, isRefreshing: true, onRefresh: {}
+                    )
+                } else {
+                    unavailableCodexUsage
+                }
             }
         } else if viewModel.isCodexRecovering {
             loadingGauge(icon: "logo-openai", label: "Codex")
@@ -303,17 +325,17 @@ struct PopoverView: View {
 
     private func codexAccessibilitySummary(_ u: CodexUsage) -> String {
         var lines: [String]
-        if u.hasHourlyWindow {
+        if u.reportedWindowShape == .dual {
             lines = [
                 "\(formatWindowDuration(u.hourlyWindowSeconds)) window: \(u.hourlyUsedPercent)% used",
                 "7-day window: \(u.weeklyUsedPercent)% used",
             ]
-        } else {
+        } else if u.reportedWindowShape == .weeklyOnly {
             lines = [
                 "5h window: not currently reported",
                 "7-day window: \(u.weeklyUsedPercent)% used",
             ]
-        }
+        } else { lines = ["Usage unavailable"] }
         if let balance = u.creditBalance { lines.append("Credit balance: \(formatCodexDollarAmount(balance))") }
         if let spent = u.bonusCreditsSpentThisMonth, spent > 0 {
             lines.append("Credits used: \(formatCodexDollarAmount(spent))")
@@ -326,6 +348,26 @@ struct PopoverView: View {
         }
         lines.append("Plan: \(u.displayPlan)")
         return lines.joined(separator: "\n")
+    }
+
+    private var unavailableCodexUsage: some View {
+        VStack(spacing: 8) {
+            Text("Codex").font(.headline.bold())
+            Text("Usage unavailable")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Button("Refresh") { viewModel.manualRefresh() }
+                .controlSize(.small)
+        }
+        .frame(width: 114, height: 114)
+    }
+
+    private func budgetValue(_ amount: Double, unit: String?) -> String {
+        let digits = amount == amount.rounded() ? 0 : 2
+        if let unit, unit.count == 3, unit.lowercased() != "credit" {
+            return amount.formatted(.currency(code: unit.uppercased()).precision(.fractionLength(digits)))
+        }
+        return amount.formatted(.number.precision(.fractionLength(digits)))
     }
 
     private func claudeAccessibilitySummary(_ u: ClaudeUsage) -> String {

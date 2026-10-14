@@ -32,6 +32,8 @@ private struct WidgetServiceSnapshot {
     let detailRows: [WidgetDetailRowData]
     let detailFooter: String
     let alertText: String?
+    var monthlyBudget: CodexUsage.MonthlyBudget? = nil
+    var usageUnavailable = false
 
     var statusColor: Color {
         if (showsPrimaryMetric && primaryLimitReached) || (showsSecondaryMetric && secondaryLimitReached) { return .red }
@@ -47,6 +49,38 @@ private extension QuotaEntry {
         switch service {
         case .codex:
             guard let usage = codexUsage else { return nil }
+            if usage.reportedWindowShape == nil, let budget = usage.displayableMonthlyBudget {
+                return WidgetServiceSnapshot(
+                    label: "Codex", icon: "logo-openai",
+                    primaryPercent: Int(min(100, budget.utilization ?? 0)),
+                    primaryLimitReached: (budget.utilization ?? 0) >= 100,
+                    showsPrimaryMetric: true,
+                    secondaryPercent: 0, showsSecondaryMetric: false,
+                    primaryLabel: "monthly", secondaryLabel: "",
+                    resetSeconds: 0, weeklyResetSeconds: 0,
+                    secondaryLimitReached: false,
+                    detailRows: [
+                        WidgetDetailRowData(label: "Used", value: widgetCreditAmount(budget.used ?? 0), icon: "chart.bar.fill", tint: widgetAccentColor),
+                        WidgetDetailRowData(label: "Limit", value: widgetCreditAmount(budget.limit ?? 0) + " credits", icon: "sparkles", tint: .secondary),
+                        WidgetDetailRowData(label: "Plan", value: usage.displayPlan, icon: "person.fill", tint: .secondary),
+                    ],
+                    detailFooter: "Monthly credits",
+                    alertText: nil,
+                    monthlyBudget: budget
+                )
+            }
+            guard usage.reportedWindowShape != nil else {
+                return WidgetServiceSnapshot(
+                    label: "Codex", icon: "logo-openai",
+                    primaryPercent: 0, primaryLimitReached: false, showsPrimaryMetric: false,
+                    secondaryPercent: 0, showsSecondaryMetric: false,
+                    primaryLabel: "", secondaryLabel: "", resetSeconds: 0,
+                    weeklyResetSeconds: 0, secondaryLimitReached: false,
+                    detailRows: [WidgetDetailRowData(label: "Plan", value: usage.displayPlan, icon: "person.fill", tint: .secondary)],
+                    detailFooter: "Usage unavailable", alertText: nil,
+                    usageUnavailable: true
+                )
+            }
             let hasHourlyWindow = usage.hasHourlyWindow
             let weeklyOnly = usage.reportsWeeklyOnlyWindow
             var detailRows = [
@@ -201,6 +235,7 @@ private func widgetCreditAmount(_ amount: Double) -> String {
 
 private struct WidgetHeaderView: View {
     let title: String
+    let showsMonthly: Bool
 
     var body: some View {
         HStack(spacing: 8) {
@@ -215,8 +250,12 @@ private struct WidgetHeaderView: View {
             Text(title)
                 .font(.system(size: 13, weight: .semibold))
             Spacer()
-            ringKey(label: "5h", opacity: 1.0)
-            ringKey(label: "7d", opacity: 0.5)
+            if showsMonthly {
+                ringKey(label: "Monthly", opacity: 1.0)
+            } else {
+                ringKey(label: "5h", opacity: 1.0)
+                ringKey(label: "7d", opacity: 0.5)
+            }
         }
     }
 
@@ -363,7 +402,12 @@ private struct WidgetSingleGaugePanel: View {
     var body: some View {
         Group {
             if let snapshot {
-                WidgetGaugeView(
+                if let budget = snapshot.monthlyBudget {
+                    WidgetBudgetView(budget: budget, size: gaugeSize)
+                } else if snapshot.usageUnavailable {
+                    WidgetUnavailableView(size: gaugeSize)
+                } else {
+                    WidgetGaugeView(
                     primaryPercent: snapshot.primaryPercent,
                     primaryLimitReached: snapshot.primaryLimitReached,
                     showsPrimaryMetric: snapshot.showsPrimaryMetric,
@@ -377,7 +421,8 @@ private struct WidgetSingleGaugePanel: View {
                     weeklyResetSeconds: snapshot.weeklyResetSeconds,
                     secondaryLimitReached: snapshot.secondaryLimitReached,
                     size: gaugeSize
-                )
+                    )
+                }
             } else {
                 WidgetEmptyGaugeView(
                     icon: service == .claude ? "logo-claude" : "logo-openai",
@@ -439,7 +484,13 @@ private struct WidgetServiceDetailPanel: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            WidgetGaugeView(
+            Group {
+                if let budget = snapshot.monthlyBudget {
+                    WidgetBudgetView(budget: budget, size: gaugeSize)
+                } else if snapshot.usageUnavailable {
+                    WidgetUnavailableView(size: gaugeSize)
+                } else {
+                    WidgetGaugeView(
                 primaryPercent: snapshot.primaryPercent,
                 primaryLimitReached: snapshot.primaryLimitReached,
                 showsPrimaryMetric: snapshot.showsPrimaryMetric,
@@ -453,7 +504,9 @@ private struct WidgetServiceDetailPanel: View {
                 weeklyResetSeconds: snapshot.weeklyResetSeconds,
                 secondaryLimitReached: snapshot.secondaryLimitReached,
                 size: gaugeSize
-            )
+                    )
+                }
+            }
             .frame(width: gaugeSize + 18)
 
             VStack(alignment: .leading, spacing: detailSpacing) {
@@ -589,6 +642,9 @@ struct WidgetMediumView: View {
         switch service {
         case .codex:
             if let u = entry.codexUsage {
+                if u.reportedWindowShape == nil, let budget = u.displayableMonthlyBudget {
+                    WidgetBudgetView(budget: budget, size: size)
+                } else if u.reportedWindowShape != nil {
                 let hasHourlyWindow = u.hasHourlyWindow
                 let weeklyOnly = u.reportsWeeklyOnlyWindow
                 WidgetGaugeView(
@@ -606,6 +662,9 @@ struct WidgetMediumView: View {
                     secondaryLimitReached: u.isWeeklyExhausted,
                     size: size
                 )
+                } else {
+                    unavailableSlot(icon: "logo-openai", label: "Codex")
+                }
             } else {
                 emptySlot(icon: "logo-openai", label: "Codex")
             }
@@ -644,6 +703,14 @@ struct WidgetMediumView: View {
             Text("Sign in to AIQuota").font(.system(size: 9)).foregroundStyle(.tertiary)
         }
     }
+
+    private func unavailableSlot(icon: String, label: String) -> some View {
+        VStack(spacing: 6) {
+            Image(icon).resizable().scaledToFit().frame(width: 28, height: 28)
+            Text(label).font(.caption.bold())
+            Text("Usage unavailable").font(.system(size: 9)).foregroundStyle(.tertiary)
+        }
+    }
 }
 
 struct WidgetLargeView: View {
@@ -651,7 +718,7 @@ struct WidgetLargeView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            WidgetHeaderView(title: "AIQuota")
+            WidgetHeaderView(title: "AIQuota", showsMonthly: entry.codexUsage?.reportedWindowShape == nil && entry.codexUsage?.displayableMonthlyBudget != nil)
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
                 .padding(.bottom, 12)

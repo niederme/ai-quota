@@ -58,6 +58,12 @@ final class AutoRefreshPolicyTests: XCTestCase {
         XCTAssertTrue(AutoRefreshActivity.changed(from: previous, to: changed))
     }
 
+    func testCodexActivityTracksMonthlyCredits() {
+        let previous = makeCodexUsage(monthlyUsed: 0, fetchedAt: Date(timeIntervalSince1970: 100))
+        let changed = makeCodexUsage(monthlyUsed: 4, fetchedAt: Date(timeIntervalSince1970: 160))
+        XCTAssertTrue(AutoRefreshActivity.changed(from: previous, to: changed))
+    }
+
     func testClaudeActivityTracksUsageButIgnoresFetchTime() {
         let previous = makeClaudeUsage(
             fiveHourUtilization: 12,
@@ -97,6 +103,7 @@ final class AutoRefreshPolicyTests: XCTestCase {
     private func makeCodexUsage(
         hourlyUsedPercent: Int = 12,
         resetAfterSeconds: Int = 300,
+        monthlyUsed: Double? = nil,
         fetchedAt: Date
     ) -> CodexUsage {
         CodexUsage(
@@ -113,7 +120,8 @@ final class AutoRefreshPolicyTests: XCTestCase {
             creditBalance: 100,
             approxLocalMessages: [10, 100],
             approxCloudMessages: [2, 20],
-            fetchedAt: fetchedAt
+            fetchedAt: fetchedAt,
+            monthlyBudget: monthlyUsed.map { .init(unit: "credit", used: $0, limit: 7_000) }
         )
     }
 

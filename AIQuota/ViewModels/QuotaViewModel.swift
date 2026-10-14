@@ -858,6 +858,9 @@ final class QuotaViewModel {
 
     private var isCodexNearThreshold: Bool {
         guard let codexUsage else { return false }
+        guard codexUsage.reportedWindowShape != nil else {
+            return (codexUsage.displayableMonthlyBudget?.utilization ?? 0) >= 85
+        }
         return codexUsage.limitReached
             || codexUsage.weeklyUsedPercent >= 85
             || (codexUsage.hasHourlyWindow && codexUsage.hourlyUsedPercent >= 85)

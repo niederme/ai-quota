@@ -127,6 +127,55 @@ struct CodexUsageModelTests {
         #expect(usage.creditBalance == 42.5)
     }
 
+    @Test("parses enterprise monthly spend control budget")
+    func parsesMonthlyBudget() throws {
+        let data = Data("""
+        { "plan_type": "team", "rate_limit": null,
+          "spend_control": { "reached": false, "individual_limit":
+            { "source": "workspace_spend_controls", "unit": "credit",
+              "limit": "7000", "used": "0.0", "remaining": "7000.0" } } }
+        """.utf8)
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let usage = CodexUsage(from: try decoder.decode(WhamUsageResponse.self, from: data))
+        #expect(usage.monthlyBudget?.unit == "credit")
+        #expect(usage.monthlyBudget?.limit == 7000)
+        #expect(usage.monthlyBudget?.used == 0)
+        #expect(!usage.hasWeeklyWindow)
+    }
+
+    @Test("parses member monthly usage response")
+    func parsesMemberMonthlyUsage() throws {
+        let response = try OpenAIClient._decodeMonthlyUsageForTesting(Data("""
+        { "effective_monthly_limit": { "limit": 7000 }, "current_month_usage": 0 }
+        """.utf8))
+        #expect(response.monthlyBudget?.limit == 7000)
+        #expect(response.monthlyBudget?.used == 0)
+        #expect(OpenAIClient._memberMonthlyUsageURLForTesting(accountID: "acct-123").path
+            == "/backend-api/accounts/acct-123/spend-controls/current-user/monthly-usage")
+    }
+
+    @Test("monthly allowance replaces a cached personal window")
+    func monthlyAllowanceReplacesPersonalWindow() throws {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let personal = CodexUsage(from: try decoder.decode(WhamUsageResponse.self, from: Data("""
+        {"plan_type":"pro","rate_limit":{"primary_window":{"used_percent":4,"limit_window_seconds":18000,"reset_after_seconds":100,"reset_at":1784555160},"secondary_window":{"used_percent":35,"limit_window_seconds":604800,"reset_after_seconds":1000,"reset_at":1784556160}}}
+        """.utf8)))
+        let work = CodexUsage(from: try decoder.decode(WhamUsageResponse.self, from: Data("""
+        {"plan_type":"business","rate_limit":null,"spend_control":{"individual_limit":{"unit":"credit","used":0,"limit":7000}}}
+        """.utf8)))
+        #expect(personal.reportedWindowShape == .dual)
+        #expect(work.retainingLastConfirmedWindows(from: personal).monthlyBudget?.limit == 7000)
+        #expect(work.retainingLastConfirmedWindows(from: personal).reportedWindowShape == nil)
+
+        let partialWork = CodexUsage(from: try decoder.decode(WhamUsageResponse.self, from: Data("""
+        {"plan_type":"business","rate_limit":null}
+        """.utf8)))
+        #expect(partialWork.retainingLastConfirmedWindows(from: work).monthlyBudget?.limit == 7000)
+        #expect(partialWork.retainingLastConfirmedWindows(from: personal).monthlyBudget == nil)
+    }
+
     @Test("lossily decodes numeric Codex window fields")
     func lossilyDecodesNumericWindowFields() throws {
         let data = Data("""
