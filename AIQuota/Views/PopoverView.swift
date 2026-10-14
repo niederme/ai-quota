@@ -12,6 +12,7 @@ struct PopoverView: View {
     @State private var menuBarWindow: NSWindow?
     @State private var selectedService: ServiceType?
     @State private var hoveredService: ServiceType?
+    @FocusState private var focusedService: ServiceType?
     @State private var overviewHeight: CGFloat?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -30,25 +31,25 @@ struct PopoverView: View {
     private var overviewWidth: CGFloat {
         viewModel.isCodexEnrolled ? 360 : (viewModel.enrolledServices.count == 1 ? 240 : 340)
     }
-    private var popoverWidth: CGFloat { selectedService != nil ? 460 : overviewWidth }
     private var detailHeight: CGFloat {
-        min(680, max(360, (menuBarWindow?.screen?.visibleFrame.height ?? NSScreen.main?.visibleFrame.height ?? 800) - 120))
+        overviewHeight ?? 400
     }
     private var popoverHeight: CGFloat? {
-        selectedService != nil ? detailHeight : viewModel.enrolledServices.isEmpty ? nil : overviewHeight
+        viewModel.enrolledServices.isEmpty ? nil : overviewHeight
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        ZStack(alignment: .topLeading) {
             if let selectedService {
                 ServiceDetailView(service: selectedService, height: detailHeight, close: {
                     self.selectedService = nil
                     hoveredService = nil
+                    focusedService = nil
                 },
                                   openAccount: openSettingsKeepingPopover)
-                    .frame(width: 460)
+                    .frame(width: overviewWidth)
                     .id(selectedService)
-                    .transition(.opacity)
+                    .transition(.opacity.combined(with: .offset(x: 16)))
             } else if !viewModel.enrolledServices.isEmpty {
                 authenticatedContent
                     .frame(width: overviewWidth)
@@ -56,7 +57,7 @@ struct PopoverView: View {
                     .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
                         if overviewHeight != height { overviewHeight = height }
                     }
-                    .transition(.opacity)
+                    .transition(.opacity.combined(with: .offset(x: -12)))
             } else {
                 signInContent
             }
@@ -71,14 +72,15 @@ struct PopoverView: View {
             }
             #endif
         }
-        .frame(width: popoverWidth, height: popoverHeight, alignment: .topLeading)
+        .frame(width: overviewWidth, height: popoverHeight, alignment: .topLeading)
         .clipped()
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: selectedService)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: selectedService)
         .background { popoverSurface }
         .background(WindowCapture { menuBarWindow = $0 })
         .onDisappear {
             selectedService = nil
             hoveredService = nil
+            focusedService = nil
         }
         .onChange(of: viewModel.enrolledServices) { _, services in
             if let selectedService, !services.contains(selectedService) { self.selectedService = nil }
@@ -128,6 +130,7 @@ struct PopoverView: View {
     private func openService(_ service: ServiceType) {
         guard canOpen(service) else { return }
         hoveredService = nil
+        focusedService = nil
         selectedService = service
     }
 
@@ -151,7 +154,7 @@ struct PopoverView: View {
                     RoundedRectangle(cornerRadius: 10)
                         .fill(.quaternary)
                         .foregroundStyle(.primary)
-                        .opacity(hoveredService == service ? 1 : 0)
+                        .opacity(hoveredService == service || focusedService == service ? 1 : 0)
                         .frame(maxWidth: .infinity)
                         .padding(5)
                 }
@@ -166,6 +169,7 @@ struct PopoverView: View {
             }
         }
         .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: hoveredService)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: focusedService)
         .onTapGesture(coordinateSpace: .local) { location in
             if let service = service(at: location.x) { openService(service) }
         }
@@ -175,6 +179,8 @@ struct PopoverView: View {
         let name = service == .codex ? "Codex" : "Claude"
         return content()
             .focusable(canOpen(service))
+            .focused($focusedService, equals: service)
+            .focusEffectDisabled()
             .onKeyPress(keys: [.return, .space]) { _ in
                 guard canOpen(service) else { return .ignored }
                 openService(service)
