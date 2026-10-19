@@ -11,28 +11,55 @@ struct ServiceDetailView: View {
     @Environment(QuotaViewModel.self) private var viewModel
 
     private var isCodex: Bool { service == .codex }
-    private var name: String { isCodex ? "Codex" : "Claude" }
-    private var busy: Bool {
-        isCodex ? viewModel.isCodexLoading || viewModel.isUsageHistoryLoading : viewModel.isClaudeLoading
+    private var name: String { service.displayName }
+    private var logo: String {
+        switch service {
+        case .codex:  "logo-openai"
+        case .claude: "logo-claude"
+        case .devin:  "logo-devin"
+        }
     }
-    private var connected: Bool { isCodex ? viewModel.isCodexAuthenticated : viewModel.isClaudeAuthenticated }
-    private var error: NetworkError? { isCodex ? viewModel.codexError : viewModel.claudeError }
+    private var busy: Bool {
+        switch service {
+        case .codex:  viewModel.isCodexLoading || viewModel.isUsageHistoryLoading
+        case .claude: viewModel.isClaudeLoading
+        case .devin:  viewModel.isDevinLoading
+        }
+    }
+    private var connected: Bool {
+        switch service {
+        case .codex:  viewModel.isCodexAuthenticated
+        case .claude: viewModel.isClaudeAuthenticated
+        case .devin:  viewModel.isDevinAuthenticated
+        }
+    }
+    private var error: NetworkError? {
+        switch service {
+        case .codex:  viewModel.codexError
+        case .claude: viewModel.claudeError
+        case .devin:  viewModel.devinError
+        }
+    }
     private var reading: QuotaReading? {
         #if DEMO_MODE
         return MacAnalyticsDemo.reading(service)
         #else
-        if isCodex, let usage = viewModel.codexUsage {
+        switch service {
+        case .codex:
+            guard let usage = viewModel.codexUsage else { return nil }
             return QuotaReading(fetchedAt: usage.fetchedAt, shortTerm: nil, weekly: nil,
                 metadata: AccountMetadata(plan: usage.planType, balanceUSD: usage.creditBalance,
                     usageSpent: usage.bonusCreditsSpentThisMonth.map { $0 / 25 }, usageCurrency: "USD"))
-        }
-        if !isCodex, let usage = viewModel.claudeUsage {
+        case .claude:
+            guard let usage = viewModel.claudeUsage else { return nil }
             return QuotaReading(fetchedAt: usage.fetchedAt, shortTerm: nil, weekly: nil,
                 metadata: AccountMetadata(plan: usage.planDisplayName, balanceUSD: nil,
                     usageSpent: usage.usageCredits?.spent, usageCurrency: usage.usageCredits?.currencyCode),
                 claudeBreakdown: usage.weeklyBreakdown)
+        case .devin:
+            guard let usage = viewModel.devinUsage else { return nil }
+            return DevinAPI.makeReading(from: usage)
         }
-        return nil
         #endif
     }
     private var history: CodexUsageHistory? {
@@ -50,7 +77,7 @@ struct ServiceDetailView: View {
                     Image(systemName: "chevron.left").frame(width: 16, height: 16)
                 }
                 .buttonStyle(AnalyticsHoverButtonStyle()).accessibilityLabel("Back to overview").help("Back to overview")
-                Image(isCodex ? "logo-openai" : "logo-claude")
+                Image(logo)
                     .resizable().scaledToFit().frame(width: 22, height: 22)
                     .foregroundStyle(Color.gaugeAccent)
                 VStack(alignment: .leading, spacing: 2) {
@@ -72,12 +99,15 @@ struct ServiceDetailView: View {
                             Label("Reconnect to update details. Your last reading is retained.", systemImage: "person.crop.circle.badge.exclamationmark")
                                 .foregroundStyle(Color.warningAmber)
                         }
-                        if isCodex {
+                        switch service {
+                        case .codex:
                             CodexAnalyticsView(reading: reading, history: history,
                                 historyUnavailable: viewModel.usageHistoryFailed,
                                 busy: busy, refresh: refresh)
-                        } else {
+                        case .claude:
                             ClaudeAnalyticsView(reading: reading, busy: busy, failed: error != nil || !connected, refresh: refresh)
+                        case .devin:
+                            DevinAnalyticsView(usage: viewModel.devinUsage, busy: busy, refresh: refresh)
                         }
                         if let error {
                             Label(error.localizedDescription, systemImage: "exclamationmark.triangle")
@@ -110,11 +140,14 @@ struct ServiceDetailView: View {
     }
 
     private func refresh() {
-        if isCodex {
+        switch service {
+        case .codex:
             viewModel.refreshUsageHistory(force: true)
             Task { await viewModel.refreshCodex() }
-        } else {
+        case .claude:
             Task { await viewModel.refreshClaude() }
+        case .devin:
+            Task { await viewModel.refreshDevin() }
         }
     }
 }

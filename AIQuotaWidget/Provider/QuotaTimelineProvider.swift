@@ -1,11 +1,13 @@
 import WidgetKit
 import AppIntents
 import AIQuotaKit
+import MobileAccessCore
 
 struct QuotaEntry: TimelineEntry {
     let date: Date
     let codexUsage: CodexUsage?
     let claudeUsage: ClaudeUsage?
+    let devinUsage: DevinUsage?
     let configuration: ConfigurationAppIntent
     let enrolledServices: Set<ServiceType>
 
@@ -16,6 +18,7 @@ struct QuotaEntry: TimelineEntry {
         date: .now,
         codexUsage: .placeholder,
         claudeUsage: .placeholder,
+        devinUsage: .placeholder,
         configuration: ConfigurationAppIntent(),
         enrolledServices: [.codex, .claude]
     )
@@ -23,6 +26,7 @@ struct QuotaEntry: TimelineEntry {
         date: .now,
         codexUsage: nil,
         claudeUsage: nil,
+        devinUsage: nil,
         configuration: ConfigurationAppIntent(),
         enrolledServices: []
     )
@@ -33,6 +37,7 @@ private extension ServiceOption {
         switch self {
         case .codex: return .codex
         case .claude: return .claude
+        case .devin: return .devin
         }
     }
 }
@@ -59,6 +64,18 @@ private func snapshotClaudeUsage(
         return configuration.service.serviceType == .claude && enrolledServices.contains(.claude) ? .placeholder : nil
     }
     return enrolledServices.contains(.claude) ? .placeholder : nil
+}
+
+private func snapshotDevinUsage(
+    _ usage: DevinUsage?,
+    configuration: ConfigurationAppIntent?,
+    enrolledServices: Set<ServiceType>
+) -> DevinUsage? {
+    if let usage { return usage }
+    if let configuration {
+        return configuration.service.serviceType == .devin && enrolledServices.contains(.devin) ? .placeholder : nil
+    }
+    return enrolledServices.contains(.devin) ? .placeholder : nil
 }
 
 private final class TimelineCompletionBox: @unchecked Sendable {
@@ -88,6 +105,11 @@ struct StaticQuotaTimelineProvider: TimelineProvider {
                 configuration: nil,
                 enrolledServices: enrolledServices
             ),
+            devinUsage: snapshotDevinUsage(
+                SharedDefaults.loadCachedDevinUsage(),
+                configuration: nil,
+                enrolledServices: enrolledServices
+            ),
             configuration: ConfigurationAppIntent(),
             enrolledServices: enrolledServices
         ))
@@ -101,12 +123,14 @@ struct StaticQuotaTimelineProvider: TimelineProvider {
                 date: .now,
                 codexUsage: snapshot.codexUsage,
                 claudeUsage: snapshot.claudeUsage,
+                devinUsage: snapshot.devinUsage,
                 configuration: ConfigurationAppIntent(),
                 enrolledServices: SharedDefaults.loadEnrolledServices()
             )
             let nextRefresh = WidgetRefreshPolicy.nextTimelineDate(
                 codex: snapshot.codexUsage,
-                claude: snapshot.claudeUsage
+                claude: snapshot.claudeUsage,
+                devin: snapshot.devinUsage
             )
             completionBox.completion(Timeline(entries: [entry], policy: .after(nextRefresh)))
         }
@@ -133,6 +157,11 @@ struct QuotaTimelineProvider: AppIntentTimelineProvider {
                 configuration: configuration,
                 enrolledServices: enrolledServices
             ),
+            devinUsage: snapshotDevinUsage(
+                SharedDefaults.loadCachedDevinUsage(),
+                configuration: configuration,
+                enrolledServices: enrolledServices
+            ),
             configuration: configuration,
             enrolledServices: enrolledServices
         )
@@ -144,12 +173,14 @@ struct QuotaTimelineProvider: AppIntentTimelineProvider {
             date: .now,
             codexUsage: snapshot.codexUsage,
             claudeUsage: snapshot.claudeUsage,
+            devinUsage: snapshot.devinUsage,
             configuration: configuration,
             enrolledServices: SharedDefaults.loadEnrolledServices()
         )
         let nextRefresh = WidgetRefreshPolicy.nextTimelineDate(
             codex: snapshot.codexUsage,
-            claude: snapshot.claudeUsage
+            claude: snapshot.claudeUsage,
+            devin: snapshot.devinUsage
         )
         return Timeline(entries: [entry], policy: .after(nextRefresh))
     }

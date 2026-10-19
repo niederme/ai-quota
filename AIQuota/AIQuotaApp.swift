@@ -148,10 +148,9 @@ private struct MenuBarStatusLabel: View {
 
     @ViewBuilder
     var body: some View {
-        if shouldShowBothMenuBarGauges {
-            DoubleMenuBarIconView(
-                left: menuBarGaugeInput(for: .codex),
-                right: menuBarGaugeInput(for: .claude),
+        if shouldShowAllMenuBarGauges {
+            MultiMenuBarIconView(
+                inputs: menuBarServices.map { menuBarGaugeInput(for: $0) },
                 showsUpdateBadge: updaterViewModel.availableUpdateVersion != nil
             )
         } else {
@@ -162,10 +161,13 @@ private struct MenuBarStatusLabel: View {
         }
     }
 
-    private var shouldShowBothMenuBarGauges: Bool {
+    private var menuBarServices: [ServiceType] {
+        ServiceType.allCases.filter { viewModel.enrolledServices.contains($0) }
+    }
+
+    private var shouldShowAllMenuBarGauges: Bool {
         viewModel.settings.menuBarDisplayMode == .both
-            && viewModel.enrolledServices.contains(.codex)
-            && viewModel.enrolledServices.contains(.claude)
+            && menuBarServices.count >= 2
     }
 
     private func menuBarGaugeInput(for service: ServiceType) -> MenuBarGaugeInput {
@@ -191,6 +193,17 @@ private struct MenuBarStatusLabel: View {
                 limitReached: viewModel.claudeUsage?.limitReached ?? false,
                 isLoading: viewModel.isLoading,
                 worstPercent: max(used, secondary)
+            )
+        case .devin:
+            let used = viewModel.devinUsage?.usedPercent ?? 0
+            let secondary = Int(viewModel.devinUsage?.weeklyUsedPercent?.rounded() ?? 0)
+            return MenuBarGaugeInput(
+                usedPercent: used,
+                secondaryPercent: secondary,
+                limitReached: viewModel.devinUsage?.limitReached ?? false,
+                isLoading: viewModel.isLoading,
+                worstPercent: max(used, secondary),
+                showsSecondaryMetric: viewModel.devinUsage?.weeklyUsedPercent != nil
             )
         }
     }

@@ -1,4 +1,5 @@
 import Foundation
+import MobileAccessCore
 
 public enum SharedDefaults {
     private static let suite = "group.com.niederme.AIQuota"
@@ -6,11 +7,14 @@ public enum SharedDefaults {
     private static let claudeUsageKey  = "cachedClaudeUsage"
     private static let claudeUsageSchemaVersionKey = "cachedClaudeUsageSchemaVersion"
     private static let currentClaudeUsageSchemaVersion = 2
+    private static let devinUsageKey   = "cachedDevinUsage"
     private static let claudeSourceAttemptsKey = "claudeSourceAttempts"
     private static let codexSourceAttemptsKey = "codexSourceAttempts"
+    private static let devinSourceAttemptsKey = "devinSourceAttempts"
     private static let settingsKey     = "appSettings"
     private static let maxClaudeSourceAttempts = 10
     private static let maxCodexSourceAttempts = 10
+    private static let maxDevinSourceAttempts = 10
 
     private static var defaults: UserDefaults {
         if let d = UserDefaults(suiteName: suite) { return d }
@@ -66,6 +70,24 @@ public enum SharedDefaults {
         persistChanges()
     }
 
+    // MARK: - Devin usage
+
+    public static func saveDevinUsage(_ usage: DevinUsage) {
+        guard let data = try? JSONEncoder().encode(usage) else { return }
+        defaults.set(data, forKey: devinUsageKey)
+        persistChanges()
+    }
+
+    public static func loadCachedDevinUsage() -> DevinUsage? {
+        guard let data = defaults.data(forKey: devinUsageKey) else { return nil }
+        return try? JSONDecoder().decode(DevinUsage.self, from: data)
+    }
+
+    public static func clearDevinUsage() {
+        defaults.removeObject(forKey: devinUsageKey)
+        persistChanges()
+    }
+
     public static func appendClaudeSourceAttempt(_ attempt: ClaudeSourceAttempt) {
         var attempts = loadClaudeSourceAttempts()
         attempts.append(attempt)
@@ -109,6 +131,29 @@ public enum SharedDefaults {
 
     public static func clearCodexSourceAttempts() {
         defaults.removeObject(forKey: codexSourceAttemptsKey)
+        persistChanges()
+    }
+
+    public static func appendDevinSourceAttempt(_ attempt: DevinSourceAttempt) {
+        var attempts = loadDevinSourceAttempts()
+        attempts.append(attempt)
+        if attempts.count > maxDevinSourceAttempts {
+            attempts.removeFirst(attempts.count - maxDevinSourceAttempts)
+        }
+        guard let data = try? JSONEncoder().encode(attempts) else { return }
+        defaults.set(data, forKey: devinSourceAttemptsKey)
+        persistChanges()
+    }
+
+    public static func loadDevinSourceAttempts() -> [DevinSourceAttempt] {
+        guard let data = defaults.data(forKey: devinSourceAttemptsKey),
+              let attempts = try? JSONDecoder().decode([DevinSourceAttempt].self, from: data)
+        else { return [] }
+        return attempts
+    }
+
+    public static func clearDevinSourceAttempts() {
+        defaults.removeObject(forKey: devinSourceAttemptsKey)
         persistChanges()
     }
 

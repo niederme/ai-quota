@@ -73,9 +73,9 @@ struct MenuBarIconView: View {
     }
 }
 
-struct DoubleMenuBarIconView: View {
-    let left: MenuBarGaugeInput
-    let right: MenuBarGaugeInput
+/// Draws 2+ service gauges side by side in the menu bar (the "All" display mode).
+struct MultiMenuBarIconView: View {
+    let inputs: [MenuBarGaugeInput]
     let showsUpdateBadge: Bool
 
     private let gaugeSize: CGFloat = 22
@@ -85,27 +85,22 @@ struct DoubleMenuBarIconView: View {
         Image(nsImage: combinedImage())
             .interpolation(.high)
             .antialiased(true)
-            .frame(width: gaugeSize * 2 + spacing, height: gaugeSize)
+            .frame(width: gaugeSize * CGFloat(inputs.count) + spacing * CGFloat(inputs.count - 1), height: gaugeSize)
     }
 
     private func combinedImage() -> NSImage {
-        let totalWidth = gaugeSize * 2 + spacing
+        let totalWidth = gaugeSize * CGFloat(inputs.count) + spacing * CGFloat(inputs.count - 1)
         let image = NSImage(size: NSSize(width: totalWidth, height: gaugeSize))
         image.lockFocusFlipped(false)
 
-        gaugeImage(for: left).draw(
-            in: NSRect(x: 0, y: 0, width: gaugeSize, height: gaugeSize),
-            from: .zero,
-            operation: .sourceOver,
-            fraction: 1
-        )
-
-        gaugeImage(for: right).draw(
-            in: NSRect(x: gaugeSize + spacing, y: 0, width: gaugeSize, height: gaugeSize),
-            from: .zero,
-            operation: .sourceOver,
-            fraction: 1
-        )
+        for (index, input) in inputs.enumerated() {
+            gaugeImage(for: input).draw(
+                in: NSRect(x: (gaugeSize + spacing) * CGFloat(index), y: 0, width: gaugeSize, height: gaugeSize),
+                from: .zero,
+                operation: .sourceOver,
+                fraction: 1
+            )
+        }
 
         image.unlockFocus()
         if showsUpdateBadge { MenuBarUpdateBadge.draw(in: image) }

@@ -37,15 +37,25 @@ struct ServicesStepView: View {
                     isRestoring: viewModel.isRestoringSession,
                     onSignIn: { Task { await viewModel.signInClaude() } }
                 )
+
+                ServiceRow(
+                    logoName: "logo-devin",
+                    name: "Devin",
+                    subtitle: "Cognition / devin.ai",
+                    isAuthenticated: viewModel.isDevinAuthenticated,
+                    isRestoring: viewModel.isRestoringSession,
+                    onSignIn: { Task { await viewModel.signInDevin() } }
+                )
             }
             .padding(.horizontal, 32)
 
-            if viewModel.isCodexAuthenticated && viewModel.isClaudeAuthenticated {
+            if authenticatedServiceCount >= 2 {
                 MenuBarDisplayPicker(
                     selection: MenuBarDisplayOption.current(
                         settings: viewModel.settings,
                         enrolledServices: viewModel.enrolledServices
                     ),
+                    enrolledServices: viewModel.enrolledServices,
                     onSelect: { option in
                         applyMenuBarDisplayOption(option)
                         viewModel.saveSettings()
@@ -54,7 +64,7 @@ struct ServicesStepView: View {
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
 
-            if viewModel.isCodexAuthenticated || viewModel.isClaudeAuthenticated {
+            if authenticatedServiceCount >= 1 {
                 RefreshPreferencePicker(
                     selection: viewModel.settings.refreshIntervalMinutes,
                     onSelect: { minutes in
@@ -78,6 +88,11 @@ struct ServicesStepView: View {
                    value: viewModel.isCodexAuthenticated && viewModel.isClaudeAuthenticated)
     }
 
+    private var authenticatedServiceCount: Int {
+        [viewModel.isCodexAuthenticated, viewModel.isClaudeAuthenticated, viewModel.isDevinAuthenticated]
+            .filter { $0 }.count
+    }
+
     private func applyMenuBarDisplayOption(_ option: MenuBarDisplayOption) {
         switch option {
         case .codex:
@@ -86,6 +101,9 @@ struct ServicesStepView: View {
         case .claude:
             viewModel.settings.menuBarDisplayMode = .single
             viewModel.settings.menuBarService = .claude
+        case .devin:
+            viewModel.settings.menuBarDisplayMode = .single
+            viewModel.settings.menuBarService = .devin
         case .both:
             viewModel.settings.menuBarDisplayMode = .both
         }
@@ -215,7 +233,16 @@ private struct ServiceRow: View {
 
 private struct MenuBarDisplayPicker: View {
     let selection: MenuBarDisplayOption
+    let enrolledServices: Set<ServiceType>
     let onSelect: (MenuBarDisplayOption) -> Void
+
+    private func logoName(for service: ServiceType) -> String {
+        switch service {
+        case .codex:  "logo-openai"
+        case .claude: "logo-claude"
+        case .devin:  "logo-devin"
+        }
+    }
 
     var body: some View {
         VStack(spacing: 10) {
@@ -226,9 +253,10 @@ private struct MenuBarDisplayPicker: View {
                 .foregroundStyle(.secondary)
 
             HStack(spacing: 10) {
-                card(for: .codex, logoNames: ["logo-openai"])
-                card(for: .claude, logoNames: ["logo-claude"])
-                card(for: .both, logoNames: ["logo-openai", "logo-claude"])
+                ForEach(ServiceType.allCases.filter { enrolledServices.contains($0) }, id: \.self) { service in
+                    card(for: MenuBarDisplayOption(rawValue: service.rawValue)!, logoNames: [logoName(for: service)])
+                }
+                card(for: .both, logoNames: ServiceType.allCases.filter { enrolledServices.contains($0) }.map(logoName))
             }
         }
         .padding(.horizontal, 32)
