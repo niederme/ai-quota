@@ -40,7 +40,3 @@ struct ConfigurationAppIntent: WidgetConfigurationIntent {
     var service: ServiceOption
 }
 
-struct MediumConfigurationAppIntent: WidgetConfigurationIntent {
-    nonisolated(unsafe) static var title: LocalizedStringResource = "AIQuota"
-    nonisolated(unsafe) static var description = IntentDescription("Shows both Codex and Claude Code usage.")
-}

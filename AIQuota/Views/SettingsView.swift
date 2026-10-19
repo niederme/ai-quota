@@ -546,7 +546,7 @@ private struct AccountDiagnosticsRows: View {
         }
 
         VStack(alignment: .leading, spacing: 2) {
-            Text("Copy Diagnostics includes both services: auth source, HTTP status, error category, and timestamp.")
+            Text("Copy Diagnostics includes all services: auth source, HTTP status, error category, and timestamp.")
             Text("No tokens, headers, cookies, or response bodies are included.")
         }
         .font(.footnote)

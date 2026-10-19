@@ -57,7 +57,7 @@ struct AIQuotaSmallWidget: Widget {
     }
 }
 
-// MARK: - Static widget (medium + large, both services)
+// MARK: - Static widget (medium + large, all enrolled services)
 
 struct AIQuotaMediumWidget: Widget {
     let kind = "AIQuotaWidgetMedium"
@@ -69,7 +69,7 @@ struct AIQuotaMediumWidget: Widget {
                 .containerBackground(for: .widget) { WidgetSurface() }
         }
         .configurationDisplayName("AIQuota")
-        .description("Track both Codex and Claude Code with room for more detail.")
+        .description("Track your connected AI services with room for more detail.")
         .supportedFamilies([.systemMedium, .systemLarge])
         .contentMarginsDisabled()
         .containerBackgroundRemovable(false)

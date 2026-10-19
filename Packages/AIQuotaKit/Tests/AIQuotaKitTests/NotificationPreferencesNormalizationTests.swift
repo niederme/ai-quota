@@ -154,7 +154,7 @@ struct NotificationPreferencesNormalizationTests {
         #expect(settingsSource.contains("AccountServiceStatusRow"))
         #expect(settingsSource.contains("Refresh Status"))
         #expect(settingsSource.contains("Copy Diagnostics"))
-        #expect(settingsSource.contains("Copy Diagnostics includes both services"))
+        #expect(settingsSource.contains("Copy Diagnostics includes all services"))
         #expect(settingsSource.contains("No tokens, headers, cookies, or response bodies are included."))
         #expect(settingsSource.contains("statusDetail: statusDetail"))
         #expect(!settingsSource.contains("authDetail:"))
