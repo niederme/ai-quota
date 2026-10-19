@@ -157,7 +157,7 @@ struct OnboardingView: View {
     private var canAdvance: Bool {
         // Services step: require at least one authenticated service
         if step == .services {
-            return viewModel.isCodexAuthenticated || viewModel.isClaudeAuthenticated
+            return viewModel.isCodexAuthenticated || viewModel.isClaudeAuthenticated || viewModel.isDevinAuthenticated
         }
         return true
     }

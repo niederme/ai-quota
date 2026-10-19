@@ -111,10 +111,9 @@ struct PopoverTypographyTests {
 
         #expect(popoverSource.contains(#"id: "network""#))
         #expect(popoverSource.contains(#"message: "No network connection. Showing cached data.""#))
-        #expect(popoverSource.contains("viewModel.codexError?.isNetworkUnavailable == true"))
-        #expect(popoverSource.contains("viewModel.claudeError?.isNetworkUnavailable == true"))
+        #expect(popoverSource.contains("enrolledErrors.allSatisfy({ $0.1?.isNetworkUnavailable == true })"))
         #expect(popoverSource.contains(#"message: "\(serviceName): \(banner.message)""#))
-        #expect(popoverSource.contains("let shouldPrefixService = viewModel.isCodexEnrolled && viewModel.isClaudeEnrolled"))
+        #expect(popoverSource.contains("guard viewModel.enrolledServices.count >= 2 else { return banners }"))
     }
 
     @Test("Sequoia popover uses a controlled adaptive surface")

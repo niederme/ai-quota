@@ -1,12 +1,15 @@
 import Foundation
+import MobileAccessCore
 
 public struct WidgetRefreshSnapshot: Sendable {
     public let codexUsage: CodexUsage?
     public let claudeUsage: ClaudeUsage?
+    public let devinUsage: DevinUsage?
 
-    public init(codexUsage: CodexUsage?, claudeUsage: ClaudeUsage?) {
+    public init(codexUsage: CodexUsage?, claudeUsage: ClaudeUsage?, devinUsage: DevinUsage? = nil) {
         self.codexUsage = codexUsage
         self.claudeUsage = claudeUsage
+        self.devinUsage = devinUsage
     }
 }
 
@@ -23,7 +26,8 @@ public actor WidgetRefreshService {
     public func currentSnapshot() -> WidgetRefreshSnapshot {
         WidgetRefreshSnapshot(
             codexUsage: SharedDefaults.loadCachedUsage(),
-            claudeUsage: SharedDefaults.loadCachedClaudeUsage()
+            claudeUsage: SharedDefaults.loadCachedClaudeUsage(),
+            devinUsage: SharedDefaults.loadCachedDevinUsage()
         )
     }
 
@@ -32,6 +36,7 @@ public actor WidgetRefreshService {
         guard force || WidgetRefreshPolicy.shouldFetchFromNetwork(
             codex: snapshot.codexUsage,
             claude: snapshot.claudeUsage,
+            devin: snapshot.devinUsage,
             now: now
         ) else {
             return snapshot
@@ -39,20 +44,59 @@ public actor WidgetRefreshService {
 
         async let codex = refreshCodexIfPossible(now: now)
         async let claude = refreshClaudeIfPossible(now: now)
+        async let devin = refreshDevinIfPossible(now: now)
 
         if let codexUsage = await codex {
-            snapshot = WidgetRefreshSnapshot(codexUsage: codexUsage, claudeUsage: snapshot.claudeUsage)
+            snapshot = WidgetRefreshSnapshot(codexUsage: codexUsage, claudeUsage: snapshot.claudeUsage, devinUsage: snapshot.devinUsage)
         } else if SharedAuthContextStore.loadCodex() == nil {
-            snapshot = WidgetRefreshSnapshot(codexUsage: SharedDefaults.loadCachedUsage(), claudeUsage: snapshot.claudeUsage)
+            snapshot = WidgetRefreshSnapshot(codexUsage: SharedDefaults.loadCachedUsage(), claudeUsage: snapshot.claudeUsage, devinUsage: snapshot.devinUsage)
         }
 
         if let claudeUsage = await claude {
-            snapshot = WidgetRefreshSnapshot(codexUsage: snapshot.codexUsage, claudeUsage: claudeUsage)
+            snapshot = WidgetRefreshSnapshot(codexUsage: snapshot.codexUsage, claudeUsage: claudeUsage, devinUsage: snapshot.devinUsage)
         } else if SharedAuthContextStore.loadClaude() == nil {
-            snapshot = WidgetRefreshSnapshot(codexUsage: snapshot.codexUsage, claudeUsage: SharedDefaults.loadCachedClaudeUsage())
+            snapshot = WidgetRefreshSnapshot(codexUsage: snapshot.codexUsage, claudeUsage: SharedDefaults.loadCachedClaudeUsage(), devinUsage: snapshot.devinUsage)
+        }
+
+        if let devinUsage = await devin {
+            snapshot = WidgetRefreshSnapshot(codexUsage: snapshot.codexUsage, claudeUsage: snapshot.claudeUsage, devinUsage: devinUsage)
+        } else if SharedAuthContextStore.loadDevin() == nil {
+            snapshot = WidgetRefreshSnapshot(codexUsage: snapshot.codexUsage, claudeUsage: snapshot.claudeUsage, devinUsage: SharedDefaults.loadCachedDevinUsage())
         }
 
         return snapshot
+    }
+
+    private func refreshDevinIfPossible(now: Date) async -> DevinUsage? {
+        guard let context = SharedAuthContextStore.loadDevin(),
+              let apiServerURL = URL(string: context.apiServerURL) else { return nil }
+
+        do {
+            let request = DevinAPI.userStatusRequest(
+                apiServerURL: apiServerURL,
+                apiKey: context.apiKey
+            )
+            let (data, response) = try await session.data(for: request)
+            guard let http = response as? HTTPURLResponse else { return nil }
+            switch http.statusCode {
+            case 200...299:
+                let usage = try DevinAPI.decodeUserStatus(data, now: now, source: .unknown)
+                SharedDefaults.saveDevinUsage(usage)
+                return usage
+            case 401, 403:
+                throw NetworkError.notAuthenticated
+            default:
+                return nil
+            }
+        } catch let error as NetworkError {
+            if error.isAuthError {
+                SharedAuthContextStore.clearDevin()
+                SharedDefaults.clearDevinUsage()
+            }
+            return nil
+        } catch {
+            return nil
+        }
     }
 
     private func refreshCodexIfPossible(now: Date) async -> CodexUsage? {

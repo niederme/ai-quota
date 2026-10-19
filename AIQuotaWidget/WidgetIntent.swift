@@ -22,11 +22,13 @@ struct RefreshWidgetIntent: AppIntent {
 enum ServiceOption: String, AppEnum {
     case codex
     case claude
+    case devin
 
     nonisolated(unsafe) static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Service")
     nonisolated(unsafe) static var caseDisplayRepresentations: [ServiceOption: DisplayRepresentation] = [
         .codex:  .init(title: "Codex"),
         .claude: .init(title: "Claude Code"),
+        .devin:  .init(title: "Devin"),
     ]
 }
 
