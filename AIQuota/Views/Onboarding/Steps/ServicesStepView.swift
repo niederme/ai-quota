@@ -18,61 +18,64 @@ struct ServicesStepView: View {
             .padding(.top, 40)
             .padding(.bottom, 32)
 
-            // Service rows
-            VStack(spacing: 12) {
-                ServiceRow(
-                    logoName: "logo-openai",
-                    name: "Codex",
-                    subtitle: "ChatGPT / OpenAI",
-                    isAuthenticated: viewModel.isCodexAuthenticated,
-                    isRestoring: viewModel.isRestoringSession,
-                    onSignIn: { Task { await viewModel.signIn() } }
-                )
+            ScrollView {
+                // Service rows
+                VStack(spacing: 12) {
+                    ServiceRow(
+                        logoName: "logo-openai",
+                        name: "Codex",
+                        subtitle: "ChatGPT / OpenAI",
+                        isAuthenticated: viewModel.isCodexAuthenticated,
+                        isRestoring: viewModel.isRestoringSession,
+                        onSignIn: { Task { await viewModel.signIn() } }
+                    )
 
-                ServiceRow(
-                    logoName: "logo-claude",
-                    name: "Claude Code",
-                    subtitle: "Anthropic / claude.ai",
-                    isAuthenticated: viewModel.isClaudeAuthenticated,
-                    isRestoring: viewModel.isRestoringSession,
-                    onSignIn: { Task { await viewModel.signInClaude() } }
-                )
+                    ServiceRow(
+                        logoName: "logo-claude",
+                        name: "Claude Code",
+                        subtitle: "Anthropic / claude.ai",
+                        isAuthenticated: viewModel.isClaudeAuthenticated,
+                        isRestoring: viewModel.isRestoringSession,
+                        onSignIn: { Task { await viewModel.signInClaude() } }
+                    )
 
-                ServiceRow(
-                    logoName: "logo-devin",
-                    name: "Devin",
-                    subtitle: "Cognition / devin.ai",
-                    isAuthenticated: viewModel.isDevinAuthenticated,
-                    isRestoring: viewModel.isRestoringSession,
-                    onSignIn: { Task { await viewModel.signInDevin() } }
-                )
-            }
-            .padding(.horizontal, 32)
+                    ServiceRow(
+                        logoName: "logo-devin",
+                        name: "Devin",
+                        subtitle: "Cognition / devin.ai",
+                        isAuthenticated: viewModel.isDevinAuthenticated,
+                        isRestoring: viewModel.isRestoringSession,
+                        onSignIn: { Task { await viewModel.signInDevin() } }
+                    )
+                }
+                .padding(.horizontal, 32)
 
-            if authenticatedServiceCount >= 2 {
-                MenuBarDisplayPicker(
-                    selection: MenuBarDisplayOption.current(
-                        settings: viewModel.settings,
-                        enrolledServices: viewModel.enrolledServices
-                    ),
-                    enrolledServices: viewModel.enrolledServices,
-                    onSelect: { option in
-                        applyMenuBarDisplayOption(option)
-                        viewModel.saveSettings()
-                    }
-                )
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
-            }
+                if authenticatedServiceCount >= 2 {
+                    MenuBarDisplayPicker(
+                        selection: MenuBarDisplayOption.current(
+                            settings: viewModel.settings,
+                            enrolledServices: viewModel.enrolledServices
+                        ),
+                        enrolledServices: viewModel.enrolledServices,
+                        onSelect: { option in
+                            applyMenuBarDisplayOption(option)
+                            viewModel.saveSettings()
+                        }
+                    )
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
 
-            if authenticatedServiceCount >= 1 {
-                RefreshPreferencePicker(
-                    selection: viewModel.settings.refreshIntervalMinutes,
-                    onSelect: { minutes in
-                        viewModel.settings.refreshIntervalMinutes = minutes
-                        viewModel.saveSettings()
-                    }
-                )
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                if authenticatedServiceCount >= 1 {
+                    RefreshPreferencePicker(
+                        selection: viewModel.settings.refreshIntervalMinutes,
+                        onSelect: { minutes in
+                            viewModel.settings.refreshIntervalMinutes = minutes
+                            viewModel.saveSettings()
+                        }
+                    )
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
+
             }
 
             Spacer()
