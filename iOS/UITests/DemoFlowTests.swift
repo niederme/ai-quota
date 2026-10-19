@@ -17,7 +17,7 @@ final class DemoFlowTests: XCTestCase {
         XCTAssertFalse(app.buttons["Continue"].isEnabled)
         app.buttons["Back"].tap()
         tryDemo.tap()
-        let sample = app.staticTexts["Sample usage for Codex and Claude."]
+        let sample = app.staticTexts["Sample usage for Codex, Claude, and Devin."]
         XCTAssertTrue(sample.waitForExistence(timeout: 5))
         let resetBanner = app.staticTexts["Codex usage reset announced"]
         let resetLink = app.buttons["Check Codex resets"]

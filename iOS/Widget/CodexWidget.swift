@@ -97,7 +97,7 @@ struct SingleLockScreenWidget: Widget {
             }
         }
         .configurationDisplayName("AI allowance")
-        .description("Choose Codex or Claude. Shows the allowance windows reported by your account.")
+        .description("Choose a service. Shows the allowance windows reported by your account.")
         .supportedFamilies([.accessoryCircular])
     }
 }
@@ -181,7 +181,7 @@ struct CompactLockScreenWidget: Widget {
             .containerBackground(for: .widget) { Color.clear }
         }
         .configurationDisplayName("Allowance details")
-        .description("Gauges and percentages for Codex, Claude, or both, including monthly allowances.")
+        .description("Gauges and percentages for your services, including monthly allowances.")
         .supportedFamilies([.accessoryRectangular])
     }
 }
@@ -200,7 +200,7 @@ struct ServiceDetailsWidget: Widget {
             }
         }
         .configurationDisplayName("Service details")
-        .description("One service with a gauge and both percentages. Choose Codex or Claude.")
+        .description("One service with a gauge and both percentages.")
         .supportedFamilies([.accessoryRectangular])
     }
 }
@@ -222,7 +222,7 @@ struct SingleHomeScreenWidget: Widget {
                 .containerBackground(for: .widget) { HomeWidgetBackground() }
         }
         .configurationDisplayName("AIQuota")
-        .description("Track your AI service usage quota. Choose Codex or Claude Code.")
+        .description("Track your AI service usage quota.")
         .supportedFamilies([.systemSmall, .systemMedium])
         .contentMarginsDisabled()
     }
@@ -235,7 +235,7 @@ struct BothHomeScreenWidget: Widget {
                 .containerBackground(for: .widget) { HomeWidgetBackground() }
         }
         .configurationDisplayName("AIQuota")
-        .description("Track both Codex and Claude Code with room for more detail.")
+        .description("Track Codex and Claude Code with room for more detail.")
         .supportedFamilies([.systemMedium, .systemLarge])
         .contentMarginsDisabled()
     }

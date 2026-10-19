@@ -101,8 +101,8 @@ final class MobileAnalyticsTests: XCTestCase {
             analytics.observeServices(codex: true, claude: true, devin: false, isDemo: false)
             XCTAssertEqual(transport.events.last?.name, "service_connected")
             XCTAssertEqual(transport.events.last?.params, ["platform": "ios", "app_version": "0.1.0",
-                "services": "both", "service_count": "2", "onboarding_completed": "false",
-                "service": "claude", "services_after_connect": "both"])
+                "services": "multiple", "service_count": "2", "onboarding_completed": "false",
+                "service": "claude", "services_after_connect": "multiple"])
             analytics.observeServices(codex: false, claude: true, devin: false, isDemo: false)
             XCTAssertEqual(transport.events.last?.name, "service_disconnected")
             XCTAssertEqual(transport.events.last?.params["service"], "codex")
