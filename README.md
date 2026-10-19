@@ -1,8 +1,9 @@
 # AIQuota
 
 Native apps for monitoring AI coding quota on Mac, iPhone, and iPad. Track
-[OpenAI Codex](https://openai.com/codex) and [Claude Code](https://claude.ai)
-with paired gauges for five-hour and seven-day allowances.
+[OpenAI Codex](https://openai.com/codex), [Claude Code](https://claude.ai),
+and [Devin](https://devin.ai) with paired gauges for five-hour, seven-day, and
+daily/weekly allowances.
 
 ![macOS 15+](https://img.shields.io/badge/macOS-15%2B-black?logo=apple)
 ![Swift 6](https://img.shields.io/badge/Swift-6.0-orange?logo=swift)
@@ -11,7 +12,7 @@ with paired gauges for five-hour and seven-day allowances.
 
 ## Features
 
-- See Codex and Claude usage together, or connect just the service you use.
+- See Codex, Claude, and Devin usage together, or connect just the services you use.
 - Check reset times, plan information, and available spending or credit details.
 - Keep usage visible with widgets and configurable alerts.
 - Get started with guided onboarding and choose how often usage refreshes.
@@ -47,7 +48,7 @@ an update, removing and re-adding it can clear its cached state.
 **iPhone and iPad are in beta via TestFlight.** Public enrollment is not currently
 listed here.
 
-The app includes independent Codex and Claude sign-in, guided onboarding,
+The app includes independent Codex, Claude, and Devin sign-in, guided onboarding,
 Home Screen and Lock Screen widgets, refresh controls, and per-service alerts.
 Codex sign-in uses one **Copy code and continue** action and retains the browser
 when you close and reopen the same attempt. **Reset All Settings** clears local

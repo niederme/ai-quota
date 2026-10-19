@@ -659,7 +659,7 @@ struct WidgetSingleServiceMediumView: View {
 
             WidgetMediumStatsColumn(
                 snapshot: snapshot,
-                emptyLabel: service == .claude ? "Claude Code" : "Codex"
+                emptyLabel: service.displayName
             )
             .padding(.leading, 18)
             .padding(.trailing, 18)

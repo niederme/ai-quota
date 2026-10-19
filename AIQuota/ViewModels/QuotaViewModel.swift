@@ -621,6 +621,7 @@ final class QuotaViewModel {
                     // first fetch fails before the monitor has run even once.
                     if case .networkUnavailable = self.codexError  { self.codexError  = nil }
                     if case .networkUnavailable = self.claudeError { self.claudeError = nil }
+                    if case .networkUnavailable = self.devinError  { self.devinError  = nil }
                     if self.wasOffline {
                         // Came back online — resume the loop with a fresh fetch so
                         // Auto mode can ramp back up immediately.
