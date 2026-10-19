@@ -88,7 +88,7 @@ struct ServicesStepView: View {
                 .padding(.bottom, 12)
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85),
-                   value: viewModel.isCodexAuthenticated && viewModel.isClaudeAuthenticated)
+                   value: authenticatedServiceCount)
     }
 
     private var authenticatedServiceCount: Int {
