@@ -1,4 +1,5 @@
 import Foundation
+import MobileAccessCore
 import UserNotifications
 
 /// Fires local notifications when quota crosses key thresholds or resets.
@@ -26,6 +27,12 @@ public actor NotificationManager {
         // Claude 7-day window
         static let claudeSevenDayThresholds  = "claudeSevenDayThresholds"
         static let claudeSevenDayLastResetAt = "claudeSevenDayLastResetAt"
+        // Devin daily window
+        static let devinDailyThresholds  = "devinDailyThresholds"
+        static let devinDailyLastResetAt = "devinDailyLastResetAt"
+        // Devin weekly window
+        static let devinWeeklyThresholds  = "devinWeeklyThresholds"
+        static let devinWeeklyLastResetAt = "devinWeeklyLastResetAt"
     }
 
     private var defaults: UserDefaults {
@@ -332,6 +339,140 @@ public actor NotificationManager {
         }
     }
 
+    // MARK: - Devin evaluation
+
+    /// Devin mirrors the Claude window shapes: the daily quota behaves like the
+    /// 5-hour window (remaining-based thresholds) and the weekly quota like the
+    /// 7-day window (used-based thresholds).
+    public func evaluate(devin: DevinUsage, prefs: NotificationPreferences) async {
+        guard prefs.enabled, prefs.devinEnabled else { return }
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        guard settings.authorizationStatus == .authorized else { return }
+
+        let dailyResetPeak = devin.dailyUsedPercent.flatMap { used in
+            devin.dailyResetsAt.flatMap { observeReset(key: Key.devinDailyLastResetAt, used: used, end: $0) }
+        }
+        let weeklyResetPeak = devin.weeklyUsedPercent.flatMap { used in
+            devin.weeklyResetsAt.flatMap { observeReset(key: Key.devinWeeklyLastResetAt, used: used, end: $0) }
+        }
+        if prefs.devinDailyReset && ResetAlertObservation.allows(priorPeak: dailyResetPeak, minimum: prefs.devinDailyResetMinimum) {
+            await send(
+                id: "devinDailyReset",
+                title: "Devin daily quota reset",
+                body: "Your Devin daily quota has reset. You're back to full capacity."
+            )
+        }
+        if prefs.devinWeeklyReset && ResetAlertObservation.allows(priorPeak: weeklyResetPeak, minimum: prefs.devinWeeklyResetMinimum) {
+            await send(
+                id: "devinWeeklyReset",
+                title: "Devin weekly quota reset",
+                body: "Your Devin weekly quota has reset. You're back to full capacity."
+            )
+        }
+
+        if let dailyUsed = devin.dailyUsedPercent,
+           let dailyResetAt = devin.dailyResetsAt {
+            let storedResetAt  = defaults.object(forKey: Key.devinDailyLastResetAt) as? Double
+            let currentResetAt = dailyResetAt.timeIntervalSince1970
+
+            if let stored = storedResetAt {
+                let storedDate = Date(timeIntervalSince1970: stored)
+                if storedDate < .now {
+                    clearThresholds(key: Key.devinDailyThresholds)
+                    defaults.set(currentResetAt, forKey: Key.devinDailyLastResetAt)
+                    return
+                } else if stored != currentResetAt {
+                    defaults.set(currentResetAt, forKey: Key.devinDailyLastResetAt)
+                }
+            } else {
+                defaults.set(currentResetAt, forKey: Key.devinDailyLastResetAt)
+                return
+            }
+
+            let notified = loadThresholds(key: Key.devinDailyThresholds)
+            let used = Int(dailyUsed.rounded())
+            let remaining = max(0, 100 - used)
+            let resetSeconds = max(0, Int(dailyResetAt.timeIntervalSinceNow))
+
+            if dailyUsed >= 100 && !notified.contains("limitReached") && prefs.devinDailyLimitReached {
+                markThreshold("limitReached", key: Key.devinDailyThresholds)
+                await send(
+                    id: "devinDailyLimitReached",
+                    title: "Devin daily quota reached",
+                    body: "You've hit your Devin daily quota. Resets in \(timeString(resetSeconds))."
+                )
+            } else if remaining < 5 && !notified.contains("below5") && prefs.devinDailyAt5 {
+                markThreshold("below5", key: Key.devinDailyThresholds)
+                await send(
+                    id: "devinDailyBelow5",
+                    title: "Devin daily quota near limit",
+                    body: "You're almost at your Devin daily quota. Resets in \(timeString(resetSeconds))."
+                )
+            } else if remaining < 15 && !notified.contains("below15") && prefs.devinDailyAt15 {
+                markThreshold("below15", key: Key.devinDailyThresholds)
+                await send(
+                    id: "devinDailyBelow15",
+                    title: "Devin daily quota usage high",
+                    body: "You've used most of your Devin daily quota. Resets in \(timeString(resetSeconds))."
+                )
+            }
+        } else {
+            clearThresholds(key: Key.devinDailyThresholds)
+            defaults.removeObject(forKey: Key.devinDailyLastResetAt)
+        }
+
+        // ── Weekly threshold notifications ─────────────────────────────────
+        guard let weeklyUsed = devin.weeklyUsedPercent,
+              let weeklyResetsAt = devin.weeklyResetsAt
+        else {
+            clearThresholds(key: Key.devinWeeklyThresholds)
+            defaults.removeObject(forKey: Key.devinWeeklyLastResetAt)
+            return
+        }
+        let weeklyUsedInt    = Int(weeklyUsed.rounded())
+        let weeklyNotified   = loadThresholds(key: Key.devinWeeklyThresholds)
+        let weeklyResetAt    = weeklyResetsAt.timeIntervalSince1970
+        let weeklyResetSecs  = max(0, Int(weeklyResetsAt.timeIntervalSinceNow))
+        let storedWeekly     = defaults.object(forKey: Key.devinWeeklyLastResetAt) as? Double
+
+        if let stored = storedWeekly {
+            let storedDate = Date(timeIntervalSince1970: stored)
+            if storedDate < .now {
+                clearThresholds(key: Key.devinWeeklyThresholds)
+                defaults.set(weeklyResetAt, forKey: Key.devinWeeklyLastResetAt)
+            } else {
+                if stored != weeklyResetAt {
+                    defaults.set(weeklyResetAt, forKey: Key.devinWeeklyLastResetAt)
+                }
+                if weeklyUsedInt >= 100 && !weeklyNotified.contains("limitReached") && prefs.devinWeeklyLimitReached {
+                    markThreshold("limitReached", key: Key.devinWeeklyThresholds)
+                    await send(
+                        id: "devinWeeklyLimit",
+                        title: "Devin weekly quota reached",
+                        body: "You've hit your Devin weekly quota. Resets in \(timeString(weeklyResetSecs))."
+                    )
+                } else if weeklyUsedInt >= 95 && !weeklyNotified.contains("above95") && prefs.devinWeeklyAt95 {
+                    markThreshold("above95", key: Key.devinWeeklyThresholds)
+                    await send(
+                        id: "devinWeekly95",
+                        title: "Devin weekly quota near limit",
+                        body: "You're almost at your Devin weekly quota. Resets in \(timeString(weeklyResetSecs))."
+                    )
+                } else if weeklyUsedInt >= 80 && !weeklyNotified.contains("above80") && prefs.devinWeeklyAt80 {
+                    markThreshold("above80", key: Key.devinWeeklyThresholds)
+                    await send(
+                        id: "devinWeekly80",
+                        title: "Devin weekly quota usage high",
+                        body: "You've used most of your Devin weekly quota. Resets in \(timeString(weeklyResetSecs))."
+                    )
+                }
+            }
+        } else {
+            defaults.set(weeklyResetAt, forKey: Key.devinWeeklyLastResetAt)
+        }
+    }
+
     // MARK: - Private helpers
 
     private func send(id: String, title: String, body: String) async {
@@ -348,7 +489,11 @@ public actor NotificationManager {
     }
 
     public func clearResetHistory(for service: ServiceType) {
-        let keys = service == .codex ? [Key.codexLastResetAt, Key.codex5hLastResetAt] : [Key.claudeLastResetAt, Key.claudeSevenDayLastResetAt]
+        let keys: [String] = switch service {
+        case .codex:  [Key.codexLastResetAt, Key.codex5hLastResetAt]
+        case .claude: [Key.claudeLastResetAt, Key.claudeSevenDayLastResetAt]
+        case .devin:  [Key.devinDailyLastResetAt, Key.devinWeeklyLastResetAt]
+        }
         for key in keys { defaults.removeObject(forKey: key + ".resetObservation") }
     }
 

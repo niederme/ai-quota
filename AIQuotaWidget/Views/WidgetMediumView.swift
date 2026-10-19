@@ -186,6 +186,55 @@ private extension QuotaEntry {
                 detailFooter: usage.sevenDayResetAfterSeconds.map { widgetCountdownText(prefix: "7d resets", seconds: $0) } ?? "",
                 alertText: usage.limitReached ? "Limit reached" : nil
             )
+
+        case .devin:
+            guard let usage = devinUsage else { return nil }
+
+            var detailRows = [
+                WidgetDetailRowData(
+                    label: "Daily quota",
+                    value: usage.primaryMetric.utilization.map { "\(Int($0.rounded()))% used" } ?? "—",
+                    icon: "gauge.with.dots.needle.67percent",
+                    tint: .secondary,
+                    usesTwoLineLayout: true
+                ),
+                WidgetDetailRowData(
+                    label: "Plan",
+                    value: usage.planDisplayName,
+                    icon: "person.fill",
+                    tint: .secondary
+                ),
+            ]
+            if let balance = usage.overageBalanceUSD, balance > 0 {
+                detailRows.append(
+                    WidgetDetailRowData(
+                        label: "On-demand",
+                        value: "\(widgetDevinDollarAmount(balance)) balance",
+                        icon: "plus.circle.fill",
+                        tint: widgetOverageColor,
+                        labelTint: widgetOverageColor,
+                        valueTint: widgetOverageColor,
+                        usesTwoLineLayout: true
+                    )
+                )
+            }
+            return WidgetServiceSnapshot(
+                label: "Devin",
+                icon: "logo-devin",
+                primaryPercent: usage.usedPercent,
+                primaryLimitReached: usage.limitReached,
+                showsPrimaryMetric: true,
+                secondaryPercent: Int(usage.weeklyUsedPercent?.rounded() ?? 0),
+                showsSecondaryMetric: usage.weeklyUsedPercent != nil,
+                primaryLabel: "1d",
+                secondaryLabel: "7-day",
+                resetSeconds: usage.resetAfterSeconds ?? 0,
+                weeklyResetSeconds: usage.weeklyResetAfterSeconds ?? 0,
+                secondaryLimitReached: (usage.weeklyUsedPercent ?? 0) >= 100,
+                detailRows: detailRows,
+                detailFooter: usage.weeklyResetAfterSeconds.map { widgetCountdownText(prefix: "7d resets", seconds: $0) } ?? "",
+                alertText: usage.limitReached ? "Limit reached" : nil
+            )
         }
     }
 }
@@ -209,6 +258,15 @@ private func widgetUsageCreditsSpend(_ credits: ClaudeUsage.UsageCredits) -> Str
         return formatter.string(from: NSNumber(value: credits.spent)) ?? widgetCreditAmount(credits.spent)
     }
     return widgetCreditAmount(credits.spent)
+}
+
+private func widgetDevinDollarAmount(_ amount: Double) -> String {
+    let formatter = NumberFormatter()
+    formatter.numberStyle = .currency
+    formatter.currencyCode = "USD"
+    formatter.minimumFractionDigits = 2
+    formatter.maximumFractionDigits = 2
+    return formatter.string(from: NSNumber(value: amount)) ?? String(format: "$%.2f", amount)
 }
 
 private func widgetCodexDollarAmount(_ credits: Double) -> String {
@@ -425,12 +483,20 @@ private struct WidgetSingleGaugePanel: View {
                 }
             } else {
                 WidgetEmptyGaugeView(
-                    icon: service == .claude ? "logo-claude" : "logo-openai",
-                    label: service == .claude ? "Claude Code" : "Codex",
+                    icon: widgetServiceIcon(service),
+                    label: service.displayName,
                     size: gaugeSize
                 )
             }
         }
+    }
+}
+
+private func widgetServiceIcon(_ service: ServiceType) -> String {
+    switch service {
+    case .codex:  "logo-openai"
+    case .claude: "logo-claude"
+    case .devin:  "logo-devin"
     }
 }
 
@@ -574,7 +640,11 @@ struct WidgetSingleServiceMediumView: View {
     let entry: QuotaEntry
 
     private var service: ServiceType {
-        entry.configuration.service == .claude ? .claude : .codex
+        switch entry.configuration.service {
+        case .claude: .claude
+        case .devin:  .devin
+        default:    .codex
+        }
     }
 
     var body: some View {
@@ -589,7 +659,7 @@ struct WidgetSingleServiceMediumView: View {
 
             WidgetMediumStatsColumn(
                 snapshot: snapshot,
-                emptyLabel: service == .claude ? "Claude Code" : "Codex"
+                emptyLabel: service.displayName
             )
             .padding(.leading, 18)
             .padding(.trailing, 18)
@@ -622,10 +692,13 @@ struct WidgetMediumView: View {
     }
 
     private var dualLayout: some View {
-        HStack(spacing: 0) {
-            gaugeSlot(for: .codex, size: 80).frame(maxWidth: .infinity)
-            Divider().padding(.vertical, 12)
-            gaugeSlot(for: .claude, size: 80).frame(maxWidth: .infinity)
+        let services = ServiceType.allCases.filter { entry.enrolledServices.contains($0) }
+        let displayed = services.isEmpty ? [.codex, .claude] : services
+        return HStack(spacing: 0) {
+            ForEach(Array(displayed.enumerated()), id: \.element) { index, service in
+                if index > 0 { Divider().padding(.vertical, 12) }
+                gaugeSlot(for: service, size: 80).frame(maxWidth: .infinity)
+            }
         }
     }
 
@@ -689,6 +762,27 @@ struct WidgetMediumView: View {
             } else {
                 emptySlot(icon: "logo-claude", label: "Claude Code")
             }
+
+        case .devin:
+            if let u = entry.devinUsage {
+                WidgetGaugeView(
+                    primaryPercent: u.usedPercent,
+                    primaryLimitReached: u.limitReached,
+                    showsPrimaryMetric: true,
+                    secondaryPercent: Int(u.weeklyUsedPercent?.rounded() ?? 0),
+                    showsSecondaryMetric: u.weeklyUsedPercent != nil,
+                    icon: "logo-devin",
+                    label: "Devin",
+                    primaryLabel: "1d",
+                    secondaryLabel: "7-day",
+                    resetSeconds: u.resetAfterSeconds ?? 0,
+                    weeklyResetSeconds: u.weeklyResetAfterSeconds ?? 0,
+                    secondaryLimitReached: (u.weeklyUsedPercent ?? 0) >= 100,
+                    size: size
+                )
+            } else {
+                emptySlot(icon: "logo-devin", label: "Devin")
+            }
         }
     }
 
@@ -716,6 +810,11 @@ struct WidgetMediumView: View {
 struct WidgetLargeView: View {
     let entry: QuotaEntry
 
+    private var services: [ServiceType] {
+        let enrolled = ServiceType.allCases.filter { entry.enrolledServices.contains($0) }
+        return enrolled.isEmpty ? [.codex, .claude] : enrolled
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             WidgetHeaderView(title: "AIQuota", showsMonthly: entry.codexUsage?.reportedWindowShape == nil && entry.codexUsage?.displayableMonthlyBudget != nil)
@@ -730,11 +829,11 @@ struct WidgetLargeView: View {
 
                 VStack(spacing: 0) {
                     HStack(alignment: .center, spacing: 0) {
-                        largeGaugeColumn(for: .codex)
-                            .frame(maxWidth: .infinity)
-                        Divider()
-                        largeGaugeColumn(for: .claude)
-                            .frame(maxWidth: .infinity)
+                        ForEach(Array(services.enumerated()), id: \.element) { index, service in
+                            if index > 0 { Divider() }
+                            largeGaugeColumn(for: service)
+                                .frame(maxWidth: .infinity)
+                        }
                     }
                     .frame(height: topHeight, alignment: .center)
                     .padding(.top, 12)
@@ -743,27 +842,18 @@ struct WidgetLargeView: View {
                     Divider()
 
                     HStack(alignment: .top, spacing: 0) {
-                        WidgetStatsColumn(
-                            snapshot: entry.snapshot(for: .codex),
-                            emptyLabel: "Codex",
-                            showsFooter: false
-                        )
-                        .padding(.horizontal, 14)
-                        .padding(.top, 10)
-                        .padding(.bottom, 10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                        Divider()
-
-                        WidgetStatsColumn(
-                            snapshot: entry.snapshot(for: .claude),
-                            emptyLabel: "Claude Code",
-                            showsFooter: false
-                        )
-                        .padding(.horizontal, 14)
-                        .padding(.top, 10)
-                        .padding(.bottom, 10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        ForEach(Array(services.enumerated()), id: \.element) { index, service in
+                            if index > 0 { Divider() }
+                            WidgetStatsColumn(
+                                snapshot: entry.snapshot(for: service),
+                                emptyLabel: service.displayName,
+                                showsFooter: false
+                            )
+                            .padding(.horizontal, 14)
+                            .padding(.top, 10)
+                            .padding(.bottom, 10)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                     }
                     .frame(height: bottomHeight, alignment: .top)
                 }

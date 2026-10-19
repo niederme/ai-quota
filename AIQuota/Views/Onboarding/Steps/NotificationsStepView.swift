@@ -68,6 +68,16 @@ struct NotificationsStepView: View {
                             )
                         }
 
+                        if viewModel.isDevinEnrolled {
+                            OnboardingNotificationServiceRow(
+                                service: .devin,
+                                logo: "logo-devin",
+                                isOn: $vm.settings.notifications.devinEnabled,
+                                isEnabled: notificationControlsEnabled,
+                                preferences: $vm.settings.notifications
+                            )
+                        }
+
                         if viewModel.enrolledServices.isEmpty {
                             Text("Sign in to a service on the previous step to configure thresholds.")
                                 .foregroundStyle(.secondary)

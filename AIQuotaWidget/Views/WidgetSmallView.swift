@@ -1,14 +1,35 @@
 import SwiftUI
 import AIQuotaKit
+import MobileAccessCore
 
 struct WidgetSmallView: View {
     let entry: QuotaEntry
 
-    private var showClaude: Bool { entry.configuration.service == .claude }
+    private var selectedService: ServiceOption { entry.configuration.service }
 
     var body: some View {
         Group {
-            if showClaude {
+            if selectedService == .devin {
+                if let u = entry.devinUsage {
+                    WidgetGaugeView(
+                        primaryPercent: u.usedPercent,
+                        primaryLimitReached: u.limitReached,
+                        showsPrimaryMetric: true,
+                        secondaryPercent: Int(u.weeklyUsedPercent?.rounded() ?? 0),
+                        showsSecondaryMetric: u.weeklyUsedPercent != nil,
+                        icon: "logo-devin",
+                        label: "Devin",
+                        primaryLabel: "1d",
+                        secondaryLabel: "7-day",
+                        resetSeconds: u.resetAfterSeconds ?? 0,
+                        weeklyResetSeconds: u.weeklyResetAfterSeconds ?? 0,
+                        secondaryLimitReached: (u.weeklyUsedPercent ?? 0) >= 100,
+                        size: 90
+                    )
+                } else {
+                    emptyView("Devin")
+                }
+            } else if selectedService == .claude {
                 if let u = entry.claudeUsage {
                     WidgetGaugeView(
                         primaryPercent: u.usedPercent,

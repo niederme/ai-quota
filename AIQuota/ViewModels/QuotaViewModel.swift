@@ -175,17 +175,29 @@ final class QuotaViewModel {
     let claudeCoordinator: ClaudeAuthCoordinator
     private let claudeClient: ClaudeClient
 
+    // MARK: - Devin
+
+    var devinUsage: DevinUsage?
+    var isDevinLoading = false
+    var devinError: NetworkError?
+
+    let devinCoordinator: DevinAuthCoordinator
+    private let devinClient: DevinClient
+
     // MARK: - Auth state (derived from coordinator streams)
 
     var claudeState: AuthState = .unknown
     var codexState:  AuthState = .unknown
+    var devinState:  AuthState = .unknown
 
     var isClaudeAuthenticated: Bool { claudeState == .authenticated }
     var isCodexAuthenticated:  Bool { codexState  == .authenticated }
+    var isDevinAuthenticated:  Bool { devinState  == .authenticated }
     var isCodexRecovering: Bool { isCodexRecoveryPending || codexState == .unknown || codexState == .restoringSession }
     var isClaudeRecovering: Bool { isClaudeRecoveryPending || claudeState == .unknown || claudeState == .restoringSession }
+    var isDevinRecovering: Bool { isDevinRecoveryPending || devinState == .unknown || devinState == .restoringSession }
     var isRestoringSession: Bool {
-        isCodexRecovering || isClaudeRecovering
+        isCodexRecovering || isClaudeRecovering || isDevinRecovering
     }
 
     private let resetCoordinator: AppResetCoordinator
@@ -205,8 +217,10 @@ final class QuotaViewModel {
 
     var isCodexEnrolled: Bool { enrolledServices.contains(.codex) }
     var isClaudeEnrolled: Bool { enrolledServices.contains(.claude) }
+    var isDevinEnrolled: Bool { enrolledServices.contains(.devin) }
     private var isCodexRecoveryPending = false
     private var isClaudeRecoveryPending = false
+    private var isDevinRecoveryPending = false
     /// Set when enrolled-session recovery definitively failed (all sources
     /// rejected). Blocks popover-open recovery retries — which would just replay
     /// the same spinner — until fresh Claude Code credentials appear or the user
@@ -245,12 +259,13 @@ final class QuotaViewModel {
         )
     }
 
-    /// "codex", "claude", "both", or "none" — used as an analytics param.
+    /// "codex", "claude", "devin", "both", "all", or "none" — used as an analytics param.
     var analyticsServicesParam: String {
         switch enrolledServices.count {
         case 0:  return "none"
         case 1:  return enrolledServices.first!.rawValue
-        default: return "both"
+        case 2:  return "both"
+        default: return "all"
         }
     }
 
@@ -296,6 +311,7 @@ final class QuotaViewModel {
         let result = await resetCoordinator.reset()
         await NotificationManager.shared.clearResetHistory(for: .codex)
         await NotificationManager.shared.clearResetHistory(for: .claude)
+        await NotificationManager.shared.clearResetHistory(for: .devin)
         if !result.warnings.isEmpty {
             logger.warning("[Reset] warnings: \(result.warnings.joined(separator: "; "))")
         }
@@ -304,10 +320,13 @@ final class QuotaViewModel {
         claudeUsage     = nil
         codexUsage      = nil
         codexAutoReload = nil
+        devinUsage      = nil
         SharedDefaults.clearUsage()
         SharedDefaults.clearClaudeUsage()
+        SharedDefaults.clearDevinUsage()
         SharedDefaults.clearCodexSourceAttempts()
         SharedDefaults.clearClaudeSourceAttempts()
+        SharedDefaults.clearDevinSourceAttempts()
         settings = .default
         UserDefaults.standard.removeObject(forKey: ClaudeOAuthKeychainReader.consentDefaultsKey)
         // Persist settings directly — calling saveSettings() would invoke startAutoRefresh(),
@@ -323,7 +342,7 @@ final class QuotaViewModel {
     // MARK: - Backward-compatible aliases (used by MenuBarIconView / AIQuotaApp)
 
     var usage: CodexUsage? { codexUsage }
-    var isLoading: Bool { isCodexLoading || isClaudeLoading }
+    var isLoading: Bool { isCodexLoading || isClaudeLoading || isDevinLoading }
     var error: NetworkError? {
         get { codexError }
         set { codexError = newValue }
@@ -341,6 +360,7 @@ final class QuotaViewModel {
     /// clear `isLoading` after the new request has already started.
     private var codexRefreshGeneration = 0
     private var claudeRefreshGeneration = 0
+    private var devinRefreshGeneration = 0
 
     /// Tracks whether the last known network path was unsatisfied so we can
     /// detect a transition back online and refresh immediately.
@@ -361,23 +381,28 @@ final class QuotaViewModel {
     init(readOnlyPreview: Bool = false) {
         let claude = ClaudeAuthCoordinator()
         let codex  = CodexAuthCoordinator()
+        let devin  = DevinAuthCoordinator()
 
         self.claudeCoordinator = claude
         self.codexCoordinator  = codex
+        self.devinCoordinator  = devin
         self.claudeClient      = ClaudeClient(coordinator: claude)
         self.codexClient       = OpenAIClient(coordinator: codex)
-        self.resetCoordinator  = AppResetCoordinator(claude: claude, codex: codex)
+        self.devinClient       = DevinClient(coordinator: devin)
+        self.resetCoordinator  = AppResetCoordinator(claude: claude, codex: codex, devin: devin)
         #if DEBUG
         isReadOnlyPreview = readOnlyPreview
         if readOnlyPreview { return }
         #endif
         self.isCodexRecoveryPending = enrolledServices.contains(.codex)
         self.isClaudeRecoveryPending = enrolledServices.contains(.claude)
+        self.isDevinRecoveryPending = enrolledServices.contains(.devin)
 
         #if !DEMO_MODE
         // Load cached data immediately
         codexUsage  = SharedDefaults.loadCachedUsage()
         claudeUsage = SharedDefaults.loadCachedClaudeUsage()
+        devinUsage  = SharedDefaults.loadCachedDevinUsage()
 
         // Normalise any mixed per-threshold notification state from pre-consolidation builds.
         // OR-resolves each group (any=true → all-true) so aggregate toggles always see
@@ -431,6 +456,26 @@ final class QuotaViewModel {
                 }
             }
         }
+        Task { [weak self] in
+            guard let self else { return }
+            for await state in devinCoordinator.stateStream {
+                await MainActor.run {
+                    self.devinState = state
+                    if state == .authenticated && !self.enrolledServices.contains(.devin) {
+                        self.enrolledServices.insert(.devin)
+                        SharedDefaults.enrollService(.devin)
+                        self.trackServiceConnected(.devin)
+                    }
+                    if state == .authenticated && self.refreshTask == nil {
+                        self.startAutoRefresh()
+                    }
+                    if state == .signedOutByUser ||
+                        (state == .unauthenticated && !self.isDevinRecoveryPending) {
+                        self.clearDevinUsageSnapshot()
+                    }
+                }
+            }
+        }
 
         // Request notification permission on launch
         if settings.notifications.enabled {
@@ -447,10 +492,12 @@ final class QuotaViewModel {
             await withTaskGroup(of: Void.self) { group in
                 group.addTask { await self.claudeCoordinator.bootstrap() }
                 group.addTask { await self.codexCoordinator.bootstrap() }
+                group.addTask { await self.devinCoordinator.bootstrap() }
             }
             await withTaskGroup(of: Void.self) { group in
                 group.addTask { await self.restoreEnrolledCodexIfNeeded() }
                 group.addTask { await self.restoreEnrolledClaudeIfNeeded() }
+                group.addTask { await self.restoreEnrolledDevinIfNeeded() }
             }
         }
         #endif
@@ -525,6 +572,37 @@ final class QuotaViewModel {
         isClaudeLoading = false
     }
 
+    private func restoreEnrolledDevinIfNeeded() async {
+        logger.notice("[DevinRecovery] viewModel start enrolled=\(self.isDevinEnrolled) state=\(String(describing: self.devinState), privacy: .public)")
+        defer {
+            isDevinRecoveryPending = false
+            logger.notice("[DevinRecovery] viewModel finished pending=false state=\(String(describing: self.devinState), privacy: .public)")
+        }
+        guard isDevinEnrolled else {
+            logger.notice("[DevinRecovery] viewModel skipped not enrolled")
+            return
+        }
+        guard await devinCoordinator.restoreWithoutPromptIfPossible(allowSignedOutByUser: true) else {
+            logger.notice("[DevinRecovery] viewModel restore failed")
+            clearDevinUsageSnapshot()
+            return
+        }
+
+        logger.notice("[DevinRecovery] viewModel restore succeeded")
+        devinState = .authenticated
+        devinError = nil
+        await refreshDevin()
+        if refreshTask == nil { startAutoRefresh() }
+    }
+
+    private func clearDevinUsageSnapshot() {
+        devinUsage = nil
+        SharedDefaults.clearDevinUsage()
+        WidgetCenter.shared.reloadAllTimelines()
+        devinRefreshGeneration += 1
+        isDevinLoading = false
+    }
+
     // MARK: - Network path monitor
 
     private func startPathMonitor() {
@@ -543,6 +621,7 @@ final class QuotaViewModel {
                     // first fetch fails before the monitor has run even once.
                     if case .networkUnavailable = self.codexError  { self.codexError  = nil }
                     if case .networkUnavailable = self.claudeError { self.claudeError = nil }
+                    if case .networkUnavailable = self.devinError  { self.devinError  = nil }
                     if self.wasOffline {
                         // Came back online — resume the loop with a fresh fetch so
                         // Auto mode can ramp back up immediately.
@@ -657,11 +736,12 @@ final class QuotaViewModel {
     }
 
     func refresh() async {
-        // Run both fetches concurrently, then reload widgets once both are done
+        // Run all fetches concurrently, then reload widgets once they're done
         // so they always get a consistent snapshot.
         await withTaskGroup(of: Void.self) { group in
             group.addTask { await self.refreshCodex() }
             group.addTask { await self.refreshClaude() }
+            group.addTask { await self.refreshDevin() }
         }
         WidgetCenter.shared.reloadAllTimelines()
     }
@@ -858,6 +938,67 @@ final class QuotaViewModel {
         }
     }
 
+    func refreshDevin() async {
+        guard !Self.isDemoBuild else { return }
+        guard isDevinAuthenticated else { return }
+        guard !isDevinLoading else { return }
+        let previousPlan = devinUsage?.planDisplayName
+        let gen = devinRefreshGeneration
+        isDevinLoading = true
+        devinError = nil
+        defer { if devinRefreshGeneration == gen { isDevinLoading = false } }
+
+        do {
+            let result = try await devinClient.fetchUsage()
+            recordServiceActivityIfNeeded(from: devinUsage, to: result)
+            devinUsage = result
+            lastRefreshedAt = .now
+            SharedDefaults.saveDevinUsage(result)
+            await NotificationManager.shared.evaluate(devin: result, prefs: settings.notifications)
+            await NotificationManager.shared.notifyPlanChange(service: "Devin", previous: previousPlan, current: result.planDisplayName,
+                enabled: settings.notifications.enabled && settings.notifications.devinEnabled)
+        } catch let e as NetworkError {
+            if e.isAuthError {
+                devinUsage = nil
+                SharedDefaults.clearDevinUsage()
+                // The local credential may have rotated — re-resolve and retry once.
+                guard await devinCoordinator.revalidateSessionAfterAuthFailure() else { return }
+                do {
+                    let result = try await devinClient.fetchUsage()
+                    recordServiceActivityIfNeeded(from: devinUsage, to: result)
+                    devinUsage = result
+                    lastRefreshedAt = .now
+                    SharedDefaults.saveDevinUsage(result)
+                    await NotificationManager.shared.evaluate(devin: result, prefs: settings.notifications)
+                    await NotificationManager.shared.notifyPlanChange(service: "Devin", previous: previousPlan, current: result.planDisplayName,
+                        enabled: settings.notifications.enabled && settings.notifications.devinEnabled)
+                } catch {
+                    // Retry also failed — coordinator already transitioned to unauthenticated
+                }
+                return
+            } else if case .networkUnavailable = e, !pathMonitorReady {
+                logger.info("[DevinRefresh] suppressing networkUnavailable: pathMonitor not ready yet")
+                return
+            } else if case .decodingError = e {
+                if devinUsage != nil {
+                    logger.info("[DevinRefresh] suppressing decodingError — will retry on next cycle")
+                    return
+                }
+            }
+            devinError = e
+        } catch is CancellationError {
+            // Task was cancelled (e.g. a new refresh cycle started) — ignore silently
+        } catch {
+            // URLError.cancelled means the surrounding Task was cancelled — ignore silently
+            if let urlError = error as? URLError, urlError.code == .cancelled { return }
+            let pathStatus = pathMonitor.currentPath.status
+            logger.warning("[DevinRefresh] unexpected error: \(error) | path: \(String(describing: pathStatus)) | urlErrCode: \(String(describing: (error as? URLError)?.code.rawValue))")
+            if isConnectivityError(error) || (pathMonitorReady && pathStatus != .satisfied) {
+                devinError = .networkUnavailable
+            }
+        }
+    }
+
     // MARK: - Auto-refresh
 
     func startAutoRefresh(immediateRefresh: Bool = true) {
@@ -885,7 +1026,7 @@ final class QuotaViewModel {
     }
 
     private func restartAutoRefresh(immediateRefresh: Bool) {
-        guard isCodexAuthenticated || isClaudeAuthenticated else { return }
+        guard isCodexAuthenticated || isClaudeAuthenticated || isDevinAuthenticated else { return }
         startAutoRefresh(immediateRefresh: immediateRefresh)
     }
 
@@ -907,7 +1048,8 @@ final class QuotaViewModel {
             ),
             serviceRecentlyActive: serviceWasRecentlyActive,
             codexNearThreshold: isCodexNearThreshold,
-            claudeNearThreshold: isClaudeNearThreshold
+            claudeNearThreshold: isClaudeNearThreshold,
+            devinNearThreshold: isDevinNearThreshold
         )
     }
 
@@ -923,6 +1065,12 @@ final class QuotaViewModel {
     }
 
     private func recordServiceActivityIfNeeded(from previous: ClaudeUsage?, to current: ClaudeUsage) {
+        if AutoRefreshActivity.changed(from: previous, to: current) {
+            lastServiceActivityAt = .now
+        }
+    }
+
+    private func recordServiceActivityIfNeeded(from previous: DevinUsage?, to current: DevinUsage) {
         if AutoRefreshActivity.changed(from: previous, to: current) {
             lastServiceActivityAt = .now
         }
@@ -949,6 +1097,15 @@ final class QuotaViewModel {
             || (claudeUsage.sevenDayResetAfterSeconds.map { $0 <= 900 } ?? false)
     }
 
+    private var isDevinNearThreshold: Bool {
+        guard let devinUsage else { return false }
+        return devinUsage.limitReached
+            || devinUsage.usedPercent >= 85
+            || (devinUsage.weeklyUsedPercent ?? 0) >= 85
+            || (devinUsage.resetAfterSeconds.map { $0 <= 900 } ?? false)
+            || (devinUsage.weeklyResetAfterSeconds.map { $0 <= 900 } ?? false)
+    }
+
     private func shouldPreserveClaudeLastGood(_ result: ClaudeUsage) -> Bool {
         guard let existing = claudeUsage else { return false }
         guard existing.planLabel == .pro || existing.planLabel == .max else { return false }
@@ -964,8 +1121,10 @@ final class QuotaViewModel {
         refreshUsageHistory(force: true)
         codexRefreshGeneration += 1
         claudeRefreshGeneration += 1
+        devinRefreshGeneration += 1
         isCodexLoading = false
         isClaudeLoading = false
+        isDevinLoading = false
         startAutoRefresh()
         trackAnalytics("manual_refresh")
     }
@@ -1000,14 +1159,22 @@ final class QuotaViewModel {
             }
         }
 
-        guard isCodexAuthenticated || isClaudeAuthenticated else { return }
+        if isDevinEnrolled && !isDevinAuthenticated && !isDevinRecoveryPending {
+            logger.notice("[DevinRecovery] popover retry scheduled state=\(String(describing: self.devinState), privacy: .public)")
+            isDevinRecoveryPending = true
+            Task { await restoreEnrolledDevinIfNeeded() }
+        }
+
+        guard isCodexAuthenticated || isClaudeAuthenticated || isDevinAuthenticated else { return }
         guard !isLoading else { return }
         guard shouldRefreshOnPopoverOpen else { return }
 
         codexRefreshGeneration += 1
         claudeRefreshGeneration += 1
+        devinRefreshGeneration += 1
         isCodexLoading = false
         isClaudeLoading = false
+        isDevinLoading = false
         startAutoRefresh(immediateRefresh: true)
     }
 
@@ -1084,6 +1251,62 @@ final class QuotaViewModel {
         }
     }
 
+    /// Devin has no interactive login — signing in resolves a session credential
+    /// from local Devin state (CLI credentials.toml or the Devin app's database)
+    /// or falls back to a pasted token via `signInDevin(manualToken:)`.
+    func signInDevin() async {
+        do {
+            try await devinCoordinator.signIn()
+            devinState = .authenticated
+            if !enrolledServices.contains(.devin) {
+                enrolledServices.insert(.devin)
+                SharedDefaults.enrollService(.devin)
+                trackServiceConnected(.devin)
+            }
+            await refreshDevin()
+            if refreshTask == nil { startAutoRefresh() }
+        } catch {
+            devinError = .notAuthenticated
+        }
+    }
+
+    func signInDevin(manualToken token: String) async throws {
+        do {
+            try await devinCoordinator.signIn(manualToken: token)
+            devinState = .authenticated
+            if !enrolledServices.contains(.devin) {
+                enrolledServices.insert(.devin)
+                SharedDefaults.enrollService(.devin)
+                trackServiceConnected(.devin)
+            }
+            await refreshDevin()
+            if refreshTask == nil { startAutoRefresh() }
+        } catch {
+            devinError = .notAuthenticated
+            throw SignInError.invalidToken
+        }
+    }
+
+    enum SignInError: Error {
+        case invalidToken
+    }
+
+    func signOutDevin() {
+        Task {
+            try? await devinCoordinator.signOut()
+            await NotificationManager.shared.clearResetHistory(for: .devin)
+            self.enrolledServices.remove(.devin)
+            SharedDefaults.unenrollService(.devin)
+            self.trackServiceDisconnected(.devin)
+            if !self.enrolledServices.contains(self.settings.menuBarService),
+               let fallback = self.enrolledServices.first {
+                self.settings.menuBarService = fallback
+                self.saveSettings()
+            }
+            if activeService == .devin { activeService = .codex }
+        }
+    }
+
     // MARK: - Settings
 
     func saveSettings() {
@@ -1101,7 +1324,7 @@ final class QuotaViewModel {
         }
         AnalyticsClient.shared.setCollectionEnabled(settings.analyticsEnabled)
         lastSavedSettings = settings
-        if isCodexAuthenticated || isClaudeAuthenticated { startAutoRefresh() }
+        if isCodexAuthenticated || isClaudeAuthenticated || isDevinAuthenticated { startAutoRefresh() }
     }
 
     private func trackServiceConnected(_ service: ServiceType) {
@@ -1152,8 +1375,10 @@ extension QuotaViewModel {
         stopAutoRefresh()
         claudeState      = .authenticated
         codexState       = .authenticated
+        devinState       = .unauthenticated
         isClaudeRecoveryPending = false
         isCodexRecoveryPending = false
+        isDevinRecoveryPending = false
         enrolledServices = [.claude, .codex]
         claudeUsage      = nil
         codexUsage       = nil

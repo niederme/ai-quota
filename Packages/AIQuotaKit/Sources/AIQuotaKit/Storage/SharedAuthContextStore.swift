@@ -55,6 +55,16 @@ public struct SharedCodexAuthContext: Codable, Sendable, Equatable {
     }
 }
 
+public struct SharedDevinAuthContext: Codable, Sendable, Equatable {
+    public let apiKey: String
+    public let apiServerURL: String
+
+    public init(apiKey: String, apiServerURL: String) {
+        self.apiKey = apiKey
+        self.apiServerURL = apiServerURL
+    }
+}
+
 public struct SharedClaudeAuthContext: Codable, Sendable, Equatable {
     public let orgId: String
     public let cookies: [PersistedCookie]
@@ -75,6 +85,7 @@ public struct SharedClaudeAuthContext: Codable, Sendable, Equatable {
 public enum SharedAuthContextStore {
     private static let codexKey = "sharedCodexAuthContext"
     private static let claudeKey = "sharedClaudeAuthContext"
+    private static let devinKey = "sharedDevinAuthContext"
 
     public static func loadCodex() -> SharedCodexAuthContext? {
         KeychainStore.load(SharedCodexAuthContext.self, forKey: codexKey, decoder: decoder)
@@ -99,6 +110,18 @@ public enum SharedAuthContextStore {
 
     public static func clearClaude() {
         KeychainStore.delete(forKey: claudeKey)
+    }
+
+    public static func loadDevin() -> SharedDevinAuthContext? {
+        KeychainStore.load(SharedDevinAuthContext.self, forKey: devinKey, decoder: decoder)
+    }
+
+    public static func saveDevin(_ context: SharedDevinAuthContext) {
+        KeychainStore.save(context, forKey: devinKey, encoder: encoder)
+    }
+
+    public static func clearDevin() {
+        KeychainStore.delete(forKey: devinKey)
     }
 
     private static let encoder: JSONEncoder = {

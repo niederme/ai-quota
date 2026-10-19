@@ -118,13 +118,15 @@ struct PopoverView: View {
     // MARK: - Authenticated layout
 
     private var visibleServices: [ServiceType] {
-        [.codex, .claude].filter { viewModel.enrolledServices.contains($0) }
+        ServiceType.allCases.filter { viewModel.enrolledServices.contains($0) }
     }
 
     private func canOpen(_ service: ServiceType) -> Bool {
-        service == .codex
-            ? viewModel.isCodexAuthenticated || viewModel.codexUsage != nil
-            : viewModel.isClaudeAuthenticated || viewModel.claudeUsage != nil
+        switch service {
+        case .codex:  viewModel.isCodexAuthenticated || viewModel.codexUsage != nil
+        case .claude: viewModel.isClaudeAuthenticated || viewModel.claudeUsage != nil
+        case .devin:  viewModel.isDevinAuthenticated || viewModel.devinUsage != nil
+        }
     }
 
     private func openService(_ service: ServiceType) {
@@ -176,7 +178,7 @@ struct PopoverView: View {
     }
 
     private func serviceTarget<Content: View>(_ service: ServiceType, @ViewBuilder content: () -> Content) -> some View {
-        let name = service == .codex ? "Codex" : "Claude"
+        let name = service.displayName
         return content()
             .focusable(canOpen(service))
             .focused($focusedService, equals: service)
@@ -367,6 +369,50 @@ struct PopoverView: View {
         }
     }
 
+    @ViewBuilder
+    private var devinGaugeSlot: some View {
+        if viewModel.isDevinAuthenticated {
+            if let u = viewModel.devinUsage {
+                CircularGaugeView(
+                    primaryPercent: u.usedPercent,
+                    primaryLimitReached: u.limitReached,
+                    showsPrimaryMetric: true,
+                    secondaryPercent: Int(u.weeklyUsedPercent?.rounded() ?? 0),
+                    secondaryLimitReached: (u.weeklyUsedPercent ?? 0) >= 100,
+                    showsSecondaryMetric: u.primaryMetric.kind != .weekly && u.weeklyUsedPercent != nil,
+                    isLoading: false,
+                    icon: "logo-devin",
+                    label: "Devin",
+                    primaryLabel: u.primaryMetricLabel,
+                    secondaryLabel: "7d",
+                    resetAt: u.resetAt,
+                    weeklyResetAt: u.weeklyResetsAt,
+                    isRefreshing: viewModel.isDevinLoading,
+                    onRefresh: { viewModel.manualRefresh() }
+                )
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Devin usage")
+                .accessibilityValue(devinAccessibilitySummary(u))
+            } else {
+                CircularGaugeView(
+                    primaryPercent: 0, primaryLimitReached: false,
+                    showsPrimaryMetric: true,
+                    secondaryPercent: 0, secondaryLimitReached: false,
+                    showsSecondaryMetric: true,
+                    isLoading: true, icon: "logo-devin",
+                    label: "Devin", primaryLabel: "1d", secondaryLabel: "7d",
+                    resetAt: nil, weeklyResetAt: nil, isRefreshing: true, onRefresh: {}
+                )
+            }
+        } else if viewModel.isDevinRecovering {
+            loadingGauge(icon: "logo-devin", label: "Devin")
+        } else {
+            connectGauge(icon: "logo-devin", label: "Devin") {
+                Task { await viewModel.signInDevin() }
+            }
+        }
+    }
+
     private var codexColumn: some View {
         VStack(spacing: 0) {
             codexGaugeSlot
@@ -384,42 +430,53 @@ struct PopoverView: View {
 
     @ViewBuilder
     private var gaugeRow: some View {
-        if viewModel.isCodexEnrolled && viewModel.isClaudeEnrolled {
-            HStack(alignment: .top, spacing: 0) {
-                serviceTarget(.codex) { codexColumn }.frame(maxWidth: .infinity)
-                Divider()
-                serviceTarget(.claude) { claudeGaugeSlot }.frame(maxWidth: .infinity)
+        HStack(alignment: .top, spacing: 0) {
+            ForEach(Array(visibleServices.enumerated()), id: \.element) { index, service in
+                if index > 0 { Divider() }
+                serviceTarget(service) { gaugeSlot(for: service) }.frame(maxWidth: .infinity)
             }
-        } else if viewModel.isCodexEnrolled {
-            serviceTarget(.codex) { codexColumn }
-        } else {
-            serviceTarget(.claude) { claudeGaugeSlot }
+        }
+    }
+
+    @ViewBuilder
+    private func gaugeSlot(for service: ServiceType) -> some View {
+        switch service {
+        case .codex:  codexColumn
+        case .claude: claudeGaugeSlot
+        case .devin:  devinGaugeSlot
+        }
+    }
+
+    private func hasStats(_ service: ServiceType) -> Bool {
+        switch service {
+        case .codex:  viewModel.isCodexEnrolled && viewModel.codexUsage != nil
+        case .claude: viewModel.isClaudeEnrolled && viewModel.claudeUsage != nil
+        case .devin:  viewModel.isDevinEnrolled && viewModel.devinUsage != nil
         }
     }
 
     @ViewBuilder
     private var statsRow: some View {
-        let bothEnrolled = viewModel.isCodexEnrolled && viewModel.isClaudeEnrolled
-        let hasCodexStats = viewModel.isCodexEnrolled && viewModel.codexUsage != nil
-        let hasClaudeStats = viewModel.isClaudeEnrolled && viewModel.claudeUsage != nil
-
-        if hasCodexStats || hasClaudeStats {
+        let servicesWithStats = visibleServices.filter { hasStats($0) }
+        if !servicesWithStats.isEmpty {
             Divider()
-            if bothEnrolled {
-                HStack(alignment: .top, spacing: 0) {
-                    codexSecondaryStats.padding(.horizontal, 14)
+            HStack(alignment: .top, spacing: 0) {
+                ForEach(Array(servicesWithStats.enumerated()), id: \.element) { index, service in
+                    if index > 0 { Divider() }
+                    secondaryStats(for: service)
+                        .padding(.horizontal, 14)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    Divider()
-                    claudeSecondaryStats.padding(.horizontal, 14)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }.padding(.vertical, 7)
-            } else if hasCodexStats {
-                codexSecondaryStats.padding(.horizontal, 14).padding(.vertical, 7)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                claudeSecondaryStats.padding(.horizontal, 14).padding(.vertical, 7)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
+                }
+            }.padding(.vertical, 7)
+        }
+    }
+
+    @ViewBuilder
+    private func secondaryStats(for service: ServiceType) -> some View {
+        switch service {
+        case .codex:  codexSecondaryStats
+        case .claude: claudeSecondaryStats
+        case .devin:  devinSecondaryStats
         }
     }
 
@@ -485,6 +542,20 @@ struct PopoverView: View {
         }
         if let spend = u.spendLimit {
             lines.append("Spend limit: \(Int(spend.used)) / \(Int(spend.limit))")
+        }
+        lines.append("Plan: \(u.planDisplayName)")
+        return lines.joined(separator: "\n")
+    }
+
+    private func devinAccessibilitySummary(_ u: DevinUsage) -> String {
+        var lines = [
+            "\(u.primaryMetricLabel) usage: \(u.primaryMetric.utilization.map { "\(Int($0.rounded()))% used" } ?? "unknown")",
+        ]
+        if u.primaryMetric.kind != .weekly, let weekly = u.weeklyUsedPercent {
+            lines.append("7-day window: \(Int(weekly.rounded()))% used")
+        }
+        if let balance = u.overageBalanceUSD, balance > 0 {
+            lines.append("On-demand balance: \(formatCurrencyAmount(balance, currencyCode: "USD"))")
         }
         lines.append("Plan: \(u.planDisplayName)")
         return lines.joined(separator: "\n")
@@ -631,6 +702,21 @@ struct PopoverView: View {
         )
     }
 
+    @ViewBuilder
+    private var devinSecondaryStats: some View {
+        if let usage = viewModel.devinUsage {
+            VStack(alignment: .leading, spacing: 6) {
+                compactRow("Plan", usage.planDisplayName)
+                if let balance = usage.overageBalanceUSD, balance > 0 {
+                    compactRow(
+                        "On-demand balance",
+                        formatCurrencyAmount(balance, currencyCode: "USD")
+                    )
+                }
+            }
+        }
+    }
+
     private var codexSpentHelpText: String {
         "AIQuota sums \(currentMonthName)’s usage-credit events and converts them at 25 credits = $1."
     }
@@ -766,6 +852,11 @@ struct PopoverView: View {
                         label: "Sign in with Claude",
                         action: { Task { await viewModel.signInClaude() } }
                     )
+                    signInButton(
+                        logo: "logo-devin",
+                        label: "Connect Devin",
+                        action: { Task { await viewModel.signInDevin() } }
+                    )
                 }
             }
             .padding(24)
@@ -873,10 +964,25 @@ struct PopoverView: View {
             ))
         }
 
-        if viewModel.codexError?.isNetworkUnavailable == true,
-           viewModel.claudeError?.isNetworkUnavailable == true,
-           viewModel.isCodexEnrolled,
-           viewModel.isClaudeEnrolled {
+        if viewModel.isDevinEnrolled, let error = viewModel.devinError {
+            banners.append(ErrorBanner(
+                id: "devin",
+                message: error.localizedDescription,
+                dismiss: { viewModel.devinError = nil },
+                retry: { viewModel.manualRefresh() },
+                signIn: error.isAuthError ? { Task { await viewModel.signInDevin() } } : nil
+            ))
+        }
+
+        // When every enrolled service reports the same connectivity failure,
+        // collapse into one banner instead of stacking identical messages.
+        let enrolledErrors: [(ServiceType, NetworkError?)] = [
+            (.codex, viewModel.codexError),
+            (.claude, viewModel.claudeError),
+            (.devin, viewModel.devinError),
+        ].filter { viewModel.enrolledServices.contains($0.0) }
+        if enrolledErrors.count >= 2,
+           enrolledErrors.allSatisfy({ $0.1?.isNetworkUnavailable == true }) {
             return [
                 ErrorBanner(
                     id: "network",
@@ -884,6 +990,7 @@ struct PopoverView: View {
                     dismiss: {
                         viewModel.codexError = nil
                         viewModel.claudeError = nil
+                        viewModel.devinError = nil
                     },
                     retry: { viewModel.manualRefresh() },
                     signIn: nil
@@ -891,11 +998,10 @@ struct PopoverView: View {
             ]
         }
 
-        let shouldPrefixService = viewModel.isCodexEnrolled && viewModel.isClaudeEnrolled
-        guard shouldPrefixService else { return banners }
+        guard viewModel.enrolledServices.count >= 2 else { return banners }
 
         return banners.map { banner in
-            let serviceName = banner.id == "codex" ? "Codex" : "Claude Code"
+            let serviceName = ServiceType(rawValue: banner.id)?.displayName ?? banner.id
             return ErrorBanner(
                 id: banner.id,
                 message: "\(serviceName): \(banner.message)",
