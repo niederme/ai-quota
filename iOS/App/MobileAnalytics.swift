@@ -80,11 +80,11 @@ final class MobileAnalytics {
         transport.setCollectionEnabled(isEnabled && !isDemo)
     }
 
-    func observeServices(codex: Bool, claude: Bool, isDemo: Bool) {
+    func observeServices(codex: Bool, claude: Bool, devin: Bool, isDemo: Bool) {
         setDemoEnabled(isDemo)
         guard !isDemo else { return }
         let previous = services
-        services = Set([(codex ? "codex" : nil), (claude ? "claude" : nil)].compactMap { $0 })
+        services = Set([(codex ? "codex" : nil), (claude ? "claude" : nil), (devin ? "devin" : nil)].compactMap { $0 })
         defer { hasObservedServices = true }
         guard hasObservedServices else { return }
         for service in services.subtracting(previous).sorted() {
@@ -125,7 +125,7 @@ final class MobileAnalytics {
     }
 
     private var servicesParam: String {
-        services.count > 1 ? "both" : services.first ?? "none"
+        services.count > 1 ? "multiple" : services.first ?? "none"
     }
 
     private func track(_ event: String, extra: [String: String] = [:]) {

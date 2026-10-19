@@ -107,7 +107,7 @@ struct ServiceDetailView: View {
                         case .claude:
                             ClaudeAnalyticsView(reading: reading, busy: busy, failed: error != nil || !connected, refresh: refresh)
                         case .devin:
-                            DevinAnalyticsView(usage: viewModel.devinUsage, busy: busy, refresh: refresh)
+                            DevinAnalyticsView(reading: reading, busy: busy, refresh: refresh)
                         }
                         if let error {
                             Label(error.localizedDescription, systemImage: "exclamationmark.triangle")

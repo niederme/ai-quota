@@ -188,6 +188,13 @@ State must match the current attempt, which expires after 15 minutes. The app
 requests `org:create_api_key user:profile`; it does not request inference scope,
 create API keys, send prompts, purchase credits, or redeem resets.
 
+Devin uses a pasted session token — the `windsurf_api_key` the Devin CLI keeps in
+`~/.local/share/devin/credentials.toml` on the user's Mac. There is no OAuth
+flow to reuse: the token is validated against the `GetUserStatus` seat-management
+endpoint before it is saved to the shared Keychain store. Renewal is a no-op
+because the token carries no visible expiry; a rejected token becomes a
+reconnect state that asks for a fresh paste.
+
 Account connection opens in a sheet from onboarding, Settings, or service details,
 with the sign-in browser presented above it. For both Codex and Claude, successful
 sign-in and the initial usage check dismiss the connection flow and return to the

@@ -71,10 +71,11 @@ struct OnboardingView: View {
     @Environment(\.setDemoEnabled) private var setDemoEnabled
     let codex: ProbeModel
     let claude: ClaudeProbeModel
+    let devin: DevinProbeModel
     let progress: OnboardingProgress
     @State private var accountDestination: AccountDestination?
     private enum AccountDestination: String, Identifiable {
-        case codex, claude
+        case codex, claude, devin
         var id: String { rawValue }
     }
     var allowsDeferral = true
@@ -106,7 +107,10 @@ struct OnboardingView: View {
                                 service("Claude Code", subtitle: "Anthropic / claude.ai", logo: "logo-claude", connected: claude.connected, error: claude.error ?? (claude.connectionFailure != nil ? "Needs attention" : nil)) {
                                     accountDestination = .claude
                                 }
-                                if codex.connected || claude.connected {
+                                service("Devin", subtitle: "Cognition / devin.ai", logo: "logo-devin", connected: devin.connected, error: devin.error ?? (devin.connectionFailure != nil ? "Needs attention" : nil)) {
+                                    accountDestination = .devin
+                                }
+                                if codex.connected || claude.connected || devin.connected {
                                     Divider()
                                     VStack(alignment: .leading, spacing: 10) {
                                         Text("How often should AIQuota refresh?").font(.subheadline.weight(.medium))
@@ -192,7 +196,7 @@ struct OnboardingView: View {
                                 let index = OnboardingProgress.order.firstIndex(of: progress.step) ?? 0
                                 progress.setStep(OnboardingProgress.order[index + 1])
                             }.modifier(OnboardingPrimaryButtonStyle())
-                                .disabled(!progress.canAdvance(hasConnectedService: codex.connected || claude.connected))
+                                .disabled(!progress.canAdvance(hasConnectedService: codex.connected || claude.connected || devin.connected))
                         }
                     }
                     .frame(minWidth: 0, maxWidth: .infinity, alignment: .trailing)
@@ -220,6 +224,7 @@ struct OnboardingView: View {
                     switch destination {
                     case .codex: ProbeView(model: codex)
                     case .claude: ClaudeProbeView(model: claude)
+                    case .devin: DevinProbeView(model: devin)
                     }
                 }
             }

@@ -20,8 +20,12 @@ enum DemoQuotaData {
     }
 
     static func reading(_ service: QuotaService, now: Date = .now) -> QuotaReading {
-        let short = service == .codex ? 38 : 72
-        let week = service == .codex ? 61 : 44
+        let (short, week): (Int, Int)
+        switch service {
+        case .codex: (short, week) = (38, 61)
+        case .claude: (short, week) = (72, 44)
+        case .devin: (short, week) = (55, 30)
+        }
         let payload = """
         {"rate_limit":{"primary_window":{"used_percent":\(short),"limit_window_seconds":18000,"reset_at":\(Int(now.addingTimeInterval(7200).timeIntervalSince1970))},"secondary_window":{"used_percent":\(week),"limit_window_seconds":604800,"reset_at":\(Int(now.addingTimeInterval(259200).timeIntervalSince1970))}}}
         """

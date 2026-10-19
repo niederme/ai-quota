@@ -5,7 +5,7 @@ import MobileAccessCore
 
 extension QuotaService: AppEnum {
     static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Service")
-    static let caseDisplayRepresentations: [Self: DisplayRepresentation] = [.codex: "Codex", .claude: "Claude"]
+    static let caseDisplayRepresentations: [Self: DisplayRepresentation] = [.codex: "Codex", .claude: "Claude", .devin: "Devin"]
 }
 struct QuotaConfiguration: WidgetConfigurationIntent {
     static let title: LocalizedStringResource = "AI allowance"
@@ -20,6 +20,7 @@ private func hasSavedCredentials(_ store: SharedQuotaStore) -> Bool {
     switch store.service {
     case .codex: return (try? store.load(CodexTokens.self)) != nil
     case .claude: return (try? store.load(ClaudeTokens.self)) != nil
+    case .devin: return (try? store.load(DevinTokens.self)) != nil
     }
 }
 private func loadReading(_ service: QuotaService) async -> ProviderReading {
@@ -73,9 +74,12 @@ struct BothConfiguration: WidgetConfigurationIntent {
     static let title: LocalizedStringResource = "Codex and Claude"
 }
 struct BothProvider: AppIntentTimelineProvider {
-    func placeholder(in context: Context) -> QuotaEntry { QuotaEntry(date: .now, values: QuotaService.allCases.map { ProviderReading(service: $0, reading: nil, needsApp: false) }) }
+    // Two-slot layout: this widget is codex+claude by design. Devin appears in the
+    // single-service and all-services widgets, not here.
+    static let services: [QuotaService] = [.codex, .claude]
+    func placeholder(in context: Context) -> QuotaEntry { QuotaEntry(date: .now, values: Self.services.map { ProviderReading(service: $0, reading: nil, needsApp: false) }) }
     func snapshot(for configuration: BothConfiguration, in context: Context) async -> QuotaEntry {
-        QuotaEntry(date: .now, values: QuotaService.allCases.map { snapshotReading($0) })
+        QuotaEntry(date: .now, values: Self.services.map { snapshotReading($0) })
     }
     func timeline(for configuration: BothConfiguration, in context: Context) async -> Timeline<QuotaEntry> {
         async let codex = loadReading(.codex)
@@ -119,10 +123,21 @@ struct BothLockScreenWidget: Widget {
     }
 }
 enum CompactServices: String, AppEnum {
-    case both, codex, claude
+    case both, all, codex, claude, devin
     static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Services")
-    static let caseDisplayRepresentations: [Self: DisplayRepresentation] = [.both: "Codex and Claude", .codex: "Codex", .claude: "Claude"]
-    var services: [QuotaService] { self == .both ? [.codex, .claude] : self == .codex ? [.codex] : [.claude] }
+    static let caseDisplayRepresentations: [Self: DisplayRepresentation] = [
+        .both: "Codex and Claude", .all: "All services",
+        .codex: "Codex", .claude: "Claude", .devin: "Devin"
+    ]
+    var services: [QuotaService] {
+        switch self {
+        case .both: return [.codex, .claude]
+        case .all: return QuotaService.allCases
+        case .codex: return [.codex]
+        case .claude: return [.claude]
+        case .devin: return [.devin]
+        }
+    }
 }
 struct CompactConfiguration: WidgetConfigurationIntent {
     static let title: LocalizedStringResource = "Allowance details"
@@ -130,12 +145,18 @@ struct CompactConfiguration: WidgetConfigurationIntent {
 }
 struct CompactProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> QuotaEntry {
-        QuotaEntry(date: .now, values: [.init(service: .codex, reading: nil, needsApp: false), .init(service: .claude, reading: nil, needsApp: false)])
+        QuotaEntry(date: .now, values: BothProvider.services.map { .init(service: $0, reading: nil, needsApp: false) })
     }
     func snapshot(for configuration: CompactConfiguration, in context: Context) async -> QuotaEntry {
         QuotaEntry(date: .now, values: configuration.services.services.map { snapshotReading($0) })
     }
     func timeline(for configuration: CompactConfiguration, in context: Context) async -> Timeline<QuotaEntry> {
+        if configuration.services == .all {
+            async let codex = loadReading(.codex)
+            async let claude = loadReading(.claude)
+            async let devin = loadReading(.devin)
+            return WidgetTimeline.make(await [codex, claude, devin])
+        }
         if configuration.services == .both {
             async let codex = loadReading(.codex)
             async let claude = loadReading(.claude)

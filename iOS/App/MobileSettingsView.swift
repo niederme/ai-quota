@@ -11,7 +11,7 @@ struct MobileSettingsView: View {
     private var refreshSelection: Binding<Int> { codex.isDemo ? $demoRefreshMinutes : $refreshMinutes }
     @State private var destination: SettingsDestination?
     private enum SettingsDestination: String, Identifiable {
-        case codex, claude, notifications, widgets
+        case codex, claude, devin, notifications, widgets
         var id: String { rawValue }
     }
     @State private var confirmReset = false
@@ -19,6 +19,7 @@ struct MobileSettingsView: View {
     @State private var resetError: String?
     let codex: ProbeModel
     let claude: ClaudeProbeModel
+    let devin: DevinProbeModel
     let onboarding: OnboardingProgress
     var body: some View {
         Form {
@@ -45,6 +46,9 @@ struct MobileSettingsView: View {
                 }
                 Button { destination = .claude } label: {
                     MobileAccountRow(name: "Claude Code", connected: claude.connected, error: claude.error, updated: claude.reading?.fetchedAt, busy: claude.loading, isDemo: claude.isDemo)
+                }
+                Button { destination = .devin } label: {
+                    MobileAccountRow(name: "Devin", connected: devin.connected, error: devin.error, updated: devin.reading?.fetchedAt, busy: devin.loading, isDemo: devin.isDemo)
                 }
             } header: { Text("Accounts") } footer: {
                 Text("Manage accounts, reconnect, and check when usage last updated.")
@@ -86,6 +90,7 @@ struct MobileSettingsView: View {
                     do {
                         try await codex.resetForNewUser()
                         try await claude.resetForNewUser()
+                        try await devin.resetForNewUser()
                         MobileSettingsReset.clearPreferences()
                         onboarding.reset()
                         onboarding.begin()
@@ -105,6 +110,7 @@ struct MobileSettingsView: View {
                 switch destination {
                 case .codex: ProbeView(model: codex)
                 case .claude: ClaudeProbeView(model: claude)
+                case .devin: DevinProbeView(model: devin)
                 case .notifications:
                     if codex.isDemo { DemoNotificationsView() } else { MobileNotificationsView() }
                 case .widgets: LockScreenSetupView()
@@ -112,7 +118,7 @@ struct MobileSettingsView: View {
             }
         }
         .sheet(isPresented: $showOnboarding, onDismiss: { setupProgress.dismiss() }) {
-            OnboardingView(codex: codex, claude: claude, progress: setupProgress)
+            OnboardingView(codex: codex, claude: claude, devin: devin, progress: setupProgress)
         }
     }
 }
@@ -172,6 +178,7 @@ struct MobileNotificationControls: View {
     @AppStorage("notifications.enabled", store: MobileResetNotifications.defaults) private var enabled = false
     @AppStorage("notifications.codex", store: MobileResetNotifications.defaults) private var codex = true
     @AppStorage("notifications.claude", store: MobileResetNotifications.defaults) private var claude = true
+    @AppStorage("notifications.devin", store: MobileResetNotifications.defaults) private var devin = true
     @AppStorage("notifications.error", store: MobileResetNotifications.defaults) private var schedulingError = ""
     @State private var denied = false
     @State private var requesting = false
@@ -205,6 +212,7 @@ struct MobileNotificationControls: View {
             if enabled {
                 serviceGroup("Codex", service: .codex, enabled: $codex)
                 serviceGroup("Claude Code", service: .claude, enabled: $claude)
+                serviceGroup("Devin", service: .devin, enabled: $devin)
                 if readings.values.contains(where: { !$0.windows.isEmpty }) {
                     Section {} footer: {
                         Text("Usage alerts are checked when the app or widgets update. Reset reminders use your last fresh reading and are estimates; open the app to confirm availability.")
@@ -226,6 +234,7 @@ struct MobileNotificationControls: View {
         .disabled(isDemo)
         .onChange(of: codex) { Task { await MobileResetNotifications.reconcile() } }
         .onChange(of: claude) { Task { await MobileResetNotifications.reconcile() } }
+        .onChange(of: devin) { Task { await MobileResetNotifications.reconcile() } }
         .task(id: phase) { if phase == .active { await check() } }
     }
     @ViewBuilder
@@ -256,10 +265,10 @@ struct MobileNotificationControls: View {
 enum MobileSettingsReset {
     static func clearPreferences(standard: UserDefaults = .standard,
                                  shared: UserDefaults = MobileResetNotifications.defaults) {
-        for key in [MobileAnalytics.enabledKey, MobileAnalytics.lastActiveDateKey, "refreshIntervalMinutes", "mobileProbe.codexReading", "mobileProbe.claudeReading", CodexResetNotice.dismissalKey] {
+        for key in [MobileAnalytics.enabledKey, MobileAnalytics.lastActiveDateKey, "refreshIntervalMinutes", "mobileProbe.codexReading", "mobileProbe.claudeReading", "mobileProbe.devinReading", CodexResetNotice.dismissalKey] {
             standard.removeObject(forKey: key)
         }
-        for key in ["notifications.enabled", "notifications.codex", "notifications.claude", "notifications.error"] {
+        for key in ["notifications.enabled", "notifications.codex", "notifications.claude", "notifications.devin", "notifications.error"] {
             shared.removeObject(forKey: key)
         }
         for service in QuotaService.allCases {

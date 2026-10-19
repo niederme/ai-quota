@@ -23,7 +23,7 @@ final class MobileAnalyticsTests: XCTestCase {
         isolated { defaults, transport in
             defaults.set(true, forKey: "onboarding.v1.completed")
             let analytics = MobileAnalytics(defaults: defaults, transport: transport)
-            analytics.observeServices(codex: true, claude: false, isDemo: false)
+            analytics.observeServices(codex: true, claude: false, devin: false, isDemo: false)
             analytics.recordLaunchIfNeeded()
             analytics.recordDailyActiveIfNeeded()
             analytics.completeOnboarding()
@@ -76,7 +76,7 @@ final class MobileAnalyticsTests: XCTestCase {
         isolated { defaults, transport in
             defaults.set(true, forKey: MobileAnalytics.enabledKey)
             let analytics = MobileAnalytics(defaults: defaults, transport: transport, isDemo: true)
-            analytics.observeServices(codex: true, claude: true, isDemo: true)
+            analytics.observeServices(codex: true, claude: true, devin: false, isDemo: true)
             analytics.recordLaunchIfNeeded()
             analytics.manualRefresh()
             analytics.completeOnboarding()
@@ -84,7 +84,7 @@ final class MobileAnalyticsTests: XCTestCase {
             XCTAssertTrue(analytics.isEnabled)
             XCTAssertTrue(transport.events.isEmpty)
             XCTAssertEqual(transport.collection, [false])
-            analytics.observeServices(codex: true, claude: false, isDemo: false)
+            analytics.observeServices(codex: true, claude: false, devin: false, isDemo: false)
             analytics.recordDailyActiveIfNeeded()
             XCTAssertEqual(transport.collection.last, true)
             XCTAssertEqual(transport.events.map(\.name), ["app_active"])
@@ -96,14 +96,14 @@ final class MobileAnalyticsTests: XCTestCase {
         isolated { defaults, transport in
             defaults.set(true, forKey: MobileAnalytics.enabledKey)
             let analytics = MobileAnalytics(defaults: defaults, transport: transport, appVersion: "0.1.0")
-            analytics.observeServices(codex: true, claude: false, isDemo: false)
+            analytics.observeServices(codex: true, claude: false, devin: false, isDemo: false)
             XCTAssertTrue(transport.events.isEmpty)
-            analytics.observeServices(codex: true, claude: true, isDemo: false)
+            analytics.observeServices(codex: true, claude: true, devin: false, isDemo: false)
             XCTAssertEqual(transport.events.last?.name, "service_connected")
             XCTAssertEqual(transport.events.last?.params, ["platform": "ios", "app_version": "0.1.0",
                 "services": "both", "service_count": "2", "onboarding_completed": "false",
                 "service": "claude", "services_after_connect": "both"])
-            analytics.observeServices(codex: false, claude: true, isDemo: false)
+            analytics.observeServices(codex: false, claude: true, devin: false, isDemo: false)
             XCTAssertEqual(transport.events.last?.name, "service_disconnected")
             XCTAssertEqual(transport.events.last?.params["service"], "codex")
             defaults.set(true, forKey: "onboarding.v1.completed")
