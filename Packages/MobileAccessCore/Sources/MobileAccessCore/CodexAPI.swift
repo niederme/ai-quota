@@ -65,8 +65,19 @@ public struct AuthorizationCode: Decodable, Sendable {
 public struct CodexTokens: Codable, Sendable {
     public let accessToken: String
     public let refreshToken: String?
+    public let webSessionToken: String?
     public let accountID: String?
     public let expiresAt: Date
+
+    public init(accessToken: String, refreshToken: String?, webSessionToken: String? = nil,
+                accountID: String?, expiresAt: Date) {
+        self.accessToken = accessToken
+        self.refreshToken = refreshToken
+        self.webSessionToken = webSessionToken
+        self.accountID = accountID
+        self.expiresAt = expiresAt
+    }
+
     public func needsRefresh(at date: Date) -> Bool { expiresAt <= date.addingTimeInterval(60) }
 }
 public struct QuotaWindow: Codable, Sendable, Equatable, Identifiable {
@@ -143,23 +154,90 @@ public struct QuotaReading: Codable, Sendable, Equatable {
         let parsed = try windows.map(convert)
         let short = parsed.first { $0.durationSeconds < 6 * 86400 }
         let week = parsed.first { $0.durationSeconds >= 6 * 86400 }
-        guard short != nil || week != nil else { throw AccessError.noWindows }
+        let monthlyBudget = raw.spendControl?.individualLimit?.budget
+        guard short != nil || week != nil || monthlyBudget != nil else { throw AccessError.noWindows }
         let balance = raw.credits?.balance?.value
         let metadata = AccountMetadata(plan: raw.planType, balanceUSD: balance.map { $0 / 25 }, usageSpent: nil, usageCurrency: nil)
-        return Self(fetchedAt: now, shortTerm: short, weekly: week, metadata: metadata)
+        return Self(fetchedAt: now, shortTerm: short, weekly: week, metadata: metadata,
+                    monthlyBudget: monthlyBudget)
+    }
+
+    static func metadata(_ data: Data) throws -> AccountMetadata {
+        let raw = try JSONDecoder().decode(UsageResponse.self, from: data)
+        let balance = raw.credits?.balance?.value
+        return AccountMetadata(plan: raw.planType, balanceUSD: balance.map { $0 / 25 },
+                               usageSpent: nil, usageCurrency: nil)
+    }
+}
+
+private struct MemberMonthlyUsageResponse: Decodable {
+    let effectiveMonthlyLimit: Limit?
+    let currentMonthUsage: Double?
+
+    struct Limit: Decodable {
+        let limit: Double?
+        private enum CodingKeys: String, CodingKey { case limit }
+        init(from decoder: Decoder) throws {
+            if let keyed = try? decoder.container(keyedBy: CodingKeys.self) {
+                limit = try keyed.decodeIfPresent(MetadataNumber.self, forKey: .limit)?.value
+            } else {
+                limit = try MetadataNumber(from: decoder).value
+            }
+        }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case effectiveMonthlyLimit = "effective_monthly_limit"
+        case currentMonthUsage = "current_month_usage"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        effectiveMonthlyLimit = try c.decodeIfPresent(Limit.self, forKey: .effectiveMonthlyLimit)
+        currentMonthUsage = try c.decodeIfPresent(MetadataNumber.self, forKey: .currentMonthUsage)?.value
+    }
+
+    var budget: MonthlyBudget? {
+        MonthlyBudget(used: currentMonthUsage, limit: effectiveMonthlyLimit?.limit,
+                      unit: "credit")
     }
 }
 private struct UsageResponse: Decodable {
     let rateLimit: UsageLimit?
     let planType: String?
     let credits: Credits?
+    let spendControl: SpendControl?
     struct Credits: Decodable { let balance: MetadataNumber? }
-    enum CodingKeys: String, CodingKey { case rateLimit = "rate_limit", planType = "plan_type", credits }
+    struct SpendControl: Decodable {
+        let individualLimit: IndividualLimit?
+        enum CodingKeys: String, CodingKey { case individualLimit = "individual_limit" }
+    }
+    struct IndividualLimit: Decodable {
+        let unit: String?
+        let used: MetadataNumber?
+        let limit: MetadataNumber?
+        let resetAt: MetadataNumber?
+        enum CodingKeys: String, CodingKey {
+            case unit, used, limit
+            case resetAt = "reset_at"
+        }
+        var budget: MonthlyBudget? {
+            MonthlyBudget(used: used?.value, limit: limit?.value, unit: unit,
+                          resetsAt: resetAt?.value.map(Date.init(timeIntervalSince1970:)))
+        }
+    }
+    enum CodingKeys: String, CodingKey {
+        case rateLimit = "rate_limit"
+        case planType = "plan_type"
+        case credits
+        case spendControl = "spend_control"
+    }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         rateLimit = try c.decodeIfPresent(UsageLimit.self, forKey: .rateLimit)
         planType = try? c.decode(String.self, forKey: .planType)
         credits = try? c.decode(Credits.self, forKey: .credits)
+        spendControl = try? c.decode(SpendControl.self, forKey: .spendControl)
     }
 }
 private struct UsageLimit: Decodable {
@@ -218,11 +296,17 @@ public struct CodexAPI: Sendable {
             "client_id": Self.clientID], previous: nil, now: now)
     }
     public func renew(_ tokens: CodexTokens, now: Date = .now) async throws -> CodexTokens {
-        guard let refresh = tokens.refreshToken, !refresh.isEmpty else { throw AccessError.expired }
-        return try await tokenRequest(["grant_type": "refresh_token", "refresh_token": refresh,
-            "client_id": Self.clientID], previous: tokens, now: now)
+        if let refresh = tokens.refreshToken, !refresh.isEmpty {
+            return try await tokenRequest(["grant_type": "refresh_token", "refresh_token": refresh,
+                "client_id": Self.clientID], previous: tokens, now: now)
+        }
+        if let session = tokens.webSessionToken, !session.isEmpty {
+            return try await renewWebSession(session, previous: tokens, now: now)
+        }
+        throw AccessError.expired
     }
     public func usage(_ tokens: CodexTokens, now: Date? = nil, includeSpending: Bool = false) async throws -> QuotaReading {
+        let fetchedAt = now ?? .now
         var req = URLRequest(url: URL(string: "https://chatgpt.com/backend-api/wham/usage")!)
         req.setValue("Bearer \(tokens.accessToken)", forHTTPHeaderField: "Authorization")
         req.setValue(tokens.accountID, forHTTPHeaderField: "ChatGPT-Account-Id")
@@ -230,8 +314,17 @@ public struct CodexAPI: Sendable {
         req.setValue("https://chatgpt.com/codex/settings/usage", forHTTPHeaderField: "Referer")
         let r = try await transport.send(req)
         try validate(r)
-        let reading = try QuotaReading.decode(r.data, now: now ?? .now)
-        guard includeSpending else { return reading }
+        let reading: QuotaReading
+        do {
+            reading = try QuotaReading.decode(r.data, now: fetchedAt)
+        } catch AccessError.noWindows {
+            guard let budget = try await fetchMemberMonthlyBudget(tokens) else {
+                throw AccessError.noWindows
+            }
+            reading = QuotaReading(fetchedAt: fetchedAt, shortTerm: nil, weekly: nil,
+                metadata: try QuotaReading.metadata(r.data), monthlyBudget: budget)
+        }
+        guard includeSpending, reading.monthlyBudget == nil else { return reading }
         req.url = URL(string: "https://chatgpt.com/backend-api/wham/usage/credit-usage-events")!
         req.timeoutInterval = 5
         // Optional metadata must not turn a successful quota fetch into a failure.
@@ -239,7 +332,7 @@ public struct CodexAPI: Sendable {
               let spent = try? Self.decodeSpending(response.data, now: reading.fetchedAt) else { return reading }
         return QuotaReading(fetchedAt: reading.fetchedAt, shortTerm: reading.shortTerm, weekly: reading.weekly,
             metadata: AccountMetadata(plan: reading.metadata?.plan, balanceUSD: reading.metadata?.balanceUSD,
-                usageSpent: spent, usageCurrency: "USD"))
+                usageSpent: spent, usageCurrency: "USD"), monthlyBudget: reading.monthlyBudget)
     }
     /// Optional overview analytics. This never changes the successful quota reading.
     public func usageHistory(_ tokens: CodexTokens, now: Date = .now) async throws -> CodexUsageHistory {
@@ -277,6 +370,50 @@ public struct CodexAPI: Sendable {
         guard total.isFinite else { throw AccessError.invalidResponse }
         return total / 25
     }
+    public static func webSessionTokens(accessToken: String, sessionToken: String?, expiresAt: Date?,
+                                        now: Date = .now) throws -> CodexTokens {
+        guard !accessToken.isEmpty, let sessionToken, !sessionToken.isEmpty else {
+            throw AccessError.invalidResponse
+        }
+        let accessClaims = claims(accessToken)
+        let auth = accessClaims["https://api.openai.com/auth"] as? [String: Any]
+        let accountID = auth?["chatgpt_account_id"] as? String
+        let expiry = expiresAt
+            ?? (accessClaims["exp"] as? Double).map { Date(timeIntervalSince1970: $0) }
+            ?? now.addingTimeInterval(300)
+        guard expiry > now else { throw AccessError.expired }
+        return CodexTokens(accessToken: accessToken, refreshToken: nil,
+                           webSessionToken: sessionToken,
+                           accountID: accountID, expiresAt: expiry)
+    }
+    private func fetchMemberMonthlyBudget(_ tokens: CodexTokens) async throws -> MonthlyBudget? {
+        guard let accountID = tokens.accountID, !accountID.isEmpty else { return nil }
+        var request = URLRequest(url: URL(string: "https://chatgpt.com/backend-api/accounts/\(accountID)/spend-controls/current-user/monthly-usage")!)
+        request.setValue("Bearer \(tokens.accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue(accountID, forHTTPHeaderField: "ChatGPT-Account-Id")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        let response = try await transport.send(request)
+        try validate(response)
+        return try JSONDecoder().decode(MemberMonthlyUsageResponse.self, from: response.data).budget
+    }
+    private func renewWebSession(_ sessionToken: String, previous: CodexTokens,
+                                 now: Date) async throws -> CodexTokens {
+        var request = URLRequest(url: URL(string: "https://chatgpt.com/api/auth/session")!)
+        request.setValue("https://chatgpt.com", forHTTPHeaderField: "Referer")
+        request.setValue("https://chatgpt.com", forHTTPHeaderField: "Origin")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("__Secure-next-auth.session-token=\(sessionToken)", forHTTPHeaderField: "Cookie")
+        let response = try await transport.send(request)
+        if response.status == 401 { throw AccessError.expired }
+        try validate(response)
+        let session = try JSONDecoder().decode(WebSessionResponse.self, from: response.data)
+        let refreshed = try Self.webSessionTokens(accessToken: session.accessToken,
+            sessionToken: sessionToken, expiresAt: Self.parseExpiry(session.expires), now: now)
+        return CodexTokens(accessToken: refreshed.accessToken, refreshToken: nil,
+                           webSessionToken: sessionToken,
+                           accountID: refreshed.accountID ?? previous.accountID,
+                           expiresAt: refreshed.expiresAt)
+    }
     private func tokenRequest(_ values: [String: String], previous: CodexTokens?, now: Date) async throws -> CodexTokens {
         var req = URLRequest(url: URL(string: "https://auth.openai.com/oauth/token")!)
         req.httpMethod = "POST"
@@ -299,7 +436,7 @@ public struct CodexAPI: Sendable {
             ?? now.addingTimeInterval(300)
         guard expiry > now else { throw AccessError.expired }
         return CodexTokens(accessToken: raw.access, refreshToken: raw.refresh ?? previous?.refreshToken,
-                           accountID: accountID, expiresAt: expiry)
+                           webSessionToken: nil, accountID: accountID, expiresAt: expiry)
     }
     public static func formBody(_ values: [String: String]) -> Data {
         let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-._~"))
@@ -315,6 +452,13 @@ public struct CodexAPI: Sendable {
         text += String(repeating: "=", count: (4 - text.count % 4) % 4)
         guard let data = Data(base64Encoded: text), let result = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return [:] }
         return result
+    }
+    private static func parseExpiry(_ string: String?) -> Date? {
+        guard let string else { return nil }
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = fractional.date(from: string) { return date }
+        return ISO8601DateFormatter().date(from: string)
     }
     private func postJSON(_ url: String, _ values: [String: String]) async throws -> HTTPResult {
         var req = URLRequest(url: URL(string: url)!)
@@ -335,4 +479,9 @@ private struct TokenResponse: Decodable {
     enum CodingKeys: String, CodingKey {
         case access = "access_token", refresh = "refresh_token", id = "id_token", expires = "expires_in"
     }
+}
+
+private struct WebSessionResponse: Decodable {
+    let accessToken: String
+    let expires: String?
 }

@@ -28,6 +28,7 @@ enum WidgetStore {
     static func accessOnlyData(_ tokens: CodexTokens) throws -> Data {
         var object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(tokens)) as! [String: Any]
         object.removeValue(forKey: "refreshToken")
+        object.removeValue(forKey: "webSessionToken")
         return try JSONSerialization.data(withJSONObject: object)
     }
     private static func publishUnlocked(_ tokens: CodexTokens, account: String) throws {

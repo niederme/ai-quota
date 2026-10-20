@@ -88,26 +88,38 @@ final class ProbeModel {
                 if let code = try await api.poll(newChallenge) {
                     let newTokens = try await api.exchange(code)
                     try Task.checkCancellation()
-                    try await shared.withLease { [shared] in
-                        try shared.saveCredentials(newTokens)
-                        try TokenStore.clear()
-                    }
-                    clearTokenHistory()
-                    tokenHistoryCache.clear()
-                    history = nil
-                    historyUnavailable = false
-                    defaults.removeObject(forKey: historyCacheKey)
-                    foregroundRefresh.reset()
-                    tokens = newTokens
-                    challenge = nil
-                    message = "Signed in on this device. Checking quota…"
-                    try await fetch(forceRenewal: false)
-                    signInCompletionID = UUID()
+                    try await finishSignIn(newTokens)
                     return
                 }
             }
             throw AccessError.expired
         }
+    }
+    func completeWebSignIn(_ newTokens: CodexTokens) {
+        guard !isDemo, !busy else { return }
+        run { [self] in try await finishSignIn(newTokens) }
+    }
+    func failWebSignIn() {
+        guard !isDemo, !busy else { return }
+        error = "ChatGPT sign-in did not complete. Try again."
+        message = "Couldn’t connect this account."
+    }
+    private func finishSignIn(_ newTokens: CodexTokens) async throws {
+        try await shared.withLease { [shared] in
+            try shared.saveCredentials(newTokens)
+            try TokenStore.clear()
+        }
+        clearTokenHistory()
+        tokenHistoryCache.clear()
+        history = nil
+        historyUnavailable = false
+        defaults.removeObject(forKey: historyCacheKey)
+        foregroundRefresh.reset()
+        tokens = newTokens
+        challenge = nil
+        message = "Signed in on this device. Checking quota…"
+        try await fetch(forceRenewal: false)
+        signInCompletionID = UUID()
     }
     func refresh(forceRenewal: Bool = false) {
         if isDemo {

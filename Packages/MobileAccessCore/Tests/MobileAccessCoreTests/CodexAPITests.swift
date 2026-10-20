@@ -87,6 +87,53 @@ private let now = Date(timeIntervalSince1970: 1_800_000_000)
     #expect(reading.shortTerm?.usedPercent == 0)
     #expect(reading.weekly == nil)
 }
+@Test func businessSpendControlBecomesMonthlyAllowance() throws {
+    let reading = try QuotaReading.decode(Data(#"{"plan_type":"business","rate_limit":null,"spend_control":{"individual_limit":{"unit":"credit","used":"7.82","limit":"7000","reset_at":1800500000}}}"#.utf8), now: now)
+    #expect(reading.windows.isEmpty)
+    #expect(reading.monthlyBudget?.used == 7.82)
+    #expect(reading.monthlyBudget?.limit == 7000)
+    #expect(reading.monthlyBudget?.unit == "credit")
+    #expect(reading.monthlyBudget?.resetsAt == Date(timeIntervalSince1970: 1_800_500_000))
+    #expect(reading.metadata?.displayPlan == "Business")
+}
+@Test func businessUsageFallsBackToMemberMonthlyEndpoint() async throws {
+    let api = CodexAPI(transport: MockTransport { request in
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer test")
+        #expect(request.value(forHTTPHeaderField: "ChatGPT-Account-Id") == "account")
+        if request.url?.path.hasSuffix("monthly-usage") == true {
+            #expect(request.url?.path == "/backend-api/accounts/account/spend-controls/current-user/monthly-usage")
+            return result(#"{"effective_monthly_limit":{"limit":"7000"},"current_month_usage":"7.82"}"#)
+        }
+        return result(#"{"plan_type":"business","rate_limit":null}"#)
+    })
+    let tokens = CodexTokens(accessToken: "test", refreshToken: nil,
+                             accountID: "account", expiresAt: now.addingTimeInterval(3600))
+    let reading = try await api.usage(tokens, now: now)
+    #expect(reading.windows.isEmpty)
+    #expect(reading.monthlyBudget?.used == 7.82)
+    #expect(reading.monthlyBudget?.limit == 7000)
+    #expect(reading.metadata?.displayPlan == "Business")
+}
+@Test func webSessionCredentialsRenewWithoutDeviceAuthorization() async throws {
+    let api = CodexAPI(transport: MockTransport { request in
+        #expect(request.url?.absoluteString == "https://chatgpt.com/api/auth/session")
+        #expect(request.value(forHTTPHeaderField: "Cookie") == "__Secure-next-auth.session-token=session")
+        return result(#"{"accessToken":"renewed","expires":"2027-02-15T09:00:00.000Z"}"#)
+    })
+    let tokens = CodexTokens(accessToken: "old", refreshToken: nil, webSessionToken: "session",
+                             accountID: "account", expiresAt: now)
+    let renewed = try await api.renew(tokens, now: now)
+    #expect(renewed.accessToken == "renewed")
+    #expect(renewed.webSessionToken == "session")
+    #expect(renewed.accountID == "account")
+    #expect(renewed.expiresAt > now)
+}
+@Test func webSessionSignInRequiresRenewalCredential() {
+    #expect(throws: AccessError.invalidResponse) {
+        try CodexAPI.webSessionTokens(accessToken: "access", sessionToken: nil,
+                                      expiresAt: now.addingTimeInterval(3600), now: now)
+    }
+}
 @Test func providerErrorsNeverBecomeZeroUsage() async throws {
     let api = CodexAPI(transport: MockTransport { _ in result("sensitive provider body", status: 401) })
     let tokens = CodexTokens(accessToken: "test", refreshToken: nil, accountID: nil, expiresAt: now)

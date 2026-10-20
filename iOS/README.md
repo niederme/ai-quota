@@ -165,8 +165,16 @@ This feature does not change quota readings or schedule notifications.
 
 ## Authentication and recovery
 
-Codex uses device-code sign-in. The user may need to enable device-code authorization
-on the ChatGPT website under Security and login. The settings button opens
+Codex primarily signs in through an isolated in-app ChatGPT web session. This
+supports organization SSO flows that reject Codex device authorization. After
+ChatGPT reports a valid session, AIQuota stores the access token, account
+identifier, expiry, and session renewal credential in the shared Keychain used by
+the app and widget. The temporary WebKit data store is not persisted, and the
+widget's access-only compatibility payload excludes both refresh and web-session
+renewal credentials.
+
+Device-code sign-in remains available as a fallback. The user may need to enable
+device-code authorization on the ChatGPT website under Security and login. The settings button opens
 `https://chatgpt.com/#settings/Security` externally via the system URL handler.
 The user verified that link in regular Safari; it opened only the homepage in the
 in-app browser. The corresponding control may not appear in the ChatGPT iOS app.
@@ -177,8 +185,11 @@ the browser automatically. Closing and reopening the same attempt retains its
 and passkeys. Copying the code first lets users paste it even when the keyboard
 hides Safari's toolbar. The toolbar action displays the code and the Share menu
 offers another copy action. The toolbar extension is a non-UI action with haptic
-and accessibility feedback, so copying does not open a blank confirmation modal. Safari owns website credentials and cookies;
-clearing AIQuota's connection does not clear Safari's website session.
+and accessibility feedback, so copying does not open a blank confirmation modal.
+Safari owns the fallback's website credentials and cookies; clearing AIQuota's
+connection does not clear Safari's website session. The isolated ChatGPT web-sign-in
+session is discarded when its sheet closes; its saved Keychain credential is
+removed by disconnect or Reset All Settings.
 Closing, copying, and reopening the same attempt have been exercised on the
 owner's phone. Face ID, every provider login variant, and the non-UI copy action
 still require end-to-end device coverage before release.
