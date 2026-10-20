@@ -6,12 +6,20 @@ import MobileAccessCore
 /// single, reversible Claude reconnect prompt, not a second connection card.
 struct ClaudeEnterpriseDetailView: View {
     let account: ClaudeProbeModel
+    private let organizationLookup: @MainActor () async -> ClaudeOrganizationLookup
     @State private var session = ClaudeWebDetailsSession()
     @State private var showSignIn = false
     @State private var showPopup = false
+    @State private var showAccountReconnect = false
     @State private var showReconnectPrompt = false
     @State private var reconnectExplanation = ""
     @State private var reconnectGate = ClaudeReconnectPromptGate()
+
+    init(account: ClaudeProbeModel,
+         organizationLookup: (@MainActor () async -> ClaudeOrganizationLookup)? = nil) {
+        self.account = account
+        self.organizationLookup = organizationLookup ?? { await account.organizationLookup() }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -20,7 +28,9 @@ struct ClaudeEnterpriseDetailView: View {
                 ProgressView("Loading Claude details…")
                     .frame(maxWidth: .infinity, alignment: .leading)
             case .signInRequired, .accountMismatch:
-                EmptyView()
+                reconnectRow("Claude sign-in required")
+            case .organizationReconnectRequired:
+                reconnectRow("Claude account verification needed")
             case .unavailable:
                 compactUnavailable("Claude details unavailable")
             case .ready:
@@ -40,9 +50,16 @@ struct ClaudeEnterpriseDetailView: View {
                 }
             }
         }
-        .task { session.start(expectedOrganizationID: await account.organizationID()) }
+        .task { await retry() }
+        .sheet(isPresented: $showAccountReconnect) {
+            ServiceAccountSheet { ClaudeProbeView(model: account) }
+        }
         .sheet(isPresented: $showSignIn, onDismiss: {
-            Task { await session.cancelReconnect() }
+            Task {
+                let wasReady = session.state == .ready
+                await session.cancelReconnect()
+                if !wasReady { await retry() }
+            }
         }) {
             NavigationStack {
                 VStack(spacing: 0) {
@@ -81,20 +98,24 @@ struct ClaudeEnterpriseDetailView: View {
             }
         }
         .onChange(of: session.popup) { _, popup in showPopup = popup != nil }
+        .onChange(of: account.signInCompletionID) { _, _ in Task { await retry() } }
         .onChange(of: session.state) { _, state in
             if state == .ready { showSignIn = false }
             if reconnectGate.shouldPrompt(for: state, signInVisible: showSignIn) {
-                reconnectExplanation = state == .accountMismatch
-                    ? "This Claude sign-in belongs to another organization. Reconnect with the Enterprise organization shown in your allowance? Cancel keeps your current connection."
-                    : "Your current Claude connection can show the allowance, but Claude requires a web sign-in for spend and skills. Reconnect to enable those details? Cancel keeps your current connection."
+                reconnectExplanation = switch state {
+                case .accountMismatch:
+                    "This Claude sign-in belongs to another organization. Sign in with the Enterprise organization shown in your allowance? Cancel keeps your connection."
+                case .organizationReconnectRequired:
+                    "Claude’s current account connection did not provide an organization to verify against the allowance. Reconnect the account to check Enterprise details. Your saved allowance stays in place."
+                default:
+                    "Claude requires a web sign-in for Enterprise spend and skills. Sign in to show those details? Cancel keeps your connection."
+                }
                 showReconnectPrompt = true
             }
         }
         .alert("Reconnect Claude", isPresented: $showReconnectPrompt) {
             Button("Cancel", role: .cancel) { }
-            Button("Reconnect") {
-                Task { await session.beginReconnect(); showSignIn = true }
-            }
+            Button("Reconnect", action: reconnect)
         } message: { Text(reconnectExplanation) }
     }
 
@@ -102,7 +123,7 @@ struct ClaudeEnterpriseDetailView: View {
         HStack {
             Text(title).font(.callout).foregroundStyle(OverviewStyle.secondary)
             Spacer()
-            Button("Retry") { session.refresh() }.font(.callout)
+            Button("Retry") { Task { await retry() } }.font(.callout)
         }
         .padding(16)
         .modifier(OverviewCardMaterial())
@@ -187,8 +208,27 @@ struct ClaudeEnterpriseDetailView: View {
         (Double(minor) / Double(uses) / 100).formatted(.currency(code: currency))
     }
 
-    private func retry() {
-        Task { session.start(expectedOrganizationID: await account.organizationID()) }
+    private func reconnectRow(_ title: String) -> some View {
+        HStack {
+            Text(title).font(.callout).foregroundStyle(OverviewStyle.secondary)
+            Spacer()
+            Button("Reconnect", action: reconnect).font(.callout)
+        }
+        .padding(16)
+        .modifier(OverviewCardMaterial())
+    }
+
+    private func reconnect() {
+        if session.state == .organizationReconnectRequired {
+            account.connect()
+            showAccountReconnect = true
+        } else {
+            Task { await session.beginReconnect(); showSignIn = true }
+        }
+    }
+
+    private func retry() async {
+        session.start(organization: await organizationLookup())
     }
 }
 
@@ -199,7 +239,8 @@ struct ClaudeReconnectPromptGate {
 
     mutating func shouldPrompt(for state: ClaudeWebDetailsSession.State, signInVisible: Bool) -> Bool {
         guard !hasPrompted, !signInVisible,
-              state == .signInRequired || state == .accountMismatch else { return false }
+              state == .signInRequired || state == .accountMismatch
+                || state == .organizationReconnectRequired else { return false }
         hasPrompted = true
         return true
     }

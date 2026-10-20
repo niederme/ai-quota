@@ -16,6 +16,7 @@
 		0A551ADD42969BAB772A2B1B /* BudgetStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8078C57920AA96E74607EA71 /* BudgetStripView.swift */; };
 		0C3D35A9CE3B5A6F4B5C7816 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDE2263EBEB7008EF6988081 /* WebKit.framework */; };
 		0CCE6E70E54EBBEBC9BBA987 /* CircularGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07B0B4CEC9ACF96AC981FA29 /* CircularGaugeView.swift */; };
+		0DD53E3B58EF3A00B4D223E8 /* ClaudeDetailUITestHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C555682C85E897EB107B7B /* ClaudeDetailUITestHarness.swift */; };
 		0FFAE5C2EF85BB9398E469A8 /* AIQuotaWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 94EF7D48855FADE21AE0B407 /* AIQuotaWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		10013BDDC507730F8B40BB1C /* TokenHistoryReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C6CBA2120FA33C3C7AA09E5 /* TokenHistoryReviewTests.swift */; };
 		10459291FD1996FADB5A7379 /* ClaudeAnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7478EF1D21286EACF2376DC4 /* ClaudeAnalyticsView.swift */; };
@@ -66,6 +67,7 @@
 		5D841348FB1352DB4D417246 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8C0ACC770721BA686B7B6401 /* Assets.xcassets */; };
 		5DE66EB0726126B4F486029E /* WidgetGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 384CCB3989C01F13B3E22D43 /* WidgetGaugeView.swift */; };
 		5FEDD079CDE257144D590AB2 /* CompactQuotaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2681A208A2007E5167B5903 /* CompactQuotaView.swift */; };
+		60896B59C4BBA33E03008EA3 /* ClaudeDetailReconnectFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94C3AF5CB2BCD3A143D8EB24 /* ClaudeDetailReconnectFlowTests.swift */; };
 		6455F47887C2BB81F17E59D1 /* WelcomeStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 872D4B7AB7221C3A55960CE1 /* WelcomeStepView.swift */; };
 		64E9FF14FC1DB51A9FDD0DCB /* AnalyticsAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F97C407C158BC0A25FD792 /* AnalyticsAppDelegate.swift */; };
 		65008600946777E8FA2F6BFE /* ProbeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59F4F1B59FFE30E899E31F8D /* ProbeModel.swift */; };
@@ -285,6 +287,7 @@
 		4D136AA90C5E64F0E69E5B51 /* CountdownView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountdownView.swift; sourceTree = "<group>"; };
 		521E05B6030711C7B85B8092 /* UsageGaugeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageGaugeView.swift; sourceTree = "<group>"; };
 		544AA7837A218AFDE7979ECA /* OverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewView.swift; sourceTree = "<group>"; };
+		54C555682C85E897EB107B7B /* ClaudeDetailUITestHarness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeDetailUITestHarness.swift; sourceTree = "<group>"; };
 		561A3E63AB5C500E7FA650DE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		59F4F1B59FFE30E899E31F8D /* ProbeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProbeModel.swift; sourceTree = "<group>"; };
 		5AD1CC15EEE16B262B2BBC8D /* DemoAutoOpen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoAutoOpen.swift; sourceTree = "<group>"; };
@@ -315,6 +318,7 @@
 		90F339EED4E57F5EF82149E5 /* ClaudeReconnectPromptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeReconnectPromptTests.swift; sourceTree = "<group>"; };
 		9209085EEB25A6FC729B4DD8 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		926FEB7F8D7432AC85C40F34 /* Mobile.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Mobile.entitlements; sourceTree = "<group>"; };
+		94C3AF5CB2BCD3A143D8EB24 /* ClaudeDetailReconnectFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeDetailReconnectFlowTests.swift; sourceTree = "<group>"; };
 		94EF7D48855FADE21AE0B407 /* AIQuotaWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AIQuotaWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		952D934237812E7F9D3348A7 /* WidgetReadingStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetReadingStatus.swift; sourceTree = "<group>"; };
 		A2B1CD537E4DD95CEBAE23D6 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
@@ -450,6 +454,7 @@
 		25B22C4360B013B0ED610043 /* UITests */ = {
 			isa = PBXGroup;
 			children = (
+				94C3AF5CB2BCD3A143D8EB24 /* ClaudeDetailReconnectFlowTests.swift */,
 				08623C761259E3CC718C6D4D /* DemoFlowTests.swift */,
 				60A67A9CBE39CE0F0BE05CA5 /* TokenHistoryFlowTests.swift */,
 			);
@@ -493,6 +498,7 @@
 				5E6A074E47680C85B7B7EF28 /* AnalyticsStyle.swift */,
 				033BEE818868F742F0C74E02 /* Assets.xcassets */,
 				7478EF1D21286EACF2376DC4 /* ClaudeAnalyticsView.swift */,
+				54C555682C85E897EB107B7B /* ClaudeDetailUITestHarness.swift */,
 				AAFB5A4E950385BC5685268C /* ClaudeEnterpriseDetailView.swift */,
 				25D0C914A09E992523B60A79 /* ClaudeProbeModel.swift */,
 				64469AA7AC51D1904D08039F /* ClaudeProbeView.swift */,
@@ -1092,6 +1098,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				60896B59C4BBA33E03008EA3 /* ClaudeDetailReconnectFlowTests.swift in Sources */,
 				4F791D61D319FE6D866DA25E /* DemoFlowTests.swift in Sources */,
 				DF73B5176E4A5C7EEC2CC087 /* TokenHistoryFlowTests.swift in Sources */,
 			);
@@ -1227,6 +1234,7 @@
 				9CADD704324B208A365C1BFA /* AnalyticsClient.swift in Sources */,
 				907C75DA132F840830071C08 /* AnalyticsStyle.swift in Sources */,
 				3568D6582714BA2727EE1ED5 /* ClaudeAnalyticsView.swift in Sources */,
+				0DD53E3B58EF3A00B4D223E8 /* ClaudeDetailUITestHarness.swift in Sources */,
 				007CD569C296BA2AEA653F19 /* ClaudeEnterpriseDetailView.swift in Sources */,
 				02D378445912866CB0DC998B /* ClaudeProbeModel.swift in Sources */,
 				54D97639738DEFE148A79621 /* ClaudeProbeView.swift in Sources */,

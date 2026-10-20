@@ -21,13 +21,35 @@ final class ClaudeReconnectPromptTests: XCTestCase {
         XCTAssertFalse(gate.hasPrompted)
         XCTAssertTrue(gate.shouldPrompt(for: .accountMismatch, signInVisible: false))
     }
+
+    func testMissingOrganizationOffersAccountReconnectOnce() {
+        var gate = ClaudeReconnectPromptGate()
+        XCTAssertTrue(gate.shouldPrompt(for: .organizationReconnectRequired, signInVisible: false))
+        XCTAssertFalse(gate.shouldPrompt(for: .organizationReconnectRequired, signInVisible: false))
+    }
+
+    @MainActor
+    func testWebOrganizationProbeDistinguishesAuthFromChallenge() {
+        let classify = ClaudeWebDetailsSession.responseError
+        XCTAssertEqual(classify(401, "application/json", false, false), .http(401))
+        XCTAssertEqual(classify(403, "application/json", false, false), .http(403))
+        XCTAssertEqual(classify(403, "text/html", true, true), .challenge)
+        XCTAssertEqual(classify(200, "text/html", false, true), .notSignedIn)
+        XCTAssertEqual(classify(500, "application/json", false, false), .http(500))
+        XCTAssertNil(classify(200, "application/json", false, false))
+        XCTAssertEqual(ClaudeWebDetailsSession.organizationProbeFailureState(ClaudeWebDetailError.http(401)), .signInRequired)
+        XCTAssertEqual(ClaudeWebDetailsSession.organizationProbeFailureState(ClaudeWebDetailError.http(403)), .signInRequired)
+        XCTAssertEqual(ClaudeWebDetailsSession.organizationProbeFailureState(ClaudeWebDetailError.notSignedIn), .signInRequired)
+        XCTAssertEqual(ClaudeWebDetailsSession.organizationProbeFailureState(ClaudeWebDetailError.challenge), .unavailable)
+        XCTAssertEqual(ClaudeWebDetailsSession.organizationProbeFailureState(ClaudeWebDetailError.http(500)), .unavailable)
+    }
 }
 
 final class ClaudeWebSessionRollbackTests: XCTestCase {
     @MainActor
     func testClosingReconnectRestoresPreviousClaudeCookie() async throws {
         let store = WKWebsiteDataStore.default().httpCookieStore
-        let name = "aiquota-reconnect-test-\(UUID().uuidString)"
+        let name = "next-auth.session-token.aiquota-test-\(UUID().uuidString)"
         let cookie = try XCTUnwrap(HTTPCookie(properties: [
             .domain: "claude.ai", .path: "/", .name: name,
             .value: "previous-session", .secure: "TRUE"
@@ -40,7 +62,7 @@ final class ClaudeWebSessionRollbackTests: XCTestCase {
         let during = await cookies(in: store)
         XCTAssertFalse(during.contains(where: { $0.name == name }))
 
-        let attemptedName = "aiquota-abandoned-login-\(UUID().uuidString)"
+        let attemptedName = "next-auth.session-token.aiquota-abandoned-\(UUID().uuidString)"
         let attemptedCookie = try XCTUnwrap(HTTPCookie(properties: [
             .domain: "claude.ai", .path: "/", .name: attemptedName,
             .value: "abandoned-session", .secure: "TRUE"
@@ -53,6 +75,26 @@ final class ClaudeWebSessionRollbackTests: XCTestCase {
         let after = await cookies(in: store)
         XCTAssertTrue(after.contains(where: { $0.name == name && $0.value == "previous-session" }))
         XCTAssertFalse(after.contains(where: { $0.name == attemptedName }))
+        await withCheckedContinuation { continuation in
+            store.delete(cookie) { continuation.resume() }
+        }
+    }
+
+    @MainActor
+    func testReconnectPreservesCloudflareMitigationCookie() async throws {
+        let store = WKWebsiteDataStore.default().httpCookieStore
+        let cookie = try XCTUnwrap(HTTPCookie(properties: [
+            .domain: "claude.ai", .path: "/", .name: "cf_clearance",
+            .value: "test-\(UUID().uuidString)", .secure: "TRUE"
+        ]))
+        await withCheckedContinuation { continuation in
+            store.setCookie(cookie) { continuation.resume() }
+        }
+        let session = ClaudeWebDetailsSession()
+        await session.beginReconnect(loadPage: false)
+        let during = await cookies(in: store)
+        XCTAssertTrue(during.contains(where: { $0.name == "cf_clearance" && $0.value == cookie.value }))
+        await session.cancelReconnect()
         await withCheckedContinuation { continuation in
             store.delete(cookie) { continuation.resume() }
         }

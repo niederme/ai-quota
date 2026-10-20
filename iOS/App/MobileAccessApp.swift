@@ -18,6 +18,18 @@ struct MobileAccessApp: App {
     }
     var body: some Scene {
         WindowGroup {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("-claudeDetailUITest") {
+                ClaudeDetailUITestHarness()
+            } else {
+                OverviewView(isDemo: demoEnabled).id(demoEnabled)
+                    .environment(\.setDemoEnabled) { enabled in
+                        MobileAnalytics.shared.setDemoEnabled(enabled)
+                        demoEnabled = enabled
+                        DemoQuotaData.setEnabled(enabled)
+                    }
+            }
+            #else
             OverviewView(isDemo: demoEnabled).id(demoEnabled)
                 .environment(\.setDemoEnabled) { enabled in
                     // Update presentation directly; app-group defaults are for persistence and widgets.
@@ -25,6 +37,7 @@ struct MobileAccessApp: App {
                     demoEnabled = enabled
                     DemoQuotaData.setEnabled(enabled)
                 }
+            #endif
         }
     }
 }

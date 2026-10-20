@@ -4,6 +4,12 @@ import WidgetKit
 import UIKit
 import MobileAccessCore
 
+enum ClaudeOrganizationLookup: Equatable {
+    case verified(String)
+    case reconnectRequired
+    case temporarilyUnavailable
+}
+
 @MainActor @Observable
 final class ClaudeProbeModel {
     private let shared: SharedQuotaStore
@@ -91,19 +97,21 @@ final class ClaudeProbeModel {
     }
     /// The web detail session must belong to the same organization as the
     /// OAuth allowance shown above it. Never infer this from the plan name.
-    func organizationID() async -> String? {
-        guard let tokens else { return nil }
+    func organizationLookup() async -> ClaudeOrganizationLookup {
+        guard let tokens else { return .reconnectRequired }
         do {
-            return try await api.organizationID(tokens)
+            guard let organizationID = try await api.organizationID(tokens) else {
+                return .reconnectRequired
+            }
+            return .verified(organizationID)
         } catch let accessError as ClaudeAccessError where accessError.requiresReconnect {
             connectionFailure = .reconnect
             error = "Claude sign-in expired. Reconnect to continue. Your last reading is saved."
-            return nil
+            return .reconnectRequired
         } catch {
             // Profile lookup can fail independently of the saved allowance.
             // A policy response or network problem is not proof of expired auth.
-            self.error = "Couldn’t verify the Claude organization. Try again."
-            return nil
+            return .temporarilyUnavailable
         }
     }
     func refreshOnOpen() {
