@@ -461,13 +461,17 @@ struct PopoverView: View {
     private var codexColumn: some View {
         VStack(spacing: 0) {
             codexGaugeSlot
-            if viewModel.isCodexAuthenticated {
+            if viewModel.isCodexAuthenticated,
+               viewModel.codexTokenHistory?.days().contains(where: { !$0.isFuture && $0.tokens != nil }) == true {
                 CodexTokenHistoryView()
                     .padding(.horizontal, 14)
                     .padding(.top, 8)
             }
         }
         .frame(maxWidth: .infinity)
+        .task(id: viewModel.isCodexAuthenticated) {
+            if viewModel.isCodexAuthenticated { viewModel.refreshTokenHistory() }
+        }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Codex service")
         .accessibilityIdentifier("codexServiceColumn")

@@ -57,7 +57,7 @@ struct ClaudeAnalyticsView: View {
                     if !busy { Button("Try again", action: refresh) }
                 }
             }.modifier(AnalyticsCard())
-            if let spent = reading?.metadata?.usageSpent, spent > 0 {
+            if reading?.monthlyBudget == nil, let spent = reading?.metadata?.usageSpent, spent > 0 {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Extra usage").font(.headline)
                     Text(reading?.metadata?.usageCurrency.flatMap { $0.isEmpty ? nil : $0 }
@@ -68,7 +68,7 @@ struct ClaudeAnalyticsView: View {
                     Text("Outside your plan allowance. Your subscription price is separate.")
                         .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
                 }.modifier(AnalyticsCard())
-            } else if reading?.metadata?.usageSpent == nil {
+            } else if reading?.monthlyBudget == nil, reading?.metadata?.usageSpent == nil {
                 Text("Spending not reported").font(.callout).foregroundStyle(AnalyticsStyle.secondary)
             }
         }.foregroundStyle(AnalyticsStyle.primary).tint(AnalyticsStyle.accent)

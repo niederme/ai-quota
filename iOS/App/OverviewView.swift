@@ -413,23 +413,24 @@ struct ServiceDetailContent<Account: View>: View {
                     .padding(16)
                     .modifier(OverviewCardMaterial())
                 }
-                if reading?.monthlyBudget == nil || reading?.windows.isEmpty == false {
-                    Group {
-                        if name == "Codex" {
-                            CodexAnalyticsView(reading: reading, history: history,
-                                               historyUnavailable: historyUnavailable, busy: busy, refresh: refresh)
-                        } else {
-                            ClaudeAnalyticsView(reading: reading, busy: busy, failed: failure != nil || error != nil, refresh: refresh)
-                        }
-                    }.modifier(UsageLoadingState(loading: busy && reading == nil))
+                if name == "Codex", let history, history.days.contains(where: { $0.credits != nil }) {
+                    CodexAnalyticsView(reading: reading, history: history,
+                                       historyUnavailable: historyUnavailable, busy: busy, refresh: refresh)
+                } else if name == "Claude", reading?.claudeBreakdown != nil {
+                    ClaudeAnalyticsView(reading: reading, busy: busy,
+                                        failed: failure != nil || error != nil, refresh: refresh)
                 }
-                Divider()
+                if error != nil || failure == .reconnect || failure == .renewal || name == "Codex" {
+                    Divider()
+                }
                 if let error {
                     Label(error, systemImage: "exclamationmark.triangle")
                         .font(.callout).foregroundStyle(OverviewStyle.warning)
                 }
-                Button { showAccount = true } label: {
-                    Label(connected ? "Account and connection" : "Connect \(name)", systemImage: "person.crop.circle")
+                if failure == .reconnect || failure == .renewal {
+                    Button { showAccount = true } label: {
+                        Label("Reconnect \(name)", systemImage: "person.crop.circle")
+                    }
                 }
                 if name == "Codex" {
                     Button { showResetWebsite = true } label: {
@@ -725,7 +726,10 @@ struct ProviderDialCardContent: View {
     private var cardContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             summary.modifier(UsageLoadingState(loading: busy && reading == nil))
-            if name == "Codex", connected {
+            if name == "Codex", connected,
+               MobileTokenHistoryView.presentation(history: tokenHistory,
+                                                   unavailable: tokenHistoryUnavailable,
+                                                   loading: tokenHistoryLoading ?? busy) == .populated {
                 MobileTokenHistoryView(history: tokenHistory, unavailable: tokenHistoryUnavailable || (tokenHistory == nil && error != nil), loading: tokenHistoryLoading ?? busy, availableWidth: availableWidth - 32)
             }
         }

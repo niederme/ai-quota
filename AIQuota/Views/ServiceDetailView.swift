@@ -100,20 +100,22 @@ struct ServiceDetailView: View {
                             }
                             .modifier(AnalyticsCard())
                         }
-                        if isCodex {
+                        if isCodex, let history, history.days.contains(where: { $0.credits != nil }) {
                             CodexAnalyticsView(reading: reading, history: history,
                                 historyUnavailable: viewModel.usageHistoryFailed,
                                 busy: busy, refresh: refresh)
-                        } else if reading?.monthlyBudget == nil {
+                        } else if !isCodex, reading?.claudeBreakdown != nil {
                             ClaudeAnalyticsView(reading: reading, busy: busy, failed: error != nil || !connected, refresh: refresh)
                         }
                         if let error {
                             Label(error.localizedDescription, systemImage: "exclamationmark.triangle")
                                 .font(.callout).foregroundStyle(Color.warningAmber)
                         }
-                        Divider()
-                        Button(action: openAccount) {
-                            Label(connected ? "Account and connection" : "Connect \(name)", systemImage: "person.crop.circle")
+                        if !connected || isCodex { Divider() }
+                        if !connected {
+                            Button(action: openAccount) {
+                                Label("Reconnect \(name)", systemImage: "person.crop.circle")
+                            }
                         }
                         if isCodex {
                             Button { NSWorkspace.shared.open(CodexResetNotice.website) } label: {
