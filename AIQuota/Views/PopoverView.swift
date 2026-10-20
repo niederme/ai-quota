@@ -1,4 +1,5 @@
 import SwiftUI
+import QuartzCore
 import AIQuotaKit
 import MobileAccessCore
 
@@ -12,8 +13,10 @@ struct PopoverView: View {
     @State private var menuBarWindow: NSWindow?
     @State private var selectedService: ServiceType?
     @State private var hoveredService: ServiceType?
-    @FocusState private var focusedService: ServiceType?
+    @State private var focusedService: ServiceType?
     @State private var overviewHeight: CGFloat?
+    @State private var navigationPhase: PopoverNavigationPhase = .overview
+    @State private var presentationID = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var resetNotice = CodexResetNotice()
@@ -31,37 +34,39 @@ struct PopoverView: View {
     private var overviewWidth: CGFloat {
         viewModel.isCodexEnrolled ? 360 : (viewModel.enrolledServices.count == 1 ? 240 : 340)
     }
-    private var detailHeight: CGFloat {
-        overviewHeight ?? 400
+    private var overviewSize: CGSize {
+        CGSize(width: overviewWidth, height: overviewHeight ?? 400)
     }
-    private var popoverHeight: CGFloat? {
-        viewModel.enrolledServices.isEmpty ? nil : overviewHeight
+    private var detailSize: CGSize {
+        let screen = menuBarWindow?.screen ?? NSScreen.main
+        let visible = screen?.visibleFrame ?? CGRect(x: 0, y: 0, width: 800, height: 800)
+        let top = menuBarWindow?.frame.maxY ?? visible.maxY
+        let availableHeight = max(300, top - visible.minY - 8)
+        return CGSize(width: min(460, visible.width - 16),
+                      height: min(availableHeight, max(visible.height * 0.85, overviewSize.height)))
+    }
+    private var popoverSize: CGSize {
+        navigationPhase.isExpanded ? detailSize : overviewSize
+    }
+    private var popoverLayoutSize: CGSize {
+        // Publishing the compact ideal early makes MenuBarExtra resize the
+        // window before AppKit can animate it. Commit it after the native close.
+        navigationPhase == .shrinking ? detailSize : popoverSize
     }
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            if let selectedService {
-                ServiceDetailView(service: selectedService, height: detailHeight, close: {
-                    self.selectedService = nil
-                    hoveredService = nil
-                    focusedService = nil
-                },
-                                  openAccount: openSettingsKeepingPopover)
-                    .frame(width: overviewWidth)
-                    .id(selectedService)
-                    .transition(.opacity.combined(with: .offset(x: 16)))
-            } else if !viewModel.enrolledServices.isEmpty {
-                authenticatedContent
-                    .frame(width: overviewWidth)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
-                        if overviewHeight != height { overviewHeight = height }
-                    }
-                    .transition(.opacity.combined(with: .offset(x: -12)))
-            } else {
-                signInContent
-            }
-        }
+        MenuBarPopoverHost(
+            content: AnyView(pageContent
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .environment(viewModel).environment(updater)),
+            size: popoverSize,
+            layoutSize: popoverLayoutSize,
+            animateResize: !reduceMotion && navigationPhase.resizesWindow,
+            presentationID: presentationID,
+            onCapture: { menuBarWindow = $0 },
+            onResizeFinished: finishNavigationResize
+        )
+        .onAppear { presentationID += 1 }
         .task(id: viewModel.isCodexAuthenticated) {
             #if !DEMO_MODE
             guard !viewModel.isReadOnlyPreview, viewModel.isCodexAuthenticated else { return }
@@ -72,24 +77,90 @@ struct PopoverView: View {
             }
             #endif
         }
-        .frame(width: overviewWidth, height: popoverHeight, alignment: .topLeading)
-        .clipped()
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.2), value: selectedService)
-        .background { popoverSurface }
-        .background(WindowCapture { menuBarWindow = $0 })
-        .onDisappear {
-            selectedService = nil
-            hoveredService = nil
-            focusedService = nil
-        }
+        .onDisappear { resetNavigation() }
         .onChange(of: viewModel.enrolledServices) { _, services in
-            if let selectedService, !services.contains(selectedService) { self.selectedService = nil }
+            if let selectedService, !services.contains(selectedService) { resetNavigation() }
         }
+    }
+
+    private var pageContent: some View {
+        ZStack(alignment: .topLeading) {
+            // Once the outgoing page is transparent, leave only the material
+            // during the shrink. Hidden charts and gauges still incur layout.
+            if navigationPhase != .shrinking {
+                Group {
+                    if !viewModel.enrolledServices.isEmpty {
+                        authenticatedContent
+                    } else {
+                        signInContent
+                    }
+                }
+                .frame(width: overviewWidth)
+                .fixedSize(horizontal: false, vertical: true)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                    if height > 0, navigationPhase != .shrinking, overviewHeight != height { overviewHeight = height }
+                }
+                .modifier(PopoverPageVisibility(isVisible: navigationPhase == .overview,
+                                                reduceMotion: reduceMotion, distance: 0, onHidden: {}))
+                .allowsHitTesting(navigationPhase == .overview)
+                .accessibilityHidden(navigationPhase != .overview)
+
+                if let selectedService {
+                    ServiceDetailView(service: selectedService, height: detailSize.height,
+                                      close: closeService, openAccount: openSettingsKeepingPopover)
+                        .frame(width: detailSize.width)
+                        .id(selectedService)
+                        .modifier(PopoverPageVisibility(isVisible: navigationPhase == .detail,
+                                                        reduceMotion: reduceMotion, distance: 6,
+                                                        onHidden: finishDetailFade))
+                        .allowsHitTesting(navigationPhase == .detail)
+                        .accessibilityHidden(navigationPhase != .detail)
+                }
+            }
+        }
+        .frame(width: popoverLayoutSize.width, height: popoverLayoutSize.height, alignment: .topLeading)
+        .clipped()
+        .background { popoverSurface }
         .background {
             Button("") { viewModel.manualRefresh() }
                 .keyboardShortcut("r", modifiers: .command)
                 .hidden()
         }
+    }
+
+    private func finishNavigationResize(_ size: CGSize) {
+        guard size == popoverSize else { return }
+        switch navigationPhase {
+        case .expanding:
+            navigationPhase = .detail
+        case .shrinking:
+            selectedService = nil
+            navigationPhase = .overview
+        default:
+            break
+        }
+    }
+
+    private func closeService() {
+        guard navigationPhase == .detail else { return }
+        if reduceMotion {
+            resetNavigation()
+            return
+        }
+        navigationPhase = .fadingDetail
+    }
+
+    private func finishDetailFade() {
+        guard navigationPhase == .fadingDetail else { return }
+        navigationPhase = .shrinking
+    }
+
+    private func resetNavigation() {
+        selectedService = nil
+        navigationPhase = .overview
+        hoveredService = nil
+        focusedService = nil
+        presentationID += 1
     }
 
     @ViewBuilder
@@ -128,10 +199,11 @@ struct PopoverView: View {
     }
 
     private func openService(_ service: ServiceType) {
-        guard canOpen(service) else { return }
+        guard canOpen(service), navigationPhase == .overview else { return }
         hoveredService = nil
         focusedService = nil
         selectedService = service
+        navigationPhase = reduceMotion ? .detail : .expanding
     }
 
     private func service(at x: CGFloat) -> ServiceType? {
@@ -177,10 +249,14 @@ struct PopoverView: View {
 
     private func serviceTarget<Content: View>(_ service: ServiceType, @ViewBuilder content: () -> Content) -> some View {
         let name = service == .codex ? "Codex" : "Claude"
-        return content()
-            .focusable(canOpen(service))
-            .focused($focusedService, equals: service)
-            .focusEffectDisabled()
+        return ServiceFocusRegion(enabled: canOpen(service) && navigationPhase == .overview,
+                                  content: content()) { focused in
+            if focused {
+                focusedService = service
+            } else if focusedService == service {
+                focusedService = nil
+            }
+        }
             .onKeyPress(keys: [.return, .space]) { _ in
                 guard canOpen(service) else { return .ignored }
                 openService(service)
@@ -1225,20 +1301,217 @@ private struct CodexCreditsRow: View {
     }
 }
 
-// MARK: - Window capture helper
+// MARK: - Staged menu bar navigation
 
-/// Reads the hosting NSWindow reference as soon as the view is in the hierarchy.
-private struct WindowCapture: NSViewRepresentable {
+/// Focus belongs to the hosting graph containing the actual service controls.
+/// Report it back to the full-column hover surface without a system focus ring.
+private struct ServiceFocusRegion<Content: View>: View {
+    let enabled: Bool
+    let content: Content
+    let onFocusChanged: (Bool) -> Void
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        content
+            .focusable(enabled)
+            .focused($focused)
+            .focusEffectDisabled()
+            .onChange(of: focused) { _, focused in onFocusChanged(focused) }
+    }
+}
+
+/// Fade inside the nested hosting graph so its completion represents the
+/// actual rendered fade, including an interrupted fade-in on a quick Back.
+private struct PopoverPageVisibility: ViewModifier {
+    let isVisible: Bool
+    let reduceMotion: Bool
+    let distance: CGFloat
+    let onHidden: () -> Void
+    @State private var opacity = 0.0
+    @State private var animationID = 0
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(opacity)
+            .offset(y: reduceMotion ? 0 : (1 - opacity) * distance)
+            .onChange(of: isVisible, initial: true) { _, visible in
+                animationID += 1
+                let currentAnimation = animationID
+                withAnimation(reduceMotion ? nil : .easeOut(duration: 0.14), completionCriteria: .removed) {
+                    opacity = visible ? 1 : 0
+                } completion: {
+                    guard !visible, animationID == currentAnimation else { return }
+                    onHidden()
+                }
+            }
+            .onDisappear { animationID += 1 }
+    }
+}
+
+private enum PopoverNavigationPhase {
+    case overview, expanding, detail, fadingDetail, shrinking
+
+    var isExpanded: Bool {
+        self == .expanding || self == .detail || self == .fadingDetail
+    }
+    var resizesWindow: Bool { self == .expanding || self == .shrinking }
+}
+
+/// Keep page layout independent of MenuBarExtra's cached compact proposal.
+/// Resize the native window from its menu-bar anchor, then reveal the page
+/// after both the frame animation and the hosted layout have completed.
+private struct MenuBarPopoverHost: NSViewRepresentable {
+    let content: AnyView
+    let size: CGSize
+    let layoutSize: CGSize
+    let animateResize: Bool
+    let presentationID: Int
     let onCapture: (NSWindow?) -> Void
+    let onResizeFinished: (CGSize) -> Void
 
-    func makeNSView(context: Context) -> NSView {
-        let view = NSView()
-        DispatchQueue.main.async { onCapture(view.window) }
-        return view
+    func makeNSView(context: Context) -> MenuBarPopoverContainer {
+        MenuBarPopoverContainer(content: content, size: size, layoutSize: layoutSize)
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {
-        DispatchQueue.main.async { onCapture(nsView.window) }
+    func updateNSView(_ view: MenuBarPopoverContainer, context: Context) {
+        view.layoutSize = layoutSize
+        view.host.rootView = content
+        view.onCapture = onCapture
+        view.onResizeFinished = onResizeFinished
+        view.resetAnchor(for: presentationID)
+        view.resize(to: size, animate: animateResize)
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, nsView view: MenuBarPopoverContainer,
+                      context: Context) -> CGSize? {
+        // Keep the ideal expanded until the native close finishes. Finite
+        // proposals can follow its intermediate viewport while stale undersized
+        // proposals remain bounded by the native destination.
+        func dimension(_ proposed: CGFloat?, target: CGFloat, ideal: CGFloat, minimum: CGFloat) -> CGFloat {
+            if proposed == 0 { return minimum }
+            guard let proposed else { return ideal }
+            return max(target, min(proposed, 10_000))
+        }
+        let result = CGSize(width: dimension(proposal.width, target: size.width, ideal: layoutSize.width, minimum: view.compactSize.width),
+                            height: dimension(proposal.height, target: size.height, ideal: layoutSize.height, minimum: view.compactSize.height))
+        return result
+    }
+}
+
+@MainActor
+private protocol ManualPopoverSizing: AnyObject {
+    func stopAutomaticPopoverSizing()
+}
+
+extension NSHostingView: ManualPopoverSizing {
+    fileprivate func stopAutomaticPopoverSizing() { sizingOptions = [] }
+}
+
+private final class MenuBarPopoverContainer: NSView {
+    let host: NSHostingView<AnyView>
+    let initialSize: CGSize
+    private(set) var compactSize: CGSize
+    var onCapture: (NSWindow?) -> Void = { _ in }
+    var onResizeFinished: (CGSize) -> Void = { _ in }
+    var layoutSize: CGSize {
+        didSet {
+            if layoutSize != oldValue { invalidateIntrinsicContentSize() }
+        }
+    }
+    private var desiredSize: CGSize
+    private var appliedSize: CGSize?
+    private var topRight: CGPoint?
+    private var presentationID: Int?
+    private var resizeGeneration = 0
+
+    init(content: AnyView, size: CGSize, layoutSize: CGSize) {
+        host = NSHostingView(rootView: content)
+        initialSize = size
+        compactSize = size
+        self.layoutSize = layoutSize
+        desiredSize = size
+        super.init(frame: CGRect(origin: .zero, size: size))
+        host.sizingOptions = []
+        host.autoresizingMask = [.width, .height]
+        host.frame = bounds
+        addSubview(host)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    override var intrinsicContentSize: NSSize { layoutSize }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        appliedSize = nil
+        topRight = nil
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.onCapture(self.window)
+            self.resize(to: self.desiredSize, animate: false)
+        }
+    }
+
+    func resetAnchor(for presentationID: Int) {
+        guard self.presentationID != presentationID else { return }
+        self.presentationID = presentationID
+        topRight = nil
+        appliedSize = nil
+        resizeGeneration += 1
+    }
+
+    func resize(to size: CGSize, animate: Bool) {
+        if desiredSize != size {
+            desiredSize = size
+        }
+        if size.width <= initialSize.width { compactSize = size }
+        guard appliedSize != size else { return }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let window = self.window, self.desiredSize == size,
+                  self.appliedSize != size else { return }
+            let initial = self.appliedSize == nil
+            self.appliedSize = size
+            self.resizeGeneration += 1
+            let generation = self.resizeGeneration
+            let animated = animate && !initial && window.isVisible
+            (window.contentView as? any ManualPopoverSizing)?.stopAutomaticPopoverSizing()
+            window.contentMinSize = .zero
+            window.contentMaxSize = CGSize(width: 10_000, height: 10_000)
+            // Finish removing the invisible page graphs before shrinking.
+            if size.height < (window.contentView?.bounds.height ?? window.frame.height) {
+                self.host.layoutSubtreeIfNeeded()
+            }
+
+            var frame = window.frameRect(forContentRect: CGRect(origin: .zero, size: size))
+            let anchor = self.topRight ?? CGPoint(x: window.frame.maxX, y: window.frame.maxY)
+            frame.origin = CGPoint(x: anchor.x - frame.width, y: anchor.y - frame.height)
+            if !window.isVisible {
+                self.topRight = nil
+                window.setFrame(frame, display: false)
+                self.onResizeFinished(size)
+                return
+            }
+            if animated { self.topRight = anchor }
+            if let screen = window.screen {
+                let visible = screen.visibleFrame.insetBy(dx: 8, dy: 8)
+                frame.origin.x = max(visible.minX, min(frame.minX, visible.maxX - frame.width))
+            }
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = animated ? 0.32 : 0
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                if animated {
+                    window.animator().setFrame(frame, display: true)
+                } else {
+                    window.setFrame(frame, display: true)
+                }
+            } completionHandler: { [weak self] in
+                DispatchQueue.main.async {
+                    guard let self, self.resizeGeneration == generation else { return }
+                    window.contentView?.needsLayout = true
+                    window.contentView?.layoutSubtreeIfNeeded()
+                    self.onResizeFinished(size)
+                }
+            }
+        }
     }
 }
 
