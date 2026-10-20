@@ -40,9 +40,19 @@ final class ClaudeWebSessionRollbackTests: XCTestCase {
         let during = await cookies(in: store)
         XCTAssertFalse(during.contains(where: { $0.name == name }))
 
+        let attemptedName = "aiquota-abandoned-login-\(UUID().uuidString)"
+        let attemptedCookie = try XCTUnwrap(HTTPCookie(properties: [
+            .domain: "claude.ai", .path: "/", .name: attemptedName,
+            .value: "abandoned-session", .secure: "TRUE"
+        ]))
+        await withCheckedContinuation { continuation in
+            store.setCookie(attemptedCookie) { continuation.resume() }
+        }
+
         await session.cancelReconnect()
         let after = await cookies(in: store)
         XCTAssertTrue(after.contains(where: { $0.name == name && $0.value == "previous-session" }))
+        XCTAssertFalse(after.contains(where: { $0.name == attemptedName }))
         await withCheckedContinuation { continuation in
             store.delete(cookie) { continuation.resume() }
         }

@@ -70,13 +70,22 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
     func cancelReconnect() async {
         guard let cookies = savedClaudeCookies else { return }
         savedClaudeCookies = nil
+        generation = UUID()
+        webView.stopLoading()
         let store = WKWebsiteDataStore.default().httpCookieStore
+        let currentCookies = await withCheckedContinuation { continuation in
+            store.getAllCookies { continuation.resume(returning: $0) }
+        }
+        for cookie in currentCookies where Self.isClaudeCookie(cookie) {
+            await withCheckedContinuation { continuation in
+                store.delete(cookie) { continuation.resume() }
+            }
+        }
         for cookie in cookies {
             await withCheckedContinuation { continuation in
                 store.setCookie(cookie) { continuation.resume() }
             }
         }
-        generation = UUID()
         state = .idle
     }
 
