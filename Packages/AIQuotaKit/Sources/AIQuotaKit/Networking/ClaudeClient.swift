@@ -89,6 +89,63 @@ public actor ClaudeClient {
         }
     }
 
+    /// Returns the organization that would be used for cookie-authenticated
+    /// enterprise detail requests. OAuth-only sessions intentionally have no
+    /// organization scope and therefore cannot load these optional details.
+    public func enterpriseDetailScopeID(requiresOAuthMatch: Bool) async throws -> String {
+        let webOrganizationID = try Self.validatedEnterpriseOrganizationID(
+            await coordinator.requestContext().orgId
+        )
+        guard requiresOAuthMatch else { return webOrganizationID }
+        let credentials = try await coordinator.loadOAuthCredentials(allowKeychain: false)
+        guard let rawOAuthOrganizationID = try await oauthOrganizationID(credentials: credentials),
+              let oauthOrganizationID = try? Self.validatedEnterpriseOrganizationID(rawOAuthOrganizationID),
+              oauthOrganizationID.caseInsensitiveCompare(webOrganizationID) == .orderedSame
+        else {
+            throw ClaudeEnterpriseDetailError.accountScopeUnavailable
+        }
+        return webOrganizationID
+    }
+
+    public func fetchEnterpriseSpend(
+        period: ClaudeEnterprisePeriod
+    ) async throws -> ScopedClaudeEnterpriseSpend {
+        let context = try await coordinator.requestContext()
+        let organizationID = try Self.validatedEnterpriseOrganizationID(context.orgId)
+        let path = enterprisePath(
+            organizationID: organizationID,
+            resource: "spend",
+            period: period,
+            extraQuery: "&group_by=product_surface&granularity=daily"
+        )
+        let data = try await fetchWebData(path: path)
+        return try Self._decodeEnterpriseSpendForTesting(
+            data,
+            scopeID: organizationID,
+            period: period,
+            fetchedAt: .now
+        )
+    }
+
+    public func fetchEnterpriseSkills(
+        period: ClaudeEnterprisePeriod
+    ) async throws -> ScopedClaudeEnterpriseSkills {
+        let context = try await coordinator.requestContext()
+        let organizationID = try Self.validatedEnterpriseOrganizationID(context.orgId)
+        let path = enterprisePath(
+            organizationID: organizationID,
+            resource: "skills",
+            period: period
+        )
+        let data = try await fetchWebData(path: path)
+        return try Self._decodeEnterpriseSkillsForTesting(
+            data,
+            scopeID: organizationID,
+            period: period,
+            fetchedAt: .now
+        )
+    }
+
     // MARK: - Private
 
     private func fetchOAuthUsage(credentials: ClaudeOAuthCredentials) async throws -> ClaudeUsage {
@@ -154,11 +211,7 @@ public actor ClaudeClient {
         }
 
         let status = (response as? HTTPURLResponse)?.statusCode ?? -1
-        logger.info("[ClaudeClient] GET \(path) → HTTP \(status)")
-        if status != 200 {
-            let headers = (response as? HTTPURLResponse)?.allHeaderFields ?? [:]
-            logger.warning("[ClaudeClient] non-200 headers: \(headers as NSDictionary)")
-        }
+        logger.info("[ClaudeClient] usage request → HTTP \(status)")
 
         try checkStatus(response, data: data)
 
@@ -166,10 +219,79 @@ public actor ClaudeClient {
             let raw = try Self.decoder.decode(ClaudeUsageResponse.self, from: data)
             return Self.buildUsage(from: raw, planLabel: nil, source: .web, weeklyBreakdown: Self.weeklyBreakdown(from: data))
         } catch {
-            let preview = String(data: data.prefix(2000), encoding: .utf8) ?? "<non-utf8>"
-            logger.error("[ClaudeClient] decodingError: \(error) | body: \(preview)")
+            logger.error("[ClaudeClient] usage response decoding failed")
             throw NetworkError.decodingError(underlying: error)
         }
+    }
+
+    private func fetchWebData(path: String) async throws -> Data {
+        let request = makeRequest(path: path)
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw error
+        }
+        try checkStatus(response, data: data)
+        return data
+    }
+
+    private func enterprisePath(
+        organizationID: String,
+        resource: String,
+        period: ClaudeEnterprisePeriod,
+        extraQuery: String = ""
+    ) -> String {
+        let safeOrganizationID = organizationID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
+            ?? organizationID
+        return "/api/organizations/\(safeOrganizationID)/usage/\(resource)"
+            + "?start_date=\(Self.apiDateString(period.startDate))"
+            + "&end_date=\(Self.apiDateString(period.endDate))"
+            + extraQuery
+    }
+
+    static func _validatedEnterpriseOrganizationIDForTesting(_ organizationID: String) throws -> String {
+        try validatedEnterpriseOrganizationID(organizationID)
+    }
+
+    private nonisolated static func validatedEnterpriseOrganizationID(
+        _ organizationID: String
+    ) throws -> String {
+        guard let uuid = UUID(uuidString: organizationID) else {
+            throw ClaudeEnterpriseDetailError.accountScopeUnavailable
+        }
+        return uuid.uuidString.lowercased()
+    }
+
+    private nonisolated static func apiDateString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
+    private func oauthOrganizationID(
+        credentials: ClaudeOAuthCredentials
+    ) async throws -> String? {
+        var request = URLRequest(url: URL(string: "https://api.anthropic.com/api/oauth/profile")!)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 10
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.setValue("Bearer \(credentials.accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
+        request.setValue("claude-code/2.1.0", forHTTPHeaderField: "User-Agent")
+        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw NetworkError.networkUnavailable
+        }
+        guard (200...299).contains(http.statusCode) else {
+            throw NetworkError.httpError(statusCode: http.statusCode)
+        }
+        return ClaudeAPI.decodeOrganizationID(data)
     }
 
     // ISO 8601 with fractional seconds, e.g. "2026-03-18T22:00:01.194181+00:00"
@@ -255,6 +377,34 @@ public actor ClaudeClient {
     ) throws -> ClaudeUsage {
         let raw = try decoder.decode(ClaudeUsageResponse.self, from: data)
         return buildUsage(from: raw, planLabel: planLabel, source: source, fetchedAt: fetchedAt, weeklyBreakdown: weeklyBreakdown(from: data))
+    }
+
+    public nonisolated static func _decodeEnterpriseSpendForTesting(
+        _ data: Data,
+        scopeID: String,
+        period: ClaudeEnterprisePeriod,
+        fetchedAt: Date
+    ) throws -> ScopedClaudeEnterpriseSpend {
+        ScopedClaudeEnterpriseSpend(
+            report: try JSONDecoder().decode(ClaudeSpendHistory.self, from: data),
+            scopeID: scopeID,
+            period: period,
+            fetchedAt: fetchedAt
+        )
+    }
+
+    public nonisolated static func _decodeEnterpriseSkillsForTesting(
+        _ data: Data,
+        scopeID: String,
+        period: ClaudeEnterprisePeriod,
+        fetchedAt: Date
+    ) throws -> ScopedClaudeEnterpriseSkills {
+        ScopedClaudeEnterpriseSkills(
+            report: try JSONDecoder().decode(ClaudeEnterpriseSkillsResponse.self, from: data),
+            scopeID: scopeID,
+            period: period,
+            fetchedAt: fetchedAt
+        )
     }
 
     private nonisolated static func weeklyBreakdown(from data: Data) -> ClaudeWeeklyBreakdown? {
@@ -503,6 +653,10 @@ private enum ClaudeOAuthFetchError: Error {
     case invalidResponse(status: Int?)
     case serverError(Int)
     case networkError(Error)
+}
+
+private enum ClaudeEnterpriseDetailError: Error {
+    case accountScopeUnavailable
 }
 
 private extension NetworkError {

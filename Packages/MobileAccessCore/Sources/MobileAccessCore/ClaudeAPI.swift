@@ -153,6 +153,30 @@ public struct ClaudeAPI: Sendable {
                             weekly: reading.weekly, metadata: metadata, claudeBreakdown: reading.claudeBreakdown,
                             monthlyBudget: reading.monthlyBudget)
     }
+    /// Returns the opaque organization UUID from the authenticated profile.
+    /// A profile without an organization UUID is a valid, unavailable result.
+    public func organizationID(_ tokens: ClaudeTokens) async throws -> String? {
+        var request = URLRequest(url: URL(string: "https://api.anthropic.com/api/oauth/profile")!)
+        request.setValue("Bearer \(tokens.accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
+        request.setValue("AIQuotaMobileProbe/0.1", forHTTPHeaderField: "User-Agent")
+        let response = try await transport.send(request)
+        guard (200..<300).contains(response.status) else {
+            throw ClaudeAccessError.requestFailed(stage: "profile lookup", status: response.status)
+        }
+        return Self.decodeOrganizationID(response.data)
+    }
+    public static func decodeOrganizationID(_ data: Data) -> String? {
+        struct Profile: Decodable {
+            struct Organization: Decodable { let uuid: String? }
+            let organization: Organization?
+        }
+        guard let value = try? JSONDecoder().decode(Profile.self, from: data),
+              let uuid = value.organization?.uuid,
+              UUID(uuidString: uuid) != nil else { return nil }
+        return uuid
+    }
     // Profile path, organization field, and mappings match the installed first-party
     // Claude Code client. Unknown/new organization types remain explicitly unavailable.
     static func decodePlan(_ data: Data) -> String? {

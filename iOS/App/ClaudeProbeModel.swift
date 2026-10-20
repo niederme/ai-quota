@@ -89,6 +89,12 @@ final class ClaudeProbeModel {
         refresh()
         await work?.value
     }
+    /// The web detail session must belong to the same organization as the
+    /// OAuth allowance shown above it. Never infer this from the plan name.
+    func organizationID() async -> String? {
+        guard let tokens else { return nil }
+        return try? await api.organizationID(tokens)
+    }
     func refreshOnOpen() {
         guard !isDemo else { refresh(); return }
         guard !busy, connected, challenge == nil else { return }
@@ -189,6 +195,7 @@ final class ClaudeProbeModel {
         }
         WidgetCenter.shared.reloadAllTimelines()
         UserDefaults.standard.removeObject(forKey: cacheKey)
+        await ClaudeWebDetailsSession.clearSession()
         foregroundRefresh.reset()
         tokens = nil
         reading = nil

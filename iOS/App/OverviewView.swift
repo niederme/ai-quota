@@ -206,7 +206,8 @@ struct OverviewView: View {
                     if !claude.connected { ClaudeProbeView(model: claude) } else {
                     ServiceDetailContent(name: "Claude", icon: "logo-claude", reading: claude.reading,
                         connected: claude.connected, busy: claude.busy, error: claude.error,
-                        failure: claude.connectionFailure, refresh: { claude.refresh() }) { ClaudeProbeView(model: claude) }
+                        failure: claude.connectionFailure, claudeAccount: claude,
+                        refresh: { claude.refresh() }) { ClaudeProbeView(model: claude) }
                     }
                 }
             }
@@ -361,11 +362,11 @@ struct ServiceDetailContent<Account: View>: View {
     let failure: SharedQuotaStore.Failure?
     var history: CodexUsageHistory? = nil
     var historyUnavailable = false
+    var claudeAccount: ClaudeProbeModel? = nil
     let refresh: () -> Void
     @ViewBuilder var account: () -> Account
     @State private var showAccount = false
     @State private var showResetWebsite = false
-    @State private var showClaudeUsageWebsite = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var typeSize
 
@@ -421,6 +422,9 @@ struct ServiceDetailContent<Account: View>: View {
                     ClaudeAnalyticsView(reading: reading, busy: busy,
                                         failed: failure != nil || error != nil, refresh: refresh)
                 }
+                if name == "Claude", reading?.monthlyBudget != nil, let claudeAccount, !claudeAccount.isDemo {
+                    ClaudeEnterpriseDetailView(account: claudeAccount)
+                }
                 if error != nil || failure == .reconnect || failure == .renewal || name == "Codex" {
                     Divider()
                 }
@@ -438,11 +442,6 @@ struct ServiceDetailContent<Account: View>: View {
                         Label("Check Codex resets", systemImage: "arrow.up.right")
                     }
                     .accessibilityHint("Opens Codex Resets in the in-app browser")
-                } else if name == "Claude" {
-                    Button { showClaudeUsageWebsite = true } label: {
-                        Label("View spend and skills in Claude", systemImage: "arrow.up.right")
-                    }
-                    .accessibilityHint("Opens Claude Usage in the in-app browser")
                 }
             }.padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 24)
         }
@@ -472,9 +471,6 @@ struct ServiceDetailContent<Account: View>: View {
         }
         .sheet(isPresented: $showResetWebsite) {
             ProbeBrowser(url: CodexResetNotice.website)
-        }
-        .sheet(isPresented: $showClaudeUsageWebsite) {
-            ProbeBrowser(url: URL(string: "https://claude.ai/settings/usage")!)
         }
     }
     private var planText: String {

@@ -7,6 +7,15 @@ import MobileAccessCore
 struct MobileAccessApp: App {
     @UIApplicationDelegateAdaptor(MobileAnalyticsAppDelegate.self) private var analyticsDelegate
     @State private var demoEnabled = DemoQuotaData.isEnabled
+    init() {
+        // The default WebKit store can outlive an app uninstall. A new install
+        // must not silently inherit a former user's Claude web session.
+        let marker = "claudeDetails.installPrepared"
+        if !UserDefaults.standard.bool(forKey: marker) {
+            UserDefaults.standard.set(true, forKey: marker)
+            Task { await ClaudeWebDetailsSession.clearSession() }
+        }
+    }
     var body: some Scene {
         WindowGroup {
             OverviewView(isDemo: demoEnabled).id(demoEnabled)

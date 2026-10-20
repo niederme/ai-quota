@@ -220,6 +220,26 @@ public actor ClaudeAuthCoordinator {
         }
     }
 
+    /// Opens the app-owned Claude web login solely for Enterprise analytics.
+    /// This preserves an authenticated OAuth allowance session and records the
+    /// resulting organization separately for account-scope validation.
+    public func signInForEnterpriseDetails() async throws {
+        guard state == .authenticated else {
+            throw AuthCoordinatorError.invalidTransition(from: state)
+        }
+
+        capturedOrgId = nil
+        capturedCookies = []
+        SharedAuthContextStore.clearClaude()
+        await webSessionClearer()
+
+        let (orgId, cookies) = try await loginWindowRunner()
+        capturedOrgId = orgId
+        capturedCookies = cookies
+        injectCookies(cookies)
+        persistSharedAuthContext()
+    }
+
     /// Best-effort recovery for already-enrolled installs that lose their app-side
     /// Claude state after an app replacement. This mirrors the non-UI paths used by
     /// Sign In, but never opens the login window.

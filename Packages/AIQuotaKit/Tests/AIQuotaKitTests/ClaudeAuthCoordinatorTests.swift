@@ -402,6 +402,29 @@ struct ClaudeAuthCoordinatorTests {
         #expect(try await sut.requestContext().orgId == "org-fresh")
     }
 
+    @Test("Enterprise detail sign-in preserves OAuth auth and captures a web organization")
+    func enterpriseDetailSignInPreservesOAuthSession() async throws {
+        let events = LockIsolated<[String]>([])
+        let sut = makeSUT(
+            probe: { .notFound },
+            oauthCredentialsLoader: { _ in Self.oauthCredentials(accessToken: "oauth-token") },
+            webSessionClearer: { events.withLock { $0.append("clear") } },
+            loginWindowRunner: {
+                events.withLock { $0.append("login") }
+                return ("web-org", [])
+            }
+        )
+
+        await sut.bootstrap()
+        #expect(await sut.state == .authenticated)
+        try await sut.signInForEnterpriseDetails()
+
+        #expect(events.value == ["clear", "login"])
+        #expect(await sut.state == .authenticated)
+        #expect(try await sut.requestContext().orgId == "web-org")
+        #expect(try await sut.loadOAuthCredentials(allowKeychain: false).accessToken == "oauth-token")
+    }
+
     @Test("rejected-session cleanup preserves Cloudflare verification cookies")
     func rejectedSessionCleanupPreservesCloudflareCookies() throws {
         let session = try #require(Self.cookie(name: "sessionKey", domain: ".claude.ai"))
