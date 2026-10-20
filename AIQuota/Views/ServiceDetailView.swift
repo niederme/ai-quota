@@ -121,6 +121,10 @@ struct ServiceDetailView: View {
                             Button { NSWorkspace.shared.open(CodexResetNotice.website) } label: {
                                 Label("Check Codex resets", systemImage: "arrow.up.right")
                             }
+                        } else {
+                            Button { NSWorkspace.shared.open(URL(string: "https://claude.ai/settings/usage")!) } label: {
+                                Label("View spend and skills in Claude", systemImage: "arrow.up.right")
+                            }
                         }
                     }.padding(16)
                 }

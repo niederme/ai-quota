@@ -365,6 +365,7 @@ struct ServiceDetailContent<Account: View>: View {
     @ViewBuilder var account: () -> Account
     @State private var showAccount = false
     @State private var showResetWebsite = false
+    @State private var showClaudeUsageWebsite = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var typeSize
 
@@ -437,6 +438,11 @@ struct ServiceDetailContent<Account: View>: View {
                         Label("Check Codex resets", systemImage: "arrow.up.right")
                     }
                     .accessibilityHint("Opens Codex Resets in the in-app browser")
+                } else if name == "Claude" {
+                    Button { showClaudeUsageWebsite = true } label: {
+                        Label("View spend and skills in Claude", systemImage: "arrow.up.right")
+                    }
+                    .accessibilityHint("Opens Claude Usage in the in-app browser")
                 }
             }.padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 24)
         }
@@ -466,6 +472,9 @@ struct ServiceDetailContent<Account: View>: View {
         }
         .sheet(isPresented: $showResetWebsite) {
             ProbeBrowser(url: CodexResetNotice.website)
+        }
+        .sheet(isPresented: $showClaudeUsageWebsite) {
+            ProbeBrowser(url: URL(string: "https://claude.ai/settings/usage")!)
         }
     }
     private var planText: String {
