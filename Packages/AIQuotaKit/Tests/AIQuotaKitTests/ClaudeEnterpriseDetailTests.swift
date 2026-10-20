@@ -66,3 +66,57 @@ import Testing
         try ClaudeClient._validatedEnterpriseOrganizationIDForTesting("../../usage")
     }
 }
+
+@Test func enterpriseReconnectPromptDoesNotRepeatAfterCancelDuringPresentation() {
+    var policy = ClaudeEnterpriseReconnectPromptPolicy()
+    policy.beginDetailPresentation()
+    let firstOffer = policy.offer()
+    let duplicateOffer = policy.offer()
+    #expect(firstOffer)
+    #expect(!duplicateOffer)
+
+    policy.dismiss()
+    let offerAfterDismissal = policy.offer()
+    #expect(!offerAfterDismissal)
+    #expect(policy.wasDismissed)
+
+    policy.beginDetailPresentation()
+    let offerInNewPresentation = policy.offer()
+    #expect(offerInNewPresentation)
+}
+
+@Test func expiredOAuthRequiresReconnectWhileProfile403OnlyRetries() {
+    #expect(
+        ClaudeClient._enterpriseDetailAccessErrorForTesting(.expired)
+            == .reconnectRequired(reason: .oauthExpired, expectedOrganizationID: nil)
+    )
+    #expect(
+        ClaudeClient._enterpriseProfileAccessErrorForTesting(statusCode: 403)
+            == .temporarilyUnavailable
+    )
+}
+
+@Test func enterpriseDetailEndpoint401ReconnectsButOtherFailuresOnlyRetry() {
+    let organizationID = "123e4567-e89b-12d3-a456-426614174000"
+    #expect(
+        ClaudeClient._enterpriseDetailEndpointAccessErrorForTesting(
+            statusCode: 401,
+            verifiedOrganizationID: organizationID
+        ) == .reconnectRequired(
+            reason: .webAuthenticationRequired,
+            expectedOrganizationID: organizationID
+        )
+    )
+    #expect(
+        ClaudeClient._enterpriseDetailEndpointAccessErrorForTesting(
+            statusCode: 403,
+            verifiedOrganizationID: organizationID
+        ) == nil
+    )
+    #expect(
+        ClaudeClient._enterpriseDetailEndpointAccessErrorForTesting(
+            statusCode: 500,
+            verifiedOrganizationID: organizationID
+        ) == nil
+    )
+}

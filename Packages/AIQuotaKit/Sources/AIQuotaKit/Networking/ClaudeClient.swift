@@ -2,6 +2,21 @@ import Foundation
 import MobileAccessCore
 import OSLog
 
+public enum ClaudeEnterpriseReconnectReason: Sendable, Equatable {
+    case webAuthenticationRequired
+    case accountMismatch
+    case oauthExpired
+    case oauthIncompatible
+}
+
+public enum ClaudeEnterpriseDetailAccessError: Error, Sendable, Equatable {
+    case reconnectRequired(
+        reason: ClaudeEnterpriseReconnectReason,
+        expectedOrganizationID: String?
+    )
+    case temporarilyUnavailable
+}
+
 // MARK: - ClaudeClient
 
 public actor ClaudeClient {
@@ -93,32 +108,98 @@ public actor ClaudeClient {
     /// enterprise detail requests. OAuth-only sessions intentionally have no
     /// organization scope and therefore cannot load these optional details.
     public func enterpriseDetailScopeID(requiresOAuthMatch: Bool) async throws -> String {
-        let webOrganizationID = try Self.validatedEnterpriseOrganizationID(
-            await coordinator.requestContext().orgId
-        )
-        guard requiresOAuthMatch else { return webOrganizationID }
-        let credentials = try await coordinator.loadOAuthCredentials(allowKeychain: false)
-        guard let rawOAuthOrganizationID = try await oauthOrganizationID(credentials: credentials),
-              let oauthOrganizationID = try? Self.validatedEnterpriseOrganizationID(rawOAuthOrganizationID),
-              oauthOrganizationID.caseInsensitiveCompare(webOrganizationID) == .orderedSame
-        else {
-            throw ClaudeEnterpriseDetailError.accountScopeUnavailable
+        let oauthOrganizationID: String?
+        if requiresOAuthMatch {
+            let credentials: ClaudeOAuthCredentials
+            do {
+                credentials = try await coordinator.loadOAuthCredentials(allowKeychain: false)
+            } catch let error as ClaudeOAuthCredentialsError {
+                throw Self.enterpriseDetailAccessError(for: error)
+            } catch {
+                throw ClaudeEnterpriseDetailAccessError.reconnectRequired(
+                    reason: .oauthIncompatible,
+                    expectedOrganizationID: nil
+                )
+            }
+
+            do {
+                guard let rawOrganizationID = try await self.oauthOrganizationID(credentials: credentials),
+                      let validated = try? Self.validatedEnterpriseOrganizationID(rawOrganizationID)
+                else {
+                    throw ClaudeEnterpriseDetailAccessError.reconnectRequired(
+                        reason: .oauthIncompatible,
+                        expectedOrganizationID: nil
+                    )
+                }
+                oauthOrganizationID = validated
+            } catch let error as ClaudeEnterpriseDetailAccessError {
+                throw error
+            } catch let error as NetworkError {
+                throw Self.enterpriseProfileAccessError(for: error)
+            } catch {
+                throw ClaudeEnterpriseDetailAccessError.temporarilyUnavailable
+            }
+        } else {
+            oauthOrganizationID = nil
+        }
+
+        let rawWebOrganizationID: String
+        do {
+            rawWebOrganizationID = try await coordinator.requestContext().orgId
+        } catch {
+            if requiresOAuthMatch {
+                throw ClaudeEnterpriseDetailAccessError.reconnectRequired(
+                    reason: .webAuthenticationRequired,
+                    expectedOrganizationID: oauthOrganizationID
+                )
+            }
+            throw error
+        }
+
+        guard let webOrganizationID = try? Self.validatedEnterpriseOrganizationID(rawWebOrganizationID) else {
+            if requiresOAuthMatch {
+                throw ClaudeEnterpriseDetailAccessError.reconnectRequired(
+                    reason: .webAuthenticationRequired,
+                    expectedOrganizationID: oauthOrganizationID
+                )
+            }
+            throw NetworkError.decodingError(
+                underlying: ClaudeEnterpriseDetailValidationError.invalidOrganizationID
+            )
+        }
+        guard let oauthOrganizationID else { return webOrganizationID }
+        guard oauthOrganizationID.caseInsensitiveCompare(webOrganizationID) == .orderedSame else {
+            throw ClaudeEnterpriseDetailAccessError.reconnectRequired(
+                reason: .accountMismatch,
+                expectedOrganizationID: oauthOrganizationID
+            )
         }
         return webOrganizationID
     }
 
     public func fetchEnterpriseSpend(
-        period: ClaudeEnterprisePeriod
+        period: ClaudeEnterprisePeriod,
+        verifiedOrganizationID: String
     ) async throws -> ScopedClaudeEnterpriseSpend {
         let context = try await coordinator.requestContext()
         let organizationID = try Self.validatedEnterpriseOrganizationID(context.orgId)
+        let verifiedOrganizationID = try Self.validatedEnterpriseOrganizationID(verifiedOrganizationID)
+        guard organizationID == verifiedOrganizationID else {
+            throw ClaudeEnterpriseDetailAccessError.reconnectRequired(
+                reason: .accountMismatch,
+                expectedOrganizationID: verifiedOrganizationID
+            )
+        }
         let path = enterprisePath(
             organizationID: organizationID,
             resource: "spend",
             period: period,
             extraQuery: "&group_by=product_surface&granularity=daily"
         )
-        let data = try await fetchWebData(path: path)
+        let data = try await fetchWebData(
+            path: path,
+            verifiedOrganizationID: verifiedOrganizationID
+        )
         return try Self._decodeEnterpriseSpendForTesting(
             data,
             scopeID: organizationID,
@@ -128,16 +209,27 @@ public actor ClaudeClient {
     }
 
     public func fetchEnterpriseSkills(
-        period: ClaudeEnterprisePeriod
+        period: ClaudeEnterprisePeriod,
+        verifiedOrganizationID: String
     ) async throws -> ScopedClaudeEnterpriseSkills {
         let context = try await coordinator.requestContext()
         let organizationID = try Self.validatedEnterpriseOrganizationID(context.orgId)
+        let verifiedOrganizationID = try Self.validatedEnterpriseOrganizationID(verifiedOrganizationID)
+        guard organizationID == verifiedOrganizationID else {
+            throw ClaudeEnterpriseDetailAccessError.reconnectRequired(
+                reason: .accountMismatch,
+                expectedOrganizationID: verifiedOrganizationID
+            )
+        }
         let path = enterprisePath(
             organizationID: organizationID,
             resource: "skills",
             period: period
         )
-        let data = try await fetchWebData(path: path)
+        let data = try await fetchWebData(
+            path: path,
+            verifiedOrganizationID: verifiedOrganizationID
+        )
         return try Self._decodeEnterpriseSkillsForTesting(
             data,
             scopeID: organizationID,
@@ -224,13 +316,23 @@ public actor ClaudeClient {
         }
     }
 
-    private func fetchWebData(path: String) async throws -> Data {
+    private func fetchWebData(
+        path: String,
+        verifiedOrganizationID: String
+    ) async throws -> Data {
         let request = makeRequest(path: path)
         let (data, response): (Data, URLResponse)
         do {
             (data, response) = try await session.data(for: request)
         } catch {
             throw error
+        }
+        if let http = response as? HTTPURLResponse,
+           let accessError = Self.enterpriseDetailEndpointAccessError(
+               statusCode: http.statusCode,
+               verifiedOrganizationID: verifiedOrganizationID
+           ) {
+            throw accessError
         }
         try checkStatus(response, data: data)
         return data
@@ -254,13 +356,66 @@ public actor ClaudeClient {
         try validatedEnterpriseOrganizationID(organizationID)
     }
 
+    static func _enterpriseDetailAccessErrorForTesting(
+        _ error: ClaudeOAuthCredentialsError
+    ) -> ClaudeEnterpriseDetailAccessError {
+        enterpriseDetailAccessError(for: error)
+    }
+
+    static func _enterpriseProfileAccessErrorForTesting(
+        statusCode: Int
+    ) -> ClaudeEnterpriseDetailAccessError {
+        enterpriseProfileAccessError(for: .httpError(statusCode: statusCode))
+    }
+
+    static func _enterpriseDetailEndpointAccessErrorForTesting(
+        statusCode: Int,
+        verifiedOrganizationID: String
+    ) -> ClaudeEnterpriseDetailAccessError? {
+        enterpriseDetailEndpointAccessError(
+            statusCode: statusCode,
+            verifiedOrganizationID: verifiedOrganizationID
+        )
+    }
+
     private nonisolated static func validatedEnterpriseOrganizationID(
         _ organizationID: String
     ) throws -> String {
         guard let uuid = UUID(uuidString: organizationID) else {
-            throw ClaudeEnterpriseDetailError.accountScopeUnavailable
+            throw ClaudeEnterpriseDetailValidationError.invalidOrganizationID
         }
         return uuid.uuidString.lowercased()
+    }
+
+    private nonisolated static func enterpriseDetailAccessError(
+        for error: ClaudeOAuthCredentialsError
+    ) -> ClaudeEnterpriseDetailAccessError {
+        switch error {
+        case .expired:
+            return .reconnectRequired(reason: .oauthExpired, expectedOrganizationID: nil)
+        case .notFound, .decodeFailed, .missingOAuth, .missingAccessToken, .missingScope:
+            return .reconnectRequired(reason: .oauthIncompatible, expectedOrganizationID: nil)
+        }
+    }
+
+    private nonisolated static func enterpriseProfileAccessError(
+        for error: NetworkError
+    ) -> ClaudeEnterpriseDetailAccessError {
+        if case .httpError(let statusCode) = error, statusCode == 401 {
+            return .reconnectRequired(reason: .oauthExpired, expectedOrganizationID: nil)
+        }
+        return .temporarilyUnavailable
+    }
+
+    private nonisolated static func enterpriseDetailEndpointAccessError(
+        statusCode: Int,
+        verifiedOrganizationID: String
+    ) -> ClaudeEnterpriseDetailAccessError? {
+        guard statusCode == 401 else { return nil }
+        return .reconnectRequired(
+            reason: .webAuthenticationRequired,
+            expectedOrganizationID: verifiedOrganizationID
+        )
     }
 
     private nonisolated static func apiDateString(_ date: Date) -> String {
@@ -655,8 +810,8 @@ private enum ClaudeOAuthFetchError: Error {
     case networkError(Error)
 }
 
-private enum ClaudeEnterpriseDetailError: Error {
-    case accountScopeUnavailable
+private enum ClaudeEnterpriseDetailValidationError: Error {
+    case invalidOrganizationID
 }
 
 private extension NetworkError {

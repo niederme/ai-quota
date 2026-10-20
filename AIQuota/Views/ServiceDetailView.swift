@@ -16,7 +16,8 @@ struct ServiceDetailView: View {
     private var busy: Bool {
         isCodex
             ? viewModel.isCodexLoading || viewModel.isUsageHistoryLoading
-            : viewModel.isClaudeLoading || viewModel.isClaudeSpendLoading || viewModel.isClaudeSkillsLoading
+            : viewModel.isClaudeLoading || viewModel.isClaudeSpendLoading
+                || viewModel.isClaudeSkillsLoading || viewModel.isClaudeEnterpriseReconnectLoading
     }
     private var connected: Bool { isCodex ? viewModel.isCodexAuthenticated : viewModel.isClaudeAuthenticated }
     private var error: NetworkError? { isCodex ? viewModel.codexError : viewModel.claudeError }
@@ -118,26 +119,19 @@ struct ServiceDetailView: View {
                             ClaudeAnalyticsView(reading: reading, busy: busy, failed: error != nil || !connected, refresh: refresh)
                         }
                         if showsClaudeEnterpriseDetails {
-                            if viewModel.claudeDetailsNeedSignIn {
-                                ClaudeEnterpriseDetailSignInView(
-                                    busy: viewModel.isClaudeDetailsSignInLoading,
-                                    signIn: { Task { await viewModel.signInClaudeForEnterpriseDetails() } }
-                                )
-                            } else {
-                                ClaudeEnterpriseSpendView(
-                                    snapshot: viewModel.claudeEnterpriseSpend,
-                                    busy: viewModel.isClaudeSpendLoading,
-                                    failed: viewModel.claudeSpendFailed,
-                                    retry: { viewModel.refreshClaudeSpendDetails(force: true) }
-                                )
-                                ClaudeEnterpriseSkillsView(
-                                    snapshot: viewModel.claudeEnterpriseSkills,
-                                    currency: viewModel.claudeEnterpriseSpend?.report.currency,
-                                    busy: viewModel.isClaudeSkillsLoading,
-                                    failed: viewModel.claudeSkillsFailed,
-                                    retry: { viewModel.refreshClaudeSkillsDetails(force: true) }
-                                )
-                            }
+                            ClaudeEnterpriseSpendView(
+                                snapshot: viewModel.claudeEnterpriseSpend,
+                                busy: viewModel.isClaudeSpendLoading,
+                                failed: viewModel.claudeSpendFailed,
+                                retry: { viewModel.refreshClaudeSpendDetails(force: true) }
+                            )
+                            ClaudeEnterpriseSkillsView(
+                                snapshot: viewModel.claudeEnterpriseSkills,
+                                currency: viewModel.claudeEnterpriseSpend?.report.currency,
+                                busy: viewModel.isClaudeSkillsLoading,
+                                failed: viewModel.claudeSkillsFailed,
+                                retry: { viewModel.refreshClaudeSkillsDetails(force: true) }
+                            )
                         }
                         if let error {
                             Label(error.localizedDescription, systemImage: "exclamationmark.triangle")
@@ -175,6 +169,26 @@ struct ServiceDetailView: View {
         .onChange(of: showsClaudeEnterpriseDetails) { _, showsDetails in
             if showsDetails, connected { viewModel.refreshClaudeEnterpriseDetails() }
         }
+        .onAppear { viewModel.beginClaudeEnterpriseDetailsPresentation() }
+        .onDisappear { viewModel.dismissClaudeEnterpriseReconnectPrompt() }
+        .alert(
+            "Reconnect Claude for Enterprise details?",
+            isPresented: Binding(
+                get: { viewModel.isClaudeEnterpriseReconnectPromptPresented },
+                set: { presented in
+                    if !presented { viewModel.dismissClaudeEnterpriseReconnectPrompt() }
+                }
+            )
+        ) {
+            Button("Reconnect") {
+                Task { await viewModel.reconnectClaudeForEnterpriseDetails() }
+            }
+            Button("Cancel", role: .cancel) {
+                viewModel.dismissClaudeEnterpriseReconnectPrompt()
+            }
+        } message: {
+            Text("Your current Claude connection can still show allowance. Enterprise spend and skill activity need a Claude web session for the same organization. Reconnect opens Claude sign-in and changes the connection only after verification. Cancel keeps the current connection.")
+        }
     }
 
     private var refreshHelp: String {
@@ -190,32 +204,6 @@ struct ServiceDetailView: View {
             viewModel.refreshClaudeEnterpriseDetails(force: true)
             Task { await viewModel.refreshClaude() }
         }
-    }
-}
-
-private struct ClaudeEnterpriseDetailSignInView: View {
-    let busy: Bool
-    let signIn: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Sign in for Enterprise details", systemImage: "person.crop.circle.badge.plus")
-                .font(.headline)
-            Text("Claude allowance is connected. Spend history and skill activity need a matching Claude web session in AIQuota.")
-                .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
-            Button(action: signIn) {
-                if busy {
-                    HStack(spacing: 8) {
-                        ProgressView().controlSize(.small)
-                        Text("Signing in…")
-                    }
-                } else {
-                    Text("Sign in for details")
-                }
-            }
-            .disabled(busy)
-        }
-        .modifier(AnalyticsCard())
     }
 }
 

@@ -59,3 +59,31 @@ public struct ScopedClaudeEnterpriseSkills: Sendable, Equatable {
         self.fetchedAt = fetchedAt
     }
 }
+
+public struct ClaudeEnterpriseReconnectPromptPolicy: Sendable, Equatable {
+    public private(set) var isPresented = false
+    public private(set) var wasDismissed = false
+
+    public init() {}
+
+    public mutating func beginDetailPresentation() {
+        isPresented = false
+        wasDismissed = false
+    }
+
+    @discardableResult
+    public mutating func offer() -> Bool {
+        guard !isPresented, !wasDismissed else { return false }
+        isPresented = true
+        return true
+    }
+
+    public mutating func dismiss() {
+        isPresented = false
+        wasDismissed = true
+    }
+
+    public mutating func reset() {
+        self = Self()
+    }
+}
