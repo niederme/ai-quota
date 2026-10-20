@@ -28,6 +28,7 @@ import MobileAccessCore
             switch service {
             case .codex: return (try? store.load(CodexTokens.self)) != nil
             case .claude: return (try? store.load(ClaudeTokens.self)) != nil
+            case .devin: return (try? store.load(DevinTokens.self)) != nil
             }
         }
     }

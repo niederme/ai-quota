@@ -1,4 +1,5 @@
 import Foundation
+import MobileAccessCore
 
 public struct AutoRefreshContext: Sendable, Equatable {
     public var lowPowerModeEnabled: Bool
@@ -7,9 +8,10 @@ public struct AutoRefreshContext: Sendable, Equatable {
     public var serviceRecentlyActive: Bool
     public var codexNearThreshold: Bool
     public var claudeNearThreshold: Bool
+    public var devinNearThreshold: Bool
 
     public var nearThreshold: Bool {
-        codexNearThreshold || claudeNearThreshold
+        codexNearThreshold || claudeNearThreshold || devinNearThreshold
     }
 
     public init(
@@ -18,7 +20,8 @@ public struct AutoRefreshContext: Sendable, Equatable {
         machineIdleSeconds: TimeInterval,
         serviceRecentlyActive: Bool,
         codexNearThreshold: Bool,
-        claudeNearThreshold: Bool
+        claudeNearThreshold: Bool,
+        devinNearThreshold: Bool = false
     ) {
         self.lowPowerModeEnabled = lowPowerModeEnabled
         self.networkAvailable = networkAvailable
@@ -26,6 +29,7 @@ public struct AutoRefreshContext: Sendable, Equatable {
         self.serviceRecentlyActive = serviceRecentlyActive
         self.codexNearThreshold = codexNearThreshold
         self.claudeNearThreshold = claudeNearThreshold
+        self.devinNearThreshold = devinNearThreshold
     }
 }
 
@@ -70,5 +74,13 @@ public enum AutoRefreshActivity {
             || previous.bonusUsage != current.bonusUsage
             || previous.spendLimit?.used != current.spendLimit?.used
             || previous.spendLimit?.limit != current.spendLimit?.limit
+    }
+
+    public static func changed(from previous: DevinUsage?, to current: DevinUsage) -> Bool {
+        guard let previous else { return false }
+        return previous.dailyUsedPercent != current.dailyUsedPercent
+            || previous.weeklyUsedPercent != current.weeklyUsedPercent
+            || previous.overageBalanceUSD != current.overageBalanceUSD
+            || previous.planName != current.planName
     }
 }

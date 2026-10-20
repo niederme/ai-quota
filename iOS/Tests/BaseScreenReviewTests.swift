@@ -208,7 +208,7 @@ final class BaseScreenReviewTests: XCTestCase {
                 .sheet(isPresented: .constant(isPresented)) {
                     ServiceAccountSheet(showsClose: service == "Settings") {
                         if service == "Settings" {
-                            MobileSettingsView(codex: ProbeModel(), claude: ClaudeProbeModel(), onboarding: OnboardingProgress())
+                            MobileSettingsView(codex: ProbeModel(), claude: ClaudeProbeModel(), devin: DevinProbeModel(), onboarding: OnboardingProgress())
                         } else {
                         ServiceDetailContent(name: service, icon: service == "Codex" ? "logo-openai" : "logo-claude",
                             reading: nil, connected: false, busy: false, error: nil, failure: nil, refresh: {}) {

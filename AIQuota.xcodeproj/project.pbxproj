@@ -11,6 +11,7 @@
 		02D378445912866CB0DC998B /* ClaudeProbeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25D0C914A09E992523B60A79 /* ClaudeProbeModel.swift */; };
 		045BF5454A00DF2152B504B9 /* WidgetIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F1F18DB5A7FD4515D863D71 /* WidgetIntent.swift */; };
 		066948F25E92DC96EDD5187B /* LockScreenWidgetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 419400F7BFA8341777F59D91 /* LockScreenWidgetTests.swift */; };
+		07370D7C5B9ECAC905BEF75D /* DevinProbeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0725D65E49477C55BC9AB71 /* DevinProbeModel.swift */; };
 		09C3707BB5896209FE461CA7 /* DemoViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B298FC20B9D43BA1C027CE6E /* DemoViews.swift */; };
 		0A551ADD42969BAB772A2B1B /* BudgetStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8078C57920AA96E74607EA71 /* BudgetStripView.swift */; };
 		0C3D35A9CE3B5A6F4B5C7816 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDE2263EBEB7008EF6988081 /* WebKit.framework */; };
@@ -28,6 +29,8 @@
 		182E7BC50A120FEEBA58E14A /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2DD6DC0C92D6E6CBCA60A64 /* WidgetStore.swift */; };
 		18EC848EC90BD55FFC140C56 /* LockScreenResetPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3B0E5DE08ACE9177CD91F9C /* LockScreenResetPresentation.swift */; };
 		18F490DA24873632F7F02099 /* HomeWidgetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3805EE8533FA745C2DDA0491 /* HomeWidgetTests.swift */; };
+		1A6D5DCBA7D9700045C6D1A1 /* DevinProbeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D585ACED643EC681C17BCB8B /* DevinProbeView.swift */; };
+		1BAB8A579CCBAC42C7FFE628 /* DevinAnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D40C4D3BAED02F6A476511F2 /* DevinAnalyticsView.swift */; };
 		1EDE4F3056D8B3FE3D63FD79 /* QuotaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5F53FC0B0CEEDEB3DD6488A /* QuotaViewModel.swift */; };
 		20A50536C5B68ACFC91525B2 /* WidgetReadingStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 399730C0D95FEF44FF128682 /* WidgetReadingStatusTests.swift */; };
 		248A84446476180600474073 /* MobileBackgroundRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22397551BCDC46E340DA0D00 /* MobileBackgroundRefresh.swift */; };
@@ -119,6 +122,7 @@
 		A9E731415728005F78C17CC9 /* MobileAccessApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 667DECCAD3629416AE8E1184 /* MobileAccessApp.swift */; };
 		ADABF7DBD43E19C01A19B69B /* QuotaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5F53FC0B0CEEDEB3DD6488A /* QuotaViewModel.swift */; };
 		ADD6CD78B8173A141696E733 /* AIQuotaWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FC79333A7787720CC4F63B8 /* AIQuotaWidget.swift */; };
+		B041686F4043C2FF5562620E /* DevinAnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D40C4D3BAED02F6A476511F2 /* DevinAnalyticsView.swift */; };
 		B2719944C98CCEAFFCA0BBB9 /* NotificationsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88FA3DF197FD04781EF8C4EF /* NotificationsStepView.swift */; };
 		B337EC2AC2655557CDE13EC2 /* LaunchServicesSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11BE061D1CEB4B5B6F120AD /* LaunchServicesSync.swift */; };
 		B4AC1E0B3686BE905CAA1BDB /* CodexWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC43070E1A6F758DB7AF31A6 /* CodexWidget.swift */; };
@@ -143,6 +147,7 @@
 		D95772B447C6100505A3D72B /* CodexAnalyticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B17E24014F0F3200B311E8 /* CodexAnalyticsTests.swift */; };
 		DB0D128A3383DCB3DA228D4F /* TokenStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9302F08CDA8C2099F522EB6 /* TokenStoreTests.swift */; };
 		DE51EF987644B16CFE0AE195 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = FB0002B3439366F7C9621561 /* Sparkle */; };
+		DEBB087DDADEB7159F2C3A8B /* DevinSharedStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2790D88EB23F1C64E56D7B89 /* DevinSharedStoreTests.swift */; };
 		DF73B1ABD010C0FC8B4B0FE5 /* NotificationsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88FA3DF197FD04781EF8C4EF /* NotificationsStepView.swift */; };
 		DF73B5176E4A5C7EEC2CC087 /* TokenHistoryFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A67A9CBE39CE0F0BE05CA5 /* TokenHistoryFlowTests.swift */; };
 		DF958270C822B6C5C2AB8798 /* LockScreenResetPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3B0E5DE08ACE9177CD91F9C /* LockScreenResetPresentation.swift */; };
@@ -155,6 +160,7 @@
 		E8EF46CD148FBE9562C21B18 /* HomeQuotaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39129D16B4B1A86FA705A17C /* HomeQuotaView.swift */; };
 		E945BF2B00318FE39A03B755 /* TokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FFBABD81D84B816E058A18A /* TokenStore.swift */; };
 		EB9C877E7BD02197A6859862 /* AnalyticsAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F97C407C158BC0A25FD792 /* AnalyticsAppDelegate.swift */; };
+		EC227985C915D02C8DD36F3B /* DevinAnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D40C4D3BAED02F6A476511F2 /* DevinAnalyticsView.swift */; };
 		F15449DA517BF7C4B79320DC /* PopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2B4A02F2F3618A00A9FE938 /* PopoverView.swift */; };
 		F17A6B2534C58F4A8592121A /* AIQuotaCopySignInCode-iOS.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F7D91CE69A5D09F553A14DCD /* AIQuotaCopySignInCode-iOS.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F2F0EB0760448D88611066A4 /* WidgetSmallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABA7E1FF303A5852FC6BCC6 /* WidgetSmallView.swift */; };
@@ -264,6 +270,7 @@
 		23DBF6CBC5AEF8D221D5EA51 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		25D0C914A09E992523B60A79 /* ClaudeProbeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeProbeModel.swift; sourceTree = "<group>"; };
 		2601AEFB08EAA539E27A5071 /* ServiceDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceDetailView.swift; sourceTree = "<group>"; };
+		2790D88EB23F1C64E56D7B89 /* DevinSharedStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevinSharedStoreTests.swift; sourceTree = "<group>"; };
 		29F97C407C158BC0A25FD792 /* AnalyticsAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsAppDelegate.swift; sourceTree = "<group>"; };
 		33016447347AF46F0499E374 /* Widget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Widget.entitlements; sourceTree = "<group>"; };
 		3805EE8533FA745C2DDA0491 /* HomeWidgetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetTests.swift; sourceTree = "<group>"; };
@@ -333,8 +340,10 @@
 		C4A665A3F6E10210205651C1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C4CC237C662A19D0C0A77A43 /* DemoDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoDriver.swift; sourceTree = "<group>"; };
 		C66610C3B005AD239F7EDE75 /* ServicesStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServicesStepView.swift; sourceTree = "<group>"; };
+		D40C4D3BAED02F6A476511F2 /* DevinAnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevinAnalyticsView.swift; sourceTree = "<group>"; };
 		D430F4197E80016918FF233D /* AIQuota-iOSTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = "AIQuota-iOSTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D52F88BFBFBF549EA3102907 /* CodexResetNoticeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexResetNoticeTests.swift; sourceTree = "<group>"; };
+		D585ACED643EC681C17BCB8B /* DevinProbeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevinProbeView.swift; sourceTree = "<group>"; };
 		D5BD4CEEB4F5DD02A33A6C7C /* MobileTokenHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileTokenHistoryView.swift; sourceTree = "<group>"; };
 		D5F53FC0B0CEEDEB3DD6488A /* QuotaViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaViewModel.swift; sourceTree = "<group>"; };
 		DD0E6E7E3363EECE44E673E7 /* AIQuota-iOS.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = "AIQuota-iOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -344,6 +353,7 @@
 		E965708E9D49E52DD918B557 /* CreditsDisplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreditsDisplayTests.swift; sourceTree = "<group>"; };
 		EC6483FA9D6F3174B3E47F3D /* MobileSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileSettingsView.swift; sourceTree = "<group>"; };
 		EDE2263EBEB7008EF6988081 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
+		F0725D65E49477C55BC9AB71 /* DevinProbeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevinProbeModel.swift; sourceTree = "<group>"; };
 		F20C382E39D030AC581CA9B4 /* DoneStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoneStepView.swift; sourceTree = "<group>"; };
 		F67E72577EE3060D479BB8A0 /* DemoQuotaData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoQuotaData.swift; sourceTree = "<group>"; };
 		F7D91CE69A5D09F553A14DCD /* AIQuotaCopySignInCode-iOS.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = "AIQuotaCopySignInCode-iOS.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -493,6 +503,9 @@
 				B7EF7635B21E03FC04EB0055 /* CodexAnalyticsView.swift */,
 				447D727A548E73A82C29281D /* CodexResetNotice.swift */,
 				B298FC20B9D43BA1C027CE6E /* DemoViews.swift */,
+				D40C4D3BAED02F6A476511F2 /* DevinAnalyticsView.swift */,
+				F0725D65E49477C55BC9AB71 /* DevinProbeModel.swift */,
+				D585ACED643EC681C17BCB8B /* DevinProbeView.swift */,
 				23DBF6CBC5AEF8D221D5EA51 /* Info.plist */,
 				667DECCAD3629416AE8E1184 /* MobileAccessApp.swift */,
 				8D95553FAC04DFF7EC1268BF /* MobileAnalytics.swift */,
@@ -583,6 +596,7 @@
 				D52F88BFBFBF549EA3102907 /* CodexResetNoticeTests.swift */,
 				E965708E9D49E52DD918B557 /* CreditsDisplayTests.swift */,
 				0C2641A9E19D22252D201446 /* DemoModeTests.swift */,
+				2790D88EB23F1C64E56D7B89 /* DevinSharedStoreTests.swift */,
 				B167CA4D488EA6D6B904363D /* ForegroundRefreshTests.swift */,
 				3805EE8533FA745C2DDA0491 /* HomeWidgetTests.swift */,
 				419400F7BFA8341777F59D91 /* LockScreenWidgetTests.swift */,
@@ -985,14 +999,14 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				15F2C56050333A977220B1ED /* AIQuota */,
 				0942446F5C197BA65ABBE6AD /* AIQuota-iOS */,
+				E3851BEB72FF3CB51B99F2BE /* AIQuotaWidget-iOS */,
+				50F4EDA6E94DAEC243D67637 /* AIQuotaCopySignInCode-iOS */,
 				676E4E1DF50D8B30B82B95E2 /* AIQuota-iOSTests */,
 				3C9D10A60AE2149226E188D2 /* AIQuota-iOSUITests */,
-				50F4EDA6E94DAEC243D67637 /* AIQuotaCopySignInCode-iOS */,
-				7FBC56661784E238EBE58B56 /* AIQuotaStore */,
+				15F2C56050333A977220B1ED /* AIQuota */,
 				7F9C5CB955BB7645111CD8CE /* AIQuotaWidget */,
-				E3851BEB72FF3CB51B99F2BE /* AIQuotaWidget-iOS */,
+				7FBC56661784E238EBE58B56 /* AIQuotaStore */,
 				488B4B48280B61AC5D62076D /* AIQuotaWidgetStore */,
 			);
 		};
@@ -1130,6 +1144,7 @@
 				70C41E7913EC6AF154B3961A /* CountdownView.swift in Sources */,
 				31617F1EEAF0A9A374712D99 /* DemoAutoOpen.swift in Sources */,
 				2494810777DC407773DE4C13 /* DemoDriver.swift in Sources */,
+				EC227985C915D02C8DD36F3B /* DevinAnalyticsView.swift in Sources */,
 				8B47673229B9F1E88153B1E5 /* DoneStepView.swift in Sources */,
 				4B1E60A90D0067714F4A261C /* MenuBarIconView.swift in Sources */,
 				DF73B1ABD010C0FC8B4B0FE5 /* NotificationsStepView.swift in Sources */,
@@ -1180,6 +1195,7 @@
 				98F43072074B245C01E279A4 /* CountdownView.swift in Sources */,
 				A9A9F27E1D37CC53BEA92471 /* DemoAutoOpen.swift in Sources */,
 				4BDBDF48A5EC8E1D8DE63AEE /* DemoDriver.swift in Sources */,
+				1BAB8A579CCBAC42C7FFE628 /* DevinAnalyticsView.swift in Sources */,
 				F6564018685503ADEE6165C2 /* DoneStepView.swift in Sources */,
 				B337EC2AC2655557CDE13EC2 /* LaunchServicesSync.swift in Sources */,
 				17126B49397A4A50A1B6325F /* MenuBarIconView.swift in Sources */,
@@ -1226,6 +1242,9 @@
 				5FEDD079CDE257144D590AB2 /* CompactQuotaView.swift in Sources */,
 				D2372B4B0F6E0889E747673E /* DemoQuotaData.swift in Sources */,
 				09C3707BB5896209FE461CA7 /* DemoViews.swift in Sources */,
+				B041686F4043C2FF5562620E /* DevinAnalyticsView.swift in Sources */,
+				07370D7C5B9ECAC905BEF75D /* DevinProbeModel.swift in Sources */,
+				1A6D5DCBA7D9700045C6D1A1 /* DevinProbeView.swift in Sources */,
 				E8EF46CD148FBE9562C21B18 /* HomeQuotaView.swift in Sources */,
 				18EC848EC90BD55FFC140C56 /* LockScreenResetPresentation.swift in Sources */,
 				A9E731415728005F78C17CC9 /* MobileAccessApp.swift in Sources */,
@@ -1255,6 +1274,7 @@
 				24BC6BA77116E7B799ADB68C /* CodexResetNoticeTests.swift in Sources */,
 				A8887B9AC256A6326AB5AA9D /* CreditsDisplayTests.swift in Sources */,
 				135CCD8C4FA58980E1204E20 /* DemoModeTests.swift in Sources */,
+				DEBB087DDADEB7159F2C3A8B /* DevinSharedStoreTests.swift in Sources */,
 				31A3D31590EC997EACC431C6 /* ForegroundRefreshTests.swift in Sources */,
 				18F490DA24873632F7F02099 /* HomeWidgetTests.swift in Sources */,
 				066948F25E92DC96EDD5187B /* LockScreenWidgetTests.swift in Sources */,

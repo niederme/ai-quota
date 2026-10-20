@@ -15,30 +15,34 @@ struct OverviewView: View {
     @State private var selectedService: OverviewService?
     @Environment(\.scenePhase) private var scenePhase
     @State private var claude: ClaudeProbeModel
+    @State private var devin: DevinProbeModel
     private let isDemo: Bool
 
     init(isDemo: Bool = false) {
         self.isDemo = isDemo
         let codex = ProbeModel(isDemo: isDemo)
         let claude = ClaudeProbeModel(isDemo: isDemo)
+        let devin = DevinProbeModel(isDemo: isDemo)
         _codex = State(initialValue: codex)
         _claude = State(initialValue: claude)
-        _needsInitialSetup = State(initialValue: !codex.connected && !claude.connected)
+        _devin = State(initialValue: devin)
+        _needsInitialSetup = State(initialValue: !codex.connected && !claude.connected && !devin.connected)
     }
     @State private var existingInstallation = UserDefaults.standard.data(forKey: "mobileProbe.codexReading") != nil
         || UserDefaults.standard.data(forKey: "mobileProbe.claudeReading") != nil
+        || UserDefaults.standard.data(forKey: "mobileProbe.devinReading") != nil
 
     private var resetAnnouncement: CodexResetAnnouncement? {
         if isDemo { return demoResetDismissed ? nil : CodexResetNotice.demoAnnouncement }
         return resetNotice.announcement(dismissedID: dismissedResetID)
     }
 
-    private var hasConnectedService: Bool { codex.connected || claude.connected }
+    private var hasConnectedService: Bool { codex.connected || claude.connected || devin.connected }
 
     var body: some View {
         Group {
             if needsInitialSetup {
-                OnboardingView(codex: codex, claude: claude, progress: onboarding,
+                OnboardingView(codex: codex, claude: claude, devin: devin, progress: onboarding,
                                allowsDeferral: false, onFinish: { needsInitialSetup = false })
                     .onAppear { onboarding.resumeRequiredSetup(hasConnectedService: hasConnectedService) }
             } else {
@@ -46,12 +50,13 @@ struct OverviewView: View {
             }
         }
         .onAppear {
-            MobileAnalytics.shared.observeServices(codex: codex.connected, claude: claude.connected, isDemo: isDemo)
+            MobileAnalytics.shared.observeServices(codex: codex.connected, claude: claude.connected, devin: devin.connected, isDemo: isDemo)
             MobileAnalytics.shared.recordLaunchIfNeeded()
             if scenePhase == .active { MobileAnalytics.shared.recordDailyActiveIfNeeded() }
         }
         .onChange(of: codex.connected) { _, _ in updateAnalyticsServices() }
         .onChange(of: claude.connected) { _, _ in updateAnalyticsServices() }
+        .onChange(of: devin.connected) { _, _ in updateAnalyticsServices() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { MobileBackgroundRefresh.shared.scheduleNext() }
             if phase == .active { MobileAnalytics.shared.recordDailyActiveIfNeeded() }
@@ -67,7 +72,7 @@ struct OverviewView: View {
     }
 
     private func updateAnalyticsServices() {
-        MobileAnalytics.shared.observeServices(codex: codex.connected, claude: claude.connected, isDemo: isDemo)
+        MobileAnalytics.shared.observeServices(codex: codex.connected, claude: claude.connected, devin: devin.connected, isDemo: isDemo)
     }
 
     private var dashboard: some View {
@@ -98,6 +103,13 @@ struct OverviewView: View {
                                 selectedService = .claude
                             }
                         }
+                        if devin.connected {
+                            ProviderDialCard(name: "Devin", icon: "logo-devin", availableWidth: min(geometry.size.width, 780) - 32, reading: devin.reading,
+                                             connected: devin.connected, busy: devin.loading, error: devin.error, failure: devin.connectionFailure,
+                                             onReconnect: { selectedService = .devinAccount }) {
+                                selectedService = .devin
+                            }
+                        }
                         overviewFreshness.frame(maxWidth: .infinity)
 
                     }
@@ -111,7 +123,8 @@ struct OverviewView: View {
                     MobileAnalytics.shared.manualRefresh()
                     async let first: Void = codex.refreshAndWait()
                     async let second: Void = claude.refreshAndWait()
-                    _ = await (first, second)
+                    async let third: Void = devin.refreshAndWait()
+                    _ = await (first, second, third)
                 }
                 .background { OverviewBackground().ignoresSafeArea() }
             }
@@ -124,31 +137,37 @@ struct OverviewView: View {
                     navigationID = UUID()
                     codex.refreshOnOpen()
                     claude.refreshOnOpen()
+                    devin.refreshOnOpen()
                 }
                 if url.host == "codex" { selectedService = .codex; codex.refreshOnOpen() }
                 if url.host == "claude" { selectedService = .claude; claude.refreshOnOpen() }
+                if url.host == "devin" { selectedService = .devin; devin.refreshOnOpen() }
             }
             .task(id: scenePhase) {
                 guard scenePhase == .active else { return }
                 codex.refreshOnOpen()
                 claude.refreshOnOpen()
+                devin.refreshOnOpen()
                 if !isDemo { await MobileResetNotifications.reconcile() }
             }
             .task(id: "\(scenePhase)-\(refreshMinutes)") {
                 guard scenePhase == .active else { return }
                 while !Task.isCancelled {
                     let windows = [codex.reading?.shortTerm, codex.reading?.weekly,
-                                   claude.reading?.shortTerm, claude.reading?.weekly]
+                                   claude.reading?.shortTerm, claude.reading?.weekly,
+                                   devin.reading?.shortTerm, devin.reading?.weekly]
                     let percentages = windows.compactMap { $0?.usedPercent } +
                         [codex.reading?.monthlyBudget?.usedPercent,
-                         claude.reading?.monthlyBudget?.usedPercent].compactMap { $0 }
+                         claude.reading?.monthlyBudget?.usedPercent,
+                         devin.reading?.monthlyBudget?.usedPercent].compactMap { $0 }
                     let nearLimit = percentages.contains { $0 >= 85 }
                     let minutes = refreshMinutes == 0 ? (nearLimit ? 1 : 5) : max(1, refreshMinutes)
                     do { try await Task.sleep(for: .seconds(minutes * 60)) }
                     catch { return }
                     async let first: Void = codex.refreshAndWait()
                     async let second: Void = claude.refreshAndWait()
-                    _ = await (first, second)
+                    async let third: Void = devin.refreshAndWait()
+                    _ = await (first, second, third)
                 }
             }
             .task(id: "\(scenePhase)-\(codex.connected)") {
@@ -165,15 +184,16 @@ struct OverviewView: View {
                         MobileAnalytics.shared.manualRefresh()
                         codex.refresh()
                         claude.refresh()
+                        devin.refresh()
                     } label: {
                         ZStack {
-                            Image(systemName: "arrow.clockwise").opacity(codex.loading || claude.loading ? 0 : 1)
-                            ProgressView().opacity(codex.loading || claude.loading ? 1 : 0)
+                            Image(systemName: "arrow.clockwise").opacity(codex.loading || claude.loading || devin.loading ? 0 : 1)
+                            ProgressView().opacity(codex.loading || claude.loading || devin.loading ? 1 : 0)
                         }.frame(width: 24, height: 24)
                     }
                     .tint(OverviewStyle.primary)
-                    .disabled(codex.busy || claude.busy)
-                    .accessibilityLabel(codex.loading || claude.loading ? "Refreshing usage" : "Refresh usage")
+                    .disabled(codex.busy || claude.busy || devin.busy)
+                    .accessibilityLabel(codex.loading || claude.loading || devin.loading ? "Refreshing usage" : "Refresh usage")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { selectedService = .settings } label: { Image(systemName: "gearshape") }
@@ -185,17 +205,18 @@ struct OverviewView: View {
         .task {
             guard !isDemo else { return }
             showOnboarding = onboarding.shouldPresent(
-                hasExistingAccount: codex.connected || claude.connected
-                    || codex.reading != nil || claude.reading != nil,
+                hasExistingAccount: codex.connected || claude.connected || devin.connected
+                    || codex.reading != nil || claude.reading != nil || devin.reading != nil,
                 hasExistingInstallation: existingInstallation)
         }
         .sheet(item: $selectedService) { service in
-            ServiceAccountSheet(showsClose: service == .settings || service == .codexAccount || service == .claudeAccount || (service == .codex ? !codex.connected : !claude.connected)) {
+            ServiceAccountSheet(showsClose: service == .settings || service == .codexAccount || service == .claudeAccount || service == .devinAccount || (service == .codex ? !codex.connected : service == .claude ? !claude.connected : !devin.connected)) {
                 switch service {
                 case .codexAccount: ProbeView(model: codex)
                 case .claudeAccount: ClaudeProbeView(model: claude)
+                case .devinAccount: DevinProbeView(model: devin)
                 case .settings:
-                    MobileSettingsView(codex: codex, claude: claude, onboarding: onboarding)
+                    MobileSettingsView(codex: codex, claude: claude, devin: devin, onboarding: onboarding)
                 case .codex:
                     if !codex.connected { ProbeView(model: codex) } else {
                     ServiceDetailContent(name: "Codex", icon: "logo-openai", reading: codex.reading,
@@ -208,11 +229,17 @@ struct OverviewView: View {
                         connected: claude.connected, busy: claude.busy, error: claude.error,
                         failure: claude.connectionFailure, refresh: { claude.refresh() }) { ClaudeProbeView(model: claude) }
                     }
+                case .devin:
+                    if !devin.connected { DevinProbeView(model: devin) } else {
+                    ServiceDetailContent(name: "Devin", icon: "logo-devin", reading: devin.reading,
+                        connected: devin.connected, busy: devin.busy, error: devin.error,
+                        failure: devin.connectionFailure, refresh: { devin.refresh() }) { DevinProbeView(model: devin) }
+                    }
                 }
             }
         }
         .sheet(isPresented: $showOnboarding, onDismiss: { onboarding.dismiss() }) {
-            OnboardingView(codex: codex, claude: claude, progress: onboarding)
+            OnboardingView(codex: codex, claude: claude, devin: devin, progress: onboarding)
         }
         .sheet(isPresented: $showResetDetails) {
             ProbeBrowser(url: CodexResetNotice.website)
@@ -222,6 +249,7 @@ struct OverviewView: View {
         TimelineView(.periodic(from: .now, by: 60)) { context in
             let failed = codex.error != nil || codex.connectionFailure != nil
                 || claude.error != nil || claude.connectionFailure != nil
+                || devin.error != nil || devin.connectionFailure != nil
             VStack(spacing: 4) {
                 if isDemo {
                     Text("Sample usage · No live account data").font(.footnote).foregroundStyle(OverviewStyle.secondary)
@@ -230,9 +258,11 @@ struct OverviewView: View {
                               failed: codex.error != nil || codex.connectionFailure != nil, at: context.date)
                     freshness("Claude", reading: claude.reading, connected: claude.connected, busy: claude.loading,
                               failed: claude.error != nil || claude.connectionFailure != nil, at: context.date)
-                } else if codex.loading || claude.loading {
+                    freshness("Devin", reading: devin.reading, connected: devin.connected, busy: devin.loading,
+                              failed: devin.error != nil || devin.connectionFailure != nil, at: context.date)
+                } else if codex.loading || claude.loading || devin.loading {
                     Text("Refreshing…")
-                } else if let oldest = [codex.reading, claude.reading].compactMap({ $0?.fetchedAt }).min() {
+                } else if let oldest = [codex.reading, claude.reading, devin.reading].compactMap({ $0?.fetchedAt }).min() {
                     Text(overviewFreshnessLabel(oldest, at: context.date, saved: false)
                         .replacingOccurrences(of: "Updated", with: "Refreshed")
                         .replacingOccurrences(of: "Older reading ·", with: "Refreshed"))
@@ -263,7 +293,7 @@ struct OverviewView: View {
 }
 
 private enum OverviewService: String, Identifiable {
-    case codex, claude, settings, codexAccount, claudeAccount
+    case codex, claude, devin, settings, codexAccount, claudeAccount, devinAccount
     var id: String { rawValue }
 }
 
@@ -412,6 +442,8 @@ struct ServiceDetailContent<Account: View>: View {
                         if name == "Codex" {
                             CodexAnalyticsView(reading: reading, history: history,
                                                historyUnavailable: historyUnavailable, busy: busy, refresh: refresh)
+                        } else if name == "Devin" {
+                            DevinAnalyticsView(reading: reading, busy: busy, refresh: refresh)
                         } else {
                             ClaudeAnalyticsView(reading: reading, busy: busy, failed: failure != nil || error != nil, refresh: refresh)
                         }
@@ -710,7 +742,7 @@ struct ProviderDialCardContent: View {
         } else if let onOpen, !needsReconnect {
             Button(action: onOpen) { cardContent }
                 .buttonStyle(.plain)
-                .accessibilityIdentifier(name == "Codex" ? "codexServiceCard" : "claudeServiceCard")
+                .accessibilityIdentifier(name == "Codex" ? "codexServiceCard" : name == "Devin" ? "devinServiceCard" : "claudeServiceCard")
                 .accessibilityHint("Opens \(name) service sheet")
         } else {
             cardContent

@@ -4,9 +4,21 @@ import Darwin
 import MobileAccessCore
 
 enum QuotaService: String, Codable, CaseIterable, Sendable {
-    case codex, claude
-    var name: String { self == .codex ? "Codex" : "Claude" }
-    var logo: String { self == .codex ? "logo-openai" : "logo-claude" }
+    case codex, claude, devin
+    var name: String {
+        switch self {
+        case .codex: "Codex"
+        case .claude: "Claude"
+        case .devin: "Devin"
+        }
+    }
+    var logo: String {
+        switch self {
+        case .codex: "logo-openai"
+        case .claude: "logo-claude"
+        case .devin: "logo-devin"
+        }
+    }
     var url: URL { URL(string: "aiquota-probe://\(rawValue)")! }
 }
 protocol QuotaCredentials: Codable, Sendable {
@@ -14,6 +26,10 @@ protocol QuotaCredentials: Codable, Sendable {
 }
 extension CodexTokens: QuotaCredentials {}
 extension ClaudeTokens: QuotaCredentials {}
+extension DevinTokens: QuotaCredentials {
+    /// Devin session tokens carry no expiry we can see; renewal is a no-op.
+    public func needsRefresh(at date: Date) -> Bool { false }
+}
 
 /// Both processes use this one credential authority and lock across renewal AND persistence.
 /// The OS releases the file lease if a process exits. The main actor never waits synchronously.
@@ -173,7 +189,32 @@ struct SharedQuotaStore: Sendable {
             let api = ClaudeAPI()
             return try await fetch(ClaudeTokens.self, source: source, forceRenewal: forceRenewal, minimumAge: minimumAge,
                                    renew: { try await api.renew($0) }, usage: { try await api.usage($0) })
+        case .devin:
+            return try await fetch(DevinTokens.self, source: source, forceRenewal: forceRenewal, minimumAge: minimumAge,
+                                   renew: { $0 }, usage: { try await devinReading($0) })
         }
+    }
+
+    /// Pure fetch — does not save a reading. Doubles as the token-validation
+    /// probe for the paste-token sign-in.
+    func devinReadingProbe(_ tokens: DevinTokens) async throws -> QuotaReading {
+        try await devinReading(tokens)
+    }
+
+    private func devinReading(_ tokens: DevinTokens) async throws -> QuotaReading {
+        let request = DevinAPI.userStatusRequest(apiServerURL: tokens.serverURL, apiKey: tokens.apiKey)
+        let config = URLSessionConfiguration.ephemeral
+        config.timeoutIntervalForRequest = 15
+        config.httpShouldSetCookies = false
+        let (data, response) = try await URLSession(configuration: config).data(for: request)
+        guard let http = response as? HTTPURLResponse else { throw AccessError.invalidResponse }
+        guard (200...299).contains(http.statusCode) else {
+            if http.statusCode == 429 { throw AccessError.http(429) }
+            if http.statusCode == 401 || http.statusCode == 403 { throw AccessError.http(401) }
+            throw AccessError.http(http.statusCode)
+        }
+        let usage = try DevinAPI.decodeUserStatus(data, now: .now, source: .manual)
+        return DevinAPI.makeReading(from: usage)
     }
     static func safeFailureCode(_ error: Error) -> String {
         if let error = error as? ClaudeAccessError {

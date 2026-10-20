@@ -16,7 +16,7 @@ struct DemoBanner: View {
         HStack(alignment: .center, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
                 Label("Demo", systemImage: "sparkles").font(.headline)
-                Text("Sample usage for Codex and Claude.").font(.subheadline)
+                Text("Sample usage for Codex, Claude, and Devin.").font(.subheadline)
                     .foregroundStyle(OverviewStyle.secondary)
             }
             Spacer(minLength: 0)
@@ -58,6 +58,7 @@ struct DemoNotificationControls: View {
     @State private var enabled = true
     @State private var codex = true
     @State private var claude = true
+    @State private var devin = true
     @State private var nearLimit = true
     @State private var threshold = 85.0
     @State private var reset = true
@@ -73,6 +74,7 @@ struct DemoNotificationControls: View {
                     Text("Services").font(.headline)
                     Toggle("Codex", isOn: $codex)
                     Toggle("Claude Code", isOn: $claude)
+                    Toggle("Devin", isOn: $devin)
                 }
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Sample alerts").font(.headline)

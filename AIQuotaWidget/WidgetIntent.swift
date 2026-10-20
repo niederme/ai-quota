@@ -22,11 +22,13 @@ struct RefreshWidgetIntent: AppIntent {
 enum ServiceOption: String, AppEnum {
     case codex
     case claude
+    case devin
 
     nonisolated(unsafe) static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Service")
     nonisolated(unsafe) static var caseDisplayRepresentations: [ServiceOption: DisplayRepresentation] = [
         .codex:  .init(title: "Codex"),
         .claude: .init(title: "Claude Code"),
+        .devin:  .init(title: "Devin"),
     ]
 }
 
@@ -38,7 +40,3 @@ struct ConfigurationAppIntent: WidgetConfigurationIntent {
     var service: ServiceOption
 }
 
-struct MediumConfigurationAppIntent: WidgetConfigurationIntent {
-    nonisolated(unsafe) static var title: LocalizedStringResource = "AIQuota"
-    nonisolated(unsafe) static var description = IntentDescription("Shows both Codex and Claude Code usage.")
-}

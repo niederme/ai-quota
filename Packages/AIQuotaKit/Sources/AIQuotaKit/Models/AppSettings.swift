@@ -6,11 +6,13 @@ import Foundation
 public enum ServiceType: String, Codable, CaseIterable, Sendable {
     case codex  = "codex"   // OpenAI Codex via chatgpt.com
     case claude = "claude"  // Claude via claude.ai
+    case devin  = "devin"   // Devin via the Devin CLI / desktop app's local session
 
     public var displayName: String {
         switch self {
         case .codex:  "Codex"
         case .claude: "Claude Code"
+        case .devin:  "Devin"
         }
     }
 
@@ -18,6 +20,7 @@ public enum ServiceType: String, Codable, CaseIterable, Sendable {
         switch self {
         case .codex:  "brain.fill"
         case .claude: "sparkles"
+        case .devin:  "terminal"
         }
     }
 }
@@ -30,13 +33,15 @@ public enum MenuBarDisplayMode: String, Codable, CaseIterable, Sendable {
 public enum MenuBarDisplayOption: String, CaseIterable, Sendable {
     case codex
     case claude
+    case devin
     case both
 
     public var displayName: String {
         switch self {
         case .codex: "Codex"
         case .claude: "Claude Code"
-        case .both: "Both"
+        case .devin: "Devin"
+        case .both: "All"
         }
     }
 
@@ -44,20 +49,21 @@ public enum MenuBarDisplayOption: String, CaseIterable, Sendable {
         switch self {
         case .codex: .codex
         case .claude: .claude
+        case .devin: .devin
         case .both: nil
         }
     }
 
     public static func current(settings: AppSettings, enrolledServices: Set<ServiceType>) -> MenuBarDisplayOption {
         if settings.menuBarDisplayMode == .both,
-           enrolledServices.contains(.codex),
-           enrolledServices.contains(.claude) {
+           enrolledServices.count >= 2 {
             return .both
         }
 
         return switch settings.menuBarService {
         case .codex: .codex
         case .claude: .claude
+        case .devin: .devin
         }
     }
 }
@@ -71,6 +77,7 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
     // Per-service master switches
     public var codexEnabled: Bool = true
     public var claudeEnabled: Bool = true
+    public var devinEnabled: Bool = true
 
     // Codex — 5-hour window
     public var codex5hAt15: Bool = true
@@ -96,6 +103,18 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
     public var claude7dLimitReached: Bool = true
     public var claude7dReset: Bool = true
 
+    // Devin — daily window
+    public var devinDailyAt15: Bool = true
+    public var devinDailyAt5: Bool = true
+    public var devinDailyLimitReached: Bool = true
+    public var devinDailyReset: Bool = true
+
+    // Devin — weekly window
+    public var devinWeeklyAt80: Bool = true     // 80% used
+    public var devinWeeklyAt95: Bool = true     // 95% used
+    public var devinWeeklyLimitReached: Bool = true
+    public var devinWeeklyReset: Bool = true
+
     // Codex — credit top-up events
     public var codexTopUp: Bool = true          // balance jump > 50 credits
 
@@ -103,6 +122,8 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
     public var codexResetMinimum: Int = 90
     public var claude5hResetMinimum: Int = 90
     public var claude7dResetMinimum: Int = 90
+    public var devinDailyResetMinimum: Int = 90
+    public var devinWeeklyResetMinimum: Int = 90
 
     public init() {}
 
@@ -128,6 +149,17 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
         claude7dAt95         = try c.decodeIfPresent(Bool.self, forKey: .claude7dAt95)         ?? true
         claude7dLimitReached = try c.decodeIfPresent(Bool.self, forKey: .claude7dLimitReached) ?? true
         claude7dReset        = try c.decodeIfPresent(Bool.self, forKey: .claude7dReset)        ?? true
+        devinEnabled         = try c.decodeIfPresent(Bool.self, forKey: .devinEnabled)         ?? true
+        devinDailyAt15       = try c.decodeIfPresent(Bool.self, forKey: .devinDailyAt15)       ?? true
+        devinDailyAt5        = try c.decodeIfPresent(Bool.self, forKey: .devinDailyAt5)        ?? true
+        devinDailyLimitReached = try c.decodeIfPresent(Bool.self, forKey: .devinDailyLimitReached) ?? true
+        devinDailyReset      = try c.decodeIfPresent(Bool.self, forKey: .devinDailyReset)      ?? true
+        devinWeeklyAt80      = try c.decodeIfPresent(Bool.self, forKey: .devinWeeklyAt80)      ?? true
+        devinWeeklyAt95      = try c.decodeIfPresent(Bool.self, forKey: .devinWeeklyAt95)      ?? true
+        devinWeeklyLimitReached = try c.decodeIfPresent(Bool.self, forKey: .devinWeeklyLimitReached) ?? true
+        devinWeeklyReset     = try c.decodeIfPresent(Bool.self, forKey: .devinWeeklyReset)     ?? true
+        devinDailyResetMinimum = min(100, max(0, try c.decodeIfPresent(Int.self, forKey: .devinDailyResetMinimum) ?? 90))
+        devinWeeklyResetMinimum = min(100, max(0, try c.decodeIfPresent(Int.self, forKey: .devinWeeklyResetMinimum) ?? 90))
         codex5hResetMinimum = min(100, max(0, try c.decodeIfPresent(Int.self, forKey: .codex5hResetMinimum) ?? 90))
         codexResetMinimum = min(100, max(0, try c.decodeIfPresent(Int.self, forKey: .codexResetMinimum) ?? 90))
         claude5hResetMinimum = min(100, max(0, try c.decodeIfPresent(Int.self, forKey: .claude5hResetMinimum) ?? 90))
@@ -159,6 +191,16 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
         set { claude7dAt80 = newValue; claude7dAt95 = newValue; claude7dLimitReached = newValue }
     }
 
+    public var devinDailyThresholdAlerts: Bool {
+        get { devinDailyAt15 || devinDailyAt5 || devinDailyLimitReached }
+        set { devinDailyAt15 = newValue; devinDailyAt5 = newValue; devinDailyLimitReached = newValue }
+    }
+
+    public var devinWeeklyThresholdAlerts: Bool {
+        get { devinWeeklyAt80 || devinWeeklyAt95 || devinWeeklyLimitReached }
+        set { devinWeeklyAt80 = newValue; devinWeeklyAt95 = newValue; devinWeeklyLimitReached = newValue }
+    }
+
     // MARK: - Migration
 
     /// Normalises any threshold group where the three underlying booleans are not all
@@ -176,6 +218,8 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
         normalize(&codexAt15,    &codexAt5,    &codexLimitReached)
         normalize(&claude5hAt15, &claude5hAt5, &claude5hLimitReached)
         normalize(&claude7dAt80, &claude7dAt95, &claude7dLimitReached)
+        normalize(&devinDailyAt15, &devinDailyAt5, &devinDailyLimitReached)
+        normalize(&devinWeeklyAt80, &devinWeeklyAt95, &devinWeeklyLimitReached)
     }
 }
 

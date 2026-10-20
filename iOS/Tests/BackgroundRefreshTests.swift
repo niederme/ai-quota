@@ -20,7 +20,7 @@ private actor BackgroundCalls {
         await fulfillment(of: [done], timeout: 2)
         run.expire()
         let count = await calls.count()
-        XCTAssertEqual(count, 2)
+        XCTAssertEqual(count, QuotaService.allCases.count)
         XCTAssertEqual(schedules, 1); XCTAssertEqual(reloads, 1); XCTAssertEqual(completions, [true])
     }
     func testProviderFailureDoesNotPreventOtherProviderOrSavedStateReload() async {
@@ -35,7 +35,7 @@ private actor BackgroundCalls {
         run.start()
         await fulfillment(of: [done], timeout: 2)
         let count = await calls.count()
-        XCTAssertEqual(count, 2); XCTAssertEqual(schedules, 1)
+        XCTAssertEqual(count, QuotaService.allCases.count); XCTAssertEqual(schedules, 1)
         XCTAssertEqual(reloads, 1); XCTAssertEqual(completions, [false])
     }
     func testExpirationCancelsWorkAndCompletesOnlyOnceWithoutClaimingSuccess() async {

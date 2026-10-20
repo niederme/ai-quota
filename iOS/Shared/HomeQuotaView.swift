@@ -71,7 +71,7 @@ struct HomeQuotaView: View {
         let enrolled = values.filter { $0.reading != nil || $0.needsApp }
         return enrolled.count == 1 ? enrolled : values
     }
-    private func name(_ value: ProviderReading) -> String { value.service == .claude ? "Claude Code" : "Codex" }
+    private func name(_ value: ProviderReading) -> String { value.service == .claude ? "Claude Code" : value.service.name }
     private func stale(_ value: ProviderReading) -> Bool { WidgetReadingStatus.isSaved(value.reading, needsApp: value.needsApp, updateFailed: value.updateFailed, at: date) }
     private func tint(_ value: ProviderReading) -> Color {
         guard value.reading != nil, !stale(value) else { return .secondary }

@@ -112,6 +112,7 @@ public struct QuotaWindow: Codable, Sendable, Equatable, Identifiable {
     }
     public var label: String {
         switch durationSeconds {
+        case 86400: "Daily"
         case 604800: "Weekly"
         case 28 * 86400...31 * 86400: "Monthly"
         default: durationSeconds.isMultiple(of: 86400)

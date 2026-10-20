@@ -2,6 +2,7 @@ import SwiftUI
 import ServiceManagement
 import UserNotifications
 import AIQuotaKit
+import MobileAccessCore
 
 struct SettingsView: View {
     @Environment(QuotaViewModel.self) private var viewModel
@@ -118,6 +119,16 @@ struct SettingsView: View {
                             service: .claude,
                             logo: "logo-claude",
                             isOn: $vm.settings.notifications.claudeEnabled,
+                            isEnabled: notifSectionsEnabled,
+                            preferences: $vm.settings.notifications
+                        )
+                    }
+
+                    if viewModel.isDevinEnrolled {
+                        NotificationServiceRow(
+                            service: .devin,
+                            logo: "logo-devin",
+                            isOn: $vm.settings.notifications.devinEnabled,
                             isEnabled: notifSectionsEnabled,
                             preferences: $vm.settings.notifications
                         )
@@ -246,6 +257,9 @@ struct SettingsView: View {
         case .claude:
             settings.menuBarDisplayMode = .single
             settings.menuBarService = .claude
+        case .devin:
+            settings.menuBarDisplayMode = .single
+            settings.menuBarService = .devin
         case .both:
             settings.menuBarDisplayMode = .both
         }
@@ -336,6 +350,23 @@ struct NotificationInlineControls: View {
             codexControls
         case .claude:
             claudeControls
+        case .devin:
+            devinControls
+        }
+    }
+
+    @ViewBuilder
+    private var devinControls: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            notificationOptionGroup("Daily quota") {
+                notificationCheckbox("Usage alerts", isOn: $preferences.devinDailyThresholdAlerts)
+                resetAlertControls(enabled: $preferences.devinDailyReset, minimum: $preferences.devinDailyResetMinimum)
+            }
+
+            notificationOptionGroup("Weekly quota") {
+                notificationCheckbox("Usage alerts", isOn: $preferences.devinWeeklyThresholdAlerts)
+                resetAlertControls(enabled: $preferences.devinWeeklyReset, minimum: $preferences.devinWeeklyResetMinimum)
+            }
         }
     }
 
@@ -419,6 +450,7 @@ private struct AccountDiagnosticsRows: View {
     @Environment(QuotaViewModel.self) private var viewModel
     @State private var codexAttempts: [CodexSourceAttempt] = []
     @State private var claudeAttempts: [ClaudeSourceAttempt] = []
+    @State private var devinAttempts: [DevinSourceAttempt] = []
     @AppStorage(ClaudeOAuthKeychainReader.consentDefaultsKey) private var reuseClaudeCodeKeychain = false
 
     @State private var resetNotice = CodexResetNotice()
@@ -478,6 +510,25 @@ private struct AccountDiagnosticsRows: View {
             signOut: { viewModel.signOutClaude() }
         )
 
+        AccountServiceStatusRow(
+            label: "Devin",
+            logo: "logo-devin",
+            isAuthenticated: viewModel.isDevinAuthenticated,
+            statusDetail: statusDetail(isAuthenticated: viewModel.isDevinAuthenticated, attempt: devinAttempts.last),
+            statusColor: statusColor(isAuthenticated: viewModel.isDevinAuthenticated, attempt: devinAttempts.last),
+            signIn: { Task { await viewModel.signInDevin() } },
+            signOut: { viewModel.signOutDevin() }
+        )
+
+        if !viewModel.isDevinAuthenticated {
+            DevinManualTokenEntry()
+        }
+
+        Text("Devin connects using the session Devin already keeps on this Mac (Devin CLI or the Devin app). Nothing in Devin's own files is modified.")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+
         if AppDistribution.allowsHostCredentialDiscovery {
             VStack(alignment: .leading, spacing: 4) {
                 Toggle("Reuse Claude Code Keychain credentials", isOn: $reuseClaudeCodeKeychain)
@@ -495,7 +546,7 @@ private struct AccountDiagnosticsRows: View {
         }
 
         VStack(alignment: .leading, spacing: 2) {
-            Text("Copy Diagnostics includes both services: auth source, HTTP status, error category, and timestamp.")
+            Text("Copy Diagnostics includes all services: auth source, HTTP status, error category, and timestamp.")
             Text("No tokens, headers, cookies, or response bodies are included.")
         }
         .font(.footnote)
@@ -507,6 +558,7 @@ private struct AccountDiagnosticsRows: View {
     private func reload() {
         codexAttempts = SharedDefaults.loadCodexSourceAttempts()
         claudeAttempts = SharedDefaults.loadClaudeSourceAttempts()
+        devinAttempts = SharedDefaults.loadDevinSourceAttempts()
     }
 
     private func statusDetail(isAuthenticated: Bool, attempt: CodexSourceAttempt?) -> String {
@@ -551,6 +603,27 @@ private struct AccountDiagnosticsRows: View {
         }
     }
 
+    private func statusDetail(isAuthenticated: Bool, attempt: DevinSourceAttempt?) -> String {
+        guard isAuthenticated else { return "Not connected" }
+        guard let attempt else { return "Not checked yet" }
+        if attempt.errorCategory == .success {
+            return "\(sourceName(attempt.source)) · checked \(relativeTime(attempt.timestamp))"
+        }
+        return "\(statusMessage(for: attempt.errorCategory)) · checked \(relativeTime(attempt.timestamp))"
+    }
+
+    private func statusColor(isAuthenticated: Bool, attempt: DevinSourceAttempt?) -> Color {
+        guard isAuthenticated, let attempt else { return .secondary }
+        switch attempt.errorCategory {
+        case .success:
+            return .green
+        case .missingCredentials, .authFailed:
+            return .red
+        case .rateLimited, .serverError, .network, .invalidResponse:
+            return .orange
+        }
+    }
+
     private func copyDiagnostics() {
         reload()
         let pasteboard = NSPasteboard.general
@@ -572,6 +645,11 @@ private struct AccountDiagnosticsRows: View {
         lines.append("Claude attempts:")
         lines.append(contentsOf: claudeAttempts.map(claudeLine))
         if claudeAttempts.isEmpty { lines.append("- none") }
+
+        lines.append("")
+        lines.append("Devin attempts:")
+        lines.append(contentsOf: devinAttempts.map(devinLine))
+        if devinAttempts.isEmpty { lines.append("- none") }
         return lines.joined(separator: "\n")
     }
 
@@ -580,6 +658,10 @@ private struct AccountDiagnosticsRows: View {
     }
 
     private func claudeLine(_ attempt: ClaudeSourceAttempt) -> String {
+        "- \(Self.timestampFormatter.string(from: attempt.timestamp)) source=\(attempt.source.rawValue) category=\(attempt.errorCategory.rawValue) httpStatus=\(attempt.httpStatus.map(String.init) ?? "none")"
+    }
+
+    private func devinLine(_ attempt: DevinSourceAttempt) -> String {
         "- \(Self.timestampFormatter.string(from: attempt.timestamp)) source=\(attempt.source.rawValue) category=\(attempt.errorCategory.rawValue) httpStatus=\(attempt.httpStatus.map(String.init) ?? "none")"
     }
 
@@ -595,6 +677,15 @@ private struct AccountDiagnosticsRows: View {
         switch source {
         case .oauth: "Claude Code"
         case .web: "Web"
+        case .unknown: "Unknown"
+        }
+    }
+
+    private func sourceName(_ source: DevinUsage.Source) -> String {
+        switch source {
+        case .cli: "Devin CLI"
+        case .appState: "Devin app"
+        case .manual: "Manual token"
         case .unknown: "Unknown"
         }
     }
@@ -653,6 +744,25 @@ private struct AccountDiagnosticsRows: View {
         }
     }
 
+    private func statusMessage(for category: DevinSourceAttempt.ErrorCategory) -> String {
+        switch category {
+        case .success:
+            "Working"
+        case .missingCredentials:
+            "No Devin session found"
+        case .authFailed:
+            "Devin session needs attention"
+        case .rateLimited:
+            "Rate limited"
+        case .serverError:
+            "Service issue"
+        case .network:
+            "Network issue"
+        case .invalidResponse:
+            "Unexpected response"
+        }
+    }
+
     private func relativeTime(_ date: Date) -> String {
         Self.relativeFormatter.localizedString(for: date, relativeTo: .now)
     }
@@ -664,6 +774,49 @@ private struct AccountDiagnosticsRows: View {
     }()
 
     private static let timestampFormatter = ISO8601DateFormatter()
+}
+
+/// Fallback for machines where no Devin CLI/app session can be discovered
+/// (including the sandboxed TestFlight build, which cannot read Devin's files).
+private struct DevinManualTokenEntry: View {
+    @Environment(QuotaViewModel.self) private var viewModel
+    @State private var token = ""
+    @State private var isVerifying = false
+    @State private var rejected = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            SecureField("Devin session token (optional)", text: $token)
+                .textFieldStyle(.roundedBorder)
+                .disabled(isVerifying)
+            HStack(spacing: 8) {
+                Button(isVerifying ? "Connecting…" : "Connect with token") { connect() }
+                    .controlSize(.small)
+                    .disabled(token.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isVerifying)
+                if rejected {
+                    Text("Token not accepted")
+                        .font(.footnote)
+                        .foregroundStyle(.red)
+                }
+            }
+        }
+    }
+
+    private func connect() {
+        let value = token.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { return }
+        isVerifying = true
+        rejected = false
+        Task {
+            do {
+                try await viewModel.signInDevin(manualToken: value)
+                token = ""
+            } catch {
+                rejected = true
+            }
+            isVerifying = false
+        }
+    }
 }
 
 private struct AccountServiceStatusRow: View {
@@ -820,8 +973,10 @@ private struct MenuBarDisplaySegmentedPicker: View {
             enrolledServices.contains(.codex)
         case .claude:
             enrolledServices.contains(.claude)
+        case .devin:
+            enrolledServices.contains(.devin)
         case .both:
-            enrolledServices.contains(.codex) && enrolledServices.contains(.claude)
+            enrolledServices.count >= 2
         }
     }
 }

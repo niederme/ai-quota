@@ -17,7 +17,7 @@ final class DemoFlowTests: XCTestCase {
         XCTAssertFalse(app.buttons["Continue"].isEnabled)
         app.buttons["Back"].tap()
         tryDemo.tap()
-        let sample = app.staticTexts["Sample usage for Codex and Claude."]
+        let sample = app.staticTexts["Sample usage for Codex, Claude, and Devin."]
         XCTAssertTrue(sample.waitForExistence(timeout: 5))
         let resetBanner = app.staticTexts["Codex usage reset announced"]
         let resetLink = app.buttons["Check Codex resets"]
@@ -78,7 +78,10 @@ final class DemoFlowTests: XCTestCase {
         attachment.lifetime = .keepAlways
         add(attachment)
         finish.tap()
-        let exit = app.buttons["Exit demo"].firstMatch
+        // "Return to demo" pops guided setup but the Settings sheet stays presented,
+        // covering the demo banner's own Exit demo. Tap the one inside the sheet.
+        XCTAssertTrue(app.navigationBars["Demo setup"].waitForNonExistence(timeout: 5))
+        let exit = app.collectionViews.buttons["Exit demo"].firstMatch
         XCTAssertTrue(exit.waitForExistence(timeout: 5))
         exit.tap()
         XCTAssertTrue(app.navigationBars["Set up AIQuota"].waitForExistence(timeout: 5))

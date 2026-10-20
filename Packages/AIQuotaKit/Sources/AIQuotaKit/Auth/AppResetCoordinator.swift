@@ -1,12 +1,13 @@
 import Foundation
 import os
 
-/// Orchestrates a full reset across both service coordinators.
+/// Orchestrates a full reset across all service coordinators.
 /// Auth reset must complete before product state is cleared.
 public actor AppResetCoordinator {
 
     private let claude: ClaudeAuthCoordinator
     private let codex: CodexAuthCoordinator
+    private let devin: DevinAuthCoordinator
     private let logger = Logger(subsystem: "ai.quota", category: "reset")
 
     public struct ResetResult: Sendable {
@@ -14,33 +15,38 @@ public actor AppResetCoordinator {
         public let warnings: [String]
     }
 
-    public init(claude: ClaudeAuthCoordinator, codex: CodexAuthCoordinator) {
+    public init(claude: ClaudeAuthCoordinator, codex: CodexAuthCoordinator, devin: DevinAuthCoordinator) {
         self.claude = claude
         self.codex = codex
+        self.devin = devin
     }
 
-    /// Resets both service coordinators to signedOutByUser.
+    /// Resets all service coordinators to signedOutByUser.
     /// Caller must stop and await the refresh loop before calling this.
-    /// Returns after both coordinators have reached a stable terminal state.
+    /// Returns after all coordinators have reached a stable terminal state.
     public func reset() async -> ResetResult {
         logger.info("[AppReset] beginning cross-service reset")
 
-        // Run both auth resets concurrently.
         async let claudeReset: Void = claude.reset()
         async let codexReset: Void = codex.reset()
-        _ = await (claudeReset, codexReset)
+        async let devinReset: Void = devin.reset()
+        _ = await (claudeReset, codexReset, devinReset)
 
-        logger.info("[AppReset] both coordinators reached terminal state")
+        logger.info("[AppReset] all coordinators reached terminal state")
 
-        // Verify both are in signedOutByUser.
+        // Verify all are in signedOutByUser.
         let claudeState = await claude.state
         let codexState  = await codex.state
+        let devinState  = await devin.state
         var warnings: [String] = []
         if claudeState != .signedOutByUser {
             warnings.append("Claude coordinator ended in unexpected state: \(claudeState)")
         }
         if codexState != .signedOutByUser {
             warnings.append("Codex coordinator ended in unexpected state: \(codexState)")
+        }
+        if devinState != .signedOutByUser {
+            warnings.append("Devin coordinator ended in unexpected state: \(devinState)")
         }
         if !warnings.isEmpty { logger.warning("[AppReset] \(warnings.joined(separator: "; "))") }
 
