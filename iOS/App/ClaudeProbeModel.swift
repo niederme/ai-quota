@@ -93,7 +93,18 @@ final class ClaudeProbeModel {
     /// OAuth allowance shown above it. Never infer this from the plan name.
     func organizationID() async -> String? {
         guard let tokens else { return nil }
-        return try? await api.organizationID(tokens)
+        do {
+            return try await api.organizationID(tokens)
+        } catch let accessError as ClaudeAccessError where accessError.requiresReconnect {
+            connectionFailure = .reconnect
+            error = "Claude sign-in expired. Reconnect to continue. Your last reading is saved."
+            return nil
+        } catch {
+            // Profile lookup can fail independently of the saved allowance.
+            // A policy response or network problem is not proof of expired auth.
+            self.error = "Couldn’t verify the Claude organization. Try again."
+            return nil
+        }
     }
     func refreshOnOpen() {
         guard !isDemo else { refresh(); return }

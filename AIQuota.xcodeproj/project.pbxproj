@@ -164,6 +164,7 @@
 		F5056A18C223AC3EBA06A946 /* SharedQuotaStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A827B61B801F45B571C22D4 /* SharedQuotaStore.swift */; };
 		F6564018685503ADEE6165C2 /* DoneStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20C382E39D030AC581CA9B4 /* DoneStepView.swift */; };
 		FC5F1405D182501F5FFAC02C /* AIQuotaWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4392F2EBD4EFDCA51009B2E9 /* AIQuotaWidgetBundle.swift */; };
+		FE45C4F9326BB41F8E6395FF /* ClaudeReconnectPromptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90F339EED4E57F5EF82149E5 /* ClaudeReconnectPromptTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -311,6 +312,7 @@
 		8C0ACC770721BA686B7B6401 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8D95553FAC04DFF7EC1268BF /* MobileAnalytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileAnalytics.swift; sourceTree = "<group>"; };
 		8DE0C98D698289C7424807C8 /* AIQuota-iOSUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = "AIQuota-iOSUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		90F339EED4E57F5EF82149E5 /* ClaudeReconnectPromptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeReconnectPromptTests.swift; sourceTree = "<group>"; };
 		9209085EEB25A6FC729B4DD8 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		926FEB7F8D7432AC85C40F34 /* Mobile.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Mobile.entitlements; sourceTree = "<group>"; };
 		94EF7D48855FADE21AE0B407 /* AIQuotaWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AIQuotaWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -585,6 +587,7 @@
 				7DBB1105806AD7DD4ABC91E9 /* BackgroundRefreshTests.swift */,
 				FB52A74E8799BDEFB61FFF62 /* BaseScreenReviewTests.swift */,
 				065ADF5600B820E82899F732 /* ClaudeAnalyticsTests.swift */,
+				90F339EED4E57F5EF82149E5 /* ClaudeReconnectPromptTests.swift */,
 				C2B17E24014F0F3200B311E8 /* CodexAnalyticsTests.swift */,
 				D52F88BFBFBF549EA3102907 /* CodexResetNoticeTests.swift */,
 				E965708E9D49E52DD918B557 /* CreditsDisplayTests.swift */,
@@ -1259,6 +1262,7 @@
 				E33E9AF4802830F62830D735 /* BackgroundRefreshTests.swift in Sources */,
 				1480C81463CDB8E0AEB89C84 /* BaseScreenReviewTests.swift in Sources */,
 				7CF47B58B590EFF9D53F33E6 /* ClaudeAnalyticsTests.swift in Sources */,
+				FE45C4F9326BB41F8E6395FF /* ClaudeReconnectPromptTests.swift in Sources */,
 				D95772B447C6100505A3D72B /* CodexAnalyticsTests.swift in Sources */,
 				24BC6BA77116E7B799ADB68C /* CodexResetNoticeTests.swift in Sources */,
 				A8887B9AC256A6326AB5AA9D /* CreditsDisplayTests.swift in Sources */,

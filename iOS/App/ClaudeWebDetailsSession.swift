@@ -21,6 +21,7 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
     private var expectedOrganizationID: String?
     private var isProbing = false
     private var generation = UUID()
+    private var savedClaudeCookies: [HTTPCookie]?
     @ObservationIgnored let webView: WKWebView
 
     override init() {
@@ -43,9 +44,40 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
         webView.load(URLRequest(url: URL(string: "https://claude.ai/settings/usage")!))
     }
 
-    func signIn() {
+    /// Begin a reversible change to the app-owned Claude web session. The
+    /// existing OAuth allowance is untouched throughout this transaction.
+    func beginReconnect(loadPage: Bool = true) async {
+        generation = UUID()
+        webView.stopLoading()
+        let store = WKWebsiteDataStore.default().httpCookieStore
+        let cookies = await withCheckedContinuation { continuation in
+            store.getAllCookies { continuation.resume(returning: $0) }
+        }
+        let claudeCookies = cookies.filter(Self.isClaudeCookie)
+        savedClaudeCookies = claudeCookies
+        for cookie in claudeCookies {
+            await withCheckedContinuation { continuation in
+                store.delete(cookie) { continuation.resume() }
+            }
+        }
         state = .checking
-        webView.load(URLRequest(url: URL(string: "https://claude.ai/settings/usage")!))
+        if loadPage {
+            webView.load(URLRequest(url: URL(string: "https://claude.ai/settings/usage")!))
+        }
+    }
+
+    /// Dismissing login restores the previous web account, if any.
+    func cancelReconnect() async {
+        guard let cookies = savedClaudeCookies else { return }
+        savedClaudeCookies = nil
+        let store = WKWebsiteDataStore.default().httpCookieStore
+        for cookie in cookies {
+            await withCheckedContinuation { continuation in
+                store.setCookie(cookie) { continuation.resume() }
+            }
+        }
+        generation = UUID()
+        state = .idle
     }
 
     func refresh() {
@@ -130,9 +162,10 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
             }
             detailsLoading = true
             state = .ready
+            savedClaudeCookies = nil
             await loadDetails(organizationID: matchingOrganization.uuid, requestID: requestID)
             if generation == requestID { detailsLoading = false }
-        } catch ClaudeWebDetailError.http(let status) where status == 401 || status == 403 {
+        } catch ClaudeWebDetailError.http(401) {
             detailsLoading = false
             state = .signInRequired
         } catch {
@@ -180,11 +213,15 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
         let cookies = await withCheckedContinuation { continuation in
             store.getAllCookies { continuation.resume(returning: $0) }
         }
-        for cookie in cookies where cookie.domain == "claude.ai" || cookie.domain.hasSuffix(".claude.ai") {
+        for cookie in cookies where isClaudeCookie(cookie) {
             await withCheckedContinuation { continuation in
                 store.delete(cookie) { continuation.resume() }
             }
         }
+    }
+
+    private static func isClaudeCookie(_ cookie: HTTPCookie) -> Bool {
+        cookie.domain == "claude.ai" || cookie.domain.hasSuffix(".claude.ai")
     }
 }
 

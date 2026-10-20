@@ -2,13 +2,16 @@ import Charts
 import SwiftUI
 import MobileAccessCore
 
-/// Native Claude Enterprise analytics. The OAuth allowance remains visible
-/// independently when the web detail session is unavailable.
+/// Native Claude Enterprise analytics. A missing web session is handled by a
+/// single, reversible Claude reconnect prompt, not a second connection card.
 struct ClaudeEnterpriseDetailView: View {
     let account: ClaudeProbeModel
     @State private var session = ClaudeWebDetailsSession()
     @State private var showSignIn = false
     @State private var showPopup = false
+    @State private var showReconnectPrompt = false
+    @State private var reconnectExplanation = ""
+    @State private var reconnectGate = ClaudeReconnectPromptGate()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -16,12 +19,10 @@ struct ClaudeEnterpriseDetailView: View {
             case .idle, .checking:
                 ProgressView("Loading Claude details…")
                     .frame(maxWidth: .infinity, alignment: .leading)
-            case .signInRequired:
-                connectionCard("Connect Claude details", detail: "Sign in to Claude to see spend by product and top skills here.")
-            case .accountMismatch:
-                connectionCard("Different Claude account", detail: "Sign in with the same Enterprise organization as your allowance.")
+            case .signInRequired, .accountMismatch:
+                EmptyView()
             case .unavailable:
-                connectionCard("Claude details unavailable", detail: "Couldn’t verify the Claude web session. Try again.")
+                compactUnavailable("Claude details unavailable")
             case .ready:
                 if session.detailsLoading && session.spend == nil && session.skills == nil {
                     ProgressView("Loading spend and skills…")
@@ -40,13 +41,30 @@ struct ClaudeEnterpriseDetailView: View {
             }
         }
         .task { session.start(expectedOrganizationID: await account.organizationID()) }
-        .sheet(isPresented: $showSignIn) {
+        .sheet(isPresented: $showSignIn, onDismiss: {
+            Task { await session.cancelReconnect() }
+        }) {
             NavigationStack {
-                ClaudeWebSurface(webView: session.webView)
+                VStack(spacing: 0) {
+                    ClaudeWebSurface(webView: session.webView)
+                    if session.state == .accountMismatch || session.state == .unavailable {
+                        HStack(spacing: 12) {
+                            Text(session.state == .accountMismatch
+                                 ? "Use the Claude account for this Enterprise organization."
+                                 : "Couldn’t verify this sign-in.")
+                                .font(.footnote)
+                            Spacer(minLength: 0)
+                            Button("Check again") { session.refresh() }
+                                .font(.footnote.weight(.semibold))
+                        }
+                        .padding(12)
+                        .background(OverviewStyle.track)
+                    }
+                }
                     .navigationTitle("Sign in to Claude")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar { ToolbarItem(placement: .topBarTrailing) {
-                        Button("Done") { showSignIn = false; session.refresh() }
+                        Button("Cancel") { showSignIn = false }
                     } }
             }
             .sheet(isPresented: $showPopup) {
@@ -65,24 +83,19 @@ struct ClaudeEnterpriseDetailView: View {
         .onChange(of: session.popup) { _, popup in showPopup = popup != nil }
         .onChange(of: session.state) { _, state in
             if state == .ready { showSignIn = false }
-        }
-    }
-
-    private func connectionCard(_ title: String, detail: String) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title).font(.headline)
-            Text(detail).font(.callout).foregroundStyle(OverviewStyle.secondary)
-            HStack {
-                if session.state == .signInRequired || session.state == .accountMismatch {
-                    Button("Sign in to Claude") { showSignIn = true; session.signIn() }
-                        .buttonStyle(.borderedProminent)
-                }
-                Button("Try again") { retry() }.buttonStyle(.bordered)
+            if reconnectGate.shouldPrompt(for: state, signInVisible: showSignIn) {
+                reconnectExplanation = state == .accountMismatch
+                    ? "This Claude sign-in belongs to another organization. Reconnect with the Enterprise organization shown in your allowance? Cancel keeps your current connection."
+                    : "Your current Claude connection can show the allowance, but Claude requires a web sign-in for spend and skills. Reconnect to enable those details? Cancel keeps your current connection."
+                showReconnectPrompt = true
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .modifier(OverviewCardMaterial())
+        .alert("Reconnect Claude", isPresented: $showReconnectPrompt) {
+            Button("Cancel", role: .cancel) { }
+            Button("Reconnect") {
+                Task { await session.beginReconnect(); showSignIn = true }
+            }
+        } message: { Text(reconnectExplanation) }
     }
 
     private func compactUnavailable(_ title: String) -> some View {
@@ -176,5 +189,18 @@ struct ClaudeEnterpriseDetailView: View {
 
     private func retry() {
         Task { session.start(expectedOrganizationID: await account.organizationID()) }
+    }
+}
+
+/// Limits automatic reconnect prompts to one per detail visit. A transient
+/// service failure and navigation within the login sheet never trigger one.
+struct ClaudeReconnectPromptGate {
+    private(set) var hasPrompted = false
+
+    mutating func shouldPrompt(for state: ClaudeWebDetailsSession.State, signInVisible: Bool) -> Bool {
+        guard !hasPrompted, !signInVisible,
+              state == .signInRequired || state == .accountMismatch else { return false }
+        hasPrompted = true
+        return true
     }
 }
