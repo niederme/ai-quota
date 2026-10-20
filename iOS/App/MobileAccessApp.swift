@@ -1,5 +1,6 @@
 import SwiftUI
 import SafariServices
+import WebKit
 import MobileAccessCore
 
 @main
@@ -24,39 +25,43 @@ struct CodexSignInContent: View {
     let busy: Bool
     let error: String?
     let openSecurity: () -> Void
-    let continueSignIn: () -> Void
+    let signInWithChatGPT: () -> Void
+    let useDeviceCode: () -> Void
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 32) {
                 VStack(alignment: .leading, spacing: 16) {
                     Text("Sign in to Codex").font(.title2.bold())
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("First, check that Device Code Authorization is enabled in ChatGPT’s Security Settings, then continue.")
-                            .foregroundStyle(.secondary)
-                        Button(action: openSecurity) {
-                            HStack(spacing: 6) {
-                                Text("Open security settings")
-                                Image(systemName: "arrow.up.right").accessibilityHidden(true)
-                            }
-                            .frame(minHeight: 44)
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(OverviewStyle.accent)
-                    }
+                    Text("Use ChatGPT sign-in for personal accounts or your organization’s SSO.")
+                        .foregroundStyle(.secondary)
                 }
                 VStack(alignment: .leading, spacing: 16) {
+                    Button("Sign in with ChatGPT", action: signInWithChatGPT)
+                        .modifier(OnboardingPrimaryButtonStyle())
+                        .disabled(busy)
                     if let code {
                         VStack(alignment: .leading, spacing: 8) {
+                            Text("Device-code fallback").font(.headline)
                             Text("Your sign-in code").foregroundStyle(.secondary)
                             Text(code).font(.title.monospaced().weight(.semibold))
                                 .textSelection(.enabled)
                         }
+                        Button("Copy code and continue", action: useDeviceCode)
+                            .buttonStyle(.bordered)
+                    } else {
+                        Button("Use device code instead", action: useDeviceCode)
+                            .buttonStyle(.plain)
+                            .foregroundStyle(OverviewStyle.accent)
+                        Button(action: openSecurity) {
+                            HStack(spacing: 6) {
+                                Text("Device-code security setting")
+                                Image(systemName: "arrow.up.right").accessibilityHidden(true)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(OverviewStyle.accent)
                     }
-                    Button("Copy code and continue", action: continueSignIn)
-                        .modifier(OnboardingPrimaryButtonStyle())
-                        .disabled(busy && code == nil)
                     if let error {
                         Text(error).foregroundStyle(OverviewStyle.critical)
                     }
@@ -73,11 +78,11 @@ struct CodexSignInContent: View {
 struct ProbeView: View {
     let model: ProbeModel
     @Environment(\.openURL) private var openURL
-    @State private var preparedSignIn = false
     @State private var requestedSignIn = false
     @State private var confirmDisconnect = false
     @State private var signInPresentation: CodexSignInPresentation?
     @State private var signInBrowser: CodexBrowserSession?
+    @State private var showWebSignIn = false
     var body: some View {
         Group {
             if model.isDemo {
@@ -91,7 +96,8 @@ struct ProbeView: View {
             } else {
                 CodexSignInContent(code: model.challenge?.userCode, busy: model.busy, error: model.error,
                     openSecurity: { openURL(URL(string: "https://chatgpt.com/#settings/Security")!) },
-                    continueSignIn: { beginSignIn() })
+                    signInWithChatGPT: { showWebSignIn = true },
+                    useDeviceCode: { beginDeviceSignIn() })
             }
         }
             .foregroundStyle(OverviewStyle.primary)
@@ -104,12 +110,6 @@ struct ProbeView: View {
             } message: {
                 Text("Removes the local token and saved reading. It does not revoke the connection at OpenAI.")
             }
-        .task {
-            guard !preparedSignIn, !model.connected else { return }
-            preparedSignIn = true
-            // Prepare the displayed code, but leave browser presentation to the button.
-            if model.challenge == nil && !model.busy { model.connect() }
-        }
         .onChange(of: model.challenge?.deviceAuthID) { _, _ in
             signInBrowser = nil
             signInPresentation = nil
@@ -118,9 +118,22 @@ struct ProbeView: View {
         }.onDisappear { requestedSignIn = false }
         .sheet(item: $signInPresentation) { presentation in
             CodexSignInSheet(session: presentation.session, code: presentation.code)
+        }
+        .sheet(isPresented: $showWebSignIn) {
+            CodexWebSignInSheet { result in
+                showWebSignIn = false
+                switch result {
+                case .success(let tokens): model.completeWebSignIn(tokens)
+                case .failure: model.failWebSignIn()
+                }
+            }
         }.tint(OverviewStyle.accent)
     }
     private func beginSignIn() {
+        showWebSignIn = true
+    }
+
+    private func beginDeviceSignIn() {
         requestedSignIn = true
         if model.challenge != nil { presentSignIn() }
         else if !model.busy { model.connect() }
@@ -163,6 +176,165 @@ struct ProbeView: View {
             }
         }.frame(minWidth: 180, maxWidth: .infinity, alignment: .leading)
             .padding(16).background(OverviewStyle.track, in: RoundedRectangle(cornerRadius: OverviewStyle.radius))
+    }
+}
+
+struct CodexWebSignInSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let completion: @MainActor (Result<CodexTokens, Error>) -> Void
+
+    var body: some View {
+        NavigationStack {
+            CodexWebSignInBrowser(completion: completion)
+                .ignoresSafeArea(edges: .bottom)
+                .navigationTitle("Sign in to ChatGPT")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { dismiss() }
+                    }
+                }
+        }
+    }
+}
+
+/// Runs ChatGPT sign-in inside an isolated WebKit store so page-context session
+/// data can be converted into the same bearer-token credentials used by Codex.
+private struct CodexWebSignInBrowser: UIViewRepresentable {
+    let completion: @MainActor (Result<CodexTokens, Error>) -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator(completion: completion) }
+
+    func makeUIView(context: Context) -> WKWebView {
+        let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = .nonPersistent()
+        configuration.defaultWebpagePreferences.allowsContentJavaScript = true
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.navigationDelegate = context.coordinator
+        webView.uiDelegate = context.coordinator
+        context.coordinator.attach(to: webView)
+        webView.load(URLRequest(url: URL(string: "https://chatgpt.com/auth/login")!))
+        return webView
+    }
+
+    func updateUIView(_ webView: WKWebView, context: Context) {}
+
+    static func dismantleUIView(_ webView: WKWebView, coordinator: Coordinator) {
+        webView.configuration.websiteDataStore.httpCookieStore.remove(coordinator)
+        webView.stopLoading()
+        webView.navigationDelegate = nil
+        webView.uiDelegate = nil
+    }
+
+    @MainActor
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKHTTPCookieStoreObserver {
+        private let completion: @MainActor (Result<CodexTokens, Error>) -> Void
+        private weak var webView: WKWebView?
+        private var isFetching = false
+        private var isComplete = false
+
+        init(completion: @escaping @MainActor (Result<CodexTokens, Error>) -> Void) {
+            self.completion = completion
+        }
+
+        func attach(to webView: WKWebView) {
+            self.webView = webView
+            webView.configuration.websiteDataStore.httpCookieStore.add(self)
+        }
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            fetchSessionIfPossible()
+        }
+
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!,
+                     withError error: Error) {
+            guard (error as NSError).code != NSURLErrorCancelled else { return }
+            finish(.failure(error))
+        }
+
+        func webView(_ webView: WKWebView,
+                     decidePolicyFor navigationAction: WKNavigationAction) async -> WKNavigationActionPolicy {
+            if navigationAction.targetFrame == nil, let requestURL = navigationAction.request.url {
+                webView.load(URLRequest(url: requestURL))
+                return .cancel
+            }
+            return .allow
+        }
+
+        func webView(_ webView: WKWebView,
+                     createWebViewWith configuration: WKWebViewConfiguration,
+                     for navigationAction: WKNavigationAction,
+                     windowFeatures: WKWindowFeatures) -> WKWebView? {
+            if let url = navigationAction.request.url { webView.load(URLRequest(url: url)) }
+            return nil
+        }
+
+        func cookiesDidChange(in cookieStore: WKHTTPCookieStore) {
+            fetchSessionIfPossible()
+        }
+
+        private func fetchSessionIfPossible() {
+            guard !isComplete, !isFetching, let webView,
+                  webView.url?.host?.contains("chatgpt.com") == true else { return }
+            isFetching = true
+            webView.callAsyncJavaScript("""
+                try {
+                    const response = await fetch('/api/auth/session', {
+                        credentials: 'include',
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    if (!response.ok) return null;
+                    return await response.json();
+                } catch (_) { return null; }
+                """, arguments: [:], in: nil, in: .page) { [weak self, weak webView] result in
+                    Task { @MainActor in
+                        guard let self, !self.isComplete, let webView else { return }
+                        self.isFetching = false
+                        guard case .success(let value) = result,
+                              let session = value as? [String: Any],
+                              let accessToken = session["accessToken"] as? String,
+                              !accessToken.isEmpty else { return }
+                        let cookies = await webView.configuration.websiteDataStore.httpCookieStore.allCookies()
+                        do {
+                            let tokens = try CodexAPI.webSessionTokens(
+                                accessToken: accessToken,
+                                sessionToken: Self.sessionToken(in: cookies),
+                                expiresAt: Self.parseExpiry(session["expires"] as? String))
+                            self.finish(.success(tokens))
+                        } catch {
+                            self.finish(.failure(error))
+                        }
+                    }
+                }
+        }
+
+        private func finish(_ result: Result<CodexTokens, Error>) {
+            guard !isComplete else { return }
+            isComplete = true
+            completion(result)
+        }
+
+        private static func sessionToken(in cookies: [HTTPCookie]) -> String? {
+            let bases = ["__Secure-next-auth.session-token", "next-auth.session-token",
+                         "__Secure-authjs.session-token", "authjs.session-token"]
+            for base in bases {
+                if let exact = cookies.first(where: { $0.name == base })?.value, !exact.isEmpty {
+                    return exact
+                }
+                let chunks = cookies.filter { $0.name.hasPrefix(base + ".") }
+                    .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+                if !chunks.isEmpty { return chunks.map(\.value).joined() }
+            }
+            return nil
+        }
+
+        private static func parseExpiry(_ value: String?) -> Date? {
+            guard let value else { return nil }
+            let fractional = ISO8601DateFormatter()
+            fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = fractional.date(from: value) { return date }
+            return ISO8601DateFormatter().date(from: value)
+        }
     }
 }
 

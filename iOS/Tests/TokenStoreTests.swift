@@ -45,15 +45,17 @@ extension TokenStoreTests {
 
 
 extension TokenStoreTests {
-    func testWidgetPayloadExcludesRefreshCredential() throws {
+    func testWidgetPayloadExcludesRenewalCredentials() throws {
         let tokens = try JSONDecoder().decode(CodexTokens.self, from: Data(
-            #"{"accessToken":"synthetic-access","refreshToken":"private-refresh","accountID":"test","expiresAt":900000000}"#.utf8))
+            #"{"accessToken":"synthetic-access","refreshToken":"private-refresh","webSessionToken":"private-session","accountID":"test","expiresAt":900000000}"#.utf8))
         let data = try WidgetStore.accessOnlyData(tokens)
         let shared = try JSONDecoder().decode(CodexTokens.self, from: data)
         XCTAssertNil(shared.refreshToken)
+        XCTAssertNil(shared.webSessionToken)
         XCTAssertEqual(shared.accessToken, tokens.accessToken)
         XCTAssertEqual(shared.expiresAt, tokens.expiresAt)
         XCTAssertFalse(String(decoding: data, as: UTF8.self).contains("private-refresh"))
+        XCTAssertFalse(String(decoding: data, as: UTF8.self).contains("private-session"))
     }
 }
 
