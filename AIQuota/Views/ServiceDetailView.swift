@@ -22,15 +22,24 @@ struct ServiceDetailView: View {
         return MacAnalyticsDemo.reading(service)
         #else
         if isCodex, let usage = viewModel.codexUsage {
+            let monthlyBudget = (usage.reportedWindowShape == nil ? usage.displayableMonthlyBudget : nil).flatMap {
+                MobileAccessCore.MonthlyBudget(used: $0.used, limit: $0.limit,
+                    unit: $0.unit, resetsAt: $0.resetAt)
+            }
             return QuotaReading(fetchedAt: usage.fetchedAt, shortTerm: nil, weekly: nil,
                 metadata: AccountMetadata(plan: usage.planType, balanceUSD: usage.creditBalance,
-                    usageSpent: usage.bonusCreditsSpentThisMonth.map { $0 / 25 }, usageCurrency: "USD"))
+                    usageSpent: usage.bonusCreditsSpentThisMonth.map { $0 / 25 }, usageCurrency: "USD"),
+                monthlyBudget: monthlyBudget)
         }
         if !isCodex, let usage = viewModel.claudeUsage {
+            let monthlyBudget = usage.spendLimit.flatMap {
+                MobileAccessCore.MonthlyBudget(used: $0.used, limit: $0.limit,
+                    unit: $0.currencyCode)
+            }
             return QuotaReading(fetchedAt: usage.fetchedAt, shortTerm: nil, weekly: nil,
                 metadata: AccountMetadata(plan: usage.planDisplayName, balanceUSD: nil,
                     usageSpent: usage.usageCredits?.spent, usageCurrency: usage.usageCredits?.currencyCode),
-                claudeBreakdown: usage.weeklyBreakdown)
+                claudeBreakdown: usage.weeklyBreakdown, monthlyBudget: monthlyBudget)
         }
         return nil
         #endif
@@ -72,11 +81,30 @@ struct ServiceDetailView: View {
                             Label("Reconnect to update details. Your last reading is retained.", systemImage: "person.crop.circle.badge.exclamationmark")
                                 .foregroundStyle(Color.warningAmber)
                         }
+                        if let budget = reading?.monthlyBudget {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("Monthly allowance").font(.headline)
+                                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                    Text("\(Int(budget.usedPercent.rounded()))%")
+                                        .font(.largeTitle.bold()).monospacedDigit()
+                                    Text("used").foregroundStyle(.secondary)
+                                }
+                                Text("\(budget.amountText(budget.used)) of \(budget.amountText(budget.limit))")
+                                    .font(.title3.weight(.semibold)).monospacedDigit()
+                                Text(budget.unitLabel).foregroundStyle(.secondary)
+                                ProgressView(value: budget.usedPercent, total: 100)
+                                    .tint(Color.gaugeAccent)
+                                if let reset = budget.confirmedResetDescription() {
+                                    Text(reset).font(.footnote).foregroundStyle(.secondary)
+                                }
+                            }
+                            .modifier(AnalyticsCard())
+                        }
                         if isCodex {
                             CodexAnalyticsView(reading: reading, history: history,
                                 historyUnavailable: viewModel.usageHistoryFailed,
                                 busy: busy, refresh: refresh)
-                        } else {
+                        } else if reading?.monthlyBudget == nil {
                             ClaudeAnalyticsView(reading: reading, busy: busy, failed: error != nil || !connected, refresh: refresh)
                         }
                         if let error {

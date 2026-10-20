@@ -403,26 +403,41 @@ struct PopoverView: View {
     private var claudeGaugeSlot: some View {
         if viewModel.isClaudeAuthenticated {
             if let u = viewModel.claudeUsage {
-                CircularGaugeView(
-                    primaryPercent: u.usedPercent,
-                    primaryLimitReached: u.limitReached,
-                    showsPrimaryMetric: true,
-                    secondaryPercent: Int(u.sevenDayUtilization?.rounded() ?? 0),
-                    secondaryLimitReached: (u.sevenDayUtilization ?? 0) >= 100,
-                    showsSecondaryMetric: u.primaryMetric.kind != .sevenDay && u.sevenDayUtilization != nil,
-                    isLoading: false,
-                    icon: "logo-claude",
-                    label: "Claude Code",
-                    primaryLabel: u.primaryMetricLabel,
-                    secondaryLabel: "7d",
-                    resetAt: u.resetAt,
-                    weeklyResetAt: u.sevenDayResetsAt,
-                    isRefreshing: viewModel.isClaudeLoading,
-                    onRefresh: { viewModel.manualRefresh() }
-                )
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel("Claude usage")
-                .accessibilityValue(claudeAccessibilitySummary(u))
+                if u.primaryMetric.kind == .spendLimit,
+                   let spend = u.spendLimit,
+                   spend.used.isFinite, spend.used >= 0,
+                   spend.limit.isFinite, spend.limit > 0 {
+                    BudgetGaugeView(
+                        used: spend.used, limit: spend.limit,
+                        usedText: budgetValue(spend.used, unit: spend.currencyCode),
+                        limitText: budgetValue(spend.limit, unit: spend.currencyCode),
+                        unitLabel: spend.currencyCode?.uppercased() == "USD" ? "monthly spend" : "monthly allowance",
+                        icon: "logo-claude", label: "Claude Code", resetAt: nil,
+                        isRefreshing: viewModel.isClaudeLoading,
+                        onRefresh: { viewModel.manualRefresh() }
+                    )
+                } else {
+                    CircularGaugeView(
+                        primaryPercent: u.usedPercent,
+                        primaryLimitReached: u.limitReached,
+                        showsPrimaryMetric: true,
+                        secondaryPercent: Int(u.sevenDayUtilization?.rounded() ?? 0),
+                        secondaryLimitReached: (u.sevenDayUtilization ?? 0) >= 100,
+                        showsSecondaryMetric: u.primaryMetric.kind != .sevenDay && u.sevenDayUtilization != nil,
+                        isLoading: false,
+                        icon: "logo-claude",
+                        label: "Claude Code",
+                        primaryLabel: u.primaryMetricLabel,
+                        secondaryLabel: "7d",
+                        resetAt: u.resetAt,
+                        weeklyResetAt: u.sevenDayResetsAt,
+                        isRefreshing: viewModel.isClaudeLoading,
+                        onRefresh: { viewModel.manualRefresh() }
+                    )
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel("Claude usage")
+                    .accessibilityValue(claudeAccessibilitySummary(u))
+                }
             } else {
                 CircularGaugeView(
                     primaryPercent: 0, primaryLimitReached: false,

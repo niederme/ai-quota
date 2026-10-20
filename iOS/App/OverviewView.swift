@@ -395,13 +395,19 @@ struct ServiceDetailContent<Account: View>: View {
                 if let budget = reading?.monthlyBudget {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Monthly allowance").font(.headline)
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text("\(Int(budget.usedPercent.rounded()))%")
+                                .font(.largeTitle.bold()).monospacedDigit()
+                            Text("used").foregroundStyle(OverviewStyle.secondary)
+                        }
                         Text("\(budget.amountText(budget.used)) of \(budget.amountText(budget.limit))")
-                            .font(.title2.bold()).monospacedDigit()
+                            .font(.title3.weight(.semibold)).monospacedDigit()
                         Text(budget.unitLabel).foregroundStyle(OverviewStyle.secondary)
                         ProgressView(value: budget.usedPercent, total: 100)
                             .tint(OverviewStyle.accent)
-                        Text(budget.resetDescription()).font(.footnote)
-                            .foregroundStyle(OverviewStyle.secondary)
+                        if let reset = budget.confirmedResetDescription() {
+                            Text(reset).font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                        }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(16)
@@ -767,10 +773,14 @@ struct ProviderDialCardContent: View {
                         resetCaption(window, label: window.resetLabel)
                     }
                     if let budget = reading?.monthlyBudget {
+                        Text("\(budget.amountText(budget.used)) of \(budget.amountText(budget.limit))")
+                            .modifier(OverviewDetailType()).foregroundStyle(OverviewStyle.secondary)
                         Text(budget.unitLabel).modifier(OverviewDetailType())
                             .foregroundStyle(OverviewStyle.secondary)
-                        Text(budget.resetDescription()).modifier(OverviewDetailType())
-                            .foregroundStyle(OverviewStyle.secondary)
+                        if let reset = budget.confirmedResetDescription() {
+                            Text(reset).modifier(OverviewDetailType())
+                                .foregroundStyle(OverviewStyle.secondary)
+                        }
                     }
                 }
                 if failure != nil || error != nil || reading == nil || worst >= 100 {
@@ -819,9 +829,9 @@ struct ProviderDialCardContent: View {
                 if !allowanceOnly {
                 VStack(spacing: 2) {
                     if let budget = budgetOnly {
-                        Text(budget.amountText(budget.used))
+                        Text("\(Int(budget.usedPercent.rounded()))%")
                             .font(largeDial ? .title.bold() : .subheadline.bold())
-                        Text("of \(budget.amountText(budget.limit))")
+                        Text("Monthly")
                             .font(largeDial ? .body : .caption2)
                             .foregroundStyle(OverviewStyle.secondary)
                     } else {
