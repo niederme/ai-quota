@@ -17,6 +17,11 @@ struct AccountProfile: Codable, Equatable, Identifiable, Sendable {
         self.providerIdentity = providerIdentity
         self.isLegacy = isLegacy
     }
+
+    /// Stable identity used when ordering profiles across services. Profile IDs
+    /// are only unique within a service because both legacy profiles can be
+    /// named `live`.
+    var orderKey: String { "\(service.rawValue)\u{0}\(id)" }
 }
 
 /// App-group account metadata shared by the app and widgets.
@@ -26,10 +31,13 @@ struct AccountProfile: Codable, Equatable, Identifiable, Sendable {
 /// result on a genuinely new install, so later reads cannot invent accounts.
 enum AccountRegistry {
     private struct State: Codable, Equatable {
-        var version = 1
+        var version = 2
         var profiles: [AccountProfile]
         var defaults: [String: String]
         var serviceOrder: [QuotaService]
+        /// Optional so version 1 files decode and can derive the original
+        /// service-grouped presentation order during normalization.
+        var accountOrder: [String]?
 
         static func migrated(legacyServices: Set<QuotaService>) -> Self {
             let profiles = QuotaService.allCases.compactMap { service in
@@ -40,13 +48,15 @@ enum AccountRegistry {
             return Self(
                 profiles: profiles,
                 defaults: Dictionary(uniqueKeysWithValues: profiles.map { ($0.service.rawValue, $0.id) }),
-                serviceOrder: QuotaService.allCases
+                serviceOrder: QuotaService.allCases,
+                accountOrder: profiles.map(\.orderKey)
             )
         }
 
         mutating func normalize() {
+            version = 2
             var seen = Set<String>()
-            profiles = profiles.filter { seen.insert("\($0.service.rawValue)\u{0}\($0.id)").inserted }
+            profiles = profiles.filter { seen.insert($0.orderKey).inserted }
 
             for service in QuotaService.allCases {
                 let values = profiles.filter { $0.service == service }
@@ -58,6 +68,17 @@ enum AccountRegistry {
             var ordered = Set<QuotaService>()
             serviceOrder = serviceOrder.filter { ordered.insert($0).inserted }
             serviceOrder.append(contentsOf: QuotaService.allCases.filter { !ordered.contains($0) })
+
+            let profileKeys = profiles.map(\.orderKey)
+            let validKeys = Set(profileKeys)
+            let proposedOrder = accountOrder ?? serviceOrder.flatMap { service in
+                profiles.lazy.filter { $0.service == service }.map(\.orderKey)
+            }
+            var seenKeys = Set<String>()
+            accountOrder = proposedOrder.filter {
+                validKeys.contains($0) && seenKeys.insert($0).inserted
+            }
+            accountOrder?.append(contentsOf: profileKeys.filter { seenKeys.insert($0).inserted })
         }
     }
 
@@ -149,6 +170,10 @@ enum AccountRegistry {
         func setServiceOrder(_ order: [QuotaService]) {
             transaction { state in state.serviceOrder = order }
         }
+        func accountOrder() -> [String] { transaction { state in state.accountOrder ?? [] } }
+        func setAccountOrder(_ keys: [String]) {
+            transaction { state in state.accountOrder = keys }
+        }
 
         private var dataURL: URL? { root?.appendingPathComponent("account-registry-v1.json") }
         private var lockURL: URL? { root?.appendingPathComponent("account-registry-v1.lock") }
@@ -227,6 +252,8 @@ enum AccountRegistry {
     }
     static func serviceOrder() -> [QuotaService] { store.serviceOrder() }
     static func setServiceOrder(_ order: [QuotaService]) { store.setServiceOrder(order) }
+    static func accountOrder() -> [String] { store.accountOrder() }
+    static func setAccountOrder(_ keys: [String]) { store.setAccountOrder(keys) }
 
     private static func legacyServices() -> Set<QuotaService> {
         Set(QuotaService.allCases.filter { service in

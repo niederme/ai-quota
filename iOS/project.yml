@@ -133,13 +133,31 @@ targets:
     platform: iOS
     deploymentTarget: "17.0"
     templates: [iOSDistribution]
-    sources: [Tests]
+    sources:
+      - path: Tests
+        excludes: [WidgetAccountConfigurationTests.swift]
     dependencies:
       - target: AIQuota-iOS
       - package: MobileAccessCore
     settings:
       base:
         GENERATE_INFOPLIST_FILE: YES
+  AIQuotaWidget-iOSTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "17.0"
+    templates: [iOSDistribution]
+    sources:
+      - path: Widget
+        excludes: [Info.plist]
+      - Shared
+      - Tests/WidgetAccountConfigurationTests.swift
+    dependencies:
+      - package: MobileAccessCore
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) WIDGET_UNIT_TESTS"
   AIQuota-iOSUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -153,6 +171,12 @@ targets:
         GENERATE_INFOPLIST_FILE: YES
         TEST_TARGET_NAME: AIQuota-iOS
 schemes:
+  AIQuotaWidget-iOS-Tests:
+    build:
+      targets:
+        AIQuotaWidget-iOSTests: all
+    test:
+      targets: [AIQuotaWidget-iOSTests]
   AIQuota-iOS-UI-Tests:
     build:
       targets:

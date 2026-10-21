@@ -1,6 +1,27 @@
 import SwiftUI
 import MobileAccessCore
 import UIKit
+import UniformTypeIdentifiers
+
+private struct AccountCardDropDelegate: DropDelegate {
+    let destination: String
+    @Binding var dragging: String?
+    let hover: (String, String) -> Void
+    let finish: () -> Void
+
+    func dropEntered(info: DropInfo) {
+        guard let dragging, dragging != destination else { return }
+        hover(dragging, destination)
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? { DropProposal(operation: .move) }
+
+    func performDrop(info: DropInfo) -> Bool {
+        guard dragging != nil else { return false }
+        finish()
+        return true
+    }
+}
 
 private struct AccountSheetSelection: Identifiable {
     enum Kind { case detail, connection, settings }
@@ -14,14 +35,18 @@ struct MultiAccountOverviewView: View {
     @State private var onboarding = OnboardingProgress()
     @State private var needsInitialSetup: Bool
     @State private var selected: AccountSheetSelection?
-    @State private var pendingProfile: AccountProfile?
-    @State private var serviceOrder = AccountRegistry.serviceOrder()
+    @State private var accountOrder: [String]
+    @State private var draggingAccount: String?
+    private let orderStore: AccountRegistry.Store?
     @AppStorage("refreshIntervalMinutes") private var refreshMinutes = 0
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(fixtureProfiles: [AccountProfile]? = nil) {
+    init(fixtureProfiles: [AccountProfile]? = nil, orderStore: AccountRegistry.Store? = nil) {
         _accounts = State(initialValue: MobileAccountCollection(fixtureProfiles: fixtureProfiles))
         _needsInitialSetup = State(initialValue: fixtureProfiles == nil && AccountRegistry.all().isEmpty)
+        _accountOrder = State(initialValue: orderStore?.accountOrder() ?? AccountRegistry.accountOrder())
+        self.orderStore = orderStore
     }
 
     var body: some View {
@@ -42,12 +67,14 @@ struct MultiAccountOverviewView: View {
             if phase == .background { MobileBackgroundRefresh.shared.scheduleNext() }
             if phase == .active {
                 accounts.reload()
+                reloadAccountOrder()
                 accounts.refreshOnOpen()
                 MobileAnalytics.shared.recordDailyActiveIfNeeded()
             }
         }
         .onAppear {
             accounts.reload()
+            reloadAccountOrder()
             if !accounts.hasConnection { needsInitialSetup = true }
             MobileAnalytics.shared.observeServices(codex: !accounts.connected(.codex).isEmpty,
                                                    claude: !accounts.connected(.claude).isEmpty,
@@ -61,8 +88,27 @@ struct MultiAccountOverviewView: View {
             GeometryReader { geometry in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
-                        ForEach(serviceOrder, id: \.self) { service in
-                            serviceSection(service, width: min(geometry.size.width, 780) - 32)
+                        ForEach(orderedProfiles, id: \.orderKey) { profile in
+                            accountCard(profile, width: min(geometry.size.width, 780) - 32)
+                                .onDrag {
+                                    draggingAccount = profile.orderKey
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    return NSItemProvider(object: profile.orderKey as NSString)
+                                }
+                                .onDrop(of: [UTType.plainText], delegate: AccountCardDropDelegate(
+                                    destination: profile.orderKey,
+                                    dragging: $draggingAccount,
+                                    hover: { source, destination in
+                                        reorderDuringDrag(source, onto: destination)
+                                    },
+                                    finish: finishDrag
+                                ))
+                                .accessibilityAction(named: "Move earlier") {
+                                    moveAccount(profile.orderKey, offset: -1)
+                                }
+                                .accessibilityAction(named: "Move later") {
+                                    moveAccount(profile.orderKey, offset: 1)
+                                }
                         }
                         freshness.frame(maxWidth: .infinity)
                     }
@@ -121,9 +167,8 @@ struct MultiAccountOverviewView: View {
         }
         .tint(OverviewStyle.accent)
         .sheet(item: $selected, onDismiss: {
-            if let pendingProfile { accounts.discardIfUnconnected(pendingProfile) }
-            pendingProfile = nil
             accounts.reload()
+            reloadAccountOrder()
             if !accounts.hasConnection {
                 onboarding.replay()
                 needsInitialSetup = true
@@ -135,45 +180,14 @@ struct MultiAccountOverviewView: View {
         }
     }
 
-    @ViewBuilder private func serviceSection(_ service: QuotaService, width: CGFloat) -> some View {
-        let profiles = accounts.connected(service)
-        if !profiles.isEmpty {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 12) {
-                    HStack(spacing: 8) {
-                        Image(service.logo).resizable().scaledToFit().frame(width: 18, height: 18)
-                        Text(service.name).font(.headline)
-                        Text("\(profiles.count)").font(.caption.weight(.semibold))
-                            .foregroundStyle(OverviewStyle.secondary)
-                    }
-                    .contentShape(Rectangle())
-                    .draggable(service.rawValue)
-                    .dropDestination(for: String.self) { items, _ in
-                        guard let source = items.first.flatMap(QuotaService.init(rawValue:)) else { return false }
-                        move(source, before: service)
-                        return true
-                    }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("\(service.name), \(profiles.count) \(profiles.count == 1 ? "account" : "accounts")")
-                    .accessibilityAction(named: "Move earlier") { move(service, offset: -1) }
-                    .accessibilityAction(named: "Move later") { move(service, offset: 1) }
-                    .contextMenu {
-                        Button("Move earlier", systemImage: "arrow.up") { move(service, offset: -1) }
-                            .disabled(serviceOrder.first == service)
-                        Button("Move later", systemImage: "arrow.down") { move(service, offset: 1) }
-                            .disabled(serviceOrder.last == service)
-                    }
-                    Spacer()
-                    Button("Add account", systemImage: "plus") { add(service) }
-                        .labelStyle(.iconOnly)
-                        .accessibilityLabel("Add \(service.name) account")
-                }
-                .foregroundStyle(OverviewStyle.primary)
-                ForEach(profiles, id: \.id) { profile in
-                    accountCard(profile, width: width)
-                }
-            }
+    private var orderedProfiles: [AccountProfile] {
+        let visible = accounts.profiles.filter { profile in
+            accounts.connected(profile.service).contains { $0.id == profile.id }
         }
+        let byKey = Dictionary(uniqueKeysWithValues: visible.map { ($0.orderKey, $0) })
+        let saved = accountOrder.compactMap { byKey[$0] }
+        let included = Set(saved.map(\.orderKey))
+        return saved + visible.filter { !included.contains($0.orderKey) }
     }
 
     @ViewBuilder private func accountCard(_ profile: AccountProfile, width: CGFloat) -> some View {
@@ -232,27 +246,48 @@ struct MultiAccountOverviewView: View {
         }
     }
 
-    private func add(_ service: QuotaService) {
-        let profile = accounts.add(service)
-        pendingProfile = profile
-        selected = .init(kind: .connection, profile: profile)
+    private func reloadAccountOrder() {
+        accountOrder = orderStore?.accountOrder() ?? AccountRegistry.accountOrder()
     }
 
-    private func move(_ service: QuotaService, offset: Int) {
-        guard let from = serviceOrder.firstIndex(of: service),
-              serviceOrder.indices.contains(from + offset) else { return }
-        serviceOrder.swapAt(from, from + offset)
-        AccountRegistry.setServiceOrder(serviceOrder)
-        UIAccessibility.post(notification: .announcement, argument: "\(service.name) moved \(offset < 0 ? "earlier" : "later")")
+    private func persistOrder(_ keys: [String]) {
+        if let orderStore { orderStore.setAccountOrder(keys) }
+        else { AccountRegistry.setAccountOrder(keys) }
     }
 
-    private func move(_ source: QuotaService, before destination: QuotaService) {
-        guard source != destination, let from = serviceOrder.firstIndex(of: source),
-              let to = serviceOrder.firstIndex(of: destination) else { return }
-        serviceOrder.remove(at: from)
-        serviceOrder.insert(source, at: to)
-        AccountRegistry.setServiceOrder(serviceOrder)
-        UIAccessibility.post(notification: .announcement, argument: "\(source.name) moved")
+    private func reordered(_ source: String, onto destination: String) -> [String]? {
+        var keys = orderedProfiles.map(\.orderKey)
+        guard source != destination,
+              let from = keys.firstIndex(of: source),
+              let to = keys.firstIndex(of: destination) else { return nil }
+        keys.remove(at: from)
+        guard let destinationIndex = keys.firstIndex(of: destination) else { return nil }
+        keys.insert(source, at: destinationIndex + (from < to ? 1 : 0))
+        return keys
+    }
+
+    private func reorderDuringDrag(_ source: String, onto destination: String) {
+        guard let keys = reordered(source, onto: destination),
+              keys != orderedProfiles.map(\.orderKey) else { return }
+        if reduceMotion { accountOrder = keys }
+        else { withAnimation(.snappy(duration: 0.22)) { accountOrder = keys } }
+    }
+
+    private func finishDrag() {
+        let keys = orderedProfiles.map(\.orderKey)
+        persistOrder(keys)
+        draggingAccount = nil
+        UIAccessibility.post(notification: .announcement, argument: "Account moved")
+    }
+
+    private func moveAccount(_ key: String, offset: Int) {
+        var keys = orderedProfiles.map(\.orderKey)
+        guard let from = keys.firstIndex(of: key), keys.indices.contains(from + offset) else { return }
+        keys.swapAt(from, from + offset)
+        accountOrder = keys
+        persistOrder(keys)
+        UIAccessibility.post(notification: .announcement,
+                             argument: "Account moved \(offset < 0 ? "earlier" : "later")")
     }
 
     private var freshness: some View {

@@ -39,6 +39,10 @@ struct MobileAccessApp: App {
                     AccountProfile(id: "fixture-codex-work", service: .codex, label: "Work", isLegacy: false),
                     AccountProfile(id: "fixture-claude-work", service: .claude, label: "Work", isLegacy: false)
                 ])
+            } else if ProcessInfo.processInfo.arguments.contains("-multiAccountReorderUITest") {
+                MultiAccountReorderFixtureView(
+                    reset: ProcessInfo.processInfo.arguments.contains("-resetMultiAccountReorderFixture")
+                )
             } else {
                 Group {
                     if demoEnabled { OverviewView(isDemo: true).id(demoEnabled) }
@@ -65,6 +69,32 @@ struct MobileAccessApp: App {
         }
     }
 }
+
+#if DEBUG
+private struct MultiAccountReorderFixtureView: View {
+    private let store: AccountRegistry.Store
+
+    init(reset: Bool) {
+        let root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("multi-account-reorder-ui-fixture", isDirectory: true)
+        if reset { try? FileManager.default.removeItem(at: root) }
+        let store = AccountRegistry.Store(root: root, legacyServices: [])
+        if store.all().isEmpty {
+            let personal = store.add(service: .codex)
+            store.rename(service: .codex, id: personal.id, label: "Personal")
+            let other = store.add(service: .codex)
+            store.rename(service: .codex, id: other.id, label: "Other")
+            let enterprise = store.add(service: .claude)
+            store.rename(service: .claude, id: enterprise.id, label: "Enterprise")
+        }
+        self.store = store
+    }
+
+    var body: some View {
+        MultiAccountOverviewView(fixtureProfiles: store.all(), orderStore: store)
+    }
+}
+#endif
 
 struct CodexSignInContent: View {
     let code: String?

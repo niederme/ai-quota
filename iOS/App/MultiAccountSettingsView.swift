@@ -17,7 +17,6 @@ struct MultiAccountSettingsView: View {
     @State private var confirmReset = false
     @State private var resetting = false
     @State private var resetError: String?
-    @State private var serviceOrder = AccountRegistry.serviceOrder()
 
     var body: some View {
         Form {
@@ -32,7 +31,7 @@ struct MultiAccountSettingsView: View {
             } header: { Text("General") } footer: {
                 Text("While the app is open, Auto refreshes every 5 minutes, or every minute near a limit. Background timing is not guaranteed.")
             }
-            ForEach(serviceOrder, id: \.self) { service in
+            ForEach(QuotaService.allCases, id: \.self) { service in
                 Section {
                     ForEach(accounts.all(service), id: \.id) { profile in
                         HStack(spacing: 12) {
@@ -58,15 +57,6 @@ struct MultiAccountSettingsView: View {
                             }
                     }
                     Button("Add \(service.name) account", systemImage: "plus") { add(service) }
-                    if serviceOrder.count > 1 {
-                        HStack {
-                            Button("Move earlier", systemImage: "arrow.up") { move(service, -1) }
-                                .disabled(serviceOrder.first == service)
-                            Spacer()
-                            Button("Move later", systemImage: "arrow.down") { move(service, 1) }
-                                .disabled(serviceOrder.last == service)
-                        }.font(.footnote)
-                    }
                 } header: { Text(service.name) }
             }
             Section {
@@ -200,9 +190,4 @@ struct MultiAccountSettingsView: View {
         connectionProfile = profile
     }
 
-    private func move(_ service: QuotaService, _ offset: Int) {
-        guard let index = serviceOrder.firstIndex(of: service), serviceOrder.indices.contains(index + offset) else { return }
-        serviceOrder.swapAt(index, index + offset)
-        AccountRegistry.setServiceOrder(serviceOrder)
-    }
 }

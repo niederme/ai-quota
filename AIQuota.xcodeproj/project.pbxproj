@@ -14,6 +14,7 @@
 		066948F25E92DC96EDD5187B /* LockScreenWidgetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 419400F7BFA8341777F59D91 /* LockScreenWidgetTests.swift */; };
 		09C3707BB5896209FE461CA7 /* DemoViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = B298FC20B9D43BA1C027CE6E /* DemoViews.swift */; };
 		0A551ADD42969BAB772A2B1B /* BudgetStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8078C57920AA96E74607EA71 /* BudgetStripView.swift */; };
+		0A563020011AA37399C1119B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C4A665A3F6E10210205651C1 /* Assets.xcassets */; };
 		0C3D35A9CE3B5A6F4B5C7816 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDE2263EBEB7008EF6988081 /* WebKit.framework */; };
 		0CCE6E70E54EBBEBC9BBA987 /* CircularGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07B0B4CEC9ACF96AC981FA29 /* CircularGaugeView.swift */; };
 		0DD53E3B58EF3A00B4D223E8 /* ClaudeDetailUITestHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C555682C85E897EB107B7B /* ClaudeDetailUITestHarness.swift */; };
@@ -34,6 +35,7 @@
 		20A50536C5B68ACFC91525B2 /* WidgetReadingStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 399730C0D95FEF44FF128682 /* WidgetReadingStatusTests.swift */; };
 		248A84446476180600474073 /* MobileBackgroundRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22397551BCDC46E340DA0D00 /* MobileBackgroundRefresh.swift */; };
 		2494810777DC407773DE4C13 /* DemoDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CC237C662A19D0C0A77A43 /* DemoDriver.swift */; };
+		24AB209DBB7AE96670BFC71E /* CodexWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC43070E1A6F758DB7AF31A6 /* CodexWidget.swift */; };
 		24BC6BA77116E7B799ADB68C /* CodexResetNoticeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D52F88BFBFBF549EA3102907 /* CodexResetNoticeTests.swift */; };
 		2C69185386A36C7DF06FA250 /* WidgetSmallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AABA7E1FF303A5852FC6BCC6 /* WidgetSmallView.swift */; };
 		2FCFA2535E9E9290F1988907 /* MobileSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC6483FA9D6F3174B3E47F3D /* MobileSettingsView.swift */; };
@@ -70,6 +72,7 @@
 		5DE66EB0726126B4F486029E /* WidgetGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 384CCB3989C01F13B3E22D43 /* WidgetGaugeView.swift */; };
 		5FEDD079CDE257144D590AB2 /* CompactQuotaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2681A208A2007E5167B5903 /* CompactQuotaView.swift */; };
 		60896B59C4BBA33E03008EA3 /* ClaudeDetailReconnectFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94C3AF5CB2BCD3A143D8EB24 /* ClaudeDetailReconnectFlowTests.swift */; };
+		616620D2F728EB81AEDD78CA /* WidgetReadingStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 952D934237812E7F9D3348A7 /* WidgetReadingStatus.swift */; };
 		6455F47887C2BB81F17E59D1 /* WelcomeStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 872D4B7AB7221C3A55960CE1 /* WelcomeStepView.swift */; };
 		64E9FF14FC1DB51A9FDD0DCB /* AnalyticsAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F97C407C158BC0A25FD792 /* AnalyticsAppDelegate.swift */; };
 		65008600946777E8FA2F6BFE /* ProbeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59F4F1B59FFE30E899E31F8D /* ProbeModel.swift */; };
@@ -78,6 +81,7 @@
 		66CD690CF72FD5FD63E90AC2 /* AdaptiveColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3808CB512F68E5EF125F3BAB /* AdaptiveColors.swift */; };
 		67830F52D6898E3B97D79FBE /* AdaptiveColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3808CB512F68E5EF125F3BAB /* AdaptiveColors.swift */; };
 		680EFCF800A5D00C499B9858 /* CopySignInCodeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5AA4AC3B53857352A4672A2 /* CopySignInCodeViewController.swift */; };
+		68A3288C282566C47BFA9431 /* WidgetAccountConfigurationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B6CCF4C948E21BC93B6FF61 /* WidgetAccountConfigurationTests.swift */; };
 		6C522866B159D2A3FE422C0D /* UsageGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 521E05B6030711C7B85B8092 /* UsageGaugeView.swift */; };
 		6DEA77E87281F6D56AD31657 /* ServicesStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C66610C3B005AD239F7EDE75 /* ServicesStepView.swift */; };
 		6E46AF36AA18BA33526FC6E7 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BE8ADE851C1D83398F38FC6A /* SplashScreen.storyboard */; };
@@ -100,6 +104,8 @@
 		7CF47B58B590EFF9D53F33E6 /* ClaudeAnalyticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 065ADF5600B820E82899F732 /* ClaudeAnalyticsTests.swift */; };
 		8216D0F3164D0E0251628667 /* DemoQuotaData.swift in Sources */ = {isa = PBXBuildFile; fileRef = F67E72577EE3060D479BB8A0 /* DemoQuotaData.swift */; };
 		8345576EE21F0AB14ECE70BD /* MobileAnalyticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEF02E14FDE3406AB3CFB999 /* MobileAnalyticsTests.swift */; };
+		8828EA515EF0D8B3DC3288A9 /* AccountRegistryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECD33CA5FBBEE3CA3B3060EB /* AccountRegistryTests.swift */; };
+		88EEEE7F5FB64436900693AD /* LockScreenResetPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3B0E5DE08ACE9177CD91F9C /* LockScreenResetPresentation.swift */; };
 		8A411DE18F08C54C94DD92E6 /* MobileAnalytics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D95553FAC04DFF7EC1268BF /* MobileAnalytics.swift */; };
 		8B47673229B9F1E88153B1E5 /* DoneStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20C382E39D030AC581CA9B4 /* DoneStepView.swift */; };
 		907C75DA132F840830071C08 /* AnalyticsStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E6A074E47680C85B7B7EF28 /* AnalyticsStyle.swift */; };
@@ -113,6 +119,7 @@
 		96ECF77AF4F522CAF9619D23 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FB0180B641391BD6AFC75C41 /* Assets.xcassets */; };
 		98B72F5B1196475CAB2D49DB /* AIQuotaWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 76D9EEAA0A27FF50A5E170F4 /* AIQuotaWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		98F43072074B245C01E279A4 /* CountdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D136AA90C5E64F0E69E5B51 /* CountdownView.swift */; };
+		9967C169934FDA0A92AFC212 /* DemoQuotaData.swift in Sources */ = {isa = PBXBuildFile; fileRef = F67E72577EE3060D479BB8A0 /* DemoQuotaData.swift */; };
 		9AD32B35F559C959F1E704A5 /* MobileAccessCore in Frameworks */ = {isa = PBXBuildFile; productRef = CAB0BEB9B29041C498AA60E8 /* MobileAccessCore */; };
 		9AEFBADF15FBDEF08FEF22D8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8C0ACC770721BA686B7B6401 /* Assets.xcassets */; };
 		9BCCAA30F015C96958C9D8CA /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = 861B6B38CC5CE37615D5E6C5 /* FirebaseAnalyticsCore */; };
@@ -120,13 +127,16 @@
 		9FD10589109C0FC5A53692FD /* MobileAccessCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0063D76A2C4685568BA5F1D7 /* MobileAccessCore */; };
 		A18B06E3FC7B69C7D7FB9683 /* WidgetsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AEFC74142619076ED0AB5BA /* WidgetsStepView.swift */; };
 		A235B96E676D7BB0D9AA389F /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = 99ECBE0988C11C866C163C4A /* FirebaseAnalyticsCore */; };
+		A26EC10C0CB510CB32E4ADD0 /* CompactQuotaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2681A208A2007E5167B5903 /* CompactQuotaView.swift */; };
 		A27DDA505B42FB7634AA0E49 /* SignInCodeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA990197CB437869D146B21C /* SignInCodeStore.swift */; };
+		A5CE7015A83FEB3D44D29F33 /* MobileAccessCore in Frameworks */ = {isa = PBXBuildFile; productRef = 33DE59475A6640AF67580B78 /* MobileAccessCore */; };
 		A854CED8FF8E77BCB8FF09B4 /* MobileAccessCore in Frameworks */ = {isa = PBXBuildFile; productRef = 78A0AA96ED672D905CDC7DCA /* MobileAccessCore */; };
 		A8887B9AC256A6326AB5AA9D /* CreditsDisplayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E965708E9D49E52DD918B557 /* CreditsDisplayTests.swift */; };
 		A9A9F27E1D37CC53BEA92471 /* DemoAutoOpen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AD1CC15EEE16B262B2BBC8D /* DemoAutoOpen.swift */; };
 		A9E731415728005F78C17CC9 /* MobileAccessApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 667DECCAD3629416AE8E1184 /* MobileAccessApp.swift */; };
 		ADABF7DBD43E19C01A19B69B /* QuotaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5F53FC0B0CEEDEB3DD6488A /* QuotaViewModel.swift */; };
 		ADD6CD78B8173A141696E733 /* AIQuotaWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FC79333A7787720CC4F63B8 /* AIQuotaWidget.swift */; };
+		AF27AB1BED0D330C2897026E /* AccountRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = F97652D4157C2C2A4AFDB212 /* AccountRegistry.swift */; };
 		B2719944C98CCEAFFCA0BBB9 /* NotificationsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88FA3DF197FD04781EF8C4EF /* NotificationsStepView.swift */; };
 		B337EC2AC2655557CDE13EC2 /* LaunchServicesSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11BE061D1CEB4B5B6F120AD /* LaunchServicesSync.swift */; };
 		B4AC1E0B3686BE905CAA1BDB /* CodexWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC43070E1A6F758DB7AF31A6 /* CodexWidget.swift */; };
@@ -137,6 +147,7 @@
 		B6E8AA43262B29E996180780 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2B1CD537E4DD95CEBAE23D6 /* OnboardingView.swift */; };
 		B9AB1446FA6064350C523453 /* WidgetGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 384CCB3989C01F13B3E22D43 /* WidgetGaugeView.swift */; };
 		BD011637B9A98BF66EB809CD /* CircularGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07B0B4CEC9ACF96AC981FA29 /* CircularGaugeView.swift */; };
+		C27EF9F4B6924DA55E0C86C8 /* HomeQuotaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39129D16B4B1A86FA705A17C /* HomeQuotaView.swift */; };
 		C27FDAB7EA8FE04B0C665192 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716B00F14F1370CDAC33B5EB /* SettingsView.swift */; };
 		C43C98F49925EAFD25F50041 /* MobileTokenHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5BD4CEEB4F5DD02A33A6C7C /* MobileTokenHistoryView.swift */; };
 		C483126B9E72442CD94121F6 /* AIQuotaWidget-iOS.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = AAA0FF873D42E78CA9F94932 /* AIQuotaWidget-iOS.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -149,6 +160,7 @@
 		D3654F8B19B2D5B199379F3D /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 652482B3FBA0A241F21DF910 /* PrivacyInfo.xcprivacy */; };
 		D908F54851D67DC5E1245B89 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C4A665A3F6E10210205651C1 /* Assets.xcassets */; };
 		D95772B447C6100505A3D72B /* CodexAnalyticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B17E24014F0F3200B311E8 /* CodexAnalyticsTests.swift */; };
+		D983DE6B8AC5806376EBA3FC /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2DD6DC0C92D6E6CBCA60A64 /* WidgetStore.swift */; };
 		DB0D128A3383DCB3DA228D4F /* TokenStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9302F08CDA8C2099F522EB6 /* TokenStoreTests.swift */; };
 		DDB8B77D7F73729EC564775D /* AccountRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = F97652D4157C2C2A4AFDB212 /* AccountRegistry.swift */; };
 		DE51EF987644B16CFE0AE195 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = FB0002B3439366F7C9621561 /* Sparkle */; };
@@ -171,6 +183,7 @@
 		F3545CC3A5D937C4E3F40A3A /* BudgetStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8078C57920AA96E74607EA71 /* BudgetStripView.swift */; };
 		F5056A18C223AC3EBA06A946 /* SharedQuotaStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A827B61B801F45B571C22D4 /* SharedQuotaStore.swift */; };
 		F6564018685503ADEE6165C2 /* DoneStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20C382E39D030AC581CA9B4 /* DoneStepView.swift */; };
+		F790AFCECE156C218ECE3637 /* SharedQuotaStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A827B61B801F45B571C22D4 /* SharedQuotaStore.swift */; };
 		FBEF0B43BCCD9AE6837B7960 /* MultiAccountFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E28FFBF362FD83C2D26B256 /* MultiAccountFlowTests.swift */; };
 		FC5F1405D182501F5FFAC02C /* AIQuotaWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4392F2EBD4EFDCA51009B2E9 /* AIQuotaWidgetBundle.swift */; };
 		FE45C4F9326BB41F8E6395FF /* ClaudeReconnectPromptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90F339EED4E57F5EF82149E5 /* ClaudeReconnectPromptTests.swift */; };
@@ -274,10 +287,12 @@
 		1F1F18DB5A7FD4515D863D71 /* WidgetIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetIntent.swift; sourceTree = "<group>"; };
 		22397551BCDC46E340DA0D00 /* MobileBackgroundRefresh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileBackgroundRefresh.swift; sourceTree = "<group>"; };
 		23DBF6CBC5AEF8D221D5EA51 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		24B36C5D6E8161BDA19A02CA /* AIQuotaWidget-iOSTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = "AIQuotaWidget-iOSTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		24E173E35FDE86A21177108E /* MobileAccountCollection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileAccountCollection.swift; sourceTree = "<group>"; };
 		25D0C914A09E992523B60A79 /* ClaudeProbeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeProbeModel.swift; sourceTree = "<group>"; };
 		2601AEFB08EAA539E27A5071 /* ServiceDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceDetailView.swift; sourceTree = "<group>"; };
 		29F97C407C158BC0A25FD792 /* AnalyticsAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsAppDelegate.swift; sourceTree = "<group>"; };
+		2B6CCF4C948E21BC93B6FF61 /* WidgetAccountConfigurationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetAccountConfigurationTests.swift; sourceTree = "<group>"; };
 		33016447347AF46F0499E374 /* Widget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Widget.entitlements; sourceTree = "<group>"; };
 		35CC64D9185207C8ACB73893 /* ClaudeWebDetailsSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeWebDetailsSession.swift; sourceTree = "<group>"; };
 		3805EE8533FA745C2DDA0491 /* HomeWidgetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetTests.swift; sourceTree = "<group>"; };
@@ -363,6 +378,7 @@
 		E2681A208A2007E5167B5903 /* CompactQuotaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompactQuotaView.swift; sourceTree = "<group>"; };
 		E965708E9D49E52DD918B557 /* CreditsDisplayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreditsDisplayTests.swift; sourceTree = "<group>"; };
 		EC6483FA9D6F3174B3E47F3D /* MobileSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileSettingsView.swift; sourceTree = "<group>"; };
+		ECD33CA5FBBEE3CA3B3060EB /* AccountRegistryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountRegistryTests.swift; sourceTree = "<group>"; };
 		EDE2263EBEB7008EF6988081 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
 		F118F93DD5ECCFC53B2D5D6E /* MultiAccountOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiAccountOverviewView.swift; sourceTree = "<group>"; };
 		F20C382E39D030AC581CA9B4 /* DoneStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoneStepView.swift; sourceTree = "<group>"; };
@@ -394,6 +410,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				7804C0D72C84FB4E3C150FD2 /* AIQuotaKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A6ED23AD53B81C420618D005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A5CE7015A83FEB3D44D29F33 /* MobileAccessCore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -608,6 +632,7 @@
 		93C3533137E35584B6D3FC89 /* Tests */ = {
 			isa = PBXGroup;
 			children = (
+				ECD33CA5FBBEE3CA3B3060EB /* AccountRegistryTests.swift */,
 				7DBB1105806AD7DD4ABC91E9 /* BackgroundRefreshTests.swift */,
 				FB52A74E8799BDEFB61FFF62 /* BaseScreenReviewTests.swift */,
 				065ADF5600B820E82899F732 /* ClaudeAnalyticsTests.swift */,
@@ -624,6 +649,7 @@
 				8924102467BA8034DBE2CECD /* SharedQuotaStoreTests.swift */,
 				5C6CBA2120FA33C3C7AA09E5 /* TokenHistoryReviewTests.swift */,
 				F9302F08CDA8C2099F522EB6 /* TokenStoreTests.swift */,
+				2B6CCF4C948E21BC93B6FF61 /* WidgetAccountConfigurationTests.swift */,
 				399730C0D95FEF44FF128682 /* WidgetReadingStatusTests.swift */,
 			);
 			path = Tests;
@@ -753,6 +779,7 @@
 				BE646C3065C7605692946277 /* AIQuota.app */,
 				F7D91CE69A5D09F553A14DCD /* AIQuotaCopySignInCode-iOS.appex */,
 				AAA0FF873D42E78CA9F94932 /* AIQuotaWidget-iOS.appex */,
+				24B36C5D6E8161BDA19A02CA /* AIQuotaWidget-iOSTests.xctest */,
 				76D9EEAA0A27FF50A5E170F4 /* AIQuotaWidget.appex */,
 				94EF7D48855FADE21AE0B407 /* AIQuotaWidget.appex */,
 			);
@@ -931,6 +958,26 @@
 			productReference = BE646C3065C7605692946277 /* AIQuota.app */;
 			productType = "com.apple.product-type.application";
 		};
+		964B12793152C074F56B6816 /* AIQuotaWidget-iOSTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 64545BAE983E74AADC13428F /* Build configuration list for PBXNativeTarget "AIQuotaWidget-iOSTests" */;
+			buildPhases = (
+				3AC33B4CBDD20D53D6BF22F6 /* Sources */,
+				CD565973467D75FAFBA7F8B6 /* Resources */,
+				A6ED23AD53B81C420618D005 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "AIQuotaWidget-iOSTests";
+			packageProductDependencies = (
+				33DE59475A6640AF67580B78 /* MobileAccessCore */,
+			);
+			productName = "AIQuotaWidget-iOSTests";
+			productReference = 24B36C5D6E8161BDA19A02CA /* AIQuotaWidget-iOSTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		E3851BEB72FF3CB51B99F2BE /* AIQuotaWidget-iOS */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = FDCCADA8EFBA18F9A6BEC206 /* Build configuration list for PBXNativeTarget "AIQuotaWidget-iOS" */;
@@ -993,6 +1040,10 @@
 						DevelopmentTeam = 289GY9L343;
 						ProvisioningStyle = Automatic;
 					};
+					964B12793152C074F56B6816 = {
+						DevelopmentTeam = 289GY9L343;
+						ProvisioningStyle = Automatic;
+					};
 					E3851BEB72FF3CB51B99F2BE = {
 						DevelopmentTeam = 289GY9L343;
 						ProvisioningStyle = Automatic;
@@ -1027,6 +1078,7 @@
 				7FBC56661784E238EBE58B56 /* AIQuotaStore */,
 				7F9C5CB955BB7645111CD8CE /* AIQuotaWidget */,
 				E3851BEB72FF3CB51B99F2BE /* AIQuotaWidget-iOS */,
+				964B12793152C074F56B6816 /* AIQuotaWidget-iOSTests */,
 				488B4B48280B61AC5D62076D /* AIQuotaWidgetStore */,
 			);
 		};
@@ -1064,6 +1116,14 @@
 			files = (
 				B634179F85F5BA71ADF5A25D /* AppIcon.icon in Resources */,
 				96ECF77AF4F522CAF9619D23 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		CD565973467D75FAFBA7F8B6 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0A563020011AA37399C1119B /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1113,6 +1173,23 @@
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		3AC33B4CBDD20D53D6BF22F6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AF27AB1BED0D330C2897026E /* AccountRegistry.swift in Sources */,
+				24AB209DBB7AE96670BFC71E /* CodexWidget.swift in Sources */,
+				A26EC10C0CB510CB32E4ADD0 /* CompactQuotaView.swift in Sources */,
+				9967C169934FDA0A92AFC212 /* DemoQuotaData.swift in Sources */,
+				C27EF9F4B6924DA55E0C86C8 /* HomeQuotaView.swift in Sources */,
+				88EEEE7F5FB64436900693AD /* LockScreenResetPresentation.swift in Sources */,
+				F790AFCECE156C218ECE3637 /* SharedQuotaStore.swift in Sources */,
+				68A3288C282566C47BFA9431 /* WidgetAccountConfigurationTests.swift in Sources */,
+				616620D2F728EB81AEDD78CA /* WidgetReadingStatus.swift in Sources */,
+				D983DE6B8AC5806376EBA3FC /* WidgetStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		3C07A279E61FDF58AD5102D4 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1293,6 +1370,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8828EA515EF0D8B3DC3288A9 /* AccountRegistryTests.swift in Sources */,
 				E33E9AF4802830F62830D735 /* BackgroundRefreshTests.swift in Sources */,
 				1480C81463CDB8E0AEB89C84 /* BaseScreenReviewTests.swift in Sources */,
 				7CF47B58B590EFF9D53F33E6 /* ClaudeAnalyticsTests.swift in Sources */,
@@ -1738,6 +1816,30 @@
 			};
 			name = Debug;
 		};
+		702614CA2D6479072D9F0E5D /* Demo */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 76;
+				DEVELOPMENT_TEAM = 289GY9L343;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = iOS/Widget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.niederme.AIQuotaWidget-iOSTests";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) WIDGET_UNIT_TESTS";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Demo;
+		};
 		71035A2EA31EAD162E8B75FF /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1757,6 +1859,30 @@
 				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
+		};
+		86311D61075B9ED4BB17E2E5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 76;
+				DEVELOPMENT_TEAM = 289GY9L343;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = iOS/Widget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.niederme.AIQuotaWidget-iOSTests";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) WIDGET_UNIT_TESTS";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
 		};
 		94589C4E8F2087A1D66DCE68 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -1999,6 +2125,30 @@
 			};
 			name = Release;
 		};
+		D1582E7053486A1654EC6868 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 76;
+				DEVELOPMENT_TEAM = 289GY9L343;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = iOS/Widget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 2.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.niederme.AIQuotaWidget-iOSTests";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) WIDGET_UNIT_TESTS";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		E2C63AA09F322F08677B6219 /* Demo */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -2180,6 +2330,16 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
+		64545BAE983E74AADC13428F /* Build configuration list for PBXNativeTarget "AIQuotaWidget-iOSTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				86311D61075B9ED4BB17E2E5 /* Debug */,
+				702614CA2D6479072D9F0E5D /* Demo */,
+				D1582E7053486A1654EC6868 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		73BB759DEE5F8C2DDCDDB3FF /* Build configuration list for PBXNativeTarget "AIQuotaCopySignInCode-iOS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -2264,6 +2424,10 @@
 
 /* Begin XCSwiftPackageProductDependency section */
 		0063D76A2C4685568BA5F1D7 /* MobileAccessCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MobileAccessCore;
+		};
+		33DE59475A6640AF67580B78 /* MobileAccessCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = MobileAccessCore;
 		};
