@@ -12,8 +12,10 @@ enum ClaudeOrganizationLookup: Equatable {
 
 @MainActor @Observable
 final class ClaudeProbeModel {
-    let webDetailsSession = ClaudeWebDetailsSession()
+    let webDetailsSession: ClaudeWebDetailsSession
+    let profile: AccountProfile?
     private let shared: SharedQuotaStore
+    private let defaults: UserDefaults
     private var foregroundRefresh = ForegroundRefreshPolicy()
     private(set) var quietlyRefreshing = false
     var loading: Bool { busy && !quietlyRefreshing }
@@ -32,14 +34,20 @@ final class ClaudeProbeModel {
     private(set) var renewedAt: Date?
     let isDemo: Bool
     var connected: Bool { isDemo || tokens != nil }
-    private let cacheKey = "mobileProbe.claudeReading"
+    private let cacheKey: String
+    private var usesLegacyStorage: Bool { profile?.isLegacy ?? true }
 
-    init(api: ClaudeAPI = ClaudeAPI(), shared: SharedQuotaStore = SharedQuotaStore(.claude), restore: Bool = true, isDemo: Bool = false,
+    init(api: ClaudeAPI = ClaudeAPI(), shared: SharedQuotaStore? = nil, restore: Bool = true, isDemo: Bool = false,
+         defaults: UserDefaults = .standard, profile: AccountProfile? = nil,
          fetchUsage: (@Sendable (Bool, TimeInterval) async throws -> QuotaReading)? = nil) {
         self.isDemo = isDemo
+        self.webDetailsSession = ClaudeWebDetailsSession(profileID: profile?.id)
         self.api = api
         self.fetchUsage = fetchUsage
-        self.shared = shared
+        self.profile = profile
+        self.shared = shared ?? SharedQuotaStore(.claude, namespace: profile?.id ?? "live")
+        self.defaults = defaults
+        self.cacheKey = profile.map { "mobileProbe.claudeReading." + $0.id } ?? "mobileProbe.claudeReading"
         if isDemo {
             reading = DemoQuotaData.reading(.claude)
             message = "Sample usage. No account connected."
@@ -47,16 +55,31 @@ final class ClaudeProbeModel {
         }
         guard restore else { return }
         do {
-            tokens = try shared.load(ClaudeTokens.self) ?? ClaudeTokenStore.load()
+            tokens = try self.shared.load(ClaudeTokens.self)
+                ?? (usesLegacyStorage ? ClaudeTokenStore.load() : nil)
             if tokens != nil {
-                connectionFailure = shared.failure()
+                connectionFailure = self.shared.failure()
                 message = "Connected. Your usage updates automatically."
-                reading = shared.reading()
-                if reading == nil, let data = UserDefaults.standard.data(forKey: cacheKey) {
+                reading = self.shared.reading()
+                if reading == nil, let data = cachedReadingData() {
                     reading = try? JSONDecoder().decode(QuotaReading.self, from: data)
                 }
             }
         } catch { self.error = "Could not read this device’s saved connection." }
+    }
+    private func cachedReadingData() -> Data? {
+        if let data = defaults.data(forKey: cacheKey) { return data }
+        let legacyKey = "mobileProbe.claudeReading"
+        guard profile?.isLegacy == true, let data = defaults.data(forKey: legacyKey) else { return nil }
+        defaults.set(data, forKey: cacheKey)
+        defaults.removeObject(forKey: legacyKey)
+        return data
+    }
+    private func updateProviderIdentity(_ identity: String) {
+        guard let profile else { return }
+        let value = identity.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { return }
+        AccountRegistry.setProviderIdentity(service: .claude, id: profile.id, identity: value)
     }
     func connect() {
         guard !isDemo else { return }
@@ -72,9 +95,10 @@ final class ClaudeProbeModel {
         run { [self] in
             let newTokens = try await api.exchange(pasted, challenge: pending)
             try Task.checkCancellation()
+            let migrateLegacy = usesLegacyStorage
             try await shared.withLease { [shared] in
                         try shared.saveCredentials(newTokens)
-                        try ClaudeTokenStore.clear()
+                        if migrateLegacy { try ClaudeTokenStore.clear() }
                     }
             foregroundRefresh.reset()
             webDetailsSession.invalidate()
@@ -105,6 +129,7 @@ final class ClaudeProbeModel {
             guard let organizationID = try await api.organizationID(tokens) else {
                 return .reconnectRequired
             }
+            updateProviderIdentity(organizationID)
             return .verified(organizationID)
         } catch let accessError as ClaudeAccessError where accessError.requiresReconnect {
             connectionFailure = .reconnect
@@ -136,11 +161,12 @@ final class ClaudeProbeModel {
         defer { if backgroundTask != .invalid { UIApplication.shared.endBackgroundTask(backgroundTask) } }
 
         // Migrate once under the same lease used by widget renewal. Never overwrite newer shared credentials.
+        let migrateLegacy = usesLegacyStorage
         try await shared.withLease { [shared] in
-            if try shared.load(ClaudeTokens.self) == nil, let old = try ClaudeTokenStore.load() {
+            if migrateLegacy, try shared.load(ClaudeTokens.self) == nil, let old = try ClaudeTokenStore.load() {
                 try shared.saveCredentials(old)
             }
-            try ClaudeTokenStore.clear()
+            if migrateLegacy { try ClaudeTokenStore.clear() }
         }
         message = "Updating allowance…"
         let value: QuotaReading
@@ -153,7 +179,7 @@ final class ClaudeProbeModel {
         tokens = try shared.load(ClaudeTokens.self)
         connectionFailure = nil
         reading = value
-        UserDefaults.standard.set(try JSONEncoder().encode(value), forKey: cacheKey)
+        defaults.set(try JSONEncoder().encode(value), forKey: cacheKey)
         if forceRenewal { renewedAt = .now }
         WidgetCenter.shared.reloadAllTimelines()
         message = "Usage updated."
@@ -210,14 +236,16 @@ final class ClaudeProbeModel {
         message = "Connect Claude to see your usage."
     }
     private func clearConnection() async throws {
+        let clearLegacy = usesLegacyStorage
         try await shared.withLease { [shared] in
-            try ClaudeTokenStore.clear()
+            if clearLegacy { try ClaudeTokenStore.clear() }
             try shared.clear()
         }
         WidgetCenter.shared.reloadAllTimelines()
-        UserDefaults.standard.removeObject(forKey: cacheKey)
+        defaults.removeObject(forKey: cacheKey)
         webDetailsSession.invalidate()
-        await ClaudeWebDetailsSession.clearSession()
+        if profile == nil || profile?.isLegacy == true { await ClaudeWebDetailsSession.clearSession() }
+        else { await webDetailsSession.clearProfileSession() }
         foregroundRefresh.reset()
         tokens = nil
         reading = nil

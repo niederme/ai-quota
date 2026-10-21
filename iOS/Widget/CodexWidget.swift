@@ -7,14 +7,81 @@ extension QuotaService: AppEnum {
     static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Service")
     static let caseDisplayRepresentations: [Self: DisplayRepresentation] = [.codex: "Codex", .claude: "Claude"]
 }
+
+struct WidgetAccount: AppEntity {
+    static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "AIQuota account")
+    static let defaultQuery = WidgetAccountQuery()
+
+    let id: String
+    let profileID: String
+    let service: QuotaService
+    let label: String
+
+    var displayRepresentation: DisplayRepresentation {
+        DisplayRepresentation(title: "\(label)", subtitle: "\(service.name)")
+    }
+
+    init(_ profile: AccountProfile) {
+        id = "\(profile.service.rawValue):\(profile.id)"
+        profileID = profile.id
+        service = profile.service
+        label = profile.label
+    }
+}
+
+struct WidgetAccountQuery: EntityQuery {
+    private let service: QuotaService?
+
+    init() { service = nil }
+    init(service: QuotaService) { self.service = service }
+
+    func entities(for identifiers: [String]) async throws -> [WidgetAccount] {
+        accounts.filter { identifiers.contains($0.id) }
+    }
+
+    func suggestedEntities() async throws -> [WidgetAccount] { accounts }
+
+    private var accounts: [WidgetAccount] {
+        let profiles = service.map(AccountRegistry.profiles(for:)) ?? AccountRegistry.all()
+        return profiles.map(WidgetAccount.init)
+    }
+}
+
 struct QuotaConfiguration: WidgetConfigurationIntent {
     static let title: LocalizedStringResource = "AI allowance"
     static let description = IntentDescription("Your available allowance windows.")
     @Parameter(title: "Service", default: .codex) var service: QuotaService
+    @Parameter(title: "Account") var account: WidgetAccount?
 }
 struct QuotaEntry: TimelineEntry {
     let date: Date
     let values: [ProviderReading]
+    let accountLabels: [QuotaService: String]
+}
+
+private struct WidgetReading: Sendable {
+    let value: ProviderReading
+    let accountLabel: String?
+    let namespace: String?
+}
+
+private func profile(_ selection: WidgetAccount?, for service: QuotaService) -> AccountProfile? {
+    let profiles = AccountRegistry.profiles(for: service)
+    if let selection, selection.service == service,
+       let selected = profiles.first(where: { $0.id == selection.profileID }) {
+        return selected
+    }
+    return AccountRegistry.defaultProfile(for: service)
+}
+
+private func entry(_ readings: [WidgetReading], at date: Date = .now) -> QuotaEntry {
+    QuotaEntry(
+        date: date,
+        values: readings.map(\.value),
+        accountLabels: Dictionary(uniqueKeysWithValues: readings.compactMap { reading in
+            reading.accountLabel.map { (reading.value.service, $0) }
+        })
+    )
 }
 private func hasSavedCredentials(_ store: SharedQuotaStore) -> Bool {
     switch store.service {
@@ -22,64 +89,76 @@ private func hasSavedCredentials(_ store: SharedQuotaStore) -> Bool {
     case .claude: return (try? store.load(ClaudeTokens.self)) != nil
     }
 }
-private func loadReading(_ service: QuotaService) async -> ProviderReading {
-    if DemoQuotaData.isEnabled {
-        return ProviderReading(service: service, reading: DemoQuotaData.reading(service), needsApp: false)
+private func loadReading(_ service: QuotaService, account: WidgetAccount? = nil) async -> WidgetReading {
+    guard let profile = profile(account, for: service) else {
+        return WidgetReading(value: ProviderReading(service: service, reading: nil, needsApp: false), accountLabel: nil, namespace: nil)
     }
-    let store = SharedQuotaStore(service)
+    if DemoQuotaData.isEnabled {
+        return WidgetReading(value: ProviderReading(service: service, reading: DemoQuotaData.reading(service), needsApp: false), accountLabel: profile.label, namespace: profile.id)
+    }
+    let store = SharedQuotaStore(service, namespace: profile.id)
     do {
         let reading = try await store.fetch(source: "widget", minimumAge: 60)
-        return ProviderReading(service: service, reading: reading, needsApp: false)
+        return WidgetReading(value: ProviderReading(service: service, reading: reading, needsApp: false), accountLabel: profile.label, namespace: profile.id)
     } catch {
         let reconnect = (error as? AccessError) == .expired || (error as? AccessError) == .http(401)
             || (error as? ClaudeAccessError)?.requiresReconnect == true
             || SharedQuotaStore.Failure.classify(error) == .renewal
-        return ProviderReading(service: service, reading: store.reading(), needsApp: reconnect && (hasSavedCredentials(store) || store.reading() != nil), updateFailed: true)
+        let value = ProviderReading(service: service, reading: store.reading(), needsApp: reconnect && (hasSavedCredentials(store) || store.reading() != nil), updateFailed: true)
+        return WidgetReading(value: value, accountLabel: profile.label, namespace: profile.id)
     }
 }
-private func snapshotReading(_ service: QuotaService) -> ProviderReading {
+private func snapshotReading(_ service: QuotaService, account: WidgetAccount? = nil) -> WidgetReading {
+    guard let profile = profile(account, for: service) else {
+        return WidgetReading(value: ProviderReading(service: service, reading: nil, needsApp: false), accountLabel: nil, namespace: nil)
+    }
     if DemoQuotaData.isEnabled {
-        return ProviderReading(service: service, reading: DemoQuotaData.reading(service), needsApp: false)
+        return WidgetReading(value: ProviderReading(service: service, reading: DemoQuotaData.reading(service), needsApp: false), accountLabel: profile.label, namespace: profile.id)
     }
-    let store = SharedQuotaStore(service)
-    return ProviderReading(service: service, reading: store.reading(), needsApp: store.failure().map { $0 != .temporary } ?? false, updateFailed: store.failure() != nil)
+    let store = SharedQuotaStore(service, namespace: profile.id)
+    let value = ProviderReading(service: service, reading: store.reading(), needsApp: store.failure().map { $0 != .temporary } ?? false, updateFailed: store.failure() != nil)
+    return WidgetReading(value: value, accountLabel: profile.label, namespace: profile.id)
 }
-private func timeline(_ values: [ProviderReading]) -> Timeline<QuotaEntry> {
+private func timeline(_ readings: [WidgetReading]) -> Timeline<QuotaEntry> {
     let now = Date.now
+    let values = readings.map(\.value)
     let dates = Array(Set([now] + values.flatMap { WidgetFreshness.boundaries($0.reading, after: now) })).sorted()
-    for value in values where !DemoQuotaData.isEnabled {
-        SharedQuotaStore(value.service).log("widget", "timeline_handoff", reading: value.reading, entryDates: dates)
+    for reading in readings where !DemoQuotaData.isEnabled {
+        guard let namespace = reading.namespace else { continue }
+        SharedQuotaStore(reading.value.service, namespace: namespace).log("widget", "timeline_handoff", reading: reading.value.reading, entryDates: dates)
     }
-    return Timeline(entries: dates.map { QuotaEntry(date: $0, values: values) }, policy: .after(now.addingTimeInterval(5 * 60)))
+    return Timeline(entries: dates.map { entry(readings, at: $0) }, policy: .after(now.addingTimeInterval(5 * 60)))
 }
 struct CodexProvider: AppIntentTimelineProvider {
-    func placeholder(in context: Context) -> QuotaEntry { QuotaEntry(date: .now, values: [ProviderReading(service: .codex, reading: nil, needsApp: false)]) }
+    func placeholder(in context: Context) -> QuotaEntry { QuotaEntry(date: .now, values: [ProviderReading(service: .codex, reading: nil, needsApp: false)], accountLabels: [:]) }
     func snapshot(for configuration: QuotaConfiguration, in context: Context) async -> QuotaEntry {
-        QuotaEntry(date: .now, values: [snapshotReading(configuration.service)])
+        entry([snapshotReading(configuration.service, account: configuration.account)])
     }
     func timeline(for configuration: QuotaConfiguration, in context: Context) async -> Timeline<QuotaEntry> {
-        await makeTimeline(configuration.service)
+        await makeTimeline(configuration.service, account: configuration.account)
     }
-    private func makeTimeline(_ service: QuotaService) async -> Timeline<QuotaEntry> {
-        let value = await loadReading(service)
+    private func makeTimeline(_ service: QuotaService, account: WidgetAccount?) async -> Timeline<QuotaEntry> {
+        let value = await loadReading(service, account: account)
         return WidgetTimeline.make([value])
     }
 }
 // A namespace avoids colliding with TimelineProvider's required timeline method.
 private enum WidgetTimeline {
-    static func make(_ values: [ProviderReading]) -> Timeline<QuotaEntry> { timeline(values) }
+    static func make(_ values: [WidgetReading]) -> Timeline<QuotaEntry> { timeline(values) }
 }
 struct BothConfiguration: WidgetConfigurationIntent {
     static let title: LocalizedStringResource = "Codex and Claude"
+    @Parameter(title: "Codex account", query: WidgetAccountQuery(service: .codex)) var codexAccount: WidgetAccount?
+    @Parameter(title: "Claude account", query: WidgetAccountQuery(service: .claude)) var claudeAccount: WidgetAccount?
 }
 struct BothProvider: AppIntentTimelineProvider {
-    func placeholder(in context: Context) -> QuotaEntry { QuotaEntry(date: .now, values: QuotaService.allCases.map { ProviderReading(service: $0, reading: nil, needsApp: false) }) }
+    func placeholder(in context: Context) -> QuotaEntry { QuotaEntry(date: .now, values: QuotaService.allCases.map { ProviderReading(service: $0, reading: nil, needsApp: false) }, accountLabels: [:]) }
     func snapshot(for configuration: BothConfiguration, in context: Context) async -> QuotaEntry {
-        QuotaEntry(date: .now, values: QuotaService.allCases.map { snapshotReading($0) })
+        entry([snapshotReading(.codex, account: configuration.codexAccount), snapshotReading(.claude, account: configuration.claudeAccount)])
     }
     func timeline(for configuration: BothConfiguration, in context: Context) async -> Timeline<QuotaEntry> {
-        async let codex = loadReading(.codex)
-        async let claude = loadReading(.claude)
+        async let codex = loadReading(.codex, account: configuration.codexAccount)
+        async let claude = loadReading(.claude, account: configuration.claudeAccount)
         return WidgetTimeline.make(await [codex, claude])
     }
 }
@@ -127,21 +206,26 @@ enum CompactServices: String, AppEnum {
 struct CompactConfiguration: WidgetConfigurationIntent {
     static let title: LocalizedStringResource = "Allowance details"
     @Parameter(title: "Services", default: .both) var services: CompactServices
+    @Parameter(title: "Codex account", query: WidgetAccountQuery(service: .codex)) var codexAccount: WidgetAccount?
+    @Parameter(title: "Claude account", query: WidgetAccountQuery(service: .claude)) var claudeAccount: WidgetAccount?
 }
 struct CompactProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> QuotaEntry {
-        QuotaEntry(date: .now, values: [.init(service: .codex, reading: nil, needsApp: false), .init(service: .claude, reading: nil, needsApp: false)])
+        QuotaEntry(date: .now, values: [.init(service: .codex, reading: nil, needsApp: false), .init(service: .claude, reading: nil, needsApp: false)], accountLabels: [:])
     }
     func snapshot(for configuration: CompactConfiguration, in context: Context) async -> QuotaEntry {
-        QuotaEntry(date: .now, values: configuration.services.services.map { snapshotReading($0) })
+        entry(configuration.services.services.map { service in
+            snapshotReading(service, account: service == .codex ? configuration.codexAccount : configuration.claudeAccount)
+        })
     }
     func timeline(for configuration: CompactConfiguration, in context: Context) async -> Timeline<QuotaEntry> {
         if configuration.services == .both {
-            async let codex = loadReading(.codex)
-            async let claude = loadReading(.claude)
+            async let codex = loadReading(.codex, account: configuration.codexAccount)
+            async let claude = loadReading(.claude, account: configuration.claudeAccount)
             return WidgetTimeline.make(await [codex, claude])
         }
-        return WidgetTimeline.make([await loadReading(configuration.services.services[0])])
+        let service = configuration.services.services[0]
+        return WidgetTimeline.make([await loadReading(service, account: service == .codex ? configuration.codexAccount : configuration.claudeAccount)])
     }
 }
 struct CompactLockScreenWidget: Widget {
@@ -189,8 +273,26 @@ private struct HomeEntryView: View {
     let both: Bool
     @Environment(\.widgetFamily) private var family
     var body: some View {
-        HomeQuotaView(values: entry.values, date: entry.date,
-            layout: both ? (family == .systemLarge ? .large : .dualMedium) : (family == .systemSmall ? .small : .singleMedium))
+        VStack(spacing: 0) {
+            if family != .systemSmall, !entry.accountLabels.isEmpty {
+                HStack(spacing: 8) {
+                    ForEach(entry.values, id: \.service) { value in
+                        if let label = entry.accountLabels[value.service] {
+                            Text("\(value.service.name): \(label)")
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.75)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 12)
+                .padding(.top, 7)
+            }
+            HomeQuotaView(values: entry.values, date: entry.date,
+                layout: both ? (family == .systemLarge ? .large : .dualMedium) : (family == .systemSmall ? .small : .singleMedium))
+        }
     }
 }
 struct SingleHomeScreenWidget: Widget {

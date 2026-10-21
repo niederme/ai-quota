@@ -8,6 +8,7 @@ import MobileAccessCore
     static let shared = MobileBackgroundRefresh()
     static let identifier = "com.niederme.AIQuota.refresh"
     private var activeRun: BackgroundRefreshRun?
+    private var activeAccountRun: Task<Void, Never>?
 
     func register() {
         BGTaskScheduler.shared.register(forTaskWithIdentifier: Self.identifier, using: .main) { task in
@@ -21,11 +22,11 @@ import MobileAccessCore
         }
     }
 
-    private func connectedServices() -> [QuotaService] {
+    private func connectedProfiles() -> [AccountProfile] {
         guard !DemoQuotaData.isEnabled else { return [] }
-        return QuotaService.allCases.filter { service in
-            let store = SharedQuotaStore(service)
-            switch service {
+        return AccountRegistry.all().filter { profile in
+            let store = SharedQuotaStore(profile.service, namespace: profile.id)
+            switch profile.service {
             case .codex: return (try? store.load(CodexTokens.self)) != nil
             case .claude: return (try? store.load(ClaudeTokens.self)) != nil
             }
@@ -35,34 +36,56 @@ import MobileAccessCore
     func scheduleNext() {
         // Replace our own request only; never alter another background task.
         BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: Self.identifier)
-        guard !connectedServices().isEmpty else { return }
+        let profiles = connectedProfiles()
+        guard !profiles.isEmpty else { return }
         let request = BGAppRefreshTaskRequest(identifier: Self.identifier)
         request.earliestBeginDate = Date.now.addingTimeInterval(30 * 60)
         do {
             try BGTaskScheduler.shared.submit(request)
-            for service in connectedServices() { SharedQuotaStore(service).log("background", "scheduled") }
+            for profile in profiles { SharedQuotaStore(profile.service, namespace: profile.id).log("background", "scheduled") }
         }
         catch { SharedQuotaStore(.codex).log("background", "schedule_unavailable") }
     }
 
     private func handle(_ task: BGAppRefreshTask) {
-        let services = connectedServices()
-        for service in services { SharedQuotaStore(service).log("background", "started") }
-        let run = BackgroundRefreshRun(services: services, reschedule: { self.scheduleNext() },
-            refresh: { service in
-                _ = try await SharedQuotaStore(service).fetch(source: "background", minimumAge: 60)
-            }, reload: { WidgetCenter.shared.reloadAllTimelines() }, complete: { success in
-                task.expirationHandler = nil
-                for service in services {
-                    let store = SharedQuotaStore(service)
-                    store.log("background", success ? "completed" : "failed_or_expired", reading: store.reading())
+        let profiles = connectedProfiles()
+        for profile in profiles { SharedQuotaStore(profile.service, namespace: profile.id).log("background", "started") }
+        activeAccountRun?.cancel()
+        let work = Task { @MainActor in
+            scheduleNext()
+            let success = await withTaskGroup(of: Bool.self, returning: Bool.self) { group in
+                for profile in profiles {
+                    group.addTask {
+                        do {
+                            try Task.checkCancellation()
+                            _ = try await SharedQuotaStore(profile.service, namespace: profile.id)
+                                .fetch(source: "background", minimumAge: 60)
+                            return true
+                        } catch { return false }
+                    }
                 }
-                task.setTaskCompleted(success: success)
-                self.activeRun = nil
-            })
-        activeRun = run
-        task.expirationHandler = { Task { @MainActor in run.expire() } }
-        run.start()
+                var allSucceeded = true
+                for await result in group { allSucceeded = allSucceeded && result }
+                return allSucceeded
+            }
+            guard !Task.isCancelled else { return }
+            WidgetCenter.shared.reloadAllTimelines()
+            for profile in profiles {
+                let store = SharedQuotaStore(profile.service, namespace: profile.id)
+                store.log("background", success ? "completed" : "failed_or_expired", reading: store.reading())
+            }
+            task.expirationHandler = nil
+            task.setTaskCompleted(success: success)
+            activeAccountRun = nil
+        }
+        activeAccountRun = work
+        task.expirationHandler = {
+            Task { @MainActor in
+                self.activeAccountRun?.cancel()
+                self.activeAccountRun = nil
+                task.setTaskCompleted(success: false)
+            }
+        }
     }
 }
 

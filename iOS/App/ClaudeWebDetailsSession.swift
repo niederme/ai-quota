@@ -40,9 +40,16 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
     #endif
     @ObservationIgnored let webView: WKWebView
 
-    override init() {
+    init(profileID: String? = nil) {
         let configuration = WKWebViewConfiguration()
-        configuration.websiteDataStore = .default()
+        // Keep the migrated first account's existing web sign-in. Additional
+        // accounts get persistent, separate WebKit profiles so two users in
+        // the same Enterprise organization cannot share detail cookies.
+        if let profileID, profileID != "live", let identifier = UUID(uuidString: profileID) {
+            configuration.websiteDataStore = WKWebsiteDataStore(forIdentifier: identifier)
+        } else {
+            configuration.websiteDataStore = .default()
+        }
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
         webView = WKWebView(frame: .zero, configuration: configuration)
         super.init()
@@ -115,7 +122,7 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
         detailsLoading = false
         requestedStartDate = nil
         requestedEndDate = nil
-        let store = WKWebsiteDataStore.default().httpCookieStore
+        let store = webView.configuration.websiteDataStore.httpCookieStore
         let cookies = await withCheckedContinuation { continuation in
             store.getAllCookies { continuation.resume(returning: $0) }
         }
@@ -139,7 +146,7 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
         generation = UUID()
         webView.stopLoading()
         loadingTimeout?.cancel()
-        let store = WKWebsiteDataStore.default().httpCookieStore
+        let store = webView.configuration.websiteDataStore.httpCookieStore
         let currentCookies = await withCheckedContinuation { continuation in
             store.getAllCookies { continuation.resume(returning: $0) }
         }
@@ -422,6 +429,11 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
                 store.delete(cookie) { continuation.resume() }
             }
         }
+    }
+
+    func clearProfileSession() async {
+        let store = webView.configuration.websiteDataStore
+        await store.removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast)
     }
 
     private static func isClaudeCookie(_ cookie: HTTPCookie) -> Bool {

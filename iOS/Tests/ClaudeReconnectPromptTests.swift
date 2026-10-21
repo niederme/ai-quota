@@ -50,6 +50,20 @@ final class ClaudeReconnectPromptTests: XCTestCase {
 
 final class ClaudeWebSessionRollbackTests: XCTestCase {
     @MainActor
+    func testAccountWebSessionsUseSeparateDataStores() {
+        let firstID = UUID()
+        let secondID = UUID()
+        let first = ClaudeWebDetailsSession(profileID: firstID.uuidString)
+        let second = ClaudeWebDetailsSession(profileID: secondID.uuidString)
+        let legacy = ClaudeWebDetailsSession()
+        XCTAssertEqual(first.webView.configuration.websiteDataStore.identifier, firstID)
+        XCTAssertEqual(second.webView.configuration.websiteDataStore.identifier, secondID)
+        XCTAssertNotEqual(first.webView.configuration.websiteDataStore.identifier,
+                          second.webView.configuration.websiteDataStore.identifier)
+        XCTAssertNil(legacy.webView.configuration.websiteDataStore.identifier)
+    }
+
+    @MainActor
     func testNavigationWithoutCompletionBecomesRetryable() async {
         let session = ClaudeWebDetailsSession()
         session.checkingTimeout = .milliseconds(40)

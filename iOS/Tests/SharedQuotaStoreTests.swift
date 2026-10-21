@@ -11,6 +11,11 @@ private func credentials(expired: Bool = false) throws -> CodexTokens {
 private func sample() throws -> QuotaReading {
     try QuotaReading.decode(Data(#"{"rate_limit":{"primary_window":{"used_percent":24,"limit_window_seconds":18000},"secondary_window":{"used_percent":50,"limit_window_seconds":604800}}}"#.utf8), now: .now)
 }
+private func sample(usedPercent: Int) throws -> QuotaReading {
+    try QuotaReading.decode(Data("""
+    {"rate_limit":{"primary_window":{"used_percent":\(usedPercent),"limit_window_seconds":18000},"secondary_window":{"used_percent":50,"limit_window_seconds":604800}}}
+    """.utf8), now: .now)
+}
 private actor Calls {
     var renewals = 0
     var access: [String] = []
@@ -83,7 +88,7 @@ final class SharedQuotaStoreTests: XCTestCase {
             })
             XCTFail("Expected rate limit")
         } catch { }
-        let cooldown = try XCTUnwrap(store.root).appendingPathComponent("claude-cooldown.json")
+        let cooldown = try XCTUnwrap(store.cooldownURL)
         let original = try Data(contentsOf: cooldown)
         for source in ["app", "widget", "background"] {
             do {
@@ -206,7 +211,7 @@ final class SharedQuotaStoreTests: XCTestCase {
         } catch { XCTAssertEqual(error as? AccessError, .http(503)) }
         XCTAssertEqual(store.reading(), original)
         XCTAssertEqual(try store.load(CodexTokens.self)?.refreshToken, "new-refresh")
-        let folder = try XCTUnwrap(store.root?.appendingPathComponent("widget-diagnostics"))
+        let folder = try XCTUnwrap(store.root?.appendingPathComponent("widget-diagnostics").appendingPathComponent(store.namespace))
         for file in try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil) {
             let log = try String(contentsOf: file, encoding: .utf8)
             XCTAssertFalse(log.contains("new-access")); XCTAssertFalse(log.contains("new-refresh"))
@@ -240,6 +245,133 @@ final class SharedQuotaStoreTests: XCTestCase {
         XCTAssertEqual(try claude.load(ClaudeTokens.self)?.refreshToken, "claude-refresh")
         try await claude.withLease { try claude.clear() }
         try await clean(codex)
+    }
+
+    func testProfilesOfSameProviderKeepCredentialsReadingsAndFailuresIsolated() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let live = SharedQuotaStore(.codex, root: root)
+        let second = SharedQuotaStore(.codex, root: root, namespace: UUID().uuidString)
+        try await live.withLease { try live.saveCredentials(credentials()) }
+        let secondCredentials = try JSONDecoder().decode(
+            CodexTokens.self,
+            from: Data(#"{"accessToken":"second-access","refreshToken":"second-refresh","expiresAt":1900000000}"#.utf8)
+        )
+        try await second.withLease { try second.saveCredentials(secondCredentials) }
+
+        _ = try await live.fetch(CodexTokens.self, source: "test", renew: { $0 }, usage: { _ in try sample(usedPercent: 12) })
+        _ = try await second.fetch(CodexTokens.self, source: "test", renew: { $0 }, usage: { _ in try sample(usedPercent: 78) })
+        XCTAssertEqual(live.reading()?.shortTerm?.usedPercent, 12)
+        XCTAssertEqual(second.reading()?.shortTerm?.usedPercent, 78)
+        XCTAssertNotEqual(live.readingURL, second.readingURL)
+        XCTAssertEqual(try live.load(CodexTokens.self)?.refreshToken, "new-refresh")
+        XCTAssertEqual(try second.load(CodexTokens.self)?.refreshToken, "second-refresh")
+
+        do {
+            _ = try await second.fetch(CodexTokens.self, source: "test", renew: { $0 }, usage: { _ in
+                throw AccessError.http(503)
+            })
+            XCTFail("Expected provider failure")
+        } catch { }
+        XCTAssertNil(live.failure())
+        XCTAssertEqual(second.failure(), .temporary)
+
+        try await second.withLease { try second.clear() }
+        XCTAssertNotNil(live.reading())
+        XCTAssertNotNil(try live.load(CodexTokens.self))
+        try await live.withLease { try live.clear() }
+        try? FileManager.default.removeItem(at: root)
+    }
+}
+
+final class AccountRegistryTests: XCTestCase {
+    private func root() -> URL {
+        FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    }
+
+    func testLegacyMigrationCreatesOnlyDetectedProviderAndPersistsDefault() throws {
+        let root = root()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let migrating = AccountRegistry.Store(root: root, legacyServices: [.claude])
+
+        XCTAssertEqual(migrating.all(), [
+            AccountProfile(id: "live", service: .claude, label: "Account 1", isLegacy: true)
+        ])
+        XCTAssertEqual(migrating.defaultProfile(for: .claude)?.id, "live")
+        XCTAssertNil(migrating.defaultProfile(for: .codex))
+
+        // Once recorded, later evidence cannot cause a second migration.
+        let reopened = AccountRegistry.Store(root: root, legacyServices: [.codex])
+        XCTAssertEqual(reopened.all(), migrating.all())
+        XCTAssertNil(reopened.defaultProfile(for: .codex))
+    }
+
+    func testFreshInstallRemainsEmptyAndFirstAddedProviderUsesLive() throws {
+        let root = root()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let registry = AccountRegistry.Store(root: root, legacyServices: [])
+
+        XCTAssertTrue(registry.all().isEmpty)
+        let first = registry.add(service: .codex)
+        let second = registry.add(service: .codex)
+        XCTAssertEqual(first.id, "live")
+        XCTAssertTrue(first.isLegacy)
+        XCTAssertNotEqual(second.id, "live")
+        XCTAssertFalse(second.isLegacy)
+        XCTAssertEqual(registry.defaultProfile(for: .codex), first)
+    }
+
+    func testCompositeMutationsDoNotChangeOtherProvidersLiveProfile() throws {
+        let root = root()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let registry = AccountRegistry.Store(root: root, legacyServices: [.codex, .claude])
+        registry.rename(service: .codex, id: "live", label: "Work")
+        registry.setProviderIdentity(service: .codex, id: "live", identity: "member@example.com")
+
+        XCTAssertEqual(registry.defaultProfile(for: .codex)?.label, "Work")
+        XCTAssertEqual(registry.defaultProfile(for: .codex)?.providerIdentity, "member@example.com")
+        XCTAssertEqual(registry.defaultProfile(for: .claude)?.label, "Account 1")
+        XCTAssertNil(registry.defaultProfile(for: .claude)?.providerIdentity)
+    }
+
+    func testExtensionEmptyReadDoesNotFinalizeMigrationBeforeApp() throws {
+        let root = root()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let widget = AccountRegistry.Store(root: root, legacyServices: [], persistEmptyMigration: false)
+        XCTAssertTrue(widget.all().isEmpty)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: root.appendingPathComponent("account-registry-v1.json").path))
+
+        let app = AccountRegistry.Store(root: root, legacyServices: [.codex])
+        XCTAssertEqual(app.all(), [
+            AccountProfile(id: "live", service: .codex, label: "Account 1", isLegacy: true)
+        ])
+    }
+
+    func testConcurrentAddsPreserveEveryProfile() async throws {
+        let root = root()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let registry = AccountRegistry.Store(root: root, legacyServices: [])
+        await withTaskGroup(of: AccountProfile.self) { group in
+            for _ in 0..<8 { group.addTask { registry.add(service: .claude) } }
+            for await _ in group { }
+        }
+        let profiles = registry.profiles(for: .claude)
+        XCTAssertEqual(profiles.count, 8)
+        XCTAssertEqual(Set(profiles.map(\.id)).count, 8)
+        XCTAssertEqual(profiles.filter { $0.id == "live" }.count, 1)
+    }
+
+    func testServiceOrderAndDefaultAccountPersistAcrossLoads() throws {
+        let root = root()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let registry = AccountRegistry.Store(root: root, legacyServices: [])
+        _ = registry.add(service: .codex)
+        let work = registry.add(service: .codex)
+        registry.setDefault(service: .codex, id: work.id)
+        registry.setServiceOrder([.claude, .codex])
+
+        let reopened = AccountRegistry.Store(root: root, legacyServices: [])
+        XCTAssertEqual(reopened.defaultProfile(for: .codex)?.id, work.id)
+        XCTAssertEqual(reopened.serviceOrder(), [.claude, .codex])
     }
 }
 
@@ -372,6 +504,16 @@ final class ConnectionStateTests: XCTestCase {
         XCTAssertTrue(MobileResetNotifications.planned(nil, now: now).isEmpty)
         XCTAssertNotEqual(MobileResetNotifications.identifier(.claude, "5h"), MobileResetNotifications.identifier(.codex, "5h"))
         XCTAssertNotEqual(MobileResetNotifications.identifier(.claude, "5h"), MobileResetNotifications.identifier(.claude, "7d"))
+        XCTAssertEqual(MobileResetNotifications.identifier(.codex, "5h"), "quota.reset.codex.5h")
+        XCTAssertNotEqual(
+            MobileResetNotifications.identifier(.codex, "5h", namespace: "second"),
+            MobileResetNotifications.identifier(.codex, "5h")
+        )
+        XCTAssertEqual(MobileResetNotifications.windowPrefix(.codex, "5h"), "notifications.codex.5h.")
+        XCTAssertEqual(
+            MobileResetNotifications.windowPrefix(.codex, "5h", namespace: "second"),
+            "notifications.codex.second.5h."
+        )
     }
     @MainActor func testRenewalStateRender() throws {
         let content = ProviderDialCardContent(name: "Claude", icon: "logo-claude", availableWidth: 362,

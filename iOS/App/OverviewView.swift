@@ -360,6 +360,7 @@ struct ServiceDetailContent<Account: View>: View {
     let busy: Bool
     let error: String?
     let failure: SharedQuotaStore.Failure?
+    var accountLabel: String? = nil
     var history: CodexUsageHistory? = nil
     var historyUnavailable = false
     var claudeAccount: ClaudeProbeModel? = nil
@@ -450,7 +451,8 @@ struct ServiceDetailContent<Account: View>: View {
         }
     }
     private var planText: String {
-        reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported"
+        let plan = reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported"
+        return accountLabel.map { "\($0) · \(plan)" } ?? plan
     }
     private var planLabel: some View {
         Text(planText)
@@ -552,6 +554,7 @@ struct ProviderDialCard: View {
     let busy: Bool
     let error: String?
     var failure: SharedQuotaStore.Failure? = nil
+    var accountLabel: String? = nil
     var history: CodexUsageHistory? = nil
     var historyUnavailable = false
     var tokenHistory: CodexTokenHistory? = nil
@@ -562,7 +565,8 @@ struct ProviderDialCard: View {
     var body: some View {
         ProviderDialCardContent(name: name, icon: icon, availableWidth: availableWidth,
             reading: reading, connected: connected, busy: busy, error: error, failure: failure,
-            onOpen: onOpen, onReconnect: onReconnect, history: history, historyUnavailable: historyUnavailable,
+            onOpen: onOpen, onReconnect: onReconnect, accountLabel: accountLabel,
+            history: history, historyUnavailable: historyUnavailable,
             tokenHistory: tokenHistory, tokenHistoryUnavailable: tokenHistoryUnavailable, tokenHistoryLoading: tokenHistoryLoading)
     }
 }
@@ -647,6 +651,7 @@ struct ProviderDialCardContent: View {
     var failure: SharedQuotaStore.Failure? = nil
     var onOpen: (() -> Void)? = nil
     var onReconnect: (() -> Void)? = nil
+    var accountLabel: String? = nil
     var history: CodexUsageHistory? = nil
     var historyUnavailable = false
     var tokenHistory: CodexTokenHistory? = nil
@@ -732,8 +737,9 @@ struct ProviderDialCardContent: View {
                         .foregroundStyle(OverviewStyle.tertiary).accessibilityHidden(true)
                 }
             }
-            Text(connected ? (reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported") : "Not connected")
-                .modifier(OverviewDetailType(weight: .regular)).foregroundStyle(OverviewStyle.secondary)
+            Text(connected ? ((reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported")
+                + (accountLabel.map { " · \($0)" } ?? "")) : "Not connected")
+                .modifier(OverviewDetailType(weight: .semibold)).foregroundStyle(OverviewStyle.primary)
             }
             if connected {
                 VStack(alignment: .leading, spacing: 4) {

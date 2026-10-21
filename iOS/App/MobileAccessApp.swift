@@ -31,8 +31,17 @@ struct MobileAccessApp: App {
                 ClaudeEnterpriseLoadingUITestHarness()
             } else if ProcessInfo.processInfo.arguments.contains("-codexHistoryVisualUITest") {
                 CodexHistoryVisualUITestHarness()
+            } else if ProcessInfo.processInfo.arguments.contains("-multiAccountUITest") {
+                MultiAccountOverviewView(fixtureProfiles: [
+                    AccountProfile(id: "fixture-codex-personal", service: .codex, label: "Personal", isLegacy: false),
+                    AccountProfile(id: "fixture-codex-work", service: .codex, label: "Work", isLegacy: false),
+                    AccountProfile(id: "fixture-claude-work", service: .claude, label: "Work", isLegacy: false)
+                ])
             } else {
-                OverviewView(isDemo: demoEnabled).id(demoEnabled)
+                Group {
+                    if demoEnabled { OverviewView(isDemo: true).id(demoEnabled) }
+                    else { MultiAccountOverviewView().id(demoEnabled) }
+                }
                     .environment(\.setDemoEnabled) { enabled in
                         MobileAnalytics.shared.setDemoEnabled(enabled)
                         demoEnabled = enabled
@@ -40,7 +49,10 @@ struct MobileAccessApp: App {
                     }
             }
             #else
-            OverviewView(isDemo: demoEnabled).id(demoEnabled)
+            Group {
+                if demoEnabled { OverviewView(isDemo: true).id(demoEnabled) }
+                else { MultiAccountOverviewView().id(demoEnabled) }
+            }
                 .environment(\.setDemoEnabled) { enabled in
                     // Update presentation directly; app-group defaults are for persistence and widgets.
                     MobileAnalytics.shared.setDemoEnabled(enabled)
