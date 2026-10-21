@@ -44,6 +44,25 @@ private func reply(_ body: String, status: Int = 200) -> HTTPResult {
         try await api.exchange("code#wrong", challenge: challenge, now: timestamp)
     }
 }
+@Test func claudeBrowserCallbackOnlyAcceptsCurrentAuthorization() throws {
+    let challenge = try ClaudeChallenge(now: timestamp)
+    let valid = try #require(URL(string: "https://console.anthropic.com/oauth/code/callback?code=abc%2B123&state=\(challenge.state)"))
+    #expect(try challenge.authorizationCode(from: valid, now: timestamp) == "abc+123#\(challenge.state)")
+    for url in [
+        "https://example.com/oauth/code/callback?code=abc&state=\(challenge.state)",
+        "http://console.anthropic.com/oauth/code/callback?code=abc&state=\(challenge.state)",
+        "https://console.anthropic.com/oauth/code/callback?code=abc&state=wrong",
+        "https://console.anthropic.com/oauth/code/callback?code=abc&code=other&state=\(challenge.state)",
+        "https://console.anthropic.com/oauth/code/callback?code=abc&state=\(challenge.state)&state=other"
+    ] {
+        #expect(throws: (any Error).self) {
+            try challenge.authorizationCode(from: #require(URL(string: url)), now: timestamp)
+        }
+    }
+    #expect(throws: ClaudeAccessError.self) {
+        try challenge.authorizationCode(from: valid, now: timestamp.addingTimeInterval(901))
+    }
+}
 @Test func claudeExchangeUsesJSONAndDoesNotCreateKeys() async throws {
     let challenge = try ClaudeChallenge(now: timestamp)
     let api = ClaudeAPI(transport: ClaudeMock { request in

@@ -65,6 +65,23 @@ public struct ClaudeChallenge: Sendable {
         }
         return String(parts[0])
     }
+    /// Claude's registered HTTPS callback can be observed inside the app's
+    /// browser even though AIQuota cannot claim that domain as a universal link.
+    /// Bind it to this PKCE attempt before exchanging the code.
+    public func authorizationCode(from callback: URL, now: Date = .now) throws -> String {
+        guard let components = URLComponents(url: callback, resolvingAgainstBaseURL: false),
+              components.scheme == "https",
+              components.host == "console.anthropic.com",
+              components.path == "/oauth/code/callback",
+              let items = components.queryItems,
+              items.filter({ $0.name == "code" }).count == 1,
+              items.filter({ $0.name == "state" }).count == 1,
+              let code = items.first(where: { $0.name == "code" })?.value,
+              let returnedState = items.first(where: { $0.name == "state" })?.value
+        else { throw ClaudeAccessError.invalidCode }
+        _ = try self.code(from: "\(code)#\(returnedState)", now: now)
+        return "\(code)#\(returnedState)"
+    }
     private static func base64URL(_ data: Data) -> String {
         data.base64EncodedString().replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
