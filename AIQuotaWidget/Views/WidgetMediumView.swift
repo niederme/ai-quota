@@ -574,7 +574,7 @@ struct WidgetSingleServiceMediumView: View {
     let entry: QuotaEntry
 
     private var service: ServiceType {
-        entry.configuration.service == .claude ? .claude : .codex
+        entry.selectedService
     }
 
     var body: some View {

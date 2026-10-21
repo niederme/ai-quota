@@ -39,37 +39,26 @@ struct SettingsView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                Group {
-                    let selection = Binding<MenuBarDisplayOption>(
-                        get: {
-                            MenuBarDisplayOption.current(
-                                settings: vm.settings,
-                                enrolledServices: vm.enrolledServices
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Which accounts do you want in your menu bar?")
+                        .font(.callout.weight(.medium))
+                    ForEach(AccountRegistry.orderedAccounts()) { account in
+                        Toggle(
+                            "\(account.provider == .codex ? "Codex" : "Claude Code") · \(account.displayLabel)",
+                            isOn: Binding(
+                                get: { vm.settings.menuBarAccountIDs?.contains(account.id) ?? false },
+                                set: { enabled in
+                                    var ids = vm.settings.menuBarAccountIDs ?? []
+                                    if enabled && !ids.contains(account.id) { ids.append(account.id) }
+                                    if !enabled { ids.removeAll { $0 == account.id } }
+                                    vm.settings.menuBarAccountIDs = ids
+                                }
                             )
-                        },
-                        set: { option in
-                            applyMenuBarDisplayOption(option, settings: &vm.settings)
-                            let enabled = vm.settings.analyticsEnabled
-                            let params = vm.analyticsContextParams.merging(
-                                [
-                                    "display": option.rawValue,
-                                    "service": vm.settings.menuBarService.rawValue
-                                ]
-                            ) { _, new in new }
-                            Task {
-                                await AnalyticsClient.shared.send(
-                                    "menubar_display_changed",
-                                    params: params,
-                                    enabled: enabled
-                                )
-                            }
-                        }
-                    )
-
-                    MenuBarDisplaySegmentedPicker(
-                        selection: selection,
-                        enrolledServices: vm.enrolledServices
-                    )
+                        )
+                    }
+                    Text("Up to two are selected initially. You can select more; adding or reordering cards does not change this list.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
 
                 LaunchAtLoginToggle()
@@ -417,6 +406,10 @@ struct NotificationInlineControls: View {
 
 private struct AccountDiagnosticsRows: View {
     @Environment(QuotaViewModel.self) private var viewModel
+    @State private var addingProvider: ServiceType?
+    @State private var newAccountName = ""
+    @State private var renamingAccountID: String?
+    @State private var accountName = ""
     @State private var codexAttempts: [CodexSourceAttempt] = []
     @State private var claudeAttempts: [ClaudeSourceAttempt] = []
     @AppStorage(ClaudeOAuthKeychainReader.consentDefaultsKey) private var reuseClaudeCodeKeychain = false
@@ -477,6 +470,80 @@ private struct AccountDiagnosticsRows: View {
             signIn: { Task { await viewModel.signInClaude() } },
             signOut: { viewModel.signOutClaude() }
         )
+
+        Divider()
+
+        HStack(spacing: 8) {
+            Button("Add Codex account") {
+                addingProvider = .codex
+                newAccountName = ""
+            }
+            Button("Add Claude account") {
+                addingProvider = .claude
+                newAccountName = ""
+            }
+        }
+        .controlSize(.small)
+        .alert("Name this account", isPresented: Binding(
+            get: { addingProvider != nil },
+            set: { if !$0 { addingProvider = nil } }
+        )) {
+            TextField("Account name", text: $newAccountName)
+            Button("Connect") {
+                if let provider = addingProvider {
+                    let name = newAccountName
+                    Task { await viewModel.addAccount(for: provider, named: name) }
+                }
+                addingProvider = nil
+            }
+            .disabled(newAccountName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            Button("Cancel", role: .cancel) { addingProvider = nil }
+        } message: {
+            Text("Choose a name such as Personal or Work. You can change it later.")
+        }
+
+        ForEach(viewModel.additionalAccounts) { account in
+            HStack {
+                AccountServiceStatusRow(
+                    label: "\(account.provider == .codex ? "Codex" : "Claude") · \(account.account.displayLabel)",
+                    logo: account.provider == .codex ? "logo-openai" : "logo-claude",
+                    isAuthenticated: account.isAuthenticated,
+                    statusDetail: account.issue ?? (account.isAuthenticated ? "Connected" : "Not signed in"),
+                    statusColor: account.issue == nil ? (account.isAuthenticated ? .green : .secondary) : .orange,
+                    signIn: { Task { await viewModel.reconnectAccount(id: account.id) } },
+                    signOut: { Task { await viewModel.signOutAccount(id: account.id) } }
+                )
+                Button("Remove", role: .destructive) {
+                    Task { await viewModel.removeAccount(id: account.id) }
+                }
+                .controlSize(.small)
+                Button("Rename") {
+                    renamingAccountID = account.id
+                    accountName = account.account.displayLabel
+                }
+                .controlSize(.small)
+            }
+        }
+        .alert("Account name", isPresented: Binding(
+            get: { renamingAccountID != nil },
+            set: { if !$0 { renamingAccountID = nil } }
+        )) {
+            TextField("Name", text: $accountName)
+            Button("Save") {
+                if let id = renamingAccountID { viewModel.renameAccount(id: id, to: accountName) }
+                renamingAccountID = nil
+            }
+            Button("Cancel", role: .cancel) { renamingAccountID = nil }
+        } message: {
+            Text("Use a name that helps you recognize this account.")
+        }
+
+        if viewModel.hasAdditionalAccounts {
+            Text("Additional accounts appear in the menu bar popover. Alerts currently follow the original connection for each service.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
 
         if AppDistribution.allowsHostCredentialDiscovery {
             VStack(alignment: .leading, spacing: 4) {

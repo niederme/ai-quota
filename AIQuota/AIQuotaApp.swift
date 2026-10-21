@@ -148,7 +148,30 @@ private struct MenuBarStatusLabel: View {
 
     @ViewBuilder
     var body: some View {
-        if shouldShowBothMenuBarGauges {
+        if let selectedIDs = viewModel.settings.menuBarAccountIDs {
+            let selected = selectedIDs.compactMap(AccountRegistry.account(id:))
+            if selected.isEmpty {
+                Image("AppBrandIcon").resizable().frame(width: 20, height: 20)
+                    .help("AIQuota")
+            } else if selected.count == 2 {
+                DoubleMenuBarIconView(
+                    left: menuBarGaugeInput(for: selected[0]),
+                    right: menuBarGaugeInput(for: selected[1]),
+                    showsUpdateBadge: updaterViewModel.availableUpdateVersion != nil
+                )
+            } else {
+                HStack(spacing: 5) {
+                    ForEach(Array(selected.enumerated()), id: \.element.id) { item in
+                        MenuBarIconView(
+                            input: menuBarGaugeInput(for: item.element),
+                            showsUpdateBadge: item.offset == selected.count - 1 &&
+                                updaterViewModel.availableUpdateVersion != nil
+                        )
+                        .help("\(item.element.provider == .codex ? "Codex" : "Claude Code") · \(item.element.displayLabel)")
+                    }
+                }
+            }
+        } else if shouldShowBothMenuBarGauges {
             DoubleMenuBarIconView(
                 left: menuBarGaugeInput(for: .codex),
                 right: menuBarGaugeInput(for: .claude),
@@ -160,6 +183,36 @@ private struct MenuBarStatusLabel: View {
                 showsUpdateBadge: updaterViewModel.availableUpdateVersion != nil
             )
         }
+    }
+
+    private func menuBarGaugeInput(for account: ConnectedAccount) -> MenuBarGaugeInput {
+        let session = viewModel.additionalAccounts.first { $0.id == account.id }
+        let primary = account.connectionKind == .legacyPrimary
+        let loading = session?.isLoading ??
+            (account.provider == .codex ? viewModel.isCodexLoading : viewModel.isClaudeLoading)
+        if account.provider == .codex {
+            let usage = session?.codexUsage ?? (primary ? viewModel.codexUsage : nil)
+            if let budget = usage?.displayableMonthlyBudget, let percent = budget.utilization {
+                let used = Int(percent.rounded())
+                return MenuBarGaugeInput(usedPercent: used, secondaryPercent: 0,
+                                         limitReached: used >= 100, isLoading: loading,
+                                         worstPercent: used, showsSecondaryMetric: false)
+            }
+            let dual = usage?.reportedWindowShape == .dual
+            let used = dual ? (usage?.hourlyUsedPercent ?? 0) : (usage?.weeklyUsedPercent ?? 0)
+            let weekly = usage?.weeklyUsedPercent ?? 0
+            return MenuBarGaugeInput(usedPercent: used, secondaryPercent: weekly,
+                                     limitReached: usage?.limitReached ?? false, isLoading: loading,
+                                     worstPercent: max(used, weekly), showsSecondaryMetric: dual)
+        }
+        let usage = session?.claudeUsage ?? (primary ? viewModel.claudeUsage : nil)
+        let used = usage?.usedPercent ?? 0
+        let weekly = Int(usage?.sevenDayUtilization?.rounded() ?? 0)
+        return MenuBarGaugeInput(usedPercent: used, secondaryPercent: weekly,
+                                 limitReached: usage?.limitReached ?? false, isLoading: loading,
+                                 worstPercent: max(used, weekly),
+                                 showsSecondaryMetric: usage?.primaryMetric.kind != .sevenDay &&
+                                     usage?.sevenDayUtilization != nil)
     }
 
     private var shouldShowBothMenuBarGauges: Bool {

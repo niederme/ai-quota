@@ -7,9 +7,10 @@ import AIQuotaKit
 enum OnboardingStep: Int, CaseIterable, Hashable {
     case welcome       = 0
     case services      = 1
-    case notifications = 2
-    case widgets       = 3
-    case done          = 4
+    case menuBar       = 2
+    case notifications = 3
+    case widgets       = 4
+    case done          = 5
 }
 
 // MARK: - OnboardingView
@@ -75,6 +76,7 @@ struct OnboardingView: View {
         switch step {
         case .welcome:       WelcomeStepView()
         case .services:      ServicesStepView()
+        case .menuBar:       MenuBarStepView()
         case .notifications: NotificationsStepView()
         case .widgets:       WidgetsStepView()
         case .done:          DoneStepView()

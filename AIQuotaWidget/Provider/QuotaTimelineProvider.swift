@@ -9,6 +9,10 @@ struct QuotaEntry: TimelineEntry {
     let configuration: ConfigurationAppIntent
     let enrolledServices: Set<ServiceType>
 
+    var selectedService: ServiceType {
+        configuration.account?.provider ?? configuration.service.serviceType
+    }
+
     // Backward-compat alias
     var usage: CodexUsage? { codexUsage }
 
@@ -42,6 +46,10 @@ private func snapshotCodexUsage(
     configuration: ConfigurationAppIntent?,
     enrolledServices: Set<ServiceType>
 ) -> CodexUsage? {
+    if let account = configuration?.account {
+        guard account.provider == .codex else { return nil }
+        return SharedDefaults.loadCachedUsage(forAccountID: account.id)
+    }
     if let usage { return usage }
     if let configuration {
         return configuration.service.serviceType == .codex && enrolledServices.contains(.codex) ? .placeholder : nil
@@ -54,6 +62,10 @@ private func snapshotClaudeUsage(
     configuration: ConfigurationAppIntent?,
     enrolledServices: Set<ServiceType>
 ) -> ClaudeUsage? {
+    if let account = configuration?.account {
+        guard account.provider == .claude else { return nil }
+        return SharedDefaults.loadCachedClaudeUsage(forAccountID: account.id)
+    }
     if let usage { return usage }
     if let configuration {
         return configuration.service.serviceType == .claude && enrolledServices.contains(.claude) ? .placeholder : nil
@@ -140,12 +152,15 @@ struct QuotaTimelineProvider: AppIntentTimelineProvider {
 
     func timeline(for configuration: ConfigurationAppIntent, in context: Context) async -> Timeline<QuotaEntry> {
         let snapshot = await loadSnapshot(forceRefresh: false)
+        let enrolled = SharedDefaults.loadEnrolledServices()
         let entry = QuotaEntry(
             date: .now,
-            codexUsage: snapshot.codexUsage,
-            claudeUsage: snapshot.claudeUsage,
+            codexUsage: snapshotCodexUsage(snapshot.codexUsage, configuration: configuration,
+                                           enrolledServices: enrolled),
+            claudeUsage: snapshotClaudeUsage(snapshot.claudeUsage, configuration: configuration,
+                                             enrolledServices: enrolled),
             configuration: configuration,
-            enrolledServices: SharedDefaults.loadEnrolledServices()
+            enrolledServices: enrolled
         )
         let nextRefresh = WidgetRefreshPolicy.nextTimelineDate(
             codex: snapshot.codexUsage,

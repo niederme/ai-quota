@@ -30,6 +30,12 @@ public enum ClaudeWebReconnectError: Error, Sendable, Equatable {
 /// Value type the coordinator produces for authenticated requests.
 public struct ClaudeRequestContext: Sendable {
     public let orgId: String
+    public let cookies: [HTTPCookie]
+
+    public init(orgId: String, cookies: [HTTPCookie]) {
+        self.orgId = orgId
+        self.cookies = cookies
+    }
 }
 
 // MARK: - ClaudeAuthCoordinator
@@ -60,9 +66,13 @@ public actor ClaudeAuthCoordinator {
 
     private let logger = Logger(subsystem: "ai.quota", category: "claude-coord")
 
+    /// Stable app-owned account identifier. A scoped coordinator uses an
+    /// independent persistent WebKit data store and credential snapshot.
+    public let accountStorageID: UUID?
+
     // MARK: Probe injection
 
-    /// Real probe reads WKWebsiteDataStore.default(). Tests inject a mock.
+    /// Real probe reads the coordinator's WebKit data store. Tests inject a mock.
     public typealias SessionProbe = @Sendable () async -> ClaudeProbeResult
     public typealias HeadlessSessionReviver = @Sendable () async -> ClaudeProbeResult?
     public typealias OAuthCredentialsLoader = @Sendable (_ allowKeychain: Bool) throws -> ClaudeOAuthCredentials
@@ -80,6 +90,7 @@ public actor ClaudeAuthCoordinator {
     private let loginWindowRunner: LoginWindowRunner
 
     public init(
+        accountStorageID: UUID? = nil,
         probe: SessionProbe? = nil,
         headlessSessionReviver: HeadlessSessionReviver? = nil,
         oauthCredentialsLoader: OAuthCredentialsLoader? = nil,
@@ -89,18 +100,28 @@ public actor ClaudeAuthCoordinator {
         webSessionRestorer: WebSessionRestorer? = nil,
         loginWindowRunner: LoginWindowRunner? = nil
     ) {
-        self.probe = probe ?? ClaudeAuthCoordinator.wkProbe
-        self.headlessSessionReviver = headlessSessionReviver ?? ClaudeAuthCoordinator.headlessWebSessionReviver
+        self.accountStorageID = accountStorageID
+        self.probe = probe ?? ClaudeAuthCoordinator.wkProbe(for: accountStorageID)
+        self.headlessSessionReviver = headlessSessionReviver ?? ClaudeAuthCoordinator.headlessWebSessionReviver(for: accountStorageID)
         self.oauthCredentialsLoader = oauthCredentialsLoader ?? { allowKeychain in
-            try ClaudeOAuthCredentialsStore.loadUsable(
+            // Claude Code credentials are a process-global identity. Reusing
+            // them for every connected account would collapse scoped accounts
+            // onto one identity. Callers may inject an account-specific loader.
+            guard accountStorageID == nil else { throw ClaudeOAuthCredentialsError.notFound }
+            return try ClaudeOAuthCredentialsStore.loadUsable(
                 keychainReader: allowKeychain ? .claudeCodeNoninteractive : nil
             )
         }
         self.keychainAccessAllowed = keychainAccessAllowed
         self.sessionValidator = sessionValidator ?? ClaudeAuthCoordinator.liveSessionValidator
-        self.webSessionClearer = webSessionClearer ?? ClaudeAuthCoordinator.clearRejectedWebSession
-        self.webSessionRestorer = webSessionRestorer ?? ClaudeAuthCoordinator.restoreWebSession
-        self.loginWindowRunner = loginWindowRunner ?? ClaudeAuthCoordinator.showLoginWindow
+        self.webSessionClearer = webSessionClearer ?? ClaudeAuthCoordinator.clearRejectedWebSession(for: accountStorageID)
+        self.webSessionRestorer = webSessionRestorer ?? ClaudeAuthCoordinator.restoreWebSession(for: accountStorageID)
+        self.loginWindowRunner = loginWindowRunner ?? ClaudeAuthCoordinator.showLoginWindow(for: accountStorageID)
+    }
+
+    private var signedOutDefaultsKey: String {
+        guard let accountStorageID else { return Self.signedOutKey }
+        return "\(Self.signedOutKey).\(accountStorageID.uuidString.lowercased())"
     }
 
     // MARK: - State stream
@@ -139,7 +160,7 @@ public actor ClaudeAuthCoordinator {
 
         await clearStateIfFreshInstall()
 
-        if UserDefaults.standard.bool(forKey: Self.signedOutKey) {
+        if UserDefaults.standard.bool(forKey: signedOutDefaultsKey) {
             transition(to: .signedOutByUser)
             return
         }
@@ -165,6 +186,9 @@ public actor ClaudeAuthCoordinator {
     }
 
     private func clearStateIfFreshInstall() async {
+        // Account containers are created after install and must not participate
+        // in the app-wide legacy migration sentinel.
+        guard accountStorageID == nil else { return }
         let sentinel = Self.freshInstallKey
         guard UserDefaults.standard.object(forKey: sentinel) == nil else { return }
         guard !(await AuthInstallState.isExistingInstall()) else {
@@ -191,7 +215,7 @@ public actor ClaudeAuthCoordinator {
         transition(to: .signingIn)
 
         if restoreFromOAuthCredentials(allowKeychain: true) {
-            UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+            UserDefaults.standard.removeObject(forKey: signedOutDefaultsKey)
             transition(to: .authenticated)
             return
         }
@@ -202,7 +226,7 @@ public actor ClaudeAuthCoordinator {
             capturedCookies = cookies
             injectCookies(cookies)
             persistSharedAuthContext()
-            UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+            UserDefaults.standard.removeObject(forKey: signedOutDefaultsKey)
             transition(to: .authenticated)
             return
         }
@@ -220,10 +244,10 @@ public actor ClaudeAuthCoordinator {
             capturedCookies = cookies
             injectCookies(cookies)
             persistSharedAuthContext()
-            UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+            UserDefaults.standard.removeObject(forKey: signedOutDefaultsKey)
             transition(to: .authenticated)
         } catch {
-            SharedAuthContextStore.clearClaude()
+            clearPersistedSharedAuthContext()
             transition(to: .unauthenticated)
             throw error
         }
@@ -307,7 +331,7 @@ public actor ClaudeAuthCoordinator {
         }
 
         if restoreFromOAuthCredentialsForRecovery() {
-            UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+            UserDefaults.standard.removeObject(forKey: signedOutDefaultsKey)
             transition(to: .authenticated)
             return true
         }
@@ -321,7 +345,7 @@ public actor ClaudeAuthCoordinator {
             capturedCookies = cookies
             injectCookies(cookies)
             persistSharedAuthContext()
-            UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+            UserDefaults.standard.removeObject(forKey: signedOutDefaultsKey)
             transition(to: .authenticated)
             return true
         }
@@ -344,7 +368,7 @@ public actor ClaudeAuthCoordinator {
             capturedCookies = cookies
             injectCookies(cookies)
             persistSharedAuthContext()
-            UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+            UserDefaults.standard.removeObject(forKey: signedOutDefaultsKey)
             transition(to: .authenticated)
             return true
         }
@@ -376,7 +400,7 @@ public actor ClaudeAuthCoordinator {
         }
 
         transition(to: .signingOut)
-        UserDefaults.standard.set(true, forKey: Self.signedOutKey)
+        UserDefaults.standard.set(true, forKey: signedOutDefaultsKey)
         clearAuthContext()
         await clearWKCookies()
         await verifyWKCookiesEmpty()
@@ -450,14 +474,14 @@ public actor ClaudeAuthCoordinator {
 
         guard state == .authenticated || state == .unauthenticated || state == .signedOutByUser else {
             logger.warning("[ClaudeCoord] reset: timed out waiting for in-flight transition to settle; forcing signedOutByUser")
-            UserDefaults.standard.set(true, forKey: Self.signedOutKey)
+            UserDefaults.standard.set(true, forKey: signedOutDefaultsKey)
             clearAuthContext()
             transition(to: .signedOutByUser)
             return
         }
 
         transition(to: .resetting)
-        UserDefaults.standard.set(true, forKey: Self.signedOutKey)
+        UserDefaults.standard.set(true, forKey: signedOutDefaultsKey)
         clearAuthContext()
         await clearWKCookies()
         let verified = await verifyWKCookiesEmpty()
@@ -470,14 +494,15 @@ public actor ClaudeAuthCoordinator {
     // MARK: - requestContext()
 
     /// Called by ClaudeClient before each request.
-    /// Ensures captured cookies are in HTTPCookieStorage and returns orgId.
+    /// Returns the account's cookies with its orgId. Scoped clients must attach
+    /// these cookies to an account-local URLSession or request header.
     /// Throws notAuthenticated if the coordinator is not in authenticated state.
     public func requestContext() async throws -> ClaudeRequestContext {
         guard state == .authenticated, let orgId = capturedOrgId else {
             throw NetworkError.notAuthenticated
         }
         injectCookies(capturedCookies)
-        return ClaudeRequestContext(orgId: orgId)
+        return ClaudeRequestContext(orgId: orgId, cookies: capturedCookies)
     }
 
     public func loadOAuthCredentials(allowKeychain: Bool) throws -> ClaudeOAuthCredentials {
@@ -534,16 +559,34 @@ public actor ClaudeAuthCoordinator {
         cachedOAuthCredentials = nil
         capturedOrgId = nil
         capturedCookies = []
-        SharedAuthContextStore.clearClaude()
-        for cookie in HTTPCookieStorage.shared.cookies ?? []
-            where cookie.domain.contains("claude.ai") {
-            HTTPCookieStorage.shared.deleteCookie(cookie)
+        clearPersistedSharedAuthContext()
+        if accountStorageID == nil {
+            for cookie in HTTPCookieStorage.shared.cookies ?? []
+                where cookie.domain.contains("claude.ai") {
+                HTTPCookieStorage.shared.deleteCookie(cookie)
+            }
         }
     }
 
     private func persistSharedAuthContext() {
         guard let capturedOrgId else { return }
-        SharedAuthContextStore.saveClaude(orgId: capturedOrgId, cookies: capturedCookies)
+        if let accountStorageID {
+            SharedAuthContextStore.saveClaude(
+                orgId: capturedOrgId,
+                cookies: capturedCookies,
+                forAccountID: accountStorageID.uuidString
+            )
+        } else {
+            SharedAuthContextStore.saveClaude(orgId: capturedOrgId, cookies: capturedCookies)
+        }
+    }
+
+    private func clearPersistedSharedAuthContext() {
+        if let accountStorageID {
+            SharedAuthContextStore.clearClaude(forAccountID: accountStorageID.uuidString)
+        } else {
+            SharedAuthContextStore.clearClaude()
+        }
     }
 
     private func restoreFromOAuthCredentials(allowKeychain: Bool) -> Bool {
@@ -552,7 +595,7 @@ public actor ClaudeAuthCoordinator {
         }
         capturedOrgId = nil
         capturedCookies = []
-        SharedAuthContextStore.clearClaude()
+        clearPersistedSharedAuthContext()
         return true
     }
 
@@ -563,7 +606,7 @@ public actor ClaudeAuthCoordinator {
             logger.notice("[ClaudeRecovery] Claude Code OAuth file usable")
             capturedOrgId = nil
             capturedCookies = []
-            SharedAuthContextStore.clearClaude()
+            clearPersistedSharedAuthContext()
             return true
         } catch {
             logger.notice("[ClaudeRecovery] Claude Code OAuth file failed reason=\(Self.recoveryErrorDescription(error), privacy: .public)")
@@ -575,7 +618,7 @@ public actor ClaudeAuthCoordinator {
             logger.notice("[ClaudeRecovery] Claude Code Keychain fallback usable")
             capturedOrgId = nil
             capturedCookies = []
-            SharedAuthContextStore.clearClaude()
+            clearPersistedSharedAuthContext()
             return true
         } catch {
             logger.notice("[ClaudeRecovery] Claude Code Keychain fallback failed reason=\(Self.recoveryErrorDescription(error), privacy: .public)")
@@ -598,42 +641,51 @@ public actor ClaudeAuthCoordinator {
     }
 
     private func injectCookies(_ cookies: [HTTPCookie]) {
+        guard accountStorageID == nil else { return }
         for cookie in cookies { HTTPCookieStorage.shared.setCookie(cookie) }
     }
 
     private func clearWKCookies() async {
-        await Self.clearDefaultWebSession()
+        await Self.clearWebSession(for: accountStorageID)
     }
 
     /// A rejected Claude session needs a fresh account login, but Claude's current
     /// login page may first issue Cloudflare challenge cookies. Keep those browser
     /// verification cookies so a retry does not force the user through Turnstile
-    /// again. Clear the account cookies from both WebKit and URLSession; otherwise
-    /// the freshly captured WebKit session can be shadowed by URLSession's stale
-    /// `sessionKey` and the first usage request immediately returns 401.
-    private static func clearRejectedWebSession() async {
-        await clearWebKitCookies(where: shouldClearBeforeSignIn)
-        clearURLSessionCookies(where: shouldClearBeforeSignIn)
+    /// again. Legacy mode also clears URLSession's global cookie jar; scoped
+    /// accounts never write to that jar.
+    private static func clearRejectedWebSession(for accountStorageID: UUID?) -> WebSessionClearer {
+        {
+            await clearWebKitCookies(for: accountStorageID, where: shouldClearBeforeSignIn)
+            if accountStorageID == nil {
+                clearURLSessionCookies(where: shouldClearBeforeSignIn)
+            }
+        }
     }
 
-    private static func clearDefaultWebSession() async {
-        await clearWebKitCookies { $0.domain.contains("claude.ai") }
-        clearURLSessionCookies { $0.domain.contains("claude.ai") }
+    private static func clearWebSession(for accountStorageID: UUID?) async {
+        await clearWebKitCookies(for: accountStorageID) { $0.domain.contains("claude.ai") }
+        if accountStorageID == nil {
+            clearURLSessionCookies { $0.domain.contains("claude.ai") }
+        }
     }
 
-    private static func restoreWebSession(_ cookies: [HTTPCookie]) async {
-        for cookie in cookies { HTTPCookieStorage.shared.setCookie(cookie) }
-        guard !cookies.isEmpty else { return }
-        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-            Task { @MainActor in
-                let group = DispatchGroup()
-                for cookie in cookies {
-                    group.enter()
-                    WKWebsiteDataStore.default().httpCookieStore.setCookie(cookie) {
-                        group.leave()
+    private static func restoreWebSession(for accountStorageID: UUID?) -> WebSessionRestorer {
+        { cookies in
+            if accountStorageID == nil {
+                for cookie in cookies { HTTPCookieStorage.shared.setCookie(cookie) }
+            }
+            guard !cookies.isEmpty else { return }
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                Task { @MainActor in
+                    let group = DispatchGroup()
+                    let store = websiteDataStore(for: accountStorageID)
+                    for cookie in cookies {
+                        group.enter()
+                        store.httpCookieStore.setCookie(cookie) { group.leave() }
                     }
+                    group.notify(queue: .main) { continuation.resume() }
                 }
-                group.notify(queue: .main) { continuation.resume() }
             }
         }
     }
@@ -646,17 +698,19 @@ public actor ClaudeAuthCoordinator {
     }
 
     private static func clearWebKitCookies(
+        for accountStorageID: UUID?,
         where shouldDelete: @escaping @Sendable (HTTPCookie) -> Bool
     ) async {
         await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
             Task { @MainActor in
-                WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
+                let dataStore = websiteDataStore(for: accountStorageID)
+                dataStore.httpCookieStore.getAllCookies { cookies in
                     let matching = cookies.filter(shouldDelete)
                     guard !matching.isEmpty else { cont.resume(); return }
                     let g = DispatchGroup()
                     for cookie in matching {
                         g.enter()
-                        WKWebsiteDataStore.default().httpCookieStore.delete(cookie) { g.leave() }
+                        dataStore.httpCookieStore.delete(cookie) { g.leave() }
                     }
                     g.notify(queue: .main) { cont.resume() }
                 }
@@ -683,9 +737,10 @@ public actor ClaudeAuthCoordinator {
 
     @discardableResult
     private func verifyWKCookiesEmpty() async -> Bool {
-        await withCheckedContinuation { (cont: CheckedContinuation<Bool, Never>) in
+        let accountStorageID = self.accountStorageID
+        return await withCheckedContinuation { (cont: CheckedContinuation<Bool, Never>) in
             Task { @MainActor in
-                WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
+                Self.websiteDataStore(for: accountStorageID).httpCookieStore.getAllCookies { cookies in
                     let remaining = cookies.filter { $0.domain.contains("claude.ai") }
                     cont.resume(returning: remaining.isEmpty)
                 }
@@ -726,24 +781,26 @@ public actor ClaudeAuthCoordinator {
 
     // MARK: - Login window
 
-    private static func showLoginWindow() async throws -> (orgId: String, cookies: [HTTPCookie]) {
-        try await withCheckedThrowingContinuation { continuation in
-            Task { @MainActor in
-                let controller = CoordLoginWindowController { result in
-                    continuation.resume(with: result)
+    private static func showLoginWindow(for accountStorageID: UUID?) -> LoginWindowRunner {
+        {
+            try await withCheckedThrowingContinuation { continuation in
+                Task { @MainActor in
+                    let controller = CoordLoginWindowController(accountStorageID: accountStorageID) { result in
+                        continuation.resume(with: result)
+                    }
+                    controller.show()
                 }
-                controller.show()
             }
         }
     }
 
     // MARK: - Default WKWebView probe
 
-    private static var wkProbe: SessionProbe {
+    private static func wkProbe(for accountStorageID: UUID?) -> SessionProbe {
         {
             await withCheckedContinuation { (cont: CheckedContinuation<ClaudeProbeResult, Never>) in
                 Task { @MainActor in
-                    WKWebsiteDataStore.default().httpCookieStore.getAllCookies { cookies in
+                    Self.websiteDataStore(for: accountStorageID).httpCookieStore.getAllCookies { cookies in
                         let claudeCookies = cookies.filter { $0.domain.contains("claude.ai") }
                         Task {
                             guard let orgId = await ClaudeAuthCoordinator.resolveOrgId(from: claudeCookies) else {
@@ -758,11 +815,11 @@ public actor ClaudeAuthCoordinator {
         }
     }
 
-    private static var headlessWebSessionReviver: HeadlessSessionReviver {
+    private static func headlessWebSessionReviver(for accountStorageID: UUID?) -> HeadlessSessionReviver {
         {
             await withCheckedContinuation { continuation in
                 Task { @MainActor in
-                    let reviver = ClaudeHeadlessSessionReviver { result in
+                    let reviver = ClaudeHeadlessSessionReviver(accountStorageID: accountStorageID) { result in
                         if let result {
                             continuation.resume(returning: .found(orgId: result.orgId, cookies: result.cookies))
                         } else {
@@ -773,6 +830,11 @@ public actor ClaudeAuthCoordinator {
                 }
             }
         }
+    }
+
+    @MainActor
+    private static func websiteDataStore(for accountStorageID: UUID?) -> WKWebsiteDataStore {
+        accountStorageID.map(WKWebsiteDataStore.init(forIdentifier:)) ?? .default()
     }
 
     /// Resolves an orgId only for cookies that plausibly form a usable session.
@@ -937,16 +999,18 @@ private final class ClaudeHeadlessSessionReviver: NSObject {
     private var selfRetain: ClaudeHeadlessSessionReviver?
     private var hasCompleted = false
     private let onComplete: (@MainActor ((orgId: String, cookies: [HTTPCookie])?) -> Void)
+    private let accountStorageID: UUID?
     private let logger = Logger(subsystem: "ai.quota", category: "claude-coord")
 
-    init(onComplete: @escaping (@MainActor ((orgId: String, cookies: [HTTPCookie])?) -> Void)) {
+    init(accountStorageID: UUID?, onComplete: @escaping (@MainActor ((orgId: String, cookies: [HTTPCookie])?) -> Void)) {
+        self.accountStorageID = accountStorageID
         self.onComplete = onComplete
     }
 
     func start() {
         selfRetain = self
         let config = WKWebViewConfiguration()
-        config.websiteDataStore = .default()
+        config.websiteDataStore = accountStorageID.map(WKWebsiteDataStore.init(forIdentifier:)) ?? .default()
         let webView = WKWebView(frame: .init(x: 0, y: 0, width: 1, height: 1), configuration: config)
         webView.navigationDelegate = self
         self.webView = webView
@@ -1044,15 +1108,17 @@ private final class CoordLoginWindowController: NSObject {
     private var hasCompleted = false
     private var selfRetain: CoordLoginWindowController?  // keeps self alive until continuation resumes
     private let onComplete: (Result<(orgId: String, cookies: [HTTPCookie]), Error>) -> Void
+    private let accountStorageID: UUID?
     private let logger = Logger(subsystem: "ai.quota", category: "claude-login")
 
-    init(onComplete: @escaping (Result<(orgId: String, cookies: [HTTPCookie]), Error>) -> Void) {
+    init(accountStorageID: UUID?, onComplete: @escaping (Result<(orgId: String, cookies: [HTTPCookie]), Error>) -> Void) {
+        self.accountStorageID = accountStorageID
         self.onComplete = onComplete
     }
 
     func show() {
         let config = WKWebViewConfiguration()
-        config.websiteDataStore = .default()
+        config.websiteDataStore = accountStorageID.map(WKWebsiteDataStore.init(forIdentifier:)) ?? .default()
         let webView = WKWebView(frame: .init(x: 0, y: 0, width: 520, height: 680), configuration: config)
         webView.navigationDelegate = self
         webView.uiDelegate = self

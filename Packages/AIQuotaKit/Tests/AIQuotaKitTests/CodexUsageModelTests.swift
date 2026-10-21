@@ -144,6 +144,18 @@ struct CodexUsageModelTests {
         #expect(!usage.hasWeeklyWindow)
     }
 
+    @Test("a confirmed monthly budget replaces cached rolling windows")
+    func enterpriseBudgetReplacesPreviousWindows() throws {
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        let previousRaw = try decoder.decode(WhamUsageResponse.self, from: Data(#"{"rate_limit":{"primary_window":{"used_percent":20,"limit_window_seconds":18000,"reset_at":1800000000,"reset_after_seconds":1200},"secondary_window":{"used_percent":40,"limit_window_seconds":604800,"reset_at":1800500000,"reset_after_seconds":500000}}}"#.utf8))
+        let enterpriseRaw = try decoder.decode(WhamUsageResponse.self, from: Data(#"{"rate_limit":null,"spend_control":{"individual_limit":{"unit":"credit","used":"0","limit":"7000"}}}"#.utf8))
+        let previous = CodexUsage(from: previousRaw)
+        let current = CodexUsage(from: enterpriseRaw)
+        #expect(previous.reportedWindowShape == .dual)
+        #expect(current.retainingLastConfirmedWindows(from: previous) == current)
+    }
+
     @Test("parses member monthly usage response")
     func parsesMemberMonthlyUsage() throws {
         let response = try OpenAIClient._decodeMonthlyUsageForTesting(Data("""
@@ -174,6 +186,12 @@ struct CodexUsageModelTests {
         """.utf8)))
         #expect(partialWork.retainingLastConfirmedWindows(from: work).monthlyBudget?.limit == 7000)
         #expect(partialWork.retainingLastConfirmedWindows(from: personal).monthlyBudget == nil)
+    }
+
+    @Test("builds member monthly usage route from account id")
+    func memberMonthlyUsageRoute() {
+        let url = OpenAIClient._memberMonthlyUsageURLForTesting(accountID: "acct-123")
+        #expect(url.path == "/backend-api/accounts/acct-123/spend-controls/current-user/monthly-usage")
     }
 
     @Test("lossily decodes numeric Codex window fields")

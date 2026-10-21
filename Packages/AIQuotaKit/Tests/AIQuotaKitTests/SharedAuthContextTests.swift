@@ -88,6 +88,60 @@ final class SharedAuthContextTests: XCTestCase {
         XCTAssertEqual(restored.cookies.first?.value, "cookie-value")
     }
 
+    func testClearingOneCodexAccountDoesNotClearAnother() throws {
+        let firstID = UUID().uuidString
+        let secondID = UUID().uuidString
+        defer {
+            SharedAuthContextStore.clearCodex(forAccountID: firstID)
+            SharedAuthContextStore.clearCodex(forAccountID: secondID)
+        }
+
+        let first = SharedCodexAuthContext(
+            sessionToken: "first-session",
+            accessToken: "first-access",
+            accessTokenExpiresAt: Date(timeIntervalSince1970: 1_743_200_000)
+        )
+        let second = SharedCodexAuthContext(
+            sessionToken: "second-session",
+            accessToken: "second-access",
+            accessTokenExpiresAt: Date(timeIntervalSince1970: 1_743_300_000)
+        )
+        SharedAuthContextStore.saveCodex(first, forAccountID: firstID)
+        SharedAuthContextStore.saveCodex(second, forAccountID: secondID)
+
+        guard SharedAuthContextStore.loadCodex(forAccountID: firstID) != nil,
+              SharedAuthContextStore.loadCodex(forAccountID: secondID) != nil
+        else { throw XCTSkip("Test host Keychain is unavailable") }
+
+        SharedAuthContextStore.clearCodex(forAccountID: firstID)
+
+        XCTAssertNil(SharedAuthContextStore.loadCodex(forAccountID: firstID))
+        XCTAssertEqual(SharedAuthContextStore.loadCodex(forAccountID: secondID), second)
+    }
+
+    func testClearingOneClaudeAccountDoesNotClearAnother() throws {
+        let firstID = UUID().uuidString
+        let secondID = UUID().uuidString
+        defer {
+            SharedAuthContextStore.clearClaude(forAccountID: firstID)
+            SharedAuthContextStore.clearClaude(forAccountID: secondID)
+        }
+
+        let first = SharedClaudeAuthContext(orgId: "org-first", cookies: [])
+        let second = SharedClaudeAuthContext(orgId: "org-second", cookies: [])
+        SharedAuthContextStore.saveClaude(first, forAccountID: firstID)
+        SharedAuthContextStore.saveClaude(second, forAccountID: secondID)
+
+        guard SharedAuthContextStore.loadClaude(forAccountID: firstID) != nil,
+              SharedAuthContextStore.loadClaude(forAccountID: secondID) != nil
+        else { throw XCTSkip("Test host Keychain is unavailable") }
+
+        SharedAuthContextStore.clearClaude(forAccountID: firstID)
+
+        XCTAssertNil(SharedAuthContextStore.loadClaude(forAccountID: firstID))
+        XCTAssertEqual(SharedAuthContextStore.loadClaude(forAccountID: secondID), second)
+    }
+
     func testKeychainOperationsDoNotPresentAuthenticationUI() throws {
         let source = try String(
             contentsOf: repoRoot.appending(path: "Packages/AIQuotaKit/Sources/AIQuotaKit/Storage/KeychainStore.swift"),

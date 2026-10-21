@@ -4,7 +4,7 @@ import AIQuotaKit
 struct WidgetSmallView: View {
     let entry: QuotaEntry
 
-    private var showClaude: Bool { entry.configuration.service == .claude }
+    private var showClaude: Bool { entry.selectedService == .claude }
 
     var body: some View {
         Group {

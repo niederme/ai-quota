@@ -22,24 +22,31 @@ public enum ClaudeEnterpriseDetailAccessError: Error, Sendable, Equatable {
 public actor ClaudeClient {
     private let coordinator: ClaudeAuthCoordinator
     private let session: URLSession
+    private let accountStorageID: String?
+    private let isScoped: Bool
     private let baseURL = URL(string: "https://claude.ai")!
     private let logger = Logger(subsystem: "app.aiquota", category: "ClaudeClient")
     private var oauthPolicyFailures = 0
     private var oauthDisabledForSession = false
 
-    public init(coordinator: ClaudeAuthCoordinator) {
+    public init(coordinator: ClaudeAuthCoordinator, accountStorageID: String? = nil) {
         self.coordinator = coordinator
+        self.accountStorageID = accountStorageID
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 15
-        config.httpCookieStorage = HTTPCookieStorage.shared
-        config.httpShouldSetCookies = true
+        self.isScoped = accountStorageID != nil || coordinator.accountStorageID != nil
+        config.httpCookieStorage = isScoped ? nil : HTTPCookieStorage.shared
+        // Scoped coordinators provide an explicit cookie snapshot. Prevent
+        // URLSession from reading/writing the process-wide cookie jar in that
+        // mode, which could mix accounts during concurrent refreshes.
+        config.httpShouldSetCookies = !isScoped
         self.session = URLSession(configuration: config)
     }
 
     // MARK: - Public API
 
     public func fetchUsage() async throws -> ClaudeUsage {
-        if !oauthDisabledForSession {
+        if !isScoped && !oauthDisabledForSession {
             do {
                 let oauth = try await coordinator.loadOAuthCredentials(allowKeychain: false)
                 do {
@@ -92,7 +99,8 @@ public actor ClaudeClient {
 
         let ctx = try await coordinator.requestContext()
         do {
-            let usage = try await fetchUsageData(path: "/api/organizations/\(ctx.orgId)/usage")
+            let usage = try await fetchUsageData(path: "/api/organizations/\(ctx.orgId)/usage",
+                                                  cookies: ctx.cookies)
             recordAttempt(source: .web, httpStatus: 200, category: .success)
             return usage
         } catch let error as NetworkError {
@@ -198,7 +206,8 @@ public actor ClaudeClient {
         )
         let data = try await fetchWebData(
             path: path,
-            verifiedOrganizationID: verifiedOrganizationID
+            verifiedOrganizationID: verifiedOrganizationID,
+            cookies: context.cookies
         )
         return try Self._decodeEnterpriseSpendForTesting(
             data,
@@ -228,7 +237,8 @@ public actor ClaudeClient {
         )
         let data = try await fetchWebData(
             path: path,
-            verifiedOrganizationID: verifiedOrganizationID
+            verifiedOrganizationID: verifiedOrganizationID,
+            cookies: context.cookies
         )
         return try Self._decodeEnterpriseSkillsForTesting(
             data,
@@ -286,8 +296,8 @@ public actor ClaudeClient {
         }
     }
 
-    private func fetchUsageData(path: String) async throws -> ClaudeUsage {
-        let req = makeRequest(path: path)
+    private func fetchUsageData(path: String, cookies: [HTTPCookie]) async throws -> ClaudeUsage {
+        let req = makeRequest(path: path, cookies: cookies)
 
         // Use the async URLSession API so cooperative cancellation works correctly.
         // When the enclosing Task is cancelled (e.g. startAutoRefresh() restarts the
@@ -318,9 +328,10 @@ public actor ClaudeClient {
 
     private func fetchWebData(
         path: String,
-        verifiedOrganizationID: String
+        verifiedOrganizationID: String,
+        cookies: [HTTPCookie]
     ) async throws -> Data {
-        let request = makeRequest(path: path)
+        let request = makeRequest(path: path, cookies: cookies)
         let (data, response): (Data, URLResponse)
         do {
             (data, response) = try await session.data(for: request)
@@ -470,7 +481,7 @@ public actor ClaudeClient {
         return d
     }
 
-    private func makeRequest(path: String) -> URLRequest {
+    private func makeRequest(path: String, cookies: [HTTPCookie]) -> URLRequest {
         let url = URL(string: "https://claude.ai\(path)")!
         var req = URLRequest(url: url)
         req.httpMethod = "GET"
@@ -483,13 +494,17 @@ public actor ClaudeClient {
         req.setValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
         req.setValue("web_claude_ai", forHTTPHeaderField: "anthropic-client-platform")
         req.setValue("1.0.0", forHTTPHeaderField: "anthropic-client-version")
-        if let deviceId = cookie(named: "anthropic-device-id") {
+        let scopedCookies = isScoped ? cookies : (HTTPCookieStorage.shared.cookies ?? [])
+        if isScoped, let cookieHeader = HTTPCookie.requestHeaderFields(with: cookies)["Cookie"] {
+            req.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
+        }
+        if let deviceId = scopedCookies.first(where: { $0.name == "anthropic-device-id" })?.value {
             req.setValue(deviceId, forHTTPHeaderField: "anthropic-device-id")
         }
-        if let anonId = cookie(named: "ajs_anonymous_id") {
+        if let anonId = scopedCookies.first(where: { $0.name == "ajs_anonymous_id" })?.value {
             req.setValue(anonId, forHTTPHeaderField: "anthropic-anonymous-id")
         }
-        if let sessionId = cookie(named: "activitySessionId") {
+        if let sessionId = scopedCookies.first(where: { $0.name == "activitySessionId" })?.value {
             req.setValue(sessionId, forHTTPHeaderField: "x-activity-session-id")
         }
         return req
@@ -681,6 +696,10 @@ public actor ClaudeClient {
         httpStatus: Int?,
         category: ClaudeSourceAttempt.ErrorCategory
     ) {
+        // The existing diagnostics ring describes the original connection.
+        // Additional accounts have their own visible error state and must not
+        // overwrite that ring with another organization's result.
+        guard !isScoped else { return }
         SharedDefaults.appendClaudeSourceAttempt(.init(
             source: source,
             httpStatus: httpStatus,
