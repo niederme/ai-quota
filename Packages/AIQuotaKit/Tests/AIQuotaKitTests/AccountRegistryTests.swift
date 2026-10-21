@@ -11,9 +11,27 @@ struct AccountRegistryTests {
             #expect(MacAccountGridLayout.rows(accountCount: count, width: 500) == count)
         }
         #expect(MacAccountGridLayout.viewportHeight(accountCount: 6, width: 652,
-                                                     availableHeight: 900) == 784)
+                                                     availableHeight: 900) == 556)
         #expect(MacAccountGridLayout.viewportHeight(accountCount: 6, width: 652,
-                                                     availableHeight: 600) == 600)
+                                                     availableHeight: 500) == 500)
+    }
+
+    @Test("Mac account overview never borrows another account's metric")
+    func overviewUsageIsAccountScoped() {
+        let codex = ConnectedAccount(provider: .codex, displayLabel: "Personal",
+                                     authSource: .oauth, connectionKind: .legacyPrimary)
+        let claude = ConnectedAccount(provider: .claude, displayLabel: "Work",
+                                      authSource: .webSession, connectionKind: .legacyPrimary)
+        let isolated = ConnectedAccount(provider: .codex, displayLabel: "Other",
+                                        authSource: .oauth)
+        #expect(MacAccountOverviewUsage.claude(account: codex, isolated: nil,
+                                                primary: .placeholder) == nil)
+        #expect(MacAccountOverviewUsage.codex(account: claude, isolated: nil,
+                                               primary: .placeholder) == nil)
+        #expect(MacAccountOverviewUsage.codex(account: isolated, isolated: nil,
+                                               primary: .placeholder) == nil)
+        #expect(MacAccountOverviewUsage.codex(account: codex, isolated: nil,
+                                               primary: .placeholder) != nil)
     }
 
     @Test("menu-bar choices preserve explicit empty and more-than-two selections")

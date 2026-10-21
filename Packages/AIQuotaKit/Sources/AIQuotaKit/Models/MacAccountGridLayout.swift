@@ -12,6 +12,6 @@ public enum MacAccountGridLayout {
     }
 
     public static func viewportHeight(accountCount: Int, width: Double, availableHeight: Double) -> Double {
-        min(availableHeight, Double(max(1, rows(accountCount: accountCount, width: width))) * 256 + 16)
+        min(availableHeight, Double(max(1, rows(accountCount: accountCount, width: width))) * 180 + 16)
     }
 }
