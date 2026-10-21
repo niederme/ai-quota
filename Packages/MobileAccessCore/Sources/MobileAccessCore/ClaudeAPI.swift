@@ -65,6 +65,23 @@ public struct ClaudeChallenge: Sendable {
         }
         return String(parts[0])
     }
+    /// Claude's registered HTTPS callback can be observed inside the app's
+    /// browser even though AIQuota cannot claim that domain as a universal link.
+    /// Bind it to this PKCE attempt before exchanging the code.
+    public func authorizationCode(from callback: URL, now: Date = .now) throws -> String {
+        guard let components = URLComponents(url: callback, resolvingAgainstBaseURL: false),
+              components.scheme == "https",
+              components.host == "console.anthropic.com",
+              components.path == "/oauth/code/callback",
+              let items = components.queryItems,
+              items.filter({ $0.name == "code" }).count == 1,
+              items.filter({ $0.name == "state" }).count == 1,
+              let code = items.first(where: { $0.name == "code" })?.value,
+              let returnedState = items.first(where: { $0.name == "state" })?.value
+        else { throw ClaudeAccessError.invalidCode }
+        _ = try self.code(from: "\(code)#\(returnedState)", now: now)
+        return "\(code)#\(returnedState)"
+    }
     private static func base64URL(_ data: Data) -> String {
         data.base64EncodedString().replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
@@ -152,6 +169,30 @@ public struct ClaudeAPI: Sendable {
         return QuotaReading(fetchedAt: reading.fetchedAt, shortTerm: reading.shortTerm,
                             weekly: reading.weekly, metadata: metadata, claudeBreakdown: reading.claudeBreakdown,
                             monthlyBudget: reading.monthlyBudget)
+    }
+    /// Returns the opaque organization UUID from the authenticated profile.
+    /// A profile without an organization UUID is a valid, unavailable result.
+    public func organizationID(_ tokens: ClaudeTokens) async throws -> String? {
+        var request = URLRequest(url: URL(string: "https://api.anthropic.com/api/oauth/profile")!)
+        request.setValue("Bearer \(tokens.accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
+        request.setValue("AIQuotaMobileProbe/0.1", forHTTPHeaderField: "User-Agent")
+        let response = try await transport.send(request)
+        guard (200..<300).contains(response.status) else {
+            throw ClaudeAccessError.requestFailed(stage: "profile lookup", status: response.status)
+        }
+        return Self.decodeOrganizationID(response.data)
+    }
+    public static func decodeOrganizationID(_ data: Data) -> String? {
+        struct Profile: Decodable {
+            struct Organization: Decodable { let uuid: String? }
+            let organization: Organization?
+        }
+        guard let value = try? JSONDecoder().decode(Profile.self, from: data),
+              let uuid = value.organization?.uuid,
+              UUID(uuidString: uuid) != nil else { return nil }
+        return uuid
     }
     // Profile path, organization field, and mappings match the installed first-party
     // Claude Code client. Unknown/new organization types remain explicitly unavailable.

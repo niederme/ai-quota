@@ -108,16 +108,17 @@ final class TokenHistoryReviewTests: XCTestCase {
         }
     }
 
-    @MainActor func testPlaceholdersKeepTheSameHeightAndGraphHasNoFooter() throws {
+    @MainActor func testMissingHistoryCollapsesAndReportedHistoryShowsGraph() throws {
         let populated = try XCTUnwrap(DemoQuotaData.tokenHistory())
         let empty = try XCTUnwrap(CodexTokenHistory.decode(Data("{\"page\":{\"activity_graph\":{\"daily_usage_buckets\":[]}}}".utf8)))
         for width in [256.0, 329.0, 376.0] {
-            let heights = [(nil, true), (Optional(empty), false), (Optional(populated), false)].map { history, loading in
+            let heights = [(nil, true), (Optional(empty), false), (nil, false), (Optional(populated), false)].map { history, loading in
                 let host = UIHostingController(rootView: MobileTokenHistoryView(history: history, unavailable: false, loading: loading, availableWidth: width))
                 return host.sizeThatFits(in: CGSize(width: width, height: 1000)).height
             }
             XCTAssertEqual(heights[0], heights[1], accuracy: 1)
-            XCTAssertLessThan(heights[2], heights[0])
+            XCTAssertEqual(heights[1], heights[2], accuracy: 1)
+            XCTAssertLessThan(heights[2], heights[3])
         }
     }
 

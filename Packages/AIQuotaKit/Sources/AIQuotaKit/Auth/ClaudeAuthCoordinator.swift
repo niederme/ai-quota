@@ -20,6 +20,11 @@ public enum ClaudeSessionValidation: Sendable, Equatable {
     case indeterminate
 }
 
+public enum ClaudeWebReconnectError: Error, Sendable, Equatable {
+    case organizationMismatch
+    case invalidOrganization
+}
+
 // MARK: - Request context
 
 /// Value type the coordinator produces for authenticated requests.
@@ -63,6 +68,7 @@ public actor ClaudeAuthCoordinator {
     public typealias OAuthCredentialsLoader = @Sendable (_ allowKeychain: Bool) throws -> ClaudeOAuthCredentials
     public typealias SessionValidator = @Sendable (_ cookies: [HTTPCookie]) async -> ClaudeSessionValidation
     public typealias WebSessionClearer = @Sendable () async -> Void
+    public typealias WebSessionRestorer = @Sendable (_ cookies: [HTTPCookie]) async -> Void
     public typealias LoginWindowRunner = @Sendable () async throws -> (orgId: String, cookies: [HTTPCookie])
     private let probe: SessionProbe
     private let headlessSessionReviver: HeadlessSessionReviver
@@ -70,6 +76,7 @@ public actor ClaudeAuthCoordinator {
     private let oauthCredentialsLoader: OAuthCredentialsLoader
     private let sessionValidator: SessionValidator
     private let webSessionClearer: WebSessionClearer
+    private let webSessionRestorer: WebSessionRestorer
     private let loginWindowRunner: LoginWindowRunner
 
     public init(
@@ -79,6 +86,7 @@ public actor ClaudeAuthCoordinator {
         keychainAccessAllowed: @escaping @Sendable () -> Bool = { ClaudeOAuthKeychainReader.isAccessAllowed() },
         sessionValidator: SessionValidator? = nil,
         webSessionClearer: WebSessionClearer? = nil,
+        webSessionRestorer: WebSessionRestorer? = nil,
         loginWindowRunner: LoginWindowRunner? = nil
     ) {
         self.probe = probe ?? ClaudeAuthCoordinator.wkProbe
@@ -91,6 +99,7 @@ public actor ClaudeAuthCoordinator {
         self.keychainAccessAllowed = keychainAccessAllowed
         self.sessionValidator = sessionValidator ?? ClaudeAuthCoordinator.liveSessionValidator
         self.webSessionClearer = webSessionClearer ?? ClaudeAuthCoordinator.clearRejectedWebSession
+        self.webSessionRestorer = webSessionRestorer ?? ClaudeAuthCoordinator.restoreWebSession
         self.loginWindowRunner = loginWindowRunner ?? ClaudeAuthCoordinator.showLoginWindow
     }
 
@@ -216,6 +225,64 @@ public actor ClaudeAuthCoordinator {
         } catch {
             SharedAuthContextStore.clearClaude()
             transition(to: .unauthenticated)
+            throw error
+        }
+    }
+
+    /// Adds or replaces the app-owned Claude web session through the normal
+    /// connection flow. The current authenticated connection is restored if the
+    /// user closes the login window or signs into a different organization.
+    public func reconnectWithWebAuthentication(
+        expectedOrganizationID: String?
+    ) async throws {
+        guard state == .authenticated else {
+            throw AuthCoordinatorError.invalidTransition(from: state)
+        }
+
+        let previousOrgID = capturedOrgId
+        let previousCookies = capturedCookies
+        let previousOAuthCredentials = cachedOAuthCredentials
+        let previousOAuthDisabledForSession = oauthDisabledForSession
+        transition(to: .signingIn)
+        await webSessionClearer()
+
+        do {
+            let (orgId, cookies) = try await loginWindowRunner()
+            let normalizedOrganizationID = try Self.normalizedOrganizationID(orgId)
+            if let expectedOrganizationID {
+                let normalizedExpectedID = try Self.normalizedOrganizationID(expectedOrganizationID)
+                guard normalizedOrganizationID == normalizedExpectedID else {
+                    throw ClaudeWebReconnectError.organizationMismatch
+                }
+            }
+
+            capturedOrgId = normalizedOrganizationID
+            capturedCookies = cookies
+            injectCookies(cookies)
+            if expectedOrganizationID == nil {
+                cachedOAuthCredentials = nil
+                oauthDisabledForSession = true
+            } else {
+                cachedOAuthCredentials = previousOAuthCredentials
+                oauthDisabledForSession = previousOAuthDisabledForSession
+            }
+            persistSharedAuthContext()
+            UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+            transition(to: .authenticated)
+        } catch {
+            await webSessionClearer()
+            capturedOrgId = previousOrgID
+            capturedCookies = previousCookies
+            cachedOAuthCredentials = previousOAuthCredentials
+            oauthDisabledForSession = previousOAuthDisabledForSession
+            if previousOrgID == nil {
+                SharedAuthContextStore.clearClaude()
+            } else {
+                await webSessionRestorer(previousCookies)
+                injectCookies(previousCookies)
+                persistSharedAuthContext()
+            }
+            transition(to: .authenticated)
             throw error
         }
     }
@@ -552,6 +619,30 @@ public actor ClaudeAuthCoordinator {
     private static func clearDefaultWebSession() async {
         await clearWebKitCookies { $0.domain.contains("claude.ai") }
         clearURLSessionCookies { $0.domain.contains("claude.ai") }
+    }
+
+    private static func restoreWebSession(_ cookies: [HTTPCookie]) async {
+        for cookie in cookies { HTTPCookieStorage.shared.setCookie(cookie) }
+        guard !cookies.isEmpty else { return }
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            Task { @MainActor in
+                let group = DispatchGroup()
+                for cookie in cookies {
+                    group.enter()
+                    WKWebsiteDataStore.default().httpCookieStore.setCookie(cookie) {
+                        group.leave()
+                    }
+                }
+                group.notify(queue: .main) { continuation.resume() }
+            }
+        }
+    }
+
+    private static func normalizedOrganizationID(_ value: String) throws -> String {
+        guard let uuid = UUID(uuidString: value) else {
+            throw ClaudeWebReconnectError.invalidOrganization
+        }
+        return uuid.uuidString.lowercased()
     }
 
     private static func clearWebKitCookies(

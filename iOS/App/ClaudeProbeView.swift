@@ -5,7 +5,9 @@ struct ClaudeProbeView: View {
     let model: ClaudeProbeModel
     @State private var pastedCode = ""
     @State private var confirmDisconnect = false
-    @State private var showSignIn = false
+    @State private var browser: ClaudeAuthorizationBrowser?
+    @State private var showSafariFallback = false
+    @State private var safariFallbackPending = false
 
     var body: some View {
         Group {
@@ -22,8 +24,10 @@ struct ClaudeProbeView: View {
             VStack(alignment: .leading, spacing: 20) {
                 if model.challenge != nil {
                     Text("Connect Claude").font(.title2.bold())
-                    Text("Sign in, then copy the code from Claude and paste it here.").foregroundStyle(OverviewStyle.secondary)
-                    Button("Open Claude sign-in") { showSignIn = true }.buttonStyle(.bordered)
+                    Text("Finish signing in to Claude. If the in-app browser doesn't work, use Safari and paste its code below.")
+                        .foregroundStyle(OverviewStyle.secondary)
+                    Button("Continue Claude sign-in") { openInAppBrowser() }.buttonStyle(.bordered)
+                    Button("Use Safari instead") { showSafariFallback = true }
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Authorization code").font(.headline)
                         SecureField("Paste your code", text: $pastedCode)
@@ -77,7 +81,20 @@ struct ClaudeProbeView: View {
         .navigationTitle("Claude Code account")
         .modifier(DismissAfterAccountConnection(completionID: model.signInCompletionID))
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showSignIn) {
+        .sheet(item: $browser, onDismiss: {
+            if safariFallbackPending {
+                safariFallbackPending = false
+                showSafariFallback = true
+            }
+        }) { session in
+            ClaudeAuthorizationBrowserView(session: session) {
+                session.stop()
+                safariFallbackPending = true
+                browser = nil
+            }
+            .interactiveDismissDisabled(session.capturedCode)
+        }
+        .sheet(isPresented: $showSafariFallback) {
             if let challenge = model.challenge {
                 ProbeBrowser(url: challenge.authorizationURL)
             }
@@ -87,11 +104,25 @@ struct ClaudeProbeView: View {
         } message: {
             Text("Removes the local connection and reading. It does not revoke authorization at Claude.")
         }
+        .onChange(of: model.signInCompletionID) { _, completion in
+            if completion != nil { browser = nil }
+        }
+        .onChange(of: model.error) { _, error in
+            if error != nil, browser?.capturedCode == true { browser = nil }
+        }
     }
     private func startSignIn() {
         pastedCode = ""
         model.connect()
-        showSignIn = model.challenge != nil
+        openInAppBrowser()
+    }
+    private func openInAppBrowser() {
+        guard let challenge = model.challenge else { return }
+        browser = ClaudeAuthorizationBrowser(challenge: challenge) { code, session in
+            model.finishSignIn(code) {
+                await session.commitWebsiteSession()
+            }
+        }
     }
     private func submit() {
         guard !model.busy, !pastedCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }

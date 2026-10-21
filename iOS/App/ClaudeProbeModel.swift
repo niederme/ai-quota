@@ -4,8 +4,15 @@ import WidgetKit
 import UIKit
 import MobileAccessCore
 
+enum ClaudeOrganizationLookup: Equatable {
+    case verified(String)
+    case reconnectRequired
+    case temporarilyUnavailable
+}
+
 @MainActor @Observable
 final class ClaudeProbeModel {
+    let webDetailsSession = ClaudeWebDetailsSession()
     private let shared: SharedQuotaStore
     private var foregroundRefresh = ForegroundRefreshPolicy()
     private(set) var quietlyRefreshing = false
@@ -60,7 +67,8 @@ final class ClaudeProbeModel {
             message = "Sign in with Claude in Safari, then paste the authorization code here."
         } catch { self.error = "Could not prepare sign-in. Try again." }
     }
-    func finishSignIn(_ pasted: String) {
+    func finishSignIn(_ pasted: String,
+                      afterSuccessfulSignIn: @escaping @MainActor () async -> Void = {}) {
         guard !busy, let pending = challenge else { return }
         run { [self] in
             let newTokens = try await api.exchange(pasted, challenge: pending)
@@ -70,10 +78,12 @@ final class ClaudeProbeModel {
                         try ClaudeTokenStore.clear()
                     }
             foregroundRefresh.reset()
+            webDetailsSession.invalidate()
             tokens = newTokens
             challenge = nil
             message = "Signed in on this device. Checking quota…"
             try await fetch(forceRenewal: false)
+            await afterSuccessfulSignIn()
             signInCompletionID = UUID()
         }
     }
@@ -88,6 +98,25 @@ final class ClaudeProbeModel {
     func refreshAndWait() async {
         refresh()
         await work?.value
+    }
+    /// The web detail session must belong to the same organization as the
+    /// OAuth allowance shown above it. Never infer this from the plan name.
+    func organizationLookup() async -> ClaudeOrganizationLookup {
+        guard let tokens else { return .reconnectRequired }
+        do {
+            guard let organizationID = try await api.organizationID(tokens) else {
+                return .reconnectRequired
+            }
+            return .verified(organizationID)
+        } catch let accessError as ClaudeAccessError where accessError.requiresReconnect {
+            connectionFailure = .reconnect
+            error = "Claude sign-in expired. Reconnect to continue. Your last reading is saved."
+            return .reconnectRequired
+        } catch {
+            // Profile lookup can fail independently of the saved allowance.
+            // A policy response or network problem is not proof of expired auth.
+            return .temporarilyUnavailable
+        }
     }
     func refreshOnOpen() {
         guard !isDemo else { refresh(); return }
@@ -189,6 +218,8 @@ final class ClaudeProbeModel {
         }
         WidgetCenter.shared.reloadAllTimelines()
         UserDefaults.standard.removeObject(forKey: cacheKey)
+        webDetailsSession.invalidate()
+        await ClaudeWebDetailsSession.clearSession()
         foregroundRefresh.reset()
         tokens = nil
         reading = nil

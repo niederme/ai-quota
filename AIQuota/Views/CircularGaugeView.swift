@@ -211,7 +211,7 @@ struct CircularGaugeView: View {
 }
 
 /// A monthly allowance shown with the same ring language as rolling windows.
-/// The ring is proportional, while the center keeps the provider's actual unit.
+/// The center shows utilization; the caption retains the provider's actual unit.
 struct BudgetGaugeView: View {
     let used: Double
     let limit: Double
@@ -256,13 +256,13 @@ struct BudgetGaugeView: View {
                         .scaledToFit()
                         .frame(width: 15, height: 15)
                         .foregroundStyle(statusColor)
-                    Text(usedText)
+                    Text("\(Int((fraction * 100).rounded()))%")
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundStyle(statusColor)
                         .contentTransition(.numericText())
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
-                    Text("of \(limitText)")
+                    Text("Monthly")
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -288,19 +288,25 @@ struct BudgetGaugeView: View {
             Text(label)
                 .font(.headline.bold())
                 .lineLimit(1)
-            Text(unitLabel)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-            Text(resetAt.map { ResetTimeTextFormatter.compactWindowCaption("Monthly", resetAt: $0) }
-                 ?? "Monthly reset unavailable")
+            Text("\(usedText) of \(limitText)")
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
+            Text(unitLabel)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            if let resetAt, resetAt > .now {
+                Text(ResetTimeTextFormatter.compactWindowCaption("Monthly", resetAt: resetAt))
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
         }
         .multilineTextAlignment(.center)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(label), \(usedText) of \(limitText) \(unitLabel)")
+        .accessibilityLabel("\(label), \(Int((fraction * 100).rounded())) percent monthly, \(usedText) of \(limitText) \(unitLabel)")
     }
 }
 

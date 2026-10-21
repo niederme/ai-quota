@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		007CD569C296BA2AEA653F19 /* ClaudeEnterpriseDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAFB5A4E950385BC5685268C /* ClaudeEnterpriseDetailView.swift */; };
 		016897F2F3C03D3BD1F940E8 /* OnboardingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D3DAB2AE10FEF44FAAAEEEE /* OnboardingTests.swift */; };
 		02D378445912866CB0DC998B /* ClaudeProbeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25D0C914A09E992523B60A79 /* ClaudeProbeModel.swift */; };
 		045BF5454A00DF2152B504B9 /* WidgetIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F1F18DB5A7FD4515D863D71 /* WidgetIntent.swift */; };
@@ -15,6 +16,7 @@
 		0A551ADD42969BAB772A2B1B /* BudgetStripView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8078C57920AA96E74607EA71 /* BudgetStripView.swift */; };
 		0C3D35A9CE3B5A6F4B5C7816 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EDE2263EBEB7008EF6988081 /* WebKit.framework */; };
 		0CCE6E70E54EBBEBC9BBA987 /* CircularGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07B0B4CEC9ACF96AC981FA29 /* CircularGaugeView.swift */; };
+		0DD53E3B58EF3A00B4D223E8 /* ClaudeDetailUITestHarness.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54C555682C85E897EB107B7B /* ClaudeDetailUITestHarness.swift */; };
 		0FFAE5C2EF85BB9398E469A8 /* AIQuotaWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 94EF7D48855FADE21AE0B407 /* AIQuotaWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		10013BDDC507730F8B40BB1C /* TokenHistoryReviewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C6CBA2120FA33C3C7AA09E5 /* TokenHistoryReviewTests.swift */; };
 		10459291FD1996FADB5A7379 /* ClaudeAnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7478EF1D21286EACF2376DC4 /* ClaudeAnalyticsView.swift */; };
@@ -63,8 +65,10 @@
 		5D5FB5B02ADE5849EDD7D764 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 9209085EEB25A6FC729B4DD8 /* AppIcon.icon */; };
 		5D7F281FFE941DBA47FEADAA /* ServiceDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2601AEFB08EAA539E27A5071 /* ServiceDetailView.swift */; };
 		5D841348FB1352DB4D417246 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8C0ACC770721BA686B7B6401 /* Assets.xcassets */; };
+		5D9A1CC26F686F526B1A054E /* ClaudeAuthorizationBrowser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E825AAA1454AA9B5C24AB21 /* ClaudeAuthorizationBrowser.swift */; };
 		5DE66EB0726126B4F486029E /* WidgetGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 384CCB3989C01F13B3E22D43 /* WidgetGaugeView.swift */; };
 		5FEDD079CDE257144D590AB2 /* CompactQuotaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2681A208A2007E5167B5903 /* CompactQuotaView.swift */; };
+		60896B59C4BBA33E03008EA3 /* ClaudeDetailReconnectFlowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94C3AF5CB2BCD3A143D8EB24 /* ClaudeDetailReconnectFlowTests.swift */; };
 		6455F47887C2BB81F17E59D1 /* WelcomeStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 872D4B7AB7221C3A55960CE1 /* WelcomeStepView.swift */; };
 		64E9FF14FC1DB51A9FDD0DCB /* AnalyticsAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29F97C407C158BC0A25FD792 /* AnalyticsAppDelegate.swift */; };
 		65008600946777E8FA2F6BFE /* ProbeModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59F4F1B59FFE30E899E31F8D /* ProbeModel.swift */; };
@@ -150,6 +154,7 @@
 		E160ECCBCF34150E6B3A8A61 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AFDFAA7F9E0650962EC80DC /* OnboardingView.swift */; };
 		E33E9AF4802830F62830D735 /* BackgroundRefreshTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DBB1105806AD7DD4ABC91E9 /* BackgroundRefreshTests.swift */; };
 		E35629D70F3650759EDF8865 /* ServicesStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C66610C3B005AD239F7EDE75 /* ServicesStepView.swift */; };
+		E3F55B61B9B4300EF2BC6FED /* ClaudeWebDetailsSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35CC64D9185207C8ACB73893 /* ClaudeWebDetailsSession.swift */; };
 		E3F95AF78B2FB568C2E16BB1 /* WidgetStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2DD6DC0C92D6E6CBCA60A64 /* WidgetStore.swift */; };
 		E8EEDCE93DA5BCE1A7910DFE /* AIQuotaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E3E5BEBFAE5CBFD5ABBEB22 /* AIQuotaApp.swift */; };
 		E8EF46CD148FBE9562C21B18 /* HomeQuotaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39129D16B4B1A86FA705A17C /* HomeQuotaView.swift */; };
@@ -162,6 +167,7 @@
 		F5056A18C223AC3EBA06A946 /* SharedQuotaStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A827B61B801F45B571C22D4 /* SharedQuotaStore.swift */; };
 		F6564018685503ADEE6165C2 /* DoneStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20C382E39D030AC581CA9B4 /* DoneStepView.swift */; };
 		FC5F1405D182501F5FFAC02C /* AIQuotaWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4392F2EBD4EFDCA51009B2E9 /* AIQuotaWidgetBundle.swift */; };
+		FE45C4F9326BB41F8E6395FF /* ClaudeReconnectPromptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90F339EED4E57F5EF82149E5 /* ClaudeReconnectPromptTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -266,6 +272,7 @@
 		2601AEFB08EAA539E27A5071 /* ServiceDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ServiceDetailView.swift; sourceTree = "<group>"; };
 		29F97C407C158BC0A25FD792 /* AnalyticsAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsAppDelegate.swift; sourceTree = "<group>"; };
 		33016447347AF46F0499E374 /* Widget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Widget.entitlements; sourceTree = "<group>"; };
+		35CC64D9185207C8ACB73893 /* ClaudeWebDetailsSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeWebDetailsSession.swift; sourceTree = "<group>"; };
 		3805EE8533FA745C2DDA0491 /* HomeWidgetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeWidgetTests.swift; sourceTree = "<group>"; };
 		3808CB512F68E5EF125F3BAB /* AdaptiveColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveColors.swift; sourceTree = "<group>"; };
 		38387E43C5A9684DEC0061A8 /* CopySignInCode.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CopySignInCode.entitlements; sourceTree = "<group>"; };
@@ -281,6 +288,7 @@
 		4D136AA90C5E64F0E69E5B51 /* CountdownView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountdownView.swift; sourceTree = "<group>"; };
 		521E05B6030711C7B85B8092 /* UsageGaugeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageGaugeView.swift; sourceTree = "<group>"; };
 		544AA7837A218AFDE7979ECA /* OverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewView.swift; sourceTree = "<group>"; };
+		54C555682C85E897EB107B7B /* ClaudeDetailUITestHarness.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeDetailUITestHarness.swift; sourceTree = "<group>"; };
 		561A3E63AB5C500E7FA650DE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		59F4F1B59FFE30E899E31F8D /* ProbeModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProbeModel.swift; sourceTree = "<group>"; };
 		5AD1CC15EEE16B262B2BBC8D /* DemoAutoOpen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoAutoOpen.swift; sourceTree = "<group>"; };
@@ -308,14 +316,18 @@
 		8C0ACC770721BA686B7B6401 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		8D95553FAC04DFF7EC1268BF /* MobileAnalytics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileAnalytics.swift; sourceTree = "<group>"; };
 		8DE0C98D698289C7424807C8 /* AIQuota-iOSUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = "AIQuota-iOSUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		90F339EED4E57F5EF82149E5 /* ClaudeReconnectPromptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeReconnectPromptTests.swift; sourceTree = "<group>"; };
 		9209085EEB25A6FC729B4DD8 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		926FEB7F8D7432AC85C40F34 /* Mobile.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Mobile.entitlements; sourceTree = "<group>"; };
+		94C3AF5CB2BCD3A143D8EB24 /* ClaudeDetailReconnectFlowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeDetailReconnectFlowTests.swift; sourceTree = "<group>"; };
 		94EF7D48855FADE21AE0B407 /* AIQuotaWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AIQuotaWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		952D934237812E7F9D3348A7 /* WidgetReadingStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetReadingStatus.swift; sourceTree = "<group>"; };
+		9E825AAA1454AA9B5C24AB21 /* ClaudeAuthorizationBrowser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeAuthorizationBrowser.swift; sourceTree = "<group>"; };
 		A2B1CD537E4DD95CEBAE23D6 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		A5AA4AC3B53857352A4672A2 /* CopySignInCodeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CopySignInCodeViewController.swift; sourceTree = "<group>"; };
 		AAA0FF873D42E78CA9F94932 /* AIQuotaWidget-iOS.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = "AIQuotaWidget-iOS.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		AABA7E1FF303A5852FC6BCC6 /* WidgetSmallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetSmallView.swift; sourceTree = "<group>"; };
+		AAFB5A4E950385BC5685268C /* ClaudeEnterpriseDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeEnterpriseDetailView.swift; sourceTree = "<group>"; };
 		ACD5E0D36B8FCEF6F2E97EFA /* QuotaTimelineProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuotaTimelineProvider.swift; sourceTree = "<group>"; };
 		AE3CDEE9A5B7D5B416193D23 /* UpdaterViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdaterViewModel.swift; sourceTree = "<group>"; };
 		B11BE061D1CEB4B5B6F120AD /* LaunchServicesSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchServicesSync.swift; sourceTree = "<group>"; };
@@ -444,6 +456,7 @@
 		25B22C4360B013B0ED610043 /* UITests */ = {
 			isa = PBXGroup;
 			children = (
+				94C3AF5CB2BCD3A143D8EB24 /* ClaudeDetailReconnectFlowTests.swift */,
 				08623C761259E3CC718C6D4D /* DemoFlowTests.swift */,
 				60A67A9CBE39CE0F0BE05CA5 /* TokenHistoryFlowTests.swift */,
 			);
@@ -487,9 +500,13 @@
 				5E6A074E47680C85B7B7EF28 /* AnalyticsStyle.swift */,
 				033BEE818868F742F0C74E02 /* Assets.xcassets */,
 				7478EF1D21286EACF2376DC4 /* ClaudeAnalyticsView.swift */,
+				9E825AAA1454AA9B5C24AB21 /* ClaudeAuthorizationBrowser.swift */,
+				54C555682C85E897EB107B7B /* ClaudeDetailUITestHarness.swift */,
+				AAFB5A4E950385BC5685268C /* ClaudeEnterpriseDetailView.swift */,
 				25D0C914A09E992523B60A79 /* ClaudeProbeModel.swift */,
 				64469AA7AC51D1904D08039F /* ClaudeProbeView.swift */,
 				126972287BBBDE180220E188 /* ClaudeTokenStore.swift */,
+				35CC64D9185207C8ACB73893 /* ClaudeWebDetailsSession.swift */,
 				B7EF7635B21E03FC04EB0055 /* CodexAnalyticsView.swift */,
 				447D727A548E73A82C29281D /* CodexResetNotice.swift */,
 				B298FC20B9D43BA1C027CE6E /* DemoViews.swift */,
@@ -579,6 +596,7 @@
 				7DBB1105806AD7DD4ABC91E9 /* BackgroundRefreshTests.swift */,
 				FB52A74E8799BDEFB61FFF62 /* BaseScreenReviewTests.swift */,
 				065ADF5600B820E82899F732 /* ClaudeAnalyticsTests.swift */,
+				90F339EED4E57F5EF82149E5 /* ClaudeReconnectPromptTests.swift */,
 				C2B17E24014F0F3200B311E8 /* CodexAnalyticsTests.swift */,
 				D52F88BFBFBF549EA3102907 /* CodexResetNoticeTests.swift */,
 				E965708E9D49E52DD918B557 /* CreditsDisplayTests.swift */,
@@ -1083,6 +1101,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				60896B59C4BBA33E03008EA3 /* ClaudeDetailReconnectFlowTests.swift in Sources */,
 				4F791D61D319FE6D866DA25E /* DemoFlowTests.swift in Sources */,
 				DF73B5176E4A5C7EEC2CC087 /* TokenHistoryFlowTests.swift in Sources */,
 			);
@@ -1218,9 +1237,13 @@
 				9CADD704324B208A365C1BFA /* AnalyticsClient.swift in Sources */,
 				907C75DA132F840830071C08 /* AnalyticsStyle.swift in Sources */,
 				3568D6582714BA2727EE1ED5 /* ClaudeAnalyticsView.swift in Sources */,
+				5D9A1CC26F686F526B1A054E /* ClaudeAuthorizationBrowser.swift in Sources */,
+				0DD53E3B58EF3A00B4D223E8 /* ClaudeDetailUITestHarness.swift in Sources */,
+				007CD569C296BA2AEA653F19 /* ClaudeEnterpriseDetailView.swift in Sources */,
 				02D378445912866CB0DC998B /* ClaudeProbeModel.swift in Sources */,
 				54D97639738DEFE148A79621 /* ClaudeProbeView.swift in Sources */,
 				6F44F52DD00584662FE36290 /* ClaudeTokenStore.swift in Sources */,
+				E3F55B61B9B4300EF2BC6FED /* ClaudeWebDetailsSession.swift in Sources */,
 				70A212131D2778672687430A /* CodexAnalyticsView.swift in Sources */,
 				CC534328A36C369E56312A61 /* CodexResetNotice.swift in Sources */,
 				5FEDD079CDE257144D590AB2 /* CompactQuotaView.swift in Sources */,
@@ -1251,6 +1274,7 @@
 				E33E9AF4802830F62830D735 /* BackgroundRefreshTests.swift in Sources */,
 				1480C81463CDB8E0AEB89C84 /* BaseScreenReviewTests.swift in Sources */,
 				7CF47B58B590EFF9D53F33E6 /* ClaudeAnalyticsTests.swift in Sources */,
+				FE45C4F9326BB41F8E6395FF /* ClaudeReconnectPromptTests.swift in Sources */,
 				D95772B447C6100505A3D72B /* CodexAnalyticsTests.swift in Sources */,
 				24BC6BA77116E7B799ADB68C /* CodexResetNoticeTests.swift in Sources */,
 				A8887B9AC256A6326AB5AA9D /* CreditsDisplayTests.swift in Sources */,
@@ -1365,7 +1389,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 58;
+				CURRENT_PROJECT_VERSION = 73;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1410,7 +1434,7 @@
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Mobile.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 58;
+				CURRENT_PROJECT_VERSION = 73;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iOS/App/Info.plist;
@@ -1434,7 +1458,7 @@
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Mobile.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 58;
+				CURRENT_PROJECT_VERSION = 73;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iOS/App/Info.plist;
@@ -1477,7 +1501,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 58;
+				CURRENT_PROJECT_VERSION = 73;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1566,7 +1590,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuota/Resources/AIQuota-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 410;
+				CURRENT_PROJECT_VERSION = 420;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuota/Resources/Info-TestFlight.plist";
@@ -1586,7 +1610,7 @@
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Mobile.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 58;
+				CURRENT_PROJECT_VERSION = 73;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iOS/App/Info.plist;
@@ -1608,7 +1632,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 58;
+				CURRENT_PROJECT_VERSION = 73;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1631,7 +1655,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Widget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 58;
+				CURRENT_PROJECT_VERSION = 73;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/Widget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1654,7 +1678,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuotaWidget/Resources/AIQuotaWidget-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 410;
+				CURRENT_PROJECT_VERSION = 420;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuotaWidget/Resources/Info-TestFlight.plist";
@@ -1699,7 +1723,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuota/Resources/AIQuota-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 410;
+				CURRENT_PROJECT_VERSION = 420;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuota/Resources/Info-TestFlight.plist";
@@ -1718,7 +1742,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuotaWidget/Resources/AIQuotaWidget-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 410;
+				CURRENT_PROJECT_VERSION = 420;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuotaWidget/Resources/Info-TestFlight.plist";
@@ -1740,7 +1764,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Widget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 58;
+				CURRENT_PROJECT_VERSION = 73;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/Widget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1764,7 +1788,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuota/Resources/AIQuota-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 410;
+				CURRENT_PROJECT_VERSION = 420;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuota/Resources/Info-TestFlight.plist";
@@ -1782,7 +1806,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/CopySignInCode/CopySignInCode.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 58;
+				CURRENT_PROJECT_VERSION = 73;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/CopySignInCode/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1804,7 +1828,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 58;
+				CURRENT_PROJECT_VERSION = 73;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1846,7 +1870,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 58;
+				CURRENT_PROJECT_VERSION = 73;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1869,7 +1893,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/CopySignInCode/CopySignInCode.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 58;
+				CURRENT_PROJECT_VERSION = 73;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/CopySignInCode/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1892,7 +1916,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuotaWidget/Resources/AIQuotaWidget-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 410;
+				CURRENT_PROJECT_VERSION = 420;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuotaWidget/Resources/Info-TestFlight.plist";
@@ -1914,7 +1938,7 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 58;
+				CURRENT_PROJECT_VERSION = 73;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1958,7 +1982,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/Shared/Widget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 58;
+				CURRENT_PROJECT_VERSION = 73;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/Widget/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1980,7 +2004,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iOS/CopySignInCode/CopySignInCode.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 58;
+				CURRENT_PROJECT_VERSION = 73;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				INFOPLIST_FILE = iOS/CopySignInCode/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;

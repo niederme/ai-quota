@@ -172,6 +172,27 @@ final class QuotaViewModel {
     var isClaudeLoading = false
     var claudeError: NetworkError?
 
+    var claudeEnterpriseSpend: ScopedClaudeEnterpriseSpend?
+    var claudeEnterpriseSkills: ScopedClaudeEnterpriseSkills?
+    var isClaudeSpendLoading = false
+    var isClaudeSkillsLoading = false
+    var claudeSpendFailed = false
+    var claudeSkillsFailed = false
+    var isClaudeEnterpriseReconnectLoading = false
+    private(set) var claudeEnterpriseReconnectRequired = false
+    private var claudeEnterpriseReconnectExpectedOrganizationID: String?
+    private var claudeEnterpriseReconnectPromptPolicy = ClaudeEnterpriseReconnectPromptPolicy()
+    var isClaudeEnterpriseReconnectPromptPresented: Bool {
+        claudeEnterpriseReconnectPromptPolicy.isPresented
+    }
+    private var claudeDetailScopeID: String?
+    private var claudeDetailAllowanceSource: ClaudeUsage.Source?
+    private var claudeSpendTask: Task<Void, Never>?
+    private var claudeSkillsTask: Task<Void, Never>?
+    private var claudeSpendAttempt: Date?
+    private var claudeSkillsAttempt: Date?
+    private var claudeDetailGeneration = 0
+
     let claudeCoordinator: ClaudeAuthCoordinator
     private let claudeClient: ClaudeClient
 
@@ -285,6 +306,7 @@ final class QuotaViewModel {
     func resetToNewUser() async {
         clearTokenHistory()
         clearUsageHistory()
+        clearClaudeEnterpriseDetails()
         // Step 1: stop refresh and await quiescence.
         // Capture the task reference *before* stopAutoRefresh() sets refreshTask = nil,
         // otherwise the await below is always a no-op.
@@ -518,6 +540,7 @@ final class QuotaViewModel {
     }
 
     private func clearClaudeUsageSnapshot() {
+        clearClaudeEnterpriseDetails()
         claudeUsage = nil
         SharedDefaults.clearClaudeUsage()
         WidgetCenter.shared.reloadAllTimelines()
@@ -858,6 +881,228 @@ final class QuotaViewModel {
         }
     }
 
+    func refreshClaudeEnterpriseDetails(force: Bool = false) {
+        refreshClaudeSpendDetails(force: force)
+        refreshClaudeSkillsDetails(force: force)
+    }
+
+    func refreshClaudeSpendDetails(force: Bool = false) {
+        guard !isReadOnlyPreview, !Self.isDemoBuild, isClaudeAuthenticated else { return }
+        guard let allowanceSource = claudeUsage?.source, allowanceSource != .unknown else { return }
+        guard claudeSpendTask == nil else { return }
+        if claudeEnterpriseSpend == nil { isClaudeSpendLoading = true }
+        let generation = claudeDetailGeneration
+        claudeSpendTask = Task {
+            defer {
+                if generation == claudeDetailGeneration {
+                    isClaudeSpendLoading = false
+                    claudeSpendTask = nil
+                }
+            }
+            do {
+                let scopeID = try await claudeClient.enterpriseDetailScopeID(
+                    requiresOAuthMatch: allowanceSource == .oauth
+                )
+                guard !Task.isCancelled, generation == claudeDetailGeneration, isClaudeAuthenticated else { return }
+                clearClaudeEnterpriseReconnectRequirement()
+                adoptClaudeDetailScope(scopeID, allowanceSource: allowanceSource)
+                let period = ClaudeEnterprisePeriod.currentMonth()
+                if !force,
+                   let attempt = claudeSpendAttempt,
+                   Date.now.timeIntervalSince(attempt) < 900,
+                   claudeEnterpriseSpend.map({
+                       Calendar.current.isDate($0.period.startDate, equalTo: period.startDate, toGranularity: .day)
+                   }) == true {
+                    return
+                }
+                claudeSpendAttempt = .now
+                isClaudeSpendLoading = true
+                let spend = try await claudeClient.fetchEnterpriseSpend(
+                    period: period,
+                    verifiedOrganizationID: scopeID
+                )
+                let currentScopeID = try await claudeClient.enterpriseDetailScopeID(
+                    requiresOAuthMatch: allowanceSource == .oauth
+                )
+                guard !Task.isCancelled, generation == claudeDetailGeneration, isClaudeAuthenticated else { return }
+                guard claudeUsage?.source == allowanceSource else {
+                    clearClaudeEnterpriseDetails()
+                    return
+                }
+                guard spend.scopeID == scopeID,
+                      currentScopeID == scopeID,
+                      claudeDetailScopeID == scopeID,
+                      claudeDetailAllowanceSource == allowanceSource
+                else {
+                    clearClaudeDetailIfScopeChanged(to: currentScopeID)
+                    return
+                }
+                claudeEnterpriseSpend = spend
+                claudeSpendFailed = false
+            } catch {
+                guard !Task.isCancelled, generation == claudeDetailGeneration else { return }
+                recordClaudeEnterpriseReconnectRequirementIfNeeded(error)
+                claudeSpendFailed = true
+            }
+        }
+    }
+
+    func refreshClaudeSkillsDetails(force: Bool = false) {
+        guard !isReadOnlyPreview, !Self.isDemoBuild, isClaudeAuthenticated else { return }
+        guard let allowanceSource = claudeUsage?.source, allowanceSource != .unknown else { return }
+        guard claudeSkillsTask == nil else { return }
+        if claudeEnterpriseSkills == nil { isClaudeSkillsLoading = true }
+        let generation = claudeDetailGeneration
+        claudeSkillsTask = Task {
+            defer {
+                if generation == claudeDetailGeneration {
+                    isClaudeSkillsLoading = false
+                    claudeSkillsTask = nil
+                }
+            }
+            do {
+                let scopeID = try await claudeClient.enterpriseDetailScopeID(
+                    requiresOAuthMatch: allowanceSource == .oauth
+                )
+                guard !Task.isCancelled, generation == claudeDetailGeneration, isClaudeAuthenticated else { return }
+                clearClaudeEnterpriseReconnectRequirement()
+                adoptClaudeDetailScope(scopeID, allowanceSource: allowanceSource)
+                let period = ClaudeEnterprisePeriod.currentMonth()
+                if !force,
+                   let attempt = claudeSkillsAttempt,
+                   Date.now.timeIntervalSince(attempt) < 900,
+                   claudeEnterpriseSkills.map({
+                       Calendar.current.isDate($0.period.startDate, equalTo: period.startDate, toGranularity: .day)
+                   }) == true {
+                    return
+                }
+                claudeSkillsAttempt = .now
+                isClaudeSkillsLoading = true
+                let skills = try await claudeClient.fetchEnterpriseSkills(
+                    period: period,
+                    verifiedOrganizationID: scopeID
+                )
+                let currentScopeID = try await claudeClient.enterpriseDetailScopeID(
+                    requiresOAuthMatch: allowanceSource == .oauth
+                )
+                guard !Task.isCancelled, generation == claudeDetailGeneration, isClaudeAuthenticated else { return }
+                guard claudeUsage?.source == allowanceSource else {
+                    clearClaudeEnterpriseDetails()
+                    return
+                }
+                guard skills.scopeID == scopeID,
+                      currentScopeID == scopeID,
+                      claudeDetailScopeID == scopeID,
+                      claudeDetailAllowanceSource == allowanceSource
+                else {
+                    clearClaudeDetailIfScopeChanged(to: currentScopeID)
+                    return
+                }
+                claudeEnterpriseSkills = skills
+                claudeSkillsFailed = false
+            } catch {
+                guard !Task.isCancelled, generation == claudeDetailGeneration else { return }
+                recordClaudeEnterpriseReconnectRequirementIfNeeded(error)
+                claudeSkillsFailed = true
+            }
+        }
+    }
+
+    private func adoptClaudeDetailScope(
+        _ scopeID: String,
+        allowanceSource: ClaudeUsage.Source
+    ) {
+        guard claudeDetailScopeID != scopeID || claudeDetailAllowanceSource != allowanceSource else { return }
+        claudeDetailScopeID = scopeID
+        claudeDetailAllowanceSource = allowanceSource
+        claudeEnterpriseSpend = nil
+        claudeEnterpriseSkills = nil
+        claudeSpendAttempt = nil
+        claudeSkillsAttempt = nil
+        claudeSpendFailed = false
+        claudeSkillsFailed = false
+    }
+
+    private func clearClaudeDetailIfScopeChanged(to scopeID: String?) {
+        guard claudeDetailScopeID != scopeID else { return }
+        claudeDetailScopeID = scopeID
+        claudeDetailAllowanceSource = nil
+        claudeEnterpriseSpend = nil
+        claudeEnterpriseSkills = nil
+        claudeSpendAttempt = nil
+        claudeSkillsAttempt = nil
+    }
+
+    private func clearClaudeEnterpriseDetails() {
+        claudeDetailGeneration += 1
+        claudeSpendTask?.cancel()
+        claudeSkillsTask?.cancel()
+        claudeSpendTask = nil
+        claudeSkillsTask = nil
+        claudeDetailScopeID = nil
+        claudeDetailAllowanceSource = nil
+        claudeEnterpriseSpend = nil
+        claudeEnterpriseSkills = nil
+        claudeSpendAttempt = nil
+        claudeSkillsAttempt = nil
+        isClaudeSpendLoading = false
+        isClaudeSkillsLoading = false
+        claudeSpendFailed = false
+        claudeSkillsFailed = false
+        clearClaudeEnterpriseReconnectRequirement()
+    }
+
+    func beginClaudeEnterpriseDetailsPresentation() {
+        claudeEnterpriseReconnectPromptPolicy.beginDetailPresentation()
+        if claudeEnterpriseReconnectRequired {
+            claudeEnterpriseReconnectPromptPolicy.offer()
+        }
+    }
+
+    func dismissClaudeEnterpriseReconnectPrompt() {
+        claudeEnterpriseReconnectPromptPolicy.dismiss()
+    }
+
+    func reconnectClaudeForEnterpriseDetails() async {
+        guard isClaudeAuthenticated, !isClaudeEnterpriseReconnectLoading else { return }
+        isClaudeEnterpriseReconnectLoading = true
+        claudeEnterpriseReconnectPromptPolicy.dismiss()
+        defer { isClaudeEnterpriseReconnectLoading = false }
+        do {
+            try await claudeCoordinator.reconnectWithWebAuthentication(
+                expectedOrganizationID: claudeEnterpriseReconnectExpectedOrganizationID
+            )
+            claudeState = .authenticated
+            clearClaudeEnterpriseDetails()
+            await refreshClaude()
+            refreshClaudeEnterpriseDetails(force: true)
+        } catch {
+            claudeSpendFailed = true
+            claudeSkillsFailed = true
+        }
+    }
+
+    private func recordClaudeEnterpriseReconnectRequirementIfNeeded(_ error: Error) {
+        guard case let ClaudeEnterpriseDetailAccessError.reconnectRequired(_, expectedOrganizationID) = error else {
+            return
+        }
+        claudeDetailScopeID = nil
+        claudeDetailAllowanceSource = nil
+        claudeEnterpriseSpend = nil
+        claudeEnterpriseSkills = nil
+        claudeSpendAttempt = nil
+        claudeSkillsAttempt = nil
+        claudeEnterpriseReconnectRequired = true
+        claudeEnterpriseReconnectExpectedOrganizationID = expectedOrganizationID
+        claudeEnterpriseReconnectPromptPolicy.offer()
+    }
+
+    private func clearClaudeEnterpriseReconnectRequirement() {
+        claudeEnterpriseReconnectRequired = false
+        claudeEnterpriseReconnectExpectedOrganizationID = nil
+        claudeEnterpriseReconnectPromptPolicy.reset()
+    }
+
     // MARK: - Auto-refresh
 
     func startAutoRefresh(immediateRefresh: Bool = true) {
@@ -1069,6 +1314,7 @@ final class QuotaViewModel {
     }
 
     func signOutClaude() {
+        clearClaudeEnterpriseDetails()
         Task {
             try? await claudeCoordinator.signOut()
             await NotificationManager.shared.clearResetHistory(for: .claude)

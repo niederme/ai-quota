@@ -7,8 +7,39 @@ import MobileAccessCore
 struct MobileAccessApp: App {
     @UIApplicationDelegateAdaptor(MobileAnalyticsAppDelegate.self) private var analyticsDelegate
     @State private var demoEnabled = DemoQuotaData.isEnabled
+    init() {
+        // The default WebKit store can outlive an app uninstall. A new install
+        // must not silently inherit a former user's Claude web session.
+        let marker = "claudeDetails.installPrepared"
+        if !UserDefaults.standard.bool(forKey: marker) {
+            UserDefaults.standard.set(true, forKey: marker)
+            Task { await ClaudeWebDetailsSession.clearSession() }
+        }
+    }
     var body: some Scene {
         WindowGroup {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("-claudeSSOUITest") {
+                ClaudeDetailSSOUITestHarness()
+            } else if ProcessInfo.processInfo.arguments.contains("-claudeDetailUITest") {
+                ClaudeDetailUITestHarness()
+            } else if ProcessInfo.processInfo.arguments.contains("-serviceDetailLoadingUITest") {
+                ServiceDetailLoadingUITestHarness(
+                    service: ProcessInfo.processInfo.arguments.contains("-claudeService") ? "Claude" : "Codex"
+                )
+            } else if ProcessInfo.processInfo.arguments.contains("-claudeEnterpriseLoadingUITest") {
+                ClaudeEnterpriseLoadingUITestHarness()
+            } else if ProcessInfo.processInfo.arguments.contains("-codexHistoryVisualUITest") {
+                CodexHistoryVisualUITestHarness()
+            } else {
+                OverviewView(isDemo: demoEnabled).id(demoEnabled)
+                    .environment(\.setDemoEnabled) { enabled in
+                        MobileAnalytics.shared.setDemoEnabled(enabled)
+                        demoEnabled = enabled
+                        DemoQuotaData.setEnabled(enabled)
+                    }
+            }
+            #else
             OverviewView(isDemo: demoEnabled).id(demoEnabled)
                 .environment(\.setDemoEnabled) { enabled in
                     // Update presentation directly; app-group defaults are for persistence and widgets.
@@ -16,6 +47,7 @@ struct MobileAccessApp: App {
                     demoEnabled = enabled
                     DemoQuotaData.setEnabled(enabled)
                 }
+            #endif
         }
     }
 }

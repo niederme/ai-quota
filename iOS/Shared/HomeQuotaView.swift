@@ -123,8 +123,9 @@ struct HomeQuotaView: View {
             } else {
                 if let primary = value.reading?.primaryWindow {
                     reset(primary, label: primary.resetLabel)
-                } else if let budget = value.reading?.budgetOnly {
-                    Text(budget.resetDescription(relativeTo: date)).foregroundStyle(.secondary).lineLimit(1)
+                } else if let budget = value.reading?.budgetOnly,
+                          let reset = budget.confirmedResetDescription(relativeTo: date) {
+                    Text(reset).foregroundStyle(.secondary).lineLimit(1)
                 }
                 if layout != .singleMedium && layout != .large, let secondary = value.reading?.secondaryWindow {
                     reset(secondary, label: secondary.resetLabel)
@@ -164,7 +165,10 @@ struct HomeQuotaView: View {
                 if value.needsApp { Text("Connection needs attention").foregroundStyle(.secondary) }
                 else if stale(value) { Text(WidgetReadingStatus.savedLabel(value.reading, at: date)).foregroundStyle(.secondary) }
                 else if let window = reading.windows.last { reset(window, label: window.resetLabel) }
-                else if let budget = reading.budgetOnly { Text(budget.resetDescription(relativeTo: date)).foregroundStyle(.secondary) }
+                else if let budget = reading.budgetOnly,
+                        let reset = budget.confirmedResetDescription(relativeTo: date) {
+                    Text(reset).foregroundStyle(.secondary)
+                }
             } else {
                 Text(value.needsApp ? "Reconnect in AIQuota" : "Sign in to AIQuota").fontWeight(.semibold)
                 Text("Connect \(name(value)) in the app.").foregroundStyle(.secondary)

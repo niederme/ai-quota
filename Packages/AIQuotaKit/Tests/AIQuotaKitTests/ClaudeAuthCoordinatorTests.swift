@@ -23,6 +23,7 @@ struct ClaudeAuthCoordinatorTests {
         keychainAccessAllowed: @escaping @Sendable () -> Bool = { false },
         sessionValidator: ClaudeAuthCoordinator.SessionValidator? = nil,
         webSessionClearer: ClaudeAuthCoordinator.WebSessionClearer? = nil,
+        webSessionRestorer: ClaudeAuthCoordinator.WebSessionRestorer? = nil,
         loginWindowRunner: ClaudeAuthCoordinator.LoginWindowRunner? = nil
     ) -> ClaudeAuthCoordinator {
         ClaudeAuthCoordinator(
@@ -32,6 +33,7 @@ struct ClaudeAuthCoordinatorTests {
             keychainAccessAllowed: keychainAccessAllowed,
             sessionValidator: sessionValidator ?? { _ in .valid(orgId: "validated-org") },
             webSessionClearer: webSessionClearer ?? {},
+            webSessionRestorer: webSessionRestorer ?? { _ in },
             loginWindowRunner: loginWindowRunner
         )
     }
@@ -400,6 +402,99 @@ struct ClaudeAuthCoordinatorTests {
         #expect(events.value == ["clear", "login"])
         #expect(await sut.state == .authenticated)
         #expect(try await sut.requestContext().orgId == "org-fresh")
+    }
+
+    @Test("OAuth migration adds a verified matching web organization")
+    func enterpriseReconnectMigratesOAuthToCombinedConnection() async throws {
+        let organizationID = "123e4567-e89b-12d3-a456-426614174000"
+        let events = LockIsolated<[String]>([])
+        let sut = makeSUT(
+            probe: { .notFound },
+            oauthCredentialsLoader: { _ in Self.oauthCredentials(accessToken: "oauth-token") },
+            webSessionClearer: { events.withLock { $0.append("clear") } },
+            loginWindowRunner: {
+                events.withLock { $0.append("login") }
+                return (organizationID.uppercased(), [])
+            }
+        )
+
+        await sut.bootstrap()
+        #expect(await sut.state == .authenticated)
+        try await sut.reconnectWithWebAuthentication(expectedOrganizationID: organizationID)
+
+        #expect(events.value == ["clear", "login"])
+        #expect(await sut.state == .authenticated)
+        #expect(try await sut.requestContext().orgId == organizationID)
+        #expect(try await sut.loadOAuthCredentials(allowKeychain: false).accessToken == "oauth-token")
+    }
+
+    @Test("closing web reconnect restores the current OAuth connection")
+    func enterpriseReconnectBackRestoresOAuthConnection() async throws {
+        let events = LockIsolated<[String]>([])
+        let sut = makeSUT(
+            probe: { .notFound },
+            oauthCredentialsLoader: { _ in Self.oauthCredentials(accessToken: "oauth-token") },
+            webSessionClearer: { events.withLock { $0.append("clear") } },
+            webSessionRestorer: { _ in events.withLock { $0.append("restore") } },
+            loginWindowRunner: {
+                events.withLock { $0.append("login") }
+                throw NetworkError.notAuthenticated
+            }
+        )
+
+        await sut.bootstrap()
+        await #expect(throws: NetworkError.self) {
+            try await sut.reconnectWithWebAuthentication(
+                expectedOrganizationID: "123e4567-e89b-12d3-a456-426614174000"
+            )
+        }
+
+        #expect(events.value == ["clear", "login", "clear"])
+        #expect(await sut.state == .authenticated)
+        #expect(try await sut.loadOAuthCredentials(allowKeychain: false).accessToken == "oauth-token")
+    }
+
+    @Test("a different web organization is rejected without replacing OAuth")
+    func enterpriseReconnectRejectsOrganizationMismatch() async throws {
+        let sut = makeSUT(
+            probe: { .notFound },
+            oauthCredentialsLoader: { _ in Self.oauthCredentials(accessToken: "oauth-token") },
+            loginWindowRunner: {
+                ("aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa", [])
+            }
+        )
+
+        await sut.bootstrap()
+        await #expect(throws: ClaudeWebReconnectError.organizationMismatch) {
+            try await sut.reconnectWithWebAuthentication(
+                expectedOrganizationID: "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb"
+            )
+        }
+
+        #expect(await sut.state == .authenticated)
+        #expect(try await sut.loadOAuthCredentials(allowKeychain: false).accessToken == "oauth-token")
+        await #expect(throws: NetworkError.self) {
+            _ = try await sut.requestContext()
+        }
+    }
+
+    @Test("expired OAuth can be replaced by a verified web connection")
+    func enterpriseReconnectReplacesExpiredOAuthWithWeb() async throws {
+        let organizationID = "123e4567-e89b-12d3-a456-426614174000"
+        let sut = makeSUT(
+            probe: { .notFound },
+            oauthCredentialsLoader: { _ in Self.oauthCredentials(accessToken: "oauth-token") },
+            loginWindowRunner: { (organizationID, []) }
+        )
+
+        await sut.bootstrap()
+        try await sut.reconnectWithWebAuthentication(expectedOrganizationID: nil)
+
+        #expect(await sut.state == .authenticated)
+        #expect(try await sut.requestContext().orgId == organizationID)
+        await #expect(throws: ClaudeOAuthCredentialsError.notFound) {
+            _ = try await sut.loadOAuthCredentials(allowKeychain: false)
+        }
     }
 
     @Test("rejected-session cleanup preserves Cloudflare verification cookies")
