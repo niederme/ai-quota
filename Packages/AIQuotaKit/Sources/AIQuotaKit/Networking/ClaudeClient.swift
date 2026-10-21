@@ -347,8 +347,8 @@ public actor ClaudeClient {
         let safeOrganizationID = organizationID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
             ?? organizationID
         return "/api/organizations/\(safeOrganizationID)/usage/\(resource)"
-            + "?start_date=\(Self.apiDateString(period.startDate))"
-            + "&end_date=\(Self.apiDateString(period.endDate))"
+            + "?start_date=\(period.apiStartDate)"
+            + "&end_date=\(period.apiEndDate)"
             + extraQuery
     }
 
@@ -416,15 +416,6 @@ public actor ClaudeClient {
             reason: .webAuthenticationRequired,
             expectedOrganizationID: verifiedOrganizationID
         )
-    }
-
-    private nonisolated static func apiDateString(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: date)
     }
 
     private func oauthOrganizationID(

@@ -1,6 +1,6 @@
 import XCTest
 
-final class ClaudeDetailReconnectFlowTests: XCTestCase {
+@MainActor final class ClaudeDetailReconnectFlowTests: XCTestCase {
     func testSuccessfulWebSignInKeepsDetailsOnDismissAndReopen() {
         let app = XCUIApplication()
         app.launchArguments = ["-claudeSSOUITest"]
@@ -13,15 +13,16 @@ final class ClaudeDetailReconnectFlowTests: XCTestCase {
         XCTAssertTrue(alert.waitForExistence(timeout: 10))
         alert.buttons["Reconnect"].tap()
 
-        XCTAssertTrue(app.staticTexts["Daily spend by product"].waitForExistence(timeout: 20))
-        XCTAssertTrue(app.staticTexts["Top skills"].exists)
+        XCTAssertTrue(app.staticTexts["Spend by product"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.staticTexts["Skills"].exists)
         XCTAssertTrue(app.staticTexts["sample-skill"].exists)
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", "UTC")).firstMatch.exists)
         XCTAssertFalse(app.staticTexts["Loading Claude details…"].exists)
 
         app.buttons["Close"].tap()
         XCTAssertTrue(open.waitForExistence(timeout: 5))
         open.tap()
-        XCTAssertTrue(app.staticTexts["Daily spend by product"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Spend by product"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.alerts["Reconnect Claude"].exists)
     }
 

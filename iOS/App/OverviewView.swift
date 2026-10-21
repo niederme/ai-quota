@@ -393,7 +393,8 @@ struct ServiceDetailContent<Account: View>: View {
                 }
                 if let budget = reading?.monthlyBudget {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Monthly allowance").font(.headline)
+                        Text(name == "Claude" ? "Spend limit" : "Monthly allowance")
+                            .font(.headline)
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
                             Text("\(Int(budget.usedPercent.rounded()))%")
                                 .font(.largeTitle.bold()).monospacedDigit()

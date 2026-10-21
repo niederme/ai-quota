@@ -94,7 +94,7 @@ struct ServiceDetailView: View {
                         }
                         if let budget = reading?.monthlyBudget {
                             VStack(alignment: .leading, spacing: 10) {
-                                Text("Monthly allowance").font(.headline)
+                                Text(isCodex ? "Monthly allowance" : "Spend limit").font(.headline)
                                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                                     Text("\(Int(budget.usedPercent.rounded()))%")
                                         .font(.largeTitle.bold()).monospacedDigit()
@@ -213,10 +213,23 @@ private struct ClaudeEnterpriseSpendView: View {
     let failed: Bool
     let retry: () -> Void
 
+    @State private var hoveredDayID: String?
+
     private struct Day: Identifiable {
+        let id: String
         let date: Date
         let minorUnits: Int
-        var id: Date { date }
+        let segments: [Segment]
+    }
+
+    private struct Segment: Identifiable {
+        let bucket: String
+        let date: Date
+        let productID: String
+        let productName: String
+        let minorUnits: Int
+
+        var id: String { "\(bucket)::\(productID)" }
     }
 
     private struct Product: Identifiable {
@@ -230,40 +243,93 @@ private struct ClaudeEnterpriseSpendView: View {
         snapshot?.report.currency.flatMap { $0.isEmpty ? nil : $0.uppercased() }
     }
 
-    private var days: [Day] {
+    private var segments: [Segment] {
         guard let snapshot else { return [] }
-        var values: [Date: Int] = [:]
-        var utcCalendar = Calendar(identifier: .gregorian)
-        utcCalendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        var values: [String: Segment] = [:]
         for item in snapshot.report.series {
             guard let bucket = item.bucket,
-                  let date = Self.date(bucket),
-                  let cost = item.costMinorUnits
+                  let date = ClaudeEnterpriseDateOnly.bucketDate(bucket),
+                  let cost = item.costMinorUnits,
+                  cost >= 0
             else { continue }
-            values[utcCalendar.startOfDay(for: date), default: 0] += cost
+            let productID = item.groupKey ?? item.group ?? "other"
+            let key = "\(bucket)::\(productID)"
+            let name = Self.productName(group: item.group, key: item.groupKey)
+            let previous = values[key]?.minorUnits ?? 0
+            values[key] = Segment(
+                bucket: bucket,
+                date: date,
+                productID: productID,
+                productName: name,
+                minorUnits: previous + cost
+            )
         }
-        return values.map { Day(date: $0.key, minorUnits: $0.value) }
-            .sorted { $0.date < $1.date }
+        let productOrder = products.enumerated().reduce(into: [String: Int]()) {
+            $0[$1.element.id] = $1.offset
+        }
+        return values.values.sorted {
+            if $0.date != $1.date { return $0.date < $1.date }
+            return (productOrder[$0.productID] ?? .max) < (productOrder[$1.productID] ?? .max)
+        }
+    }
+
+    private var days: [Day] {
+        let reportedDays: [Day] = Dictionary(grouping: segments, by: \.bucket).values.compactMap { segments in
+            guard let first = segments.first else { return nil }
+            return Day(
+                id: first.bucket,
+                date: first.date,
+                minorUnits: segments.reduce(0) { $0 + $1.minorUnits },
+                segments: segments.sorted { $0.minorUnits > $1.minorUnits }
+            )
+        }.sorted { $0.date < $1.date }
+        guard !reportedDays.isEmpty, let snapshot,
+              let start = ClaudeEnterpriseDateOnly.bucketDate(
+                snapshot.report.startDate ?? snapshot.period.apiStartDate
+              ),
+              let end = ClaudeEnterpriseDateOnly.bucketDate(
+                snapshot.report.endDate ?? snapshot.period.apiEndDate
+              ),
+              start <= end
+        else { return reportedDays }
+
+        var reportedByDate: [Date: Day] = [:]
+        for day in reportedDays { reportedByDate[day.date] = day }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        var result: [Day] = []
+        var date = start
+        while date <= end, result.count < 370 {
+            result.append(reportedByDate[date] ?? Day(
+                id: Self.bucketID(date), date: date, minorUnits: 0, segments: []
+            ))
+            guard let next = calendar.date(byAdding: .day, value: 1, to: date) else { break }
+            date = next
+        }
+        return result
     }
 
     private var products: [Product] {
         guard let snapshot else { return [] }
         if !snapshot.report.totals.isEmpty {
-            return snapshot.report.totals.enumerated().map { index, item in
-                Product(
+            let reportedTotals: [Product] = snapshot.report.totals.enumerated().compactMap { index, item in
+                guard let minorUnits = item.costMinorUnits else { return nil }
+                return Product(
                     id: item.groupKey ?? item.group ?? "product-\(index)",
-                    name: Self.displayName(item.group ?? item.groupKey ?? "Other"),
-                    minorUnits: item.costMinorUnits ?? 0,
+                    name: Self.productName(group: item.group, key: item.groupKey),
+                    minorUnits: minorUnits,
                     percent: item.percentOfTotal
                 )
             }.sorted { $0.minorUnits > $1.minorUnits }
+            if !reportedTotals.isEmpty { return reportedTotals }
         }
         var values: [String: (name: String, cost: Int)] = [:]
         for (index, item) in snapshot.report.series.enumerated() {
+            guard let cost = item.costMinorUnits else { continue }
             let key = item.groupKey ?? item.group ?? "product-\(index)"
-            let name = Self.displayName(item.group ?? item.groupKey ?? "Other")
+            let name = Self.productName(group: item.group, key: item.groupKey)
             let current = values[key] ?? (name, 0)
-            values[key] = (current.name, current.cost + (item.costMinorUnits ?? 0))
+            values[key] = (current.name, current.cost + cost)
         }
         let total = values.values.reduce(0) { $0 + $1.cost }
         return values.map { key, item in
@@ -281,22 +347,63 @@ private struct ClaudeEnterpriseSpendView: View {
         return days.reduce(0) { $0 + $1.minorUnits }
     }
 
+    private var hasReportedSpend: Bool { !products.isEmpty || !segments.isEmpty }
+
+    private var periodLabel: String? {
+        if let snapshot,
+           let start = snapshot.report.startDate,
+           let end = snapshot.report.endDate,
+           let reportRange = ClaudeEnterpriseDateOnly.displayRange(startDate: start, endDate: end) {
+            return reportRange
+        }
+        return snapshot?.period.rangeLabel
+    }
+
+    private var hoveredDay: Day? {
+        days.first { $0.id == hoveredDayID }
+    }
+
+    private var hoverAlignment: Alignment {
+        guard let hoveredDay, let first = days.first, let last = days.last else { return .topTrailing }
+        let midpoint = first.date.addingTimeInterval(last.date.timeIntervalSince(first.date) / 2)
+        return hoveredDay.date >= midpoint ? .topLeading : .topTrailing
+    }
+
+    private var chartDomain: ClosedRange<Date> {
+        let first = days.first?.date ?? segments[0].date
+        let last = days.last?.date ?? segments[0].date
+        return first.addingTimeInterval(-12 * 60 * 60)...last.addingTimeInterval(12 * 60 * 60)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Enterprise spend").font(.headline)
+            Text("Analytics spend").font(.headline)
             if let snapshot {
-                Text(Self.money(totalMinorUnits, currency: currency))
-                    .font(.largeTitle.bold()).monospacedDigit()
-                Text(snapshot.period.startDate.formatted(.dateTime.month(.wide).year()))
-                    .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
-                if !days.isEmpty {
-                    Chart(days) { day in
+                if hasReportedSpend {
+                    Text(Self.money(totalMinorUnits, currency: currency))
+                        .font(.largeTitle.bold()).monospacedDigit()
+                    Text(periodLabel ?? "Current reporting period · UTC")
+                        .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
+                } else {
+                    Text(periodLabel ?? "Current reporting period · UTC")
+                        .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
+                    Text("Spend amounts were not reported for this period.")
+                        .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
+                }
+                if hasReportedSpend, !segments.isEmpty {
+                    ZStack(alignment: hoverAlignment) {
+                        Chart(segments) { segment in
                         BarMark(
-                            x: .value("Day", day.date, unit: .day),
-                            y: .value("Spend", Double(day.minorUnits) / 100)
+                            x: .value("Day", segment.date, unit: .day),
+                            y: .value("Spend", Double(segment.minorUnits) / 100),
+                            stacking: .standard
                         )
-                        .foregroundStyle(AnalyticsStyle.accent)
+                        .foregroundStyle(productColor(segment.productID))
                         .cornerRadius(2)
+                        .accessibilityLabel(
+                            "\(ClaudeEnterpriseDateOnly.displayDate(segment.bucket) ?? segment.bucket), \(segment.productName)"
+                        )
+                        .accessibilityValue(Self.money(segment.minorUnits, currency: currency))
                     }
                     .chartXAxis {
                         AxisMarks(values: .automatic(desiredCount: 4)) {
@@ -305,19 +412,59 @@ private struct ClaudeEnterpriseSpendView: View {
                         }
                     }
                     .chartYAxis { AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) }
+                    .chartXScale(domain: chartDomain)
                     .chartLegend(.hidden)
-                    .frame(height: 150)
+                    .chartOverlay { proxy in
+                        GeometryReader { geometry in
+                            Rectangle().fill(.clear).contentShape(Rectangle())
+                                .onContinuousHover { phase in
+                                    switch phase {
+                                    case .active(let location):
+                                        guard let plotFrame = proxy.plotFrame else {
+                                            hoveredDayID = nil
+                                            return
+                                        }
+                                        let frame = geometry[plotFrame]
+                                        let x = location.x - frame.minX
+                                        guard x >= 0, x <= frame.width,
+                                              let date: Date = proxy.value(atX: x)
+                                        else {
+                                            hoveredDayID = nil
+                                            return
+                                        }
+                                        hoveredDayID = days.min {
+                                            abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date))
+                                        }?.id
+                                    case .ended:
+                                        hoveredDayID = nil
+                                    }
+                                }
+                        }
+                    }
+                    .frame(height: 168)
                     .environment(\.timeZone, TimeZone(secondsFromGMT: 0)!)
-                    .accessibilityLabel("Daily Enterprise spend")
+                    .accessibilityLabel("Daily Enterprise spend by product in UTC")
+                    .accessibilityValue(Self.money(totalMinorUnits, currency: currency))
+
+                        if let hoveredDay {
+                            dayPopover(hoveredDay)
+                                .allowsHitTesting(false)
+                                .transition(.opacity)
+                        }
+                    }
+                    productLegend
                 }
-                if products.isEmpty {
+                if hasReportedSpend, products.isEmpty {
                     Text("No product spend reported for this month.")
                         .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
-                } else {
-                    Text("By product").font(.callout.weight(.semibold))
+                } else if hasReportedSpend {
+                    Text("Spend by product").font(.callout.weight(.semibold))
                     ForEach(products) { product in
                         HStack(alignment: .firstTextBaseline, spacing: 12) {
-                            Text(product.name).lineLimit(2)
+                            HStack(spacing: 7) {
+                                Circle().fill(productColor(product.id)).frame(width: 7, height: 7)
+                                Text(product.name).lineLimit(2)
+                            }
                             Spacer(minLength: 12)
                             VStack(alignment: .trailing, spacing: 2) {
                                 Text(Self.money(product.minorUnits, currency: currency))
@@ -328,8 +475,11 @@ private struct ClaudeEnterpriseSpendView: View {
                                 }
                             }
                         }
+                        .accessibilityElement(children: .combine)
                     }
                 }
+                Text("Source: Claude Enterprise analytics · Daily buckets use UTC.")
+                    .font(.caption).foregroundStyle(AnalyticsStyle.secondary)
                 TimelineView(.periodic(from: .now, by: 30)) { context in
                     Text("Spend · " + analyticsFreshnessLabel(snapshot.fetchedAt, at: context.date, saved: failed))
                         .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
@@ -351,20 +501,95 @@ private struct ClaudeEnterpriseSpendView: View {
         .modifier(AnalyticsCard())
     }
 
-    private static func date(_ value: String) -> Date? {
-        if let date = ISO8601DateFormatter().date(from: value) { return date }
+    @ViewBuilder
+    private var productLegend: some View {
+        if !products.isEmpty {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 96), spacing: 8)], alignment: .leading, spacing: 5) {
+                ForEach(products) { product in
+                    HStack(spacing: 5) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(productColor(product.id))
+                            .frame(width: 9, height: 9)
+                        Text(product.name).lineLimit(1)
+                    }
+                }
+            }
+            .font(.caption2)
+            .foregroundStyle(AnalyticsStyle.secondary)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Chart legend: " + products.map(\.name).joined(separator: ", "))
+        }
+    }
+
+    private func dayPopover(_ day: Day) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(ClaudeEnterpriseDateOnly.displayDate(day.id) ?? day.id)
+                .font(.caption.weight(.semibold))
+            ForEach(day.segments) { segment in
+                HStack(spacing: 8) {
+                    Circle().fill(productColor(segment.productID)).frame(width: 6, height: 6)
+                    Text(segment.productName).lineLimit(1)
+                    Spacer(minLength: 6)
+                    Text(Self.money(segment.minorUnits, currency: currency)).monospacedDigit()
+                }
+            }
+            Divider()
+            HStack {
+                Text("Total")
+                Spacer(minLength: 6)
+                Text(Self.money(day.minorUnits, currency: currency)).monospacedDigit()
+            }
+            .fontWeight(.semibold)
+        }
+        .font(.caption2)
+        .padding(8)
+        .frame(width: 168)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 8))
+        .shadow(color: .black.opacity(0.12), radius: 5, y: 2)
+        .padding(6)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func productColor(_ productID: String) -> Color {
+        let product = products.first { $0.id == productID }
+        let key = [productID, product?.name].compactMap { $0 }
+            .joined(separator: " ")
+            .lowercased()
+            .replacingOccurrences(of: "_", with: " ")
+            .replacingOccurrences(of: "-", with: " ")
+        if key.contains("claude code") || key.contains("code") { return .orange }
+        if key.contains("claude design") || key.contains("design") { return .green }
+        if key.contains("chat and cowork") || key.contains("unified") { return .blue }
+        if key.contains("cowork") { return .yellow }
+        if key.contains("chat") { return .blue }
+        return AnalyticsStyle.accent
+    }
+
+    private static func bucketID(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
         formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.date(from: value)
+        return formatter.string(from: date)
     }
 
-    private static func displayName(_ value: String) -> String {
-        value.replacingOccurrences(of: "_", with: " ")
-            .replacingOccurrences(of: "-", with: " ")
-            .split(separator: " ").map(\.capitalized).joined(separator: " ")
+    private static func productName(group: String?, key: String?) -> String {
+        if let group = group?.trimmingCharacters(in: .whitespacesAndNewlines), !group.isEmpty {
+            return group
+        }
+        let normalized = (key ?? "other").lowercased().replacingOccurrences(of: "-", with: "_")
+        switch normalized {
+        case "claude_code": return "Claude Code"
+        case "chat_and_cowork_unified", "chat_and_cowork_unified_beta":
+            return "Chat and Cowork unified (beta)"
+        case "chat": return "Chat"
+        case "cowork": return "Cowork"
+        case "claude_design": return "Claude Design"
+        default:
+            let words = normalized.replacingOccurrences(of: "_", with: " ")
+            return words.prefix(1).uppercased() + words.dropFirst()
+        }
     }
 
     fileprivate static func money(_ minorUnits: Int, currency: String?) -> String {
@@ -373,6 +598,14 @@ private struct ClaudeEnterpriseSpendView: View {
             return amount.formatted(.currency(code: currency))
         }
         return amount.formatted(.number.precision(.fractionLength(2)))
+    }
+
+    fileprivate static func money(_ minorUnits: Double, currency: String?) -> String {
+        let amount = minorUnits / 100
+        if let currency, currency.count == 3 {
+            return amount.formatted(.currency(code: currency).precision(.fractionLength(2...4)))
+        }
+        return amount.formatted(.number.precision(.fractionLength(2...4)))
     }
 }
 
@@ -389,41 +622,53 @@ private struct ClaudeEnterpriseSkillsView: View {
         }
     }
 
+    private var throughLabel: String? {
+        let reportEnd = snapshot?.report.endDate ?? snapshot?.period.apiEndDate
+        guard let reportEnd,
+              let priorDay = ClaudeEnterpriseDateOnly.dayBefore(reportEnd),
+              let priorDayLabel = ClaudeEnterpriseDateOnly.displayDate(priorDay)
+        else { return nil }
+        return priorDayLabel + " · UTC"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Skills").font(.headline)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Skills").font(.headline)
+                if let throughLabel {
+                    Text("Through \(throughLabel)")
+                        .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
+                }
+            }
             if let snapshot {
                 if items.isEmpty {
                     Text("No skill invocations reported for this month.")
                         .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
                 } else {
+                    HStack(spacing: 12) {
+                        Text("Skill").frame(maxWidth: .infinity, alignment: .leading)
+                        Text("Cost / use").frame(width: 82, alignment: .trailing)
+                        Text("Uses").frame(width: 48, alignment: .trailing)
+                    }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(AnalyticsStyle.secondary)
                     ForEach(items, id: \.offset) { entry in
                         let item = entry.element
-                        VStack(alignment: .leading, spacing: 5) {
-                            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                                Text(item.skillName.flatMap { $0.isEmpty ? nil : $0 } ?? "Unnamed skill")
-                                    .fontWeight(.semibold).lineLimit(2)
-                                Spacer(minLength: 12)
-                                Text((item.invocationCount ?? 0).formatted())
-                                    .monospacedDigit()
-                            }
-                            Text((item.invocationCount == 1 ? "1 invocation" : "\(item.invocationCount ?? 0) invocations"))
-                                .font(.caption).foregroundStyle(AnalyticsStyle.secondary)
-                            if let cost = item.totalCostMinorUnits {
-                                Text("Total cost " + ClaudeEnterpriseSpendView.money(cost, currency: currency))
-                                    .font(.caption).foregroundStyle(AnalyticsStyle.secondary)
-                            } else {
-                                Text("Total cost not reported")
-                                    .font(.caption).foregroundStyle(AnalyticsStyle.secondary)
-                            }
-                            if let price = item.attributedListPriceMinorUnits {
-                                Text("Attributed list price " + ClaudeEnterpriseSpendView.money(price, currency: currency))
-                                    .font(.caption).foregroundStyle(AnalyticsStyle.secondary)
-                            }
+                        HStack(alignment: .firstTextBaseline, spacing: 12) {
+                            Text(item.skillName.flatMap { $0.isEmpty ? nil : $0 } ?? "Unnamed skill")
+                                .fontWeight(.semibold).lineLimit(2)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Text(costPerUse(item) ?? "—")
+                                .monospacedDigit().frame(width: 82, alignment: .trailing)
+                            Text(item.invocationCount.map { $0.formatted() } ?? "—")
+                                .monospacedDigit().frame(width: 48, alignment: .trailing)
                         }
                         .padding(.vertical, 3)
+                        .accessibilityElement(children: .combine)
                     }
                 }
+                Text("Source: Claude Enterprise analytics · Skill activity is reported through the prior UTC day.")
+                    .font(.caption).foregroundStyle(AnalyticsStyle.secondary)
                 TimelineView(.periodic(from: .now, by: 30)) { context in
                     Text("Skills · " + analyticsFreshnessLabel(snapshot.fetchedAt, at: context.date, saved: failed))
                         .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
@@ -447,6 +692,14 @@ private struct ClaudeEnterpriseSkillsView: View {
             }
         }
         .modifier(AnalyticsCard())
+    }
+
+    private func costPerUse(_ item: ClaudeEnterpriseSkillUsage) -> String? {
+        guard let total = item.totalCostMinorUnits,
+              let uses = item.invocationCount,
+              uses > 0
+        else { return nil }
+        return ClaudeEnterpriseSpendView.money(Double(total) / Double(uses), currency: currency)
     }
 }
 

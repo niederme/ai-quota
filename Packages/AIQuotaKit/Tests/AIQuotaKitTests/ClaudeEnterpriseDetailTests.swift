@@ -47,14 +47,26 @@ import Testing
 
 @Test func enterpriseCurrentMonthUsesUTCReportingBoundary() {
     let instant = Date(timeIntervalSince1970: 1_767_225_600) // 2026-01-01 00:00:00 UTC
-    let period = ClaudeEnterprisePeriod.currentMonth(at: instant)
     var calendar = Calendar(identifier: .gregorian)
     calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+    let period = ClaudeEnterprisePeriod.currentMonth(at: instant, calendar: calendar)
 
     #expect(calendar.component(.year, from: period.startDate) == 2026)
     #expect(calendar.component(.month, from: period.startDate) == 1)
     #expect(calendar.component(.day, from: period.startDate) == 1)
     #expect(period.endDate == instant)
+    #expect(period.apiStartDate == "2026-01-01")
+    #expect(period.apiEndDate == "2026-01-01")
+}
+
+@Test func enterprisePeriodUsesSelectedLocalCalendarDatesAfterUTCMidnight() throws {
+    let instant = try #require(ISO8601DateFormatter().date(from: "2026-10-21T00:26:00Z"))
+    var newYork = Calendar(identifier: .gregorian)
+    newYork.timeZone = try #require(TimeZone(identifier: "America/New_York"))
+    let period = ClaudeEnterprisePeriod.currentMonth(at: instant, calendar: newYork)
+    #expect(period.apiStartDate == "2026-10-01")
+    #expect(period.apiEndDate == "2026-10-20")
+    #expect(period.rangeLabel == "Oct 1–20, 2026 · UTC")
 }
 
 @Test func enterpriseOrganizationScopeRequiresUUID() throws {

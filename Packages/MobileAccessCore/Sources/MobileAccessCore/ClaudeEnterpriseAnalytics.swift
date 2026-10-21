@@ -118,6 +118,69 @@ public struct ClaudeEnterpriseSkillUsage: Codable, Sendable, Equatable {
 public typealias ClaudeSpendHistory = ClaudeEnterpriseSpendResponse
 public typealias ClaudeSkillUsage = ClaudeEnterpriseSkillUsage
 
+/// Claude's analytics buckets are calendar dates in UTC, not instants. Keep
+/// their day identity when a chart or label is rendered in a local time zone.
+public enum ClaudeEnterpriseDateOnly {
+    private static var utcCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        return calendar
+    }
+
+    public static func bucketDate(_ value: String) -> Date? {
+        guard value.count == 10 || (value.count > 10 && value.dropFirst(10).first == "T") else { return nil }
+        let parts = value.prefix(10).split(separator: "-", omittingEmptySubsequences: false)
+        guard parts.count == 3, parts[0].count == 4, parts[1].count == 2, parts[2].count == 2,
+              let year = Int(parts[0]), let month = Int(parts[1]), let day = Int(parts[2]) else { return nil }
+        let calendar = utcCalendar
+        guard let date = calendar.date(from: DateComponents(year: year, month: month, day: day, hour: 12)),
+              calendar.dateComponents([.year, .month, .day], from: date)
+                == DateComponents(year: year, month: month, day: day) else { return nil }
+        return date
+    }
+
+    public static func dayBefore(_ value: String) -> String? {
+        guard let date = bucketDate(value),
+              let previous = utcCalendar.date(byAdding: .day, value: -1, to: date) else { return nil }
+        return dateString(previous)
+    }
+
+    public static func displayDate(_ value: String) -> String? {
+        guard let date = bucketDate(value) else { return nil }
+        let formatter = DateFormatter()
+        formatter.calendar = utcCalendar
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "MMM d, yyyy"
+        return formatter.string(from: date)
+    }
+
+    public static func displayRange(startDate: String, endDate: String) -> String? {
+        guard let start = bucketDate(startDate), let end = bucketDate(endDate), start <= end else { return nil }
+        let calendar = utcCalendar
+        let a = calendar.dateComponents([.year, .month, .day], from: start)
+        let b = calendar.dateComponents([.year, .month, .day], from: end)
+        guard let first = displayDate(startDate), let last = displayDate(endDate) else { return nil }
+        let compact = if a.year == b.year && a.month == b.month {
+            "\(first.components(separatedBy: " ").first ?? "") \(a.day ?? 1)–\(b.day ?? 1), \(b.year ?? 0)"
+        } else if a.year == b.year {
+            "\(first.replacingOccurrences(of: ", \(a.year ?? 0)", with: "")) – \(last)"
+        } else {
+            "\(first) – \(last)"
+        }
+        return compact + " · UTC"
+    }
+
+    private static func dateString(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = utcCalendar
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+}
+
 /// Codable representation for provider-specific fields whose shape is not
 /// stable yet. It keeps non-null values available without making the core
 /// skill metrics fragile when `costs` is null or changes shape.

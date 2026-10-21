@@ -17,6 +17,8 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
     private(set) var spendUnavailable = false
     private(set) var skillsUnavailable = false
     private(set) var detailsLoading = false
+    private(set) var requestedStartDate: String?
+    private(set) var requestedEndDate: String?
     private(set) var popup: WKWebView?
     private var expectedOrganizationID: String?
     private var isProbing = false
@@ -57,6 +59,8 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
         spendUnavailable = false
         skillsUnavailable = false
         detailsLoading = false
+        requestedStartDate = nil
+        requestedEndDate = nil
         popup = nil
         state = .idle
     }
@@ -72,6 +76,8 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
         spendUnavailable = false
         skillsUnavailable = false
         detailsLoading = false
+        requestedStartDate = nil
+        requestedEndDate = nil
         switch organization {
         case .verified(let id): expectedOrganizationID = id
         case .reconnectRequired:
@@ -99,6 +105,8 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
         spendUnavailable = false
         skillsUnavailable = false
         detailsLoading = false
+        requestedStartDate = nil
+        requestedEndDate = nil
         let store = WKWebsiteDataStore.default().httpCookieStore
         let cookies = await withCheckedContinuation { continuation in
             store.getAllCookies { continuation.resume(returning: $0) }
@@ -348,17 +356,19 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
     }
 
     private func loadDetails(organizationID: String, requestID: UUID) async {
-        let calendar = Calendar(identifier: .gregorian)
-        var utc = calendar
-        utc.timeZone = TimeZone(secondsFromGMT: 0)!
+        var reportingCalendar = Calendar(identifier: .gregorian)
+        reportingCalendar.timeZone = .current
         let now = Date()
-        let start = utc.date(from: utc.dateComponents([.year, .month], from: now)) ?? now
+        let start = reportingCalendar.dateInterval(of: .month, for: now)?.start ?? now
         let formatter = DateFormatter()
-        formatter.calendar = utc
-        formatter.timeZone = utc.timeZone
+        formatter.calendar = reportingCalendar
+        formatter.timeZone = reportingCalendar.timeZone
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd"
         let startDate = formatter.string(from: start)
         let endDate = formatter.string(from: now)
+        requestedStartDate = startDate
+        requestedEndDate = endDate
         var query = URLComponents()
         query.queryItems = [
             .init(name: "start_date", value: startDate), .init(name: "end_date", value: endDate),

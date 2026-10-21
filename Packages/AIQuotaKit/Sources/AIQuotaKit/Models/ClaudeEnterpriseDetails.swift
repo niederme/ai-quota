@@ -4,10 +4,18 @@ import MobileAccessCore
 public struct ClaudeEnterprisePeriod: Sendable, Equatable {
     public let startDate: Date
     public let endDate: Date
+    public let reportingTimeZone: TimeZone
 
-    public init(startDate: Date, endDate: Date) {
+    public init(startDate: Date, endDate: Date, reportingTimeZone: TimeZone = TimeZone(secondsFromGMT: 0)!) {
         self.startDate = startDate
         self.endDate = endDate
+        self.reportingTimeZone = reportingTimeZone
+    }
+
+    public var apiStartDate: String { Self.dateString(startDate, in: reportingTimeZone) }
+    public var apiEndDate: String { Self.dateString(endDate, in: reportingTimeZone) }
+    public var rangeLabel: String? {
+        ClaudeEnterpriseDateOnly.displayRange(startDate: apiStartDate, endDate: apiEndDate)
     }
 
     public static func currentMonth(
@@ -15,10 +23,20 @@ public struct ClaudeEnterprisePeriod: Sendable, Equatable {
         calendar: Calendar? = nil
     ) -> ClaudeEnterprisePeriod {
         var reportingCalendar = calendar ?? Calendar(identifier: .gregorian)
-        if calendar == nil { reportingCalendar.timeZone = TimeZone(secondsFromGMT: 0)! }
+        if calendar == nil { reportingCalendar.timeZone = .current }
         let start = reportingCalendar.dateInterval(of: .month, for: date)?.start
             ?? reportingCalendar.startOfDay(for: date)
-        return ClaudeEnterprisePeriod(startDate: start, endDate: date)
+        return ClaudeEnterprisePeriod(startDate: start, endDate: date,
+                                      reportingTimeZone: reportingCalendar.timeZone)
+    }
+
+    private static func dateString(_ date: Date, in timeZone: TimeZone) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = timeZone
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
     }
 }
 

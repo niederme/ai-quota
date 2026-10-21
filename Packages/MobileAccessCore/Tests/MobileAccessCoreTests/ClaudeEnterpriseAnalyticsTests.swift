@@ -28,3 +28,20 @@ import Testing
     #expect(ClaudeAPI.decodeOrganizationID(Data(#"{"organization":{"uuid":"private"}}"#.utf8)) == nil)
     #expect(ClaudeAPI.decodeOrganizationID(Data(#"{"organization":null}"#.utf8)) == nil)
 }
+
+@Test func claudeDailyBucketsKeepTheirProviderDateAcrossTimeZones() throws {
+    let bucket = try #require(ClaudeEnterpriseDateOnly.bucketDate("2026-10-19"))
+    for zone in ["America/New_York", "America/Los_Angeles", "UTC"] {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(identifier: zone))
+        let parts = calendar.dateComponents([.year, .month, .day], from: bucket)
+        #expect(parts.year == 2026)
+        #expect(parts.month == 10)
+        #expect(parts.day == 19)
+    }
+    #expect(ClaudeEnterpriseDateOnly.bucketDate("2026-10-19T00:00:00Z") == bucket)
+    #expect(ClaudeEnterpriseDateOnly.bucketDate("2026-02-30") == nil)
+    #expect(ClaudeEnterpriseDateOnly.displayRange(startDate: "2026-10-01", endDate: "2026-10-20") == "Oct 1–20, 2026 · UTC")
+    #expect(ClaudeEnterpriseDateOnly.dayBefore("2026-10-20") == "2026-10-19")
+    #expect(ClaudeEnterpriseDateOnly.displayDate("2026-10-19") == "Oct 19, 2026")
+}

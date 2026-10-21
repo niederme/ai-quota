@@ -15,6 +15,9 @@ struct ClaudeEnterpriseDetailView: View {
     @State private var showReconnectPrompt = false
     @State private var reconnectExplanation = ""
     @State private var reconnectGate = ClaudeReconnectPromptGate()
+    @State private var selectedSpendDay: String?
+    @State private var showsAllSkills = false
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(account: ClaudeProbeModel,
          organizationLookup: (@MainActor () async -> ClaudeOrganizationLookup)? = nil) {
@@ -45,7 +48,11 @@ struct ClaudeEnterpriseDetailView: View {
                     compactUnavailable("Spend history unavailable")
                 }
                 if let skills = session.skills, !skills.items.isEmpty {
-                    skillsCard(skills, currency: session.spend?.currency ?? "USD")
+                    skillsCard(
+                        skills,
+                        currency: session.spend?.currency ?? "USD",
+                        reportingEndDate: session.spend?.endDate ?? session.requestedEndDate
+                    )
                 } else if session.skillsUnavailable {
                     compactUnavailable("Skill details unavailable")
                 }
@@ -137,73 +144,334 @@ struct ClaudeEnterpriseDetailView: View {
 
     private struct DailySpend: Identifiable {
         let day: String
-        let group: String
-        let amount: Double
-        var id: String { day + "\0" + group }
+        let productID: String
+        let productName: String
+        let minorUnits: Int
+        var id: String { day + "\0" + productID }
+    }
+
+    private struct ProductSpend: Identifiable {
+        let id: String
+        let name: String
+        let minorUnits: Int?
+        let percent: Double?
     }
 
     private func spendCard(_ spend: ClaudeSpendHistory) -> some View {
         let daily = spend.series.compactMap { row -> DailySpend? in
-            guard let day = row.bucket, let group = row.group, let amount = row.costMinorUnits else { return nil }
-            return DailySpend(day: day, group: group, amount: Double(amount) / 100)
+            guard let day = row.bucket, ClaudeEnterpriseDateOnly.bucketDate(day) != nil,
+                  let amount = row.costMinorUnits else { return nil }
+            let key = row.groupKey ?? row.group ?? "other"
+            return DailySpend(
+                day: String(day.prefix(10)),
+                productID: key,
+                productName: productName(group: row.group, key: row.groupKey),
+                minorUnits: amount
+            )
         }
+        let products = productTotals(spend, daily: daily)
+        let knownProductAmounts = products.compactMap(\.minorUnits)
+        let totalMinorUnits = knownProductAmounts.isEmpty ? nil : knownProductAmounts.reduce(0, +)
+        let chartDays = reportDays(spend, daily: daily)
         let highestDay = Dictionary(grouping: daily, by: \.day).values
-            .map { $0.reduce(0) { $0 + $1.amount } }.max() ?? 0
+            .map { $0.reduce(0) { $0 + $1.minorUnits } }.max() ?? 0
         return VStack(alignment: .leading, spacing: 18) {
-            Text("Daily spend by product").font(.headline)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Spend by product").font(.headline)
+                Text(totalMinorUnits.map { money($0, currency: spend.currency ?? "USD") } ?? "—")
+                    .font(.largeTitle.bold())
+                    .monospacedDigit()
+                if let period = reportingPeriod(spend) {
+                    Text(period).font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                }
+            }
             if !daily.isEmpty {
                 Chart(daily) { value in
-                    BarMark(x: .value("Day", value.day), y: .value("Spend", value.amount))
-                        .foregroundStyle(by: .value("Product", value.group))
+                    BarMark(
+                        x: .value("Day", value.day),
+                        y: .value("Spend", Double(value.minorUnits) / 100)
+                    )
+                    .foregroundStyle(by: .value("Product", value.productName))
+                    .cornerRadius(2)
+                    .accessibilityLabel("\(value.productName), \(displayDate(value.day))")
+                    .accessibilityValue(money(value.minorUnits, currency: spend.currency ?? "USD"))
                 }
-                .chartYScale(domain: 0...max(1, highestDay * 1.15))
-                .frame(height: 180)
+                .chartYScale(domain: 0...max(1, Double(highestDay) / 100 * 1.15))
+                .chartXScale(domain: chartDays)
+                .chartXAxis {
+                    AxisMarks(values: .automatic(desiredCount: 5)) { value in
+                        AxisGridLine()
+                        AxisTick()
+                        AxisValueLabel {
+                            if let day = value.as(String.self) { Text(axisDate(day)) }
+                        }
+                    }
+                }
+                .chartYAxis { AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) }
+                .chartForegroundStyleScale(
+                    domain: products.map(\.name),
+                    range: products.map { productColor(id: $0.id, name: $0.name) }
+                )
+                .chartLegend(position: .bottom, alignment: .leading, spacing: 10)
+                .chartXSelection(value: $selectedSpendDay)
+                .frame(height: dynamicTypeSize.isAccessibilitySize ? 260 : 220)
                 .accessibilityLabel("Daily spend by product")
+                .accessibilityHint("Tap a day to show its product amounts")
             }
-            HStack {
-                Text("Product").frame(maxWidth: .infinity, alignment: .leading)
-                Text("Spend")
-                Text("% of total").frame(width: 70, alignment: .trailing)
-            }.font(.caption).foregroundStyle(OverviewStyle.secondary)
-            ForEach(Array(spend.totals.enumerated()), id: \.offset) { _, row in
-                HStack(alignment: .firstTextBaseline) {
-                    Text(row.group ?? row.groupKey ?? "Other").frame(maxWidth: .infinity, alignment: .leading)
-                    Text(row.costMinorUnits.map { money($0, currency: spend.currency ?? "USD") } ?? "—").monospacedDigit()
-                    Text(row.percentOfTotal.map { $0.formatted(.number.precision(.fractionLength(0...1))) + "%" } ?? "—")
-                        .monospacedDigit().frame(width: 70, alignment: .trailing)
-                }.font(.callout)
-                Divider()
+            if let selectedSpendDay,
+               chartDays.contains(selectedSpendDay) {
+                selectedDayDetail(selectedSpendDay, daily: daily, currency: spend.currency ?? "USD")
             }
+            Text("By product").font(.callout.weight(.semibold))
+            ForEach(products) { product in
+                productRow(product, currency: spend.currency ?? "USD")
+                if product.id != products.last?.id { Divider() }
+            }
+            Text("Source: Claude Enterprise analytics")
+                .font(.footnote)
+                .foregroundStyle(OverviewStyle.tertiary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
         .modifier(OverviewCardMaterial())
     }
 
-    private func skillsCard(_ skills: ClaudeEnterpriseSkillsResponse, currency: String) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Top skills").font(.headline)
-            HStack {
-                Text("Skill").frame(maxWidth: .infinity, alignment: .leading)
-                Text("Cost per use").frame(width: 90, alignment: .trailing)
-                Text("Uses").frame(width: 45, alignment: .trailing)
-            }.font(.caption).foregroundStyle(OverviewStyle.secondary)
-            ForEach(Array(skills.items.enumerated()), id: \.offset) { _, item in
-                HStack(alignment: .firstTextBaseline) {
-                    Text(item.skillName ?? "Unknown skill").lineLimit(2).frame(maxWidth: .infinity, alignment: .leading)
-                    Text(item.totalCostMinorUnits.flatMap { cost in
-                        item.invocationCount.flatMap { $0 > 0 ? moneyPerUse(cost, uses: $0, currency: currency) : nil }
-                    } ?? "—")
-                        .monospacedDigit().frame(width: 90, alignment: .trailing)
-                    Text(item.invocationCount?.formatted() ?? "—").monospacedDigit().frame(width: 45, alignment: .trailing)
-                }.font(.callout)
-                Divider()
+    private func skillsCard(
+        _ skills: ClaudeEnterpriseSkillsResponse,
+        currency: String,
+        reportingEndDate: String?
+    ) -> some View {
+        let visibleCount = showsAllSkills ? skills.items.count : min(5, skills.items.count)
+        let visibleItems = Array(skills.items.prefix(visibleCount).enumerated())
+        return VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Skills").font(.headline)
+                if let cutoff = skillsCutoff(skills, fallbackEndDate: reportingEndDate) {
+                    Text("Through \(cutoff) · UTC")
+                        .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                }
             }
-            if skills.hasMore == true { Text("Showing top skills").font(.footnote).foregroundStyle(OverviewStyle.secondary) }
+            ForEach(visibleItems, id: \.offset) { entry in
+                let item = entry.element
+                skillRow(item, currency: currency)
+                if entry.offset != visibleItems.last?.offset {
+                    Divider()
+                }
+            }
+            if skills.items.count > 5 {
+                Button {
+                    withAnimation(.snappy) { showsAllSkills.toggle() }
+                } label: {
+                    HStack {
+                        Text(showsAllSkills ? "Show less" : "Show more")
+                        Spacer()
+                        Image(systemName: showsAllSkills ? "chevron.up" : "chevron.down")
+                    }
+                    .font(.callout.weight(.semibold))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint(showsAllSkills ? "Collapses the skill list" : "Shows every loaded skill")
+            }
+            if skills.hasMore == true {
+                Text("Claude reports additional skills beyond the loaded list.")
+                    .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+            }
+            Text("Source: Claude Enterprise skill activity")
+                .font(.footnote)
+                .foregroundStyle(OverviewStyle.tertiary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)
         .modifier(OverviewCardMaterial())
+    }
+
+    private func productTotals(_ spend: ClaudeSpendHistory, daily: [DailySpend]) -> [ProductSpend] {
+        if !spend.totals.isEmpty {
+            return spend.totals.enumerated().map { index, row in
+                ProductSpend(
+                    id: row.groupKey ?? row.group ?? "product-\(index)",
+                    name: productName(group: row.group, key: row.groupKey),
+                    minorUnits: row.costMinorUnits,
+                    percent: row.percentOfTotal
+                )
+            }.sorted { ($0.minorUnits ?? Int.min) > ($1.minorUnits ?? Int.min) }
+        }
+        let grouped = Dictionary(grouping: daily, by: \.productID)
+        let total = daily.reduce(0) { $0 + $1.minorUnits }
+        return grouped.map { key, rows in
+            let amount = rows.reduce(0) { $0 + $1.minorUnits }
+            return ProductSpend(
+                id: key,
+                name: rows.first?.productName ?? productName(group: nil, key: key),
+                minorUnits: amount,
+                percent: total > 0 ? Double(amount) / Double(total) * 100 : nil
+            )
+        }.sorted { ($0.minorUnits ?? Int.min) > ($1.minorUnits ?? Int.min) }
+    }
+
+    @ViewBuilder private func productRow(_ product: ProductSpend, currency: String) -> some View {
+        let details = VStack(alignment: .trailing, spacing: 2) {
+            Text(product.minorUnits.map { money($0, currency: currency) } ?? "—")
+                .fontWeight(.semibold).monospacedDigit()
+            Text(product.percent.map { $0.formatted(.number.precision(.fractionLength(0...1))) + "% of total" }
+                 ?? "Percentage unavailable")
+                .font(.caption).foregroundStyle(OverviewStyle.secondary)
+        }
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(productColor(id: product.id, name: product.name))
+                        .frame(width: 9, height: 9)
+                        .accessibilityHidden(true)
+                    Text(product.name).font(.callout)
+                }
+                details.frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(productColor(id: product.id, name: product.name))
+                        .frame(width: 9, height: 9)
+                        .accessibilityHidden(true)
+                    Text(product.name).font(.callout).fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 8)
+                details
+            }
+        }
+    }
+
+    @ViewBuilder private func skillRow(_ item: ClaudeEnterpriseSkillUsage, currency: String) -> some View {
+        let uses = item.invocationCount
+        let perUse = item.totalCostMinorUnits.flatMap { cost in
+            uses.flatMap { $0 > 0 ? moneyPerUse(cost, uses: $0, currency: currency) : nil }
+        }
+        let metrics = VStack(alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .trailing, spacing: 2) {
+            Text("Cost per use \(perUse ?? "—")").monospacedDigit()
+            Text(uses.map { "\($0.formatted()) \($0 == 1 ? "use" : "uses")" } ?? "Uses —")
+        }
+        .font(.caption)
+        .foregroundStyle(OverviewStyle.secondary)
+        if dynamicTypeSize.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(item.skillName.flatMap { $0.isEmpty ? nil : $0 } ?? "Unknown skill")
+                    .font(.callout.weight(.semibold))
+                metrics
+            }
+        } else {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text(item.skillName.flatMap { $0.isEmpty ? nil : $0 } ?? "Unknown skill")
+                    .font(.callout.weight(.semibold))
+                    .lineLimit(2)
+                Spacer(minLength: 8)
+                metrics
+            }
+        }
+    }
+
+    private func selectedDayDetail(_ day: String, daily: [DailySpend], currency: String) -> some View {
+        let rows = daily.filter { $0.day == day }.sorted { $0.minorUnits > $1.minorUnits }
+        let total = rows.reduce(0) { $0 + $1.minorUnits }
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(displayDate(day)).font(.callout.weight(.semibold))
+                Spacer()
+                Text(money(total, currency: currency)).font(.callout.weight(.semibold)).monospacedDigit()
+            }
+            ForEach(rows) { row in
+                HStack(alignment: .firstTextBaseline) {
+                    Text(row.productName).foregroundStyle(OverviewStyle.secondary)
+                    Spacer()
+                    Text(money(row.minorUnits, currency: currency)).monospacedDigit()
+                }.font(.caption)
+            }
+            if rows.isEmpty {
+                Text("No spend reported")
+                    .font(.caption)
+                    .foregroundStyle(OverviewStyle.secondary)
+            }
+        }
+        .padding(12)
+        .background(OverviewStyle.track, in: RoundedRectangle(cornerRadius: 14))
+        .accessibilityElement(children: .combine)
+    }
+
+    private func reportingPeriod(_ spend: ClaudeSpendHistory) -> String? {
+        guard let start = spend.startDate ?? session.requestedStartDate,
+              let end = spend.endDate ?? session.requestedEndDate else { return nil }
+        return ClaudeEnterpriseDateOnly.displayRange(startDate: start, endDate: end)
+    }
+
+    private func reportDays(_ spend: ClaudeSpendHistory, daily: [DailySpend]) -> [String] {
+        guard !daily.isEmpty,
+              let startValue = spend.startDate ?? session.requestedStartDate ?? daily.map(\.day).min(),
+              let endValue = spend.endDate ?? session.requestedEndDate ?? daily.map(\.day).max(),
+              let start = ClaudeEnterpriseDateOnly.bucketDate(startValue),
+              let end = ClaudeEnterpriseDateOnly.bucketDate(endValue), start <= end else {
+            return Array(Set(daily.map(\.day))).sorted()
+        }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        var days: [String] = []
+        var day = start
+        while day <= end, days.count < 31 {
+            days.append(dateKey(day, calendar: calendar))
+            guard let next = calendar.date(byAdding: .day, value: 1, to: day) else { break }
+            day = next
+        }
+        return days
+    }
+
+    private func dateKey(_ date: Date, calendar: Calendar) -> String {
+        let parts = calendar.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+    }
+
+    private func skillsCutoff(_ skills: ClaudeEnterpriseSkillsResponse, fallbackEndDate: String?) -> String? {
+        guard let end = skills.endDate ?? fallbackEndDate,
+              let previous = ClaudeEnterpriseDateOnly.dayBefore(end) else { return nil }
+        return ClaudeEnterpriseDateOnly.displayDate(previous)
+    }
+
+    private func displayDate(_ value: String) -> String {
+        ClaudeEnterpriseDateOnly.displayDate(value) ?? value
+    }
+
+    private func axisDate(_ value: String) -> String {
+        guard let date = ClaudeEnterpriseDateOnly.displayDate(value) else { return value }
+        return String(date.split(separator: ",", maxSplits: 1).first ?? Substring(date))
+    }
+
+    private func productName(group: String?, key: String?) -> String {
+        if let group, !group.isEmpty { return group }
+        let rawKey = key ?? "Other"
+        let normalized = rawKey.lowercased().replacingOccurrences(of: "-", with: "_")
+        if normalized.contains("chat_and_cowork_unified") {
+            return normalized.contains("beta") ? "Chat and Cowork unified (beta)" : "Chat and Cowork unified"
+        }
+        let words = rawKey
+            .replacingOccurrences(of: "_", with: " ")
+            .replacingOccurrences(of: "-", with: " ")
+            .split(separator: " ")
+        return words.enumerated().map { index, word in
+            let lower = word.lowercased()
+            if index > 0, ["and", "or", "with"].contains(lower) { return lower }
+            if lower == "claude" { return "Claude" }
+            return word.prefix(1).uppercased() + word.dropFirst().lowercased()
+        }.joined(separator: " ")
+    }
+
+    private func productColor(id: String, name: String) -> Color {
+        let value = (id + " " + name).lowercased().replacingOccurrences(of: "_", with: " ")
+        if value.contains("claude code") { return .orange }
+        if value.contains("chat and cowork") || value.contains("unified") { return .blue }
+        if value.contains("cowork") { return .yellow }
+        if value.contains("claude design") || value.contains("design") { return .green }
+        if value.contains("chat") { return .blue }
+        return OverviewStyle.accent
     }
 
     private func money(_ minor: Int, currency: String) -> String {
