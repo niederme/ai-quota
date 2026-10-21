@@ -87,10 +87,11 @@ final class ClaudeProbeModel {
         do {
             challenge = try ClaudeChallenge()
             error = nil
-            message = "Sign in with Claude in Safari, then paste the authorization code here."
+            message = "Sign in with Claude. If needed, use Safari and paste the authorization code."
         } catch { self.error = "Could not prepare sign-in. Try again." }
     }
-    func finishSignIn(_ pasted: String) {
+    func finishSignIn(_ pasted: String,
+                      afterSuccessfulSignIn: @escaping @MainActor (String?) async -> Void = { _ in }) {
         guard !busy, let pending = challenge else { return }
         run { [self] in
             let newTokens = try await api.exchange(pasted, challenge: pending)
@@ -106,6 +107,8 @@ final class ClaudeProbeModel {
             challenge = nil
             message = "Signed in on this device. Checking quota…"
             try await fetch(forceRenewal: false)
+            let organizationID = try? await api.organizationID(newTokens)
+            await afterSuccessfulSignIn(organizationID)
             signInCompletionID = UUID()
         }
     }

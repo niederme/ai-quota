@@ -1,6 +1,21 @@
 import XCTest
 
 @MainActor final class ClaudeDetailReconnectFlowTests: XCTestCase {
+    func testClaudeOAuthBrowserCanReturnToManualCodeFallback() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-claudeOAuthUITest"]
+        app.launch()
+
+        let signIn = app.buttons["Sign In"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 10))
+        signIn.tap()
+        XCTAssertTrue(app.staticTexts["Sign in with Claude"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Use Safari"].exists)
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(app.secureTextFields["Paste your code"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Use Safari instead"].exists)
+    }
+
     func testSuccessfulWebSignInKeepsDetailsOnDismissAndReopen() {
         let app = XCUIApplication()
         app.launchArguments = ["-claudeSSOUITest"]
@@ -51,7 +66,7 @@ import XCTest
         XCTAssertTrue(reconnect.waitForExistence(timeout: 5))
         reconnect.tap()
         XCTAssertTrue(app.staticTexts["Connect Claude"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["Open Claude sign-in"].exists)
+        XCTAssertTrue(app.buttons["Continue Claude sign-in"].exists)
     }
 
     func testServiceDetailLoadingSkeletonsReserveHistoryGeometry() {

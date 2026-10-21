@@ -65,6 +65,20 @@ public struct ClaudeChallenge: Sendable {
         }
         return String(parts[0])
     }
+    /// Accept only the registered HTTPS callback for this PKCE attempt.
+    public func authorizationCode(from callback: URL, now: Date = .now) throws -> String {
+        guard let components = URLComponents(url: callback, resolvingAgainstBaseURL: false),
+              components.scheme == "https", components.host == "console.anthropic.com",
+              components.path == "/oauth/code/callback", let items = components.queryItems,
+              items.filter({ $0.name == "code" }).count == 1,
+              items.filter({ $0.name == "state" }).count == 1,
+              let code = items.first(where: { $0.name == "code" })?.value,
+              let returnedState = items.first(where: { $0.name == "state" })?.value
+        else { throw ClaudeAccessError.invalidCode }
+        let value = "\(code)#\(returnedState)"
+        _ = try self.code(from: value, now: now)
+        return value
+    }
     private static func base64URL(_ data: Data) -> String {
         data.base64EncodedString().replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
@@ -157,6 +171,8 @@ public struct ClaudeAPI: Sendable {
     /// A profile without an organization UUID is a valid, unavailable result.
     public func organizationID(_ tokens: ClaudeTokens) async throws -> String? {
         var request = URLRequest(url: URL(string: "https://api.anthropic.com/api/oauth/profile")!)
+        request.timeoutInterval = 10
+        request.cachePolicy = .reloadIgnoringLocalCacheData
         request.setValue("Bearer \(tokens.accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")

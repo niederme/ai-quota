@@ -40,12 +40,14 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
     #endif
     @ObservationIgnored let webView: WKWebView
 
-    init(profileID: String? = nil) {
+    init(profileID: String? = nil, websiteDataStore: WKWebsiteDataStore? = nil) {
         let configuration = WKWebViewConfiguration()
         // Keep the migrated first account's existing web sign-in. Additional
         // accounts get persistent, separate WebKit profiles so two users in
         // the same Enterprise organization cannot share detail cookies.
-        if let profileID, profileID != "live", let identifier = UUID(uuidString: profileID) {
+        if let websiteDataStore {
+            configuration.websiteDataStore = websiteDataStore
+        } else if let profileID, profileID != "live", let identifier = UUID(uuidString: profileID) {
             configuration.websiteDataStore = WKWebsiteDataStore(forIdentifier: identifier)
         } else {
             configuration.websiteDataStore = .default()

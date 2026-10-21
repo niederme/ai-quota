@@ -21,6 +21,8 @@ struct MobileAccessApp: App {
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("-claudeSSOUITest") {
                 ClaudeDetailSSOUITestHarness()
+            } else if ProcessInfo.processInfo.arguments.contains("-claudeOAuthUITest") {
+                NavigationStack { ClaudeProbeView(model: ClaudeProbeModel(restore: false)) }
             } else if ProcessInfo.processInfo.arguments.contains("-claudeDetailUITest") {
                 ClaudeDetailUITestHarness()
             } else if ProcessInfo.processInfo.arguments.contains("-serviceDetailLoadingUITest") {
