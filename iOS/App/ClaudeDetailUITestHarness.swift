@@ -1,5 +1,6 @@
 #if DEBUG
 import SwiftUI
+import MobileAccessCore
 
 /// Exercises the shipped detail view without credentials or provider traffic.
 @MainActor private final class ClaudeDetailLookupFixture {
@@ -58,6 +59,31 @@ struct ClaudeEnterpriseLoadingUITestHarness: View {
                 .padding(16)
             }
             .navigationTitle("Claude")
+        }
+    }
+}
+
+struct CodexHistoryVisualUITestHarness: View {
+    private var history: CodexUsageHistory {
+        let rows: [(Int, Double, Bool)] = [
+            (6, 10, true), (5, 20, true), (3, 30, false),
+            (1, 26.23, true), (0, 0, true)
+        ]
+        let values = rows.map { offset, credits, attributed in
+            let day = CodexUsageHistory.dateString(.now.addingTimeInterval(-Double(offset) * 86_400))
+            return "{\"date\":\"\(day)\",\"product_surface_usage_values\":{\"cli\":\(credits)}" +
+                (attributed ? ",\"models\":[{\"model\":\"gpt-5.1\",\"credits\":\(credits)}]" : "") + "}"
+        }
+        return try! CodexUsageHistory.decode(Data("{\"data\":[\(values.joined(separator: ","))]}".utf8), now: .now)
+    }
+
+    var body: some View {
+        ServiceAccountSheet(showsClose: false) {
+            ServiceDetailContent(
+                name: "Codex", icon: "logo-openai", reading: nil,
+                connected: true, busy: false, error: nil, failure: nil,
+                history: history, refresh: {}
+            ) { Text("Account") }
         }
     }
 }

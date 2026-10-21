@@ -29,6 +29,8 @@ struct MobileAccessApp: App {
                 )
             } else if ProcessInfo.processInfo.arguments.contains("-claudeEnterpriseLoadingUITest") {
                 ClaudeEnterpriseLoadingUITestHarness()
+            } else if ProcessInfo.processInfo.arguments.contains("-codexHistoryVisualUITest") {
+                CodexHistoryVisualUITestHarness()
             } else {
                 OverviewView(isDemo: demoEnabled).id(demoEnabled)
                     .environment(\.setDemoEnabled) { enabled in

@@ -14,6 +14,8 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
     private(set) var state: State = .idle
     private(set) var spend: ClaudeSpendHistory?
     private(set) var skills: ClaudeEnterpriseSkillsResponse?
+    private(set) var spendFetchedAt: Date?
+    private(set) var skillsFetchedAt: Date?
     private(set) var spendUnavailable = false
     private(set) var skillsUnavailable = false
     private(set) var detailsLoading = false
@@ -56,6 +58,8 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
         expectedOrganizationID = nil
         spend = nil
         skills = nil
+        spendFetchedAt = nil
+        skillsFetchedAt = nil
         spendUnavailable = false
         skillsUnavailable = false
         detailsLoading = false
@@ -73,6 +77,8 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
         webView.stopLoading()
         spend = nil
         skills = nil
+        spendFetchedAt = nil
+        skillsFetchedAt = nil
         spendUnavailable = false
         skillsUnavailable = false
         detailsLoading = false
@@ -102,6 +108,8 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
         loadingTimeout?.cancel()
         spend = nil
         skills = nil
+        spendFetchedAt = nil
+        skillsFetchedAt = nil
         spendUnavailable = false
         skillsUnavailable = false
         detailsLoading = false
@@ -357,7 +365,7 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
 
     private func loadDetails(organizationID: String, requestID: UUID) async {
         var reportingCalendar = Calendar(identifier: .gregorian)
-        reportingCalendar.timeZone = .current
+        reportingCalendar.timeZone = TimeZone(secondsFromGMT: 0)!
         let now = Date()
         let start = reportingCalendar.dateInterval(of: .month, for: now)?.start ?? now
         let formatter = DateFormatter()
@@ -378,7 +386,7 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
         do {
             let data = try await request(base + "/spend?" + (query.percentEncodedQuery ?? ""))
             let value = try JSONDecoder().decode(ClaudeSpendHistory.self, from: data)
-            if generation == requestID { spend = value; spendUnavailable = false }
+            if generation == requestID { spend = value; spendFetchedAt = .now; spendUnavailable = false }
         } catch {
             if generation == requestID { spend = nil; spendUnavailable = true }
             if Self.detailRequiresSignIn(error), generation == requestID {
@@ -389,7 +397,7 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
         do {
             let path = base + "/skills?start_date=\(startDate)&end_date=\(endDate)"
             let value = try JSONDecoder().decode(ClaudeEnterpriseSkillsResponse.self, from: try await request(path))
-            if generation == requestID { skills = value; skillsUnavailable = false }
+            if generation == requestID { skills = value; skillsFetchedAt = .now; skillsUnavailable = false }
         } catch {
             if generation == requestID { skills = nil; skillsUnavailable = true }
             if Self.detailRequiresSignIn(error), generation == requestID { state = .signInRequired }
