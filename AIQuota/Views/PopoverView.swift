@@ -52,7 +52,10 @@ struct PopoverView: View {
         let visible = screen?.visibleFrame ?? CGRect(x: 0, y: 0, width: 800, height: 800)
         let top = menuBarWindow?.frame.maxY ?? visible.maxY
         let availableHeight = max(300, top - visible.minY - 8)
-        return CGSize(width: min(460, visible.width - 16),
+        // Keep the native panel's horizontal bounds fixed while navigating.
+        // With two accounts the former 652 -> 460 point resize visibly swept
+        // the detail sheet sideways from its menu-bar anchor.
+        return CGSize(width: overviewWidth,
                       height: min(availableHeight, max(visible.height * 0.85, overviewSize.height)))
     }
     private var popoverSize: CGSize {

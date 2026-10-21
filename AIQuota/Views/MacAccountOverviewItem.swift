@@ -6,6 +6,9 @@ import AIQuotaKit
 /// details; account management lives in Settings and the context menu.
 struct MacAccountCard: View {
     @Environment(QuotaViewModel.self) private var viewModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @FocusState private var focused: Bool
+    @State private var hovered = false
 
     let account: ConnectedAccount
     let session: AdditionalAccountSession?
@@ -22,6 +25,7 @@ struct MacAccountCard: View {
                                        primary: viewModel.claudeUsage)
     }
     private var hasReading: Bool { codexUsage != nil || claudeUsage != nil }
+    private var awaitingConnection: Bool { loading && !connected && !hasReading }
     private var loading: Bool {
         session?.isLoading ?? (account.provider == .codex ? viewModel.isCodexLoading : viewModel.isClaudeLoading)
     }
@@ -95,29 +99,31 @@ struct MacAccountCard: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .padding(.vertical, 6)
+            .padding(.horizontal, 8)
             .frame(maxWidth: .infinity, minHeight: 126, alignment: .topLeading)
             .contentShape(Rectangle())
+            .background {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.primary.opacity(hovered || focused ? 0.07 : 0))
+            }
         }
         .buttonStyle(.plain)
-        .disabled(loading && !connected && !hasReading)
+        .focused($focused)
+        .onHover { hovered = $0 && !awaitingConnection }
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: hovered)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: focused)
+        .disabled(awaitingConnection)
         .accessibilityLabel(accessibilitySummary)
         .accessibilityHint(connected || hasReading ? "Open account details" : "Reconnect account")
     }
 
     private var details: some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(serviceName)
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right.circle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .accessibilityHidden(true)
-            }
+            Text(serviceName)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
             if let plan {
                 Text("\(plan) plan" + (accountLabel.map { " · \($0)" } ?? ""))
                     .font(.system(size: 13, weight: .semibold))
