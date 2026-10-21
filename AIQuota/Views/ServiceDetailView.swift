@@ -92,9 +92,9 @@ struct ServiceDetailView: View {
                             Label("Reconnect to update details. Your last reading is retained.", systemImage: "person.crop.circle.badge.exclamationmark")
                                 .foregroundStyle(Color.warningAmber)
                         }
-                        if let budget = reading?.monthlyBudget {
+                        if isCodex, let budget = reading?.monthlyBudget {
                             VStack(alignment: .leading, spacing: 10) {
-                                Text(isCodex ? "Monthly allowance" : "Spend limit").font(.headline)
+                                Text("Monthly allowance").font(.headline)
                                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                                     Text("\(Int(budget.usedPercent.rounded()))%")
                                         .font(.largeTitle.bold()).monospacedDigit()
