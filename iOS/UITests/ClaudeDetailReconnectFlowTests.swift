@@ -1,6 +1,30 @@
 import XCTest
 
 final class ClaudeDetailReconnectFlowTests: XCTestCase {
+    func testSuccessfulWebSignInKeepsDetailsOnDismissAndReopen() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-claudeSSOUITest"]
+        app.launch()
+
+        let open = app.buttons["Open Claude details"]
+        XCTAssertTrue(open.waitForExistence(timeout: 10))
+        open.tap()
+        let alert = app.alerts["Reconnect Claude"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 10))
+        alert.buttons["Reconnect"].tap()
+
+        XCTAssertTrue(app.staticTexts["Daily spend by product"].waitForExistence(timeout: 20))
+        XCTAssertTrue(app.staticTexts["Top skills"].exists)
+        XCTAssertTrue(app.staticTexts["sample-skill"].exists)
+        XCTAssertFalse(app.staticTexts["Loading Claude details…"].exists)
+
+        app.buttons["Close"].tap()
+        XCTAssertTrue(open.waitForExistence(timeout: 5))
+        open.tap()
+        XCTAssertTrue(app.staticTexts["Daily spend by product"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.alerts["Reconnect Claude"].exists)
+    }
+
     func testUnavailableRetryOffersActionableReconnect() {
         let app = XCUIApplication()
         app.launchArguments = ["-claudeDetailUITest"]

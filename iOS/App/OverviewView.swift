@@ -368,15 +368,12 @@ struct ServiceDetailContent<Account: View>: View {
     @State private var showAccount = false
     @State private var showResetWebsite = false
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
-                    if usesPlanSubtitle == false {
-                        planLabel
-                    }
+                    planLabel
                     if let reading {
                         TimelineView(.periodic(from: .now, by: 30)) { context in
                             Text("Usage · " + overviewFreshnessLabel(reading.fetchedAt, at: context.date,
@@ -449,7 +446,6 @@ struct ServiceDetailContent<Account: View>: View {
         .toolbarBackground(.hidden, for: .navigationBar)
         .navigationTitle(name)
         .toolbarTitleDisplayMode(.inlineLarge)
-        .modifier(ServicePlanSubtitle(plan: usesPlanSubtitle ? planText : ""))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Refresh", systemImage: "arrow.clockwise", action: refresh)
@@ -476,29 +472,12 @@ struct ServiceDetailContent<Account: View>: View {
     private var planText: String {
         reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported"
     }
-    private var usesPlanSubtitle: Bool {
-        if #available(iOS 26.0, *) {
-            return !typeSize.isAccessibilitySize && planText.count <= 24
-        }
-        return false
-    }
     private var planLabel: some View {
         Text(planText)
-            .font(.callout).foregroundStyle(OverviewStyle.secondary)
+            .font(.subheadline).foregroundStyle(OverviewStyle.secondary)
             .fixedSize(horizontal: false, vertical: true)
     }
 
-}
-
-private struct ServicePlanSubtitle: ViewModifier {
-    let plan: String
-    func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            content.navigationSubtitle(plan)
-        } else {
-            content
-        }
-    }
 }
 
 struct UsageLoadingState: ViewModifier {

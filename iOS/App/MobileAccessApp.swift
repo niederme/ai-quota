@@ -19,7 +19,9 @@ struct MobileAccessApp: App {
     var body: some Scene {
         WindowGroup {
             #if DEBUG
-            if ProcessInfo.processInfo.arguments.contains("-claudeDetailUITest") {
+            if ProcessInfo.processInfo.arguments.contains("-claudeSSOUITest") {
+                ClaudeDetailSSOUITestHarness()
+            } else if ProcessInfo.processInfo.arguments.contains("-claudeDetailUITest") {
                 ClaudeDetailUITestHarness()
             } else {
                 OverviewView(isDemo: demoEnabled).id(demoEnabled)

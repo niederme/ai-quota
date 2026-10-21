@@ -9,7 +9,7 @@ import MobileAccessCore
 /// only receives the usage responses from same-origin requests.
 @MainActor @Observable
 final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegate {
-    enum State: Equatable { case idle, checking, signInRequired, accountMismatch, organizationReconnectRequired, ready, unavailable }
+    enum State: Equatable { case idle, checking, awaitingSignIn, signInRequired, accountMismatch, organizationReconnectRequired, ready, unavailable }
 
     private(set) var state: State = .idle
     private(set) var spend: ClaudeSpendHistory?
@@ -22,7 +22,18 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
     private var isProbing = false
     private var pendingProbe = false
     private var generation = UUID()
+    private var loadingTimeout: Task<Void, Never>?
+    var checkingTimeout: Duration = .seconds(20)
     private var savedClaudeCookies: [HTTPCookie]?
+    #if DEBUG
+    var testResponses: [String: Data]?
+    func testProbe() async { await probe() }
+    func testRequireSignIn() {
+        guard state == .checking else { return }
+        loadingTimeout?.cancel()
+        state = .signInRequired
+    }
+    #endif
     @ObservationIgnored let webView: WKWebView
 
     override init() {
@@ -35,7 +46,25 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
         webView.uiDelegate = self
     }
 
-    func start(organization: ClaudeOrganizationLookup) {
+    func invalidate() {
+        generation = UUID()
+        webView.stopLoading()
+        loadingTimeout?.cancel()
+        savedClaudeCookies = nil
+        expectedOrganizationID = nil
+        spend = nil
+        skills = nil
+        spendUnavailable = false
+        skillsUnavailable = false
+        detailsLoading = false
+        popup = nil
+        state = .idle
+    }
+
+    func start(organization: ClaudeOrganizationLookup, loadPage: Bool = true, reuseReady: Bool = true) {
+        if case .verified(let id) = organization, reuseReady,
+           expectedOrganizationID?.caseInsensitiveCompare(id) == .orderedSame,
+           state == .ready { return }
         generation = UUID()
         webView.stopLoading()
         spend = nil
@@ -54,15 +83,17 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
             state = .unavailable
             return
         }
-        state = .checking
-        webView.load(URLRequest(url: URL(string: "https://claude.ai/settings/usage")!))
+        beginChecking()
+        if loadPage { loadUsagePage() }
     }
 
     /// Begin a reversible change to the app-owned Claude web session. The
     /// existing OAuth allowance is untouched throughout this transaction.
     func beginReconnect(loadPage: Bool = true) async {
+        guard savedClaudeCookies == nil else { return }
         generation = UUID()
         webView.stopLoading()
+        loadingTimeout?.cancel()
         spend = nil
         skills = nil
         spendUnavailable = false
@@ -79,9 +110,9 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
                 store.delete(cookie) { continuation.resume() }
             }
         }
-        state = .checking
+        state = .awaitingSignIn
         if loadPage {
-            webView.load(URLRequest(url: URL(string: "https://claude.ai/settings/usage")!))
+            loadUsagePage()
         }
     }
 
@@ -91,6 +122,7 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
         savedClaudeCookies = nil
         generation = UUID()
         webView.stopLoading()
+        loadingTimeout?.cancel()
         let store = WKWebsiteDataStore.default().httpCookieStore
         let currentCookies = await withCheckedContinuation { continuation in
             store.getAllCookies { continuation.resume(returning: $0) }
@@ -112,11 +144,39 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
         guard expectedOrganizationID != nil else { return }
         generation = UUID()
         webView.stopLoading()
-        state = .checking
+        beginChecking()
+        loadUsagePage()
+    }
+
+    private func loadUsagePage() {
+        #if DEBUG
+        if testResponses != nil { return }
+        #endif
         webView.load(URLRequest(url: URL(string: "https://claude.ai/settings/usage")!))
     }
 
+    private func beginChecking() {
+        state = .checking
+        loadingTimeout?.cancel()
+        let id = generation
+        let timeout = checkingTimeout
+        loadingTimeout = Task { [weak self] in
+            try? await Task.sleep(for: timeout)
+            guard !Task.isCancelled, let self, self.generation == id,
+                  self.state == .checking else { return }
+            self.detailsLoading = false
+            self.state = .unavailable
+        }
+    }
+
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        if webView === popup {
+            if webView.url?.host == "claude.ai" {
+                popup = nil
+                refresh()
+            }
+            return
+        }
         guard webView === self.webView else { return }
         guard webView.url?.host == "claude.ai" else {
             state = .signInRequired
@@ -130,11 +190,22 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
         state = .unavailable
     }
 
+    func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
+        guard webView === self.webView, (error as NSError).code != NSURLErrorCancelled else { return }
+        state = .unavailable
+    }
+
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        guard webView === self.webView else { return }
+        state = .unavailable
+    }
+
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
                  for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
         guard navigationAction.targetFrame == nil else { return nil }
         let child = WKWebView(frame: .zero, configuration: configuration)
         child.uiDelegate = self
+        child.navigationDelegate = self
         popup = child
         return child
     }
@@ -156,22 +227,41 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
     }
 
     private func request(_ path: String) async throws -> Data {
+        #if DEBUG
+        if let testResponses {
+            let key = path == "/api/organizations" ? "organizations"
+                : path.contains("/skills?") ? "skills" : "spend"
+            guard let data = testResponses[key] else { throw ClaudeWebDetailError.badResponse }
+            return data
+        }
+        #endif
         guard webView.url?.host == "claude.ai" else { throw ClaudeWebDetailError.notSignedIn }
         let value: String = try await withCheckedThrowingContinuation { continuation in
+            let completion = ClaudeWebRequestCompletion(continuation)
+            completion.timeoutTask = Task {
+                try? await Task.sleep(for: .seconds(14))
+                guard !Task.isCancelled else { return }
+                completion.finish(.failure(ClaudeWebDetailError.timeout))
+            }
             webView.callAsyncJavaScript("""
-                const response = await fetch(path, {
-                    credentials: 'include', headers: {'Accept': 'application/json'}
-                });
-                const body = await response.text();
-                return JSON.stringify({status: response.status, body,
-                    contentType: response.headers.get('content-type') || '',
-                    challenged: response.headers.get('cf-mitigated') === 'challenge' || body.includes('cf-chl-')});
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 10000);
+                try {
+                    const response = await fetch(path, {
+                        credentials: 'include', headers: {'Accept': 'application/json'},
+                        signal: controller.signal
+                    });
+                    const body = await response.text();
+                    return JSON.stringify({status: response.status, body,
+                        contentType: response.headers.get('content-type') || '',
+                        challenged: response.headers.get('cf-mitigated') === 'challenge' || body.includes('cf-chl-')});
+                } finally { clearTimeout(timeout); }
             """, arguments: ["path": path], in: nil, in: .page) { result in
                 switch result {
                 case .success(let value):
-                    if let text = value as? String { continuation.resume(returning: text) }
-                    else { continuation.resume(throwing: ClaudeWebDetailError.badResponse) }
-                case .failure(let error): continuation.resume(throwing: error)
+                    if let text = value as? String { completion.finish(.success(text)) }
+                    else { completion.finish(.failure(ClaudeWebDetailError.badResponse)) }
+                case .failure(let error): completion.finish(.failure(error))
                 }
             }
         }
@@ -204,7 +294,13 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
     private func probe() async {
         guard !isProbing else { pendingProbe = true; return }
         guard let expectedOrganizationID else { return }
+        #if DEBUG
+        if testResponses == nil {
+            guard webView.url?.host == "claude.ai" else { return }
+        }
+        #else
         guard webView.url?.host == "claude.ai" else { return }
+        #endif
         isProbing = true
         let requestID = UUID()
         generation = requestID
@@ -228,18 +324,27 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
                 state = .accountMismatch
                 return
             }
-            detailsLoading = true
-            state = .ready
+            acceptVerifiedOrganization(matchingOrganization.uuid)
             await loadDetails(organizationID: matchingOrganization.uuid, requestID: requestID)
             if generation == requestID {
                 detailsLoading = false
-                if state == .ready { savedClaudeCookies = nil }
             }
         } catch {
             guard generation == requestID else { return }
             detailsLoading = false
             state = Self.organizationProbeFailureState(error)
         }
+    }
+
+    /// Commit the web session before publishing ready. Auto-dismiss of the
+    /// sign-in sheet must never restore the previous cookies after this point.
+    func acceptVerifiedOrganization(_ organizationID: String) {
+        guard let expectedOrganizationID,
+              expectedOrganizationID.caseInsensitiveCompare(organizationID) == .orderedSame else { return }
+        savedClaudeCookies = nil
+        loadingTimeout?.cancel()
+        detailsLoading = true
+        state = .ready
     }
 
     private func loadDetails(organizationID: String, requestID: UUID) async {
@@ -266,8 +371,7 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
             if generation == requestID { spend = value; spendUnavailable = false }
         } catch {
             if generation == requestID { spend = nil; spendUnavailable = true }
-            if let detailError = error as? ClaudeWebDetailError,
-               case .http(401) = detailError, generation == requestID {
+            if Self.detailRequiresSignIn(error), generation == requestID {
                 state = .signInRequired
                 return
             }
@@ -278,8 +382,15 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
             if generation == requestID { skills = value; skillsUnavailable = false }
         } catch {
             if generation == requestID { skills = nil; skillsUnavailable = true }
-            if let detailError = error as? ClaudeWebDetailError,
-               case .http(401) = detailError, generation == requestID { state = .signInRequired }
+            if Self.detailRequiresSignIn(error), generation == requestID { state = .signInRequired }
+        }
+    }
+
+    static func detailRequiresSignIn(_ error: Error) -> Bool {
+        guard let error = error as? ClaudeWebDetailError else { return false }
+        switch error {
+        case .http(401), .notSignedIn: return true
+        default: return false
         }
     }
 
@@ -309,7 +420,23 @@ final class ClaudeWebDetailsSession: NSObject, WKNavigationDelegate, WKUIDelegat
 }
 
 enum ClaudeWebDetailError: Error, Equatable {
-    case notSignedIn, badResponse, challenge, http(Int)
+    case notSignedIn, badResponse, challenge, timeout, http(Int)
+}
+
+@MainActor private final class ClaudeWebRequestCompletion {
+    private var continuation: CheckedContinuation<String, Error>?
+    var timeoutTask: Task<Void, Never>?
+
+    init(_ continuation: CheckedContinuation<String, Error>) {
+        self.continuation = continuation
+    }
+
+    func finish(_ result: Result<String, Error>) {
+        guard let continuation else { return }
+        self.continuation = nil
+        timeoutTask?.cancel()
+        continuation.resume(with: result)
+    }
 }
 
 struct ClaudeWebSurface: UIViewRepresentable {

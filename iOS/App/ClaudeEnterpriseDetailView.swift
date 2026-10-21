@@ -7,7 +7,8 @@ import MobileAccessCore
 struct ClaudeEnterpriseDetailView: View {
     let account: ClaudeProbeModel
     private let organizationLookup: @MainActor () async -> ClaudeOrganizationLookup
-    @State private var session = ClaudeWebDetailsSession()
+    private var session: ClaudeWebDetailsSession { account.webDetailsSession }
+    @State private var lookupGeneration = UUID()
     @State private var showSignIn = false
     @State private var showPopup = false
     @State private var showAccountReconnect = false
@@ -25,8 +26,9 @@ struct ClaudeEnterpriseDetailView: View {
         VStack(alignment: .leading, spacing: 16) {
             switch session.state {
             case .idle, .checking:
-                ProgressView("Loading Claude details…")
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                loadingRow("Loading Claude details…")
+            case .awaitingSignIn:
+                loadingRow("Waiting for Claude sign-in…")
             case .signInRequired, .accountMismatch:
                 reconnectRow("Claude sign-in required")
             case .organizationReconnectRequired:
@@ -35,8 +37,7 @@ struct ClaudeEnterpriseDetailView: View {
                 compactUnavailable("Claude details unavailable")
             case .ready:
                 if session.detailsLoading && session.spend == nil && session.skills == nil {
-                    ProgressView("Loading spend and skills…")
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    loadingRow("Loading spend and skills…")
                 }
                 if let spend = session.spend, !spend.series.isEmpty || !spend.totals.isEmpty {
                     spendCard(spend)
@@ -50,6 +51,7 @@ struct ClaudeEnterpriseDetailView: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .task { await retry() }
         .sheet(isPresented: $showAccountReconnect) {
             ServiceAccountSheet { ClaudeProbeView(model: account) }
@@ -57,21 +59,25 @@ struct ClaudeEnterpriseDetailView: View {
         .sheet(isPresented: $showSignIn, onDismiss: {
             Task {
                 let wasReady = session.state == .ready
-                await session.cancelReconnect()
-                if !wasReady { await retry() }
+                if !wasReady {
+                    await session.cancelReconnect()
+                    await retry(force: true)
+                }
             }
         }) {
             NavigationStack {
                 VStack(spacing: 0) {
                     ClaudeWebSurface(webView: session.webView)
-                    if session.state == .accountMismatch || session.state == .unavailable {
+                    if session.state != .ready {
                         HStack(spacing: 12) {
-                            Text(session.state == .accountMismatch
-                                 ? "Use the Claude account for this Enterprise organization."
-                                 : "Couldn’t verify this sign-in.")
-                                .font(.footnote)
+                            if session.state == .accountMismatch || session.state == .unavailable {
+                                Text(session.state == .accountMismatch
+                                     ? "Use the Claude account for this Enterprise organization."
+                                     : "Couldn’t verify this sign-in.")
+                                    .font(.footnote)
+                            }
                             Spacer(minLength: 0)
-                            Button("Check again") { session.refresh() }
+                            Button("Check sign-in") { session.refresh() }
                                 .font(.footnote.weight(.semibold))
                         }
                         .padding(12)
@@ -123,7 +129,7 @@ struct ClaudeEnterpriseDetailView: View {
         HStack {
             Text(title).font(.callout).foregroundStyle(OverviewStyle.secondary)
             Spacer()
-            Button("Retry") { Task { await retry() } }.font(.callout)
+            Button("Retry") { Task { await retry(force: true) } }.font(.callout)
         }
         .padding(16)
         .modifier(OverviewCardMaterial())
@@ -219,6 +225,7 @@ struct ClaudeEnterpriseDetailView: View {
     }
 
     private func reconnect() {
+        lookupGeneration = UUID()
         if session.state == .organizationReconnectRequired {
             account.connect()
             showAccountReconnect = true
@@ -227,8 +234,23 @@ struct ClaudeEnterpriseDetailView: View {
         }
     }
 
-    private func retry() async {
-        session.start(organization: await organizationLookup())
+    private func retry(force: Bool = false) async {
+        let id = UUID()
+        lookupGeneration = id
+        let organization = await organizationLookup()
+        guard lookupGeneration == id, !showSignIn else { return }
+        session.start(organization: organization, reuseReady: !force)
+    }
+
+    private func loadingRow(_ title: String) -> some View {
+        HStack(spacing: 10) {
+            Spacer(minLength: 0)
+            ProgressView().controlSize(.small)
+            Text(title).font(.callout).foregroundStyle(OverviewStyle.secondary)
+                .multilineTextAlignment(.center)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, minHeight: 64)
     }
 }
 

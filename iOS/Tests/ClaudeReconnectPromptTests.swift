@@ -42,10 +42,58 @@ final class ClaudeReconnectPromptTests: XCTestCase {
         XCTAssertEqual(ClaudeWebDetailsSession.organizationProbeFailureState(ClaudeWebDetailError.notSignedIn), .signInRequired)
         XCTAssertEqual(ClaudeWebDetailsSession.organizationProbeFailureState(ClaudeWebDetailError.challenge), .unavailable)
         XCTAssertEqual(ClaudeWebDetailsSession.organizationProbeFailureState(ClaudeWebDetailError.http(500)), .unavailable)
+        XCTAssertTrue(ClaudeWebDetailsSession.detailRequiresSignIn(ClaudeWebDetailError.http(401)))
+        XCTAssertTrue(ClaudeWebDetailsSession.detailRequiresSignIn(ClaudeWebDetailError.notSignedIn))
+        XCTAssertFalse(ClaudeWebDetailsSession.detailRequiresSignIn(ClaudeWebDetailError.http(403)))
     }
 }
 
 final class ClaudeWebSessionRollbackTests: XCTestCase {
+    @MainActor
+    func testNavigationWithoutCompletionBecomesRetryable() async {
+        let session = ClaudeWebDetailsSession()
+        session.checkingTimeout = .milliseconds(40)
+        session.start(organization: .verified(UUID().uuidString), loadPage: false)
+        XCTAssertEqual(session.state, .checking)
+        try? await Task.sleep(for: .milliseconds(120))
+        XCTAssertEqual(session.state, .unavailable)
+    }
+
+    @MainActor
+    func testVerifiedWebSessionCommitsBeforeAutomaticSheetDismissal() async throws {
+        let store = WKWebsiteDataStore.default().httpCookieStore
+        let name = "next-auth.session-token.aiquota-success-\(UUID().uuidString)"
+        func cookie(_ value: String) throws -> HTTPCookie {
+            try XCTUnwrap(HTTPCookie(properties: [
+                .domain: "claude.ai", .path: "/", .name: name,
+                .value: value, .secure: "TRUE"
+            ]))
+        }
+        let previous = try cookie("previous")
+        await withCheckedContinuation { continuation in
+            store.setCookie(previous) { continuation.resume() }
+        }
+        let session = ClaudeWebDetailsSession()
+        let organizationID = UUID().uuidString
+        session.start(organization: .verified(organizationID), loadPage: false)
+        await session.beginReconnect(loadPage: false)
+        let signedIn = try cookie("new-sign-in")
+        await withCheckedContinuation { continuation in
+            store.setCookie(signedIn) { continuation.resume() }
+        }
+
+        session.acceptVerifiedOrganization(organizationID)
+        // SwiftUI's automatic sheet dismissal used to call rollback here.
+        await session.cancelReconnect()
+        session.start(organization: .verified(organizationID), loadPage: false)
+        let after = await cookies(in: store)
+        XCTAssertEqual(session.state, .ready)
+        XCTAssertTrue(after.contains(where: { $0.name == name && $0.value == "new-sign-in" }))
+        await withCheckedContinuation { continuation in
+            store.delete(signedIn) { continuation.resume() }
+        }
+    }
+
     @MainActor
     func testClosingReconnectRestoresPreviousClaudeCookie() async throws {
         let store = WKWebsiteDataStore.default().httpCookieStore

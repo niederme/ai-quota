@@ -12,6 +12,7 @@ enum ClaudeOrganizationLookup: Equatable {
 
 @MainActor @Observable
 final class ClaudeProbeModel {
+    let webDetailsSession = ClaudeWebDetailsSession()
     private let shared: SharedQuotaStore
     private var foregroundRefresh = ForegroundRefreshPolicy()
     private(set) var quietlyRefreshing = false
@@ -76,6 +77,7 @@ final class ClaudeProbeModel {
                         try ClaudeTokenStore.clear()
                     }
             foregroundRefresh.reset()
+            webDetailsSession.invalidate()
             tokens = newTokens
             challenge = nil
             message = "Signed in on this device. Checking quota…"
@@ -214,6 +216,7 @@ final class ClaudeProbeModel {
         }
         WidgetCenter.shared.reloadAllTimelines()
         UserDefaults.standard.removeObject(forKey: cacheKey)
+        webDetailsSession.invalidate()
         await ClaudeWebDetailsSession.clearSession()
         foregroundRefresh.reset()
         tokens = nil
