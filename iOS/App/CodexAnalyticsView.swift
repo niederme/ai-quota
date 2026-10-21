@@ -32,10 +32,15 @@ struct CodexAnalyticsView: View {
                         .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
                 }
             }
-            if historyUnavailable || history == nil {
+            if history == nil, busy {
+                ForEach(["Daily usage", "By model", "By app"], id: \.self) { title in
+                    AnalyticsSkeletonCard(title: title)
+                }
+                .accessibilityIdentifier("codexHistoryLoadingSkeleton")
+            } else if historyUnavailable || history == nil {
                 VStack(alignment: .leading, spacing: 12) {
-                    Label(historyUnavailable ? "History couldn’t refresh" : busy ? "Loading history…" : "History not reported",
-                          systemImage: "exclamationmark.triangle")
+                    Label(historyUnavailable ? "History couldn’t refresh" : "History not reported",
+                          systemImage: historyUnavailable ? "exclamationmark.triangle" : "clock")
                         .font(.headline)
                     if history != nil {
                         Text("Showing the last available history. Missing days stay empty.")
@@ -88,6 +93,36 @@ struct AnalyticsCard: ViewModifier {
         #else
         Color(nsColor: .controlBackgroundColor)
         #endif
+    }
+}
+
+/// Reserves roughly the final chart-card geometry without inventing usage
+/// values while the first history request is in flight.
+struct AnalyticsSkeletonCard: View {
+    let title: String
+    var rows = 2
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(title).font(.headline).foregroundStyle(AnalyticsStyle.secondary)
+            RoundedRectangle(cornerRadius: 5)
+                .fill(AnalyticsStyle.track)
+                .frame(width: 104, height: 34)
+            RoundedRectangle(cornerRadius: 8)
+                .fill(AnalyticsStyle.track)
+                .frame(maxWidth: .infinity)
+                .frame(height: typeSize.isAccessibilitySize ? 190 : 150)
+            ForEach(0..<rows, id: \.self) { index in
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(AnalyticsStyle.track)
+                    .frame(width: index == rows - 1 ? 142 : nil, height: 12)
+                    .frame(maxWidth: index == rows - 1 ? nil : .infinity, alignment: .leading)
+            }
+        }
+        .modifier(AnalyticsCard())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Loading \(title.lowercased())")
     }
 }
 

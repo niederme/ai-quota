@@ -26,6 +26,42 @@ struct ClaudeDetailUITestHarness: View {
     }
 }
 
+struct ServiceDetailLoadingUITestHarness: View {
+    let service: String
+
+    var body: some View {
+        ServiceAccountSheet(showsClose: false) {
+            ServiceDetailContent(
+                name: service,
+                icon: service == "Claude" ? "logo-claude" : "logo-openai",
+                reading: nil,
+                connected: true,
+                busy: true,
+                error: nil,
+                failure: nil,
+                refresh: {}
+            ) { Text("Account") }
+        }
+    }
+}
+
+struct ClaudeEnterpriseLoadingUITestHarness: View {
+    @State private var account = ClaudeProbeModel(restore: false)
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                ClaudeEnterpriseDetailView(account: account) {
+                    try? await Task.sleep(for: .seconds(300))
+                    return .temporarilyUnavailable
+                }
+                .padding(16)
+            }
+            .navigationTitle("Claude")
+        }
+    }
+}
+
 /// Drives the real SwiftUI sheet and session transaction through a successful
 /// same-organization SSO result, with local response fixtures.
 struct ClaudeDetailSSOUITestHarness: View {
@@ -33,6 +69,8 @@ struct ClaudeDetailSSOUITestHarness: View {
     @State private var account = ClaudeProbeModel(restore: false)
     @State private var configured = false
     @State private var showDetail = false
+    @State private var prompted = false
+    @State private var completedSignIn = false
 
     var body: some View {
         Group {
@@ -61,18 +99,14 @@ struct ClaudeDetailSSOUITestHarness: View {
                     "skills": Data(#"{"items":[{"skill_name":"sample-skill","invocation_count":2,"total_cost_minor_units":120}],"has_more":false}"#.utf8)
                 ]
                 configured = true
-                var prompted = false
-                var completedSignIn = false
-                while !Task.isCancelled && !completedSignIn {
-                    let state = account.webDetailsSession.state
-                    if state == .checking && !prompted {
-                        prompted = true
-                        account.webDetailsSession.testRequireSignIn()
-                    } else if state == .awaitingSignIn {
-                        completedSignIn = true
-                        await account.webDetailsSession.testProbe()
-                    }
-                    try? await Task.sleep(for: .milliseconds(50))
+            }
+            .onChange(of: account.webDetailsSession.state) { _, state in
+                if state == .checking && !prompted {
+                    prompted = true
+                    Task { account.webDetailsSession.testRequireSignIn() }
+                } else if state == .awaitingSignIn && !completedSignIn {
+                    completedSignIn = true
+                    Task { await account.webDetailsSession.testProbe() }
                 }
             }
     }

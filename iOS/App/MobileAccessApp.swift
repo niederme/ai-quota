@@ -23,6 +23,12 @@ struct MobileAccessApp: App {
                 ClaudeDetailSSOUITestHarness()
             } else if ProcessInfo.processInfo.arguments.contains("-claudeDetailUITest") {
                 ClaudeDetailUITestHarness()
+            } else if ProcessInfo.processInfo.arguments.contains("-serviceDetailLoadingUITest") {
+                ServiceDetailLoadingUITestHarness(
+                    service: ProcessInfo.processInfo.arguments.contains("-claudeService") ? "Claude" : "Codex"
+                )
+            } else if ProcessInfo.processInfo.arguments.contains("-claudeEnterpriseLoadingUITest") {
+                ClaudeEnterpriseLoadingUITestHarness()
             } else {
                 OverviewView(isDemo: demoEnabled).id(demoEnabled)
                     .environment(\.setDemoEnabled) { enabled in

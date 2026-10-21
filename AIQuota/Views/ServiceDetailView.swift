@@ -62,6 +62,10 @@ struct ServiceDetailView: View {
             || viewModel.claudeEnterpriseSpend != nil
             || viewModel.claudeEnterpriseSkills != nil
     }
+    private var canFetchClaudeDetails: Bool {
+        connected && viewModel.claudeUsage?.source != nil
+            && viewModel.claudeUsage?.source != .unknown
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -92,43 +96,28 @@ struct ServiceDetailView: View {
                             Label("Reconnect to update details. Your last reading is retained.", systemImage: "person.crop.circle.badge.exclamationmark")
                                 .foregroundStyle(Color.warningAmber)
                         }
-                        if isCodex, let budget = reading?.monthlyBudget {
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text("Monthly allowance").font(.headline)
-                                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                    Text("\(Int(budget.usedPercent.rounded()))%")
-                                        .font(.largeTitle.bold()).monospacedDigit()
-                                    Text("used").foregroundStyle(.secondary)
-                                }
-                                Text("\(budget.amountText(budget.used)) of \(budget.amountText(budget.limit))")
-                                    .font(.title3.weight(.semibold)).monospacedDigit()
-                                Text(budget.unitLabel).foregroundStyle(.secondary)
-                                ProgressView(value: budget.usedPercent, total: 100)
-                                    .tint(Color.gaugeAccent)
-                                if let reset = budget.confirmedResetDescription() {
-                                    Text(reset).font(.footnote).foregroundStyle(.secondary)
-                                }
-                            }
-                            .modifier(AnalyticsCard())
-                        }
-                        if isCodex, let history, history.days.contains(where: { $0.credits != nil }) {
+                        if isCodex, connected {
                             CodexAnalyticsView(reading: reading, history: history,
                                 historyUnavailable: viewModel.usageHistoryFailed,
-                                busy: busy, refresh: refresh)
+                                busy: busy || (history == nil && !viewModel.usageHistoryFailed), refresh: refresh)
                         } else if !isCodex, reading?.claudeBreakdown != nil {
                             ClaudeAnalyticsView(reading: reading, busy: busy, failed: error != nil || !connected, refresh: refresh)
                         }
                         if showsClaudeEnterpriseDetails {
                             ClaudeEnterpriseSpendView(
                                 snapshot: viewModel.claudeEnterpriseSpend,
-                                busy: viewModel.isClaudeSpendLoading,
+                                busy: viewModel.isClaudeSpendLoading
+                                    || (canFetchClaudeDetails && viewModel.claudeEnterpriseSpend == nil
+                                        && !viewModel.claudeSpendFailed),
                                 failed: viewModel.claudeSpendFailed,
                                 retry: { viewModel.refreshClaudeSpendDetails(force: true) }
                             )
                             ClaudeEnterpriseSkillsView(
                                 snapshot: viewModel.claudeEnterpriseSkills,
                                 currency: viewModel.claudeEnterpriseSpend?.report.currency,
-                                busy: viewModel.isClaudeSkillsLoading,
+                                busy: viewModel.isClaudeSkillsLoading
+                                    || (canFetchClaudeDetails && viewModel.claudeEnterpriseSkills == nil
+                                        && !viewModel.claudeSkillsFailed),
                                 failed: viewModel.claudeSkillsFailed,
                                 retry: { viewModel.refreshClaudeSkillsDetails(force: true) }
                             )
@@ -218,7 +207,7 @@ private struct ClaudeEnterpriseSpendView: View {
     private struct Day: Identifiable {
         let id: String
         let date: Date
-        let minorUnits: Int
+        let minorUnits: Int?
         let segments: [Segment]
     }
 
@@ -301,7 +290,7 @@ private struct ClaudeEnterpriseSpendView: View {
         var date = start
         while date <= end, result.count < 370 {
             result.append(reportedByDate[date] ?? Day(
-                id: Self.bucketID(date), date: date, minorUnits: 0, segments: []
+                id: Self.bucketID(date), date: date, minorUnits: nil, segments: []
             ))
             guard let next = calendar.date(byAdding: .day, value: 1, to: date) else { break }
             date = next
@@ -344,7 +333,7 @@ private struct ClaudeEnterpriseSpendView: View {
 
     private var totalMinorUnits: Int {
         if !products.isEmpty { return products.reduce(0) { $0 + $1.minorUnits } }
-        return days.reduce(0) { $0 + $1.minorUnits }
+        return days.compactMap(\.minorUnits).reduce(0, +)
     }
 
     private var hasReportedSpend: Bool { !products.isEmpty || !segments.isEmpty }
@@ -406,7 +395,9 @@ private struct ClaudeEnterpriseSpendView: View {
                         .accessibilityValue(Self.money(segment.minorUnits, currency: currency))
                     }
                     .chartXAxis {
-                        AxisMarks(values: .automatic(desiredCount: 4)) {
+                        AxisMarks(values: axisDates) {
+                            AxisGridLine()
+                            AxisTick()
                             AxisValueLabel(format: .dateTime.month(.abbreviated).day())
                                 .font(.caption2)
                         }
@@ -442,7 +433,8 @@ private struct ClaudeEnterpriseSpendView: View {
                         }
                     }
                     .frame(height: 168)
-                    .environment(\.timeZone, TimeZone(secondsFromGMT: 0)!)
+                    .environment(\.calendar, utcChartCalendar)
+                    .environment(\.timeZone, utcChartCalendar.timeZone)
                     .accessibilityLabel("Daily Enterprise spend by product in UTC")
                     .accessibilityValue(Self.money(totalMinorUnits, currency: currency))
 
@@ -490,15 +482,42 @@ private struct ClaudeEnterpriseSpendView: View {
                     Button("Retry spend", action: retry).disabled(busy)
                 }
             } else if busy {
-                Label("Loading Enterprise spend…", systemImage: "chart.bar")
-                    .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
+                spendSkeleton
             } else {
                 Text(failed ? "Enterprise spend couldn’t be loaded." : "Enterprise spend was not reported.")
                     .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
                 Button("Retry spend", action: retry).disabled(busy)
             }
         }
+        .frame(minHeight: (hasReportedSpend || (busy && snapshot == nil)) ? 500 : nil,
+               alignment: .topLeading)
         .modifier(AnalyticsCard())
+    }
+
+    /// Static placeholders reserve chart and row space without suggesting a
+    /// reported zero or adding motion while the provider request is pending.
+    private var spendSkeleton: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            DetailSkeletonBar(width: 116, height: 34)
+            DetailSkeletonBar(width: 150, height: 12)
+            DetailSkeletonBar(height: 168)
+            HStack(spacing: 12) {
+                DetailSkeletonBar(width: 74, height: 10)
+                DetailSkeletonBar(width: 94, height: 10)
+            }
+            DetailSkeletonBar(width: 112, height: 12)
+            ForEach(0..<4, id: \.self) { _ in
+                HStack {
+                    DetailSkeletonBar(width: 148, height: 13)
+                    Spacer(minLength: 8)
+                    DetailSkeletonBar(width: 52, height: 13)
+                }
+                .frame(height: 28)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Loading Claude spend details")
     }
 
     @ViewBuilder
@@ -534,12 +553,17 @@ private struct ClaudeEnterpriseSpendView: View {
                 }
             }
             Divider()
-            HStack {
-                Text("Total")
-                Spacer(minLength: 6)
-                Text(Self.money(day.minorUnits, currency: currency)).monospacedDigit()
+            if let minorUnits = day.minorUnits {
+                HStack {
+                    Text("Total")
+                    Spacer(minLength: 6)
+                    Text(Self.money(minorUnits, currency: currency)).monospacedDigit()
+                }
+                .fontWeight(.semibold)
+            } else {
+                Text("No spend reported")
+                    .foregroundStyle(AnalyticsStyle.secondary)
             }
-            .fontWeight(.semibold)
         }
         .font(.caption2)
         .padding(8)
@@ -563,6 +587,19 @@ private struct ClaudeEnterpriseSpendView: View {
         if key.contains("cowork") { return .yellow }
         if key.contains("chat") { return .blue }
         return AnalyticsStyle.accent
+    }
+
+    private var axisDates: [Date] {
+        guard let first = days.first?.date, let last = days.last?.date else { return [] }
+        guard days.count > 1 else { return [first] }
+        if days.count <= 7 { return [first, last] }
+        return [first, days[days.count / 2].date, last]
+    }
+
+    private var utcChartCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        return calendar
     }
 
     private static func bucketID(_ date: Date) -> String {
@@ -683,15 +720,40 @@ private struct ClaudeEnterpriseSkillsView: View {
                     Button("Retry skills", action: retry).disabled(busy)
                 }
             } else if busy {
-                Label("Loading skill activity…", systemImage: "wand.and.stars")
-                    .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
+                skillsSkeleton
             } else {
                 Text(failed ? "Skill activity couldn’t be loaded." : "Skill activity was not reported.")
                     .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
                 Button("Retry skills", action: retry).disabled(busy)
             }
         }
+        .frame(minHeight: (!items.isEmpty || (busy && snapshot == nil)) ? 310 : nil,
+               alignment: .topLeading)
         .modifier(AnalyticsCard())
+    }
+
+    private var skillsSkeleton: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            DetailSkeletonBar(width: 118, height: 12)
+            HStack {
+                DetailSkeletonBar(width: 50, height: 11)
+                Spacer(minLength: 8)
+                DetailSkeletonBar(width: 70, height: 11)
+                DetailSkeletonBar(width: 35, height: 11)
+            }
+            ForEach(0..<5, id: \.self) { _ in
+                HStack(spacing: 10) {
+                    DetailSkeletonBar(width: 160, height: 13)
+                    Spacer(minLength: 8)
+                    DetailSkeletonBar(width: 48, height: 13)
+                    DetailSkeletonBar(width: 22, height: 13)
+                }
+                .frame(height: 28)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Loading Claude skill activity")
     }
 
     private func costPerUse(_ item: ClaudeEnterpriseSkillUsage) -> String? {
@@ -700,6 +762,18 @@ private struct ClaudeEnterpriseSkillsView: View {
               uses > 0
         else { return nil }
         return ClaudeEnterpriseSpendView.money(Double(total) / Double(uses), currency: currency)
+    }
+}
+
+private struct DetailSkeletonBar: View {
+    var width: CGFloat? = nil
+    let height: CGFloat
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: min(5, height / 3))
+            .fill(Color.primary.opacity(0.11))
+            .frame(width: width, height: height)
+            .accessibilityHidden(true)
     }
 }
 

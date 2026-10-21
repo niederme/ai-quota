@@ -15,9 +15,10 @@ struct ClaudeEnterpriseDetailView: View {
     @State private var showReconnectPrompt = false
     @State private var reconnectExplanation = ""
     @State private var reconnectGate = ClaudeReconnectPromptGate()
-    @State private var selectedSpendDay: String?
+    @State private var selectedSpendDate: Date?
     @State private var showsAllSkills = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(account: ClaudeProbeModel,
          organizationLookup: (@MainActor () async -> ClaudeOrganizationLookup)? = nil) {
@@ -29,7 +30,7 @@ struct ClaudeEnterpriseDetailView: View {
         VStack(alignment: .leading, spacing: 16) {
             switch session.state {
             case .idle, .checking:
-                loadingRow("Loading Claude details…")
+                detailsLoadingSkeleton("Loading Claude details")
             case .awaitingSignIn:
                 loadingRow("Waiting for Claude sign-in…")
             case .signInRequired, .accountMismatch:
@@ -40,12 +41,14 @@ struct ClaudeEnterpriseDetailView: View {
                 compactUnavailable("Claude details unavailable")
             case .ready:
                 if session.detailsLoading && session.spend == nil && session.skills == nil {
-                    loadingRow("Loading spend and skills…")
+                    detailsLoadingSkeleton("Loading spend and skills")
                 }
                 if let spend = session.spend, !spend.series.isEmpty || !spend.totals.isEmpty {
                     spendCard(spend)
                 } else if session.spendUnavailable {
                     compactUnavailable("Spend history unavailable")
+                } else if !session.detailsLoading {
+                    compactEmpty("No spend history reported")
                 }
                 if let skills = session.skills, !skills.items.isEmpty {
                     skillsCard(
@@ -55,6 +58,8 @@ struct ClaudeEnterpriseDetailView: View {
                     )
                 } else if session.skillsUnavailable {
                     compactUnavailable("Skill details unavailable")
+                } else if !session.detailsLoading {
+                    compactEmpty("No skill activity reported")
                 }
             }
         }
@@ -142,8 +147,18 @@ struct ClaudeEnterpriseDetailView: View {
         .modifier(OverviewCardMaterial())
     }
 
+    private func compactEmpty(_ title: String) -> some View {
+        Label(title, systemImage: "clock")
+            .font(.callout)
+            .foregroundStyle(OverviewStyle.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(16)
+            .modifier(OverviewCardMaterial())
+    }
+
     private struct DailySpend: Identifiable {
         let day: String
+        let date: Date
         let productID: String
         let productName: String
         let minorUnits: Int
@@ -159,11 +174,12 @@ struct ClaudeEnterpriseDetailView: View {
 
     private func spendCard(_ spend: ClaudeSpendHistory) -> some View {
         let daily = spend.series.compactMap { row -> DailySpend? in
-            guard let day = row.bucket, ClaudeEnterpriseDateOnly.bucketDate(day) != nil,
+            guard let day = row.bucket, let date = ClaudeEnterpriseDateOnly.bucketDate(day),
                   let amount = row.costMinorUnits else { return nil }
             let key = row.groupKey ?? row.group ?? "other"
             return DailySpend(
                 day: String(day.prefix(10)),
+                date: date,
                 productID: key,
                 productName: productName(group: row.group, key: row.groupKey),
                 minorUnits: amount
@@ -175,6 +191,11 @@ struct ClaudeEnterpriseDetailView: View {
         let chartDays = reportDays(spend, daily: daily)
         let highestDay = Dictionary(grouping: daily, by: \.day).values
             .map { $0.reduce(0) { $0 + $1.minorUnits } }.max() ?? 0
+        let reportedDays = Dictionary(grouping: daily, by: \.day)
+        let explicitZeroDays = reportedDays.values.filter { rows in
+            rows.reduce(0) { $0 + $1.minorUnits } == 0
+        }.count
+        let unreportedDays = chartDays.filter { reportedDays[$0] == nil }.count
         return VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Spend by product").font(.headline)
@@ -188,8 +209,9 @@ struct ClaudeEnterpriseDetailView: View {
             if !daily.isEmpty {
                 Chart(daily) { value in
                     BarMark(
-                        x: .value("Day", value.day),
-                        y: .value("Spend", Double(value.minorUnits) / 100)
+                        x: .value("Day", value.date, unit: .day),
+                        y: .value("Spend", Double(value.minorUnits) / 100),
+                        width: .ratio(0.78)
                     )
                     .foregroundStyle(by: .value("Product", value.productName))
                     .cornerRadius(2)
@@ -197,14 +219,13 @@ struct ClaudeEnterpriseDetailView: View {
                     .accessibilityValue(money(value.minorUnits, currency: spend.currency ?? "USD"))
                 }
                 .chartYScale(domain: 0...max(1, Double(highestDay) / 100 * 1.15))
-                .chartXScale(domain: chartDays)
+                .chartXScale(domain: chartDateDomain(chartDays))
                 .chartXAxis {
-                    AxisMarks(values: .automatic(desiredCount: 5)) { value in
+                    AxisMarks(values: chartAxisDates(chartDays)) { value in
                         AxisGridLine()
                         AxisTick()
-                        AxisValueLabel {
-                            if let day = value.as(String.self) { Text(axisDate(day)) }
-                        }
+                        AxisValueLabel(format: Date.FormatStyle(timeZone: TimeZone(secondsFromGMT: 0)!)
+                            .month(.abbreviated).day(), centered: false)
                     }
                 }
                 .chartYAxis { AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) }
@@ -213,13 +234,20 @@ struct ClaudeEnterpriseDetailView: View {
                     range: products.map { productColor(id: $0.id, name: $0.name) }
                 )
                 .chartLegend(position: .bottom, alignment: .leading, spacing: 10)
-                .chartXSelection(value: $selectedSpendDay)
+                .chartXSelection(value: $selectedSpendDate)
                 .frame(height: dynamicTypeSize.isAccessibilitySize ? 260 : 220)
+                .environment(\.calendar, utcChartCalendar)
+                .environment(\.timeZone, utcChartCalendar.timeZone)
                 .accessibilityLabel("Daily spend by product")
-                .accessibilityHint("Tap a day to show its product amounts")
+                .accessibilityHint("Tap a day to show its product amounts. A missing bar means no spend was reported for that day.")
+                Text(chartCoverageLabel(dayCount: chartDays.count,
+                                        explicitZeroDays: explicitZeroDays,
+                                        unreportedDays: unreportedDays))
+                    .font(.footnote)
+                    .foregroundStyle(OverviewStyle.secondary)
             }
-            if let selectedSpendDay,
-               chartDays.contains(selectedSpendDay) {
+            if let selectedSpendDate,
+               let selectedSpendDay = selectedDayKey(selectedSpendDate, days: chartDays) {
                 selectedDayDetail(selectedSpendDay, daily: daily, currency: spend.currency ?? "USD")
             }
             Text("By product").font(.callout.weight(.semibold))
@@ -260,7 +288,8 @@ struct ClaudeEnterpriseDetailView: View {
             }
             if skills.items.count > 5 {
                 Button {
-                    withAnimation(.snappy) { showsAllSkills.toggle() }
+                    if reduceMotion { showsAllSkills.toggle() }
+                    else { withAnimation(.snappy) { showsAllSkills.toggle() } }
                 } label: {
                     HStack {
                         Text(showsAllSkills ? "Show less" : "Show more")
@@ -425,6 +454,43 @@ struct ClaudeEnterpriseDetailView: View {
         return days
     }
 
+    private func chartCoverageLabel(dayCount: Int, explicitZeroDays: Int, unreportedDays: Int) -> String {
+        var parts = ["\(dayCount) calendar \(dayCount == 1 ? "day" : "days")"]
+        if explicitZeroDays > 0 { parts.append("\(explicitZeroDays) reported as zero") }
+        if unreportedDays > 0 { parts.append("\(unreportedDays) without reported data") }
+        return parts.joined(separator: " · ")
+    }
+
+    private func chartDateDomain(_ days: [String]) -> ClosedRange<Date> {
+        let dates = days.compactMap(ClaudeEnterpriseDateOnly.bucketDate)
+        let first = dates.first ?? .now
+        let last = dates.last ?? first
+        return first.addingTimeInterval(-43_200)...last.addingTimeInterval(43_200)
+    }
+
+    private var utcChartCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        return calendar
+    }
+
+    private func chartAxisDates(_ days: [String]) -> [Date] {
+        let dates = days.compactMap(ClaudeEnterpriseDateOnly.bucketDate)
+        guard let first = dates.first, let last = dates.last else { return [] }
+        guard dates.count > 1 else { return [first] }
+        if dynamicTypeSize.isAccessibilitySize || dates.count < 5 { return [first, last] }
+        let indexes = [0, (dates.count - 1) / 2, dates.count - 1]
+        return indexes.map { dates[$0] }
+    }
+
+    private func selectedDayKey(_ selection: Date, days: [String]) -> String? {
+        days.min { lhs, rhs in
+            let left = ClaudeEnterpriseDateOnly.bucketDate(lhs) ?? .distantPast
+            let right = ClaudeEnterpriseDateOnly.bucketDate(rhs) ?? .distantPast
+            return abs(left.timeIntervalSince(selection)) < abs(right.timeIntervalSince(selection))
+        }
+    }
+
     private func dateKey(_ date: Date, calendar: Calendar) -> String {
         let parts = calendar.dateComponents([.year, .month, .day], from: date)
         return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
@@ -438,11 +504,6 @@ struct ClaudeEnterpriseDetailView: View {
 
     private func displayDate(_ value: String) -> String {
         ClaudeEnterpriseDateOnly.displayDate(value) ?? value
-    }
-
-    private func axisDate(_ value: String) -> String {
-        guard let date = ClaudeEnterpriseDateOnly.displayDate(value) else { return value }
-        return String(date.split(separator: ",", maxSplits: 1).first ?? Substring(date))
     }
 
     private func productName(group: String?, key: String?) -> String {
@@ -519,6 +580,16 @@ struct ClaudeEnterpriseDetailView: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, minHeight: 64)
+    }
+
+    private func detailsLoadingSkeleton(_ label: String) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            AnalyticsSkeletonCard(title: "Spend by product", rows: 2)
+            AnalyticsSkeletonCard(title: "Skills", rows: 3)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
+        .accessibilityIdentifier("claudeEnterpriseLoadingSkeleton")
     }
 }
 

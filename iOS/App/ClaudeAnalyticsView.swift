@@ -50,11 +50,30 @@ struct ClaudeAnalyticsView: View {
                         Button("Try again", action: refresh).disabled(busy)
                     }
                 } else {
-                    Text(busy ? "Fetching weekly breakdown…" : "Weekly breakdown unavailable")
-                        .font(.callout.weight(.semibold))
-                    Text("Product details appear when Claude reports them.")
-                        .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
-                    if !busy { Button("Try again", action: refresh) }
+                    if busy {
+                        VStack(alignment: .leading, spacing: 16) {
+                            ForEach(0..<3, id: \.self) { index in
+                                VStack(alignment: .leading, spacing: 8) {
+                                    RoundedRectangle(cornerRadius: 4)
+                                        .fill(AnalyticsStyle.track)
+                                        .frame(width: index == 1 ? 174 : 132, height: 16)
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(AnalyticsStyle.track)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 5)
+                                }
+                            }
+                        }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("Loading this week by product")
+                        .accessibilityIdentifier("claudeBreakdownLoadingSkeleton")
+                    } else {
+                        Text("Weekly breakdown unavailable")
+                            .font(.callout.weight(.semibold))
+                        Text("Product details appear when Claude reports them.")
+                            .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
+                        Button("Try again", action: refresh)
+                    }
                 }
             }.modifier(AnalyticsCard())
             if reading?.monthlyBudget == nil, let spent = reading?.metadata?.usageSpent, spent > 0 {
@@ -68,7 +87,7 @@ struct ClaudeAnalyticsView: View {
                     Text("Outside your plan allowance. Your subscription price is separate.")
                         .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
                 }.modifier(AnalyticsCard())
-            } else if reading?.monthlyBudget == nil, reading?.metadata?.usageSpent == nil {
+            } else if !busy, reading?.monthlyBudget == nil, reading?.metadata?.usageSpent == nil {
                 Text("Spending not reported").font(.callout).foregroundStyle(AnalyticsStyle.secondary)
             }
         }.foregroundStyle(AnalyticsStyle.primary).tint(AnalyticsStyle.accent)

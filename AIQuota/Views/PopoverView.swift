@@ -60,7 +60,6 @@ struct PopoverView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .environment(viewModel).environment(updater)),
             size: popoverSize,
-            layoutSize: popoverLayoutSize,
             animateResize: !reduceMotion && navigationPhase.resizesWindow,
             presentationID: presentationID,
             onCapture: { menuBarWindow = $0 },
@@ -85,37 +84,37 @@ struct PopoverView: View {
 
     private var pageContent: some View {
         ZStack(alignment: .topLeading) {
-            // Once the outgoing page is transparent, leave only the material
-            // during the shrink. Hidden charts and gauges still incur layout.
-            if navigationPhase != .shrinking {
-                Group {
-                    if !viewModel.enrolledServices.isEmpty {
-                        authenticatedContent
-                    } else {
-                        signInContent
-                    }
+            Group {
+                if !viewModel.enrolledServices.isEmpty {
+                    authenticatedContent
+                } else {
+                    signInContent
                 }
-                .frame(width: overviewWidth)
-                .fixedSize(horizontal: false, vertical: true)
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
-                    if height > 0, navigationPhase != .shrinking, overviewHeight != height { overviewHeight = height }
-                }
-                .modifier(PopoverPageVisibility(isVisible: navigationPhase == .overview,
-                                                reduceMotion: reduceMotion, distance: 0, onHidden: {}))
-                .allowsHitTesting(navigationPhase == .overview)
-                .accessibilityHidden(navigationPhase != .overview)
+            }
+            .frame(width: overviewWidth)
+            .fixedSize(horizontal: false, vertical: true)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                if height > 0, navigationPhase == .overview, overviewHeight != height { overviewHeight = height }
+            }
+            // Crossfade into the overview before the native window begins its
+            // close so the returning panel always has content while shrinking.
+            .modifier(PopoverPageVisibility(isVisible: navigationPhase.showsOverview,
+                                            reduceMotion: reduceMotion, distance: 0, onHidden: {}))
+            .allowsHitTesting(navigationPhase == .overview)
+            .accessibilityHidden(navigationPhase != .overview)
 
-                if let selectedService {
-                    ServiceDetailView(service: selectedService, height: detailSize.height,
-                                      close: closeService, openAccount: openSettingsKeepingPopover)
-                        .frame(width: detailSize.width)
-                        .id(selectedService)
-                        .modifier(PopoverPageVisibility(isVisible: navigationPhase == .detail,
-                                                        reduceMotion: reduceMotion, distance: 6,
-                                                        onHidden: finishDetailFade))
-                        .allowsHitTesting(navigationPhase == .detail)
-                        .accessibilityHidden(navigationPhase != .detail)
-                }
+            if let selectedService {
+                ServiceDetailView(service: selectedService, height: detailSize.height,
+                                  close: closeService, openAccount: openSettingsKeepingPopover)
+                    .frame(width: detailSize.width)
+                    .id(selectedService)
+                    // Start revealing the detail as the window expands. Waiting
+                    // for the resize completion leaves a blank full-height panel.
+                    .modifier(PopoverPageVisibility(isVisible: navigationPhase.showsDetail,
+                                                    reduceMotion: reduceMotion, distance: 6,
+                                                    onHidden: finishDetailFade))
+                    .allowsHitTesting(navigationPhase == .detail)
+                    .accessibilityHidden(navigationPhase != .detail)
             }
         }
         .frame(width: popoverLayoutSize.width, height: popoverLayoutSize.height, alignment: .topLeading)
@@ -1370,6 +1369,10 @@ private struct PopoverPageVisibility: ViewModifier {
 private enum PopoverNavigationPhase {
     case overview, expanding, detail, fadingDetail, shrinking
 
+    var showsOverview: Bool {
+        self == .overview || self == .fadingDetail || self == .shrinking
+    }
+    var showsDetail: Bool { self == .expanding || self == .detail }
     var isExpanded: Bool {
         self == .expanding || self == .detail || self == .fadingDetail
     }
@@ -1382,18 +1385,16 @@ private enum PopoverNavigationPhase {
 private struct MenuBarPopoverHost: NSViewRepresentable {
     let content: AnyView
     let size: CGSize
-    let layoutSize: CGSize
     let animateResize: Bool
     let presentationID: Int
     let onCapture: (NSWindow?) -> Void
     let onResizeFinished: (CGSize) -> Void
 
     func makeNSView(context: Context) -> MenuBarPopoverContainer {
-        MenuBarPopoverContainer(content: content, size: size, layoutSize: layoutSize)
+        MenuBarPopoverContainer(content: content, size: size)
     }
 
     func updateNSView(_ view: MenuBarPopoverContainer, context: Context) {
-        view.layoutSize = layoutSize
         view.host.rootView = content
         view.onCapture = onCapture
         view.onResizeFinished = onResizeFinished
@@ -1403,17 +1404,16 @@ private struct MenuBarPopoverHost: NSViewRepresentable {
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView view: MenuBarPopoverContainer,
                       context: Context) -> CGSize? {
-        // Keep the ideal expanded until the native close finishes. Finite
-        // proposals can follow its intermediate viewport while stale undersized
-        // proposals remain bounded by the native destination.
-        func dimension(_ proposed: CGFloat?, target: CGFloat, ideal: CGFloat, minimum: CGFloat) -> CGFloat {
-            if proposed == 0 { return minimum }
-            guard let proposed else { return ideal }
-            return max(target, min(proposed, 10_000))
+        // MenuBarExtra uses this ideal to place its window beneath the status
+        // item. Keep that ideal compact for the entire presentation so a detail
+        // page cannot trigger a second system reposition. Once AppKit expands
+        // the window, accept its finite viewport and let the hosted page fill it.
+        func dimension(_ proposed: CGFloat?, compact: CGFloat) -> CGFloat {
+            guard let proposed, proposed > 0 else { return compact }
+            return min(proposed, 10_000)
         }
-        let result = CGSize(width: dimension(proposal.width, target: size.width, ideal: layoutSize.width, minimum: view.compactSize.width),
-                            height: dimension(proposal.height, target: size.height, ideal: layoutSize.height, minimum: view.compactSize.height))
-        return result
+        return CGSize(width: dimension(proposal.width, compact: view.compactSize.width),
+                      height: dimension(proposal.height, compact: view.compactSize.height))
     }
 }
 
@@ -1432,22 +1432,16 @@ private final class MenuBarPopoverContainer: NSView {
     private(set) var compactSize: CGSize
     var onCapture: (NSWindow?) -> Void = { _ in }
     var onResizeFinished: (CGSize) -> Void = { _ in }
-    var layoutSize: CGSize {
-        didSet {
-            if layoutSize != oldValue { invalidateIntrinsicContentSize() }
-        }
-    }
     private var desiredSize: CGSize
     private var appliedSize: CGSize?
     private var topRight: CGPoint?
     private var presentationID: Int?
     private var resizeGeneration = 0
 
-    init(content: AnyView, size: CGSize, layoutSize: CGSize) {
+    init(content: AnyView, size: CGSize) {
         host = NSHostingView(rootView: content)
         initialSize = size
         compactSize = size
-        self.layoutSize = layoutSize
         desiredSize = size
         super.init(frame: CGRect(origin: .zero, size: size))
         host.sizingOptions = []
@@ -1457,7 +1451,10 @@ private final class MenuBarPopoverContainer: NSView {
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-    override var intrinsicContentSize: NSSize { layoutSize }
+    // The native window owns expanded sizing. Advertising the detail page as
+    // this view's intrinsic size makes MenuBarExtra independently resize and
+    // reposition the same window midway through our anchored animation.
+    override var intrinsicContentSize: NSSize { compactSize }
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
