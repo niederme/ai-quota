@@ -88,27 +88,29 @@ struct MultiAccountOverviewView: View {
             GeometryReader { geometry in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
-                        ForEach(orderedProfiles, id: \.orderKey) { profile in
-                            accountCard(profile, width: min(geometry.size.width, 780) - 32)
-                                .onDrag {
-                                    draggingAccount = profile.orderKey
-                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                    return NSItemProvider(object: profile.orderKey as NSString)
-                                }
-                                .onDrop(of: [UTType.plainText], delegate: AccountCardDropDelegate(
-                                    destination: profile.orderKey,
-                                    dragging: $draggingAccount,
-                                    hover: { source, destination in
-                                        reorderDuringDrag(source, onto: destination)
-                                    },
-                                    finish: finishDrag
-                                ))
-                                .accessibilityAction(named: "Move earlier") {
-                                    moveAccount(profile.orderKey, offset: -1)
-                                }
-                                .accessibilityAction(named: "Move later") {
-                                    moveAccount(profile.orderKey, offset: 1)
-                                }
+                        VStack(alignment: .leading, spacing: 16) {
+                            ForEach(orderedProfiles, id: \.orderKey) { profile in
+                                accountCard(profile, width: min(geometry.size.width, 780) - 32)
+                                    .onDrag {
+                                        draggingAccount = profile.orderKey
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                        return NSItemProvider(object: profile.orderKey as NSString)
+                                    }
+                                    .onDrop(of: [UTType.plainText], delegate: AccountCardDropDelegate(
+                                        destination: profile.orderKey,
+                                        dragging: $draggingAccount,
+                                        hover: { source, destination in
+                                            reorderDuringDrag(source, onto: destination)
+                                        },
+                                        finish: finishDrag
+                                    ))
+                                    .accessibilityAction(named: "Move earlier") {
+                                        moveAccount(profile.orderKey, offset: -1)
+                                    }
+                                    .accessibilityAction(named: "Move later") {
+                                        moveAccount(profile.orderKey, offset: 1)
+                                    }
+                            }
                         }
                         freshness.frame(maxWidth: .infinity)
                     }
@@ -191,12 +193,12 @@ struct MultiAccountOverviewView: View {
     }
 
     @ViewBuilder private func accountCard(_ profile: AccountProfile, width: CGFloat) -> some View {
-        let showLabel = accounts.connected(profile.service).count > 1 || profile.label != "Account 1"
+        let accountLabel = overviewAccountLabel(profile.label)
         if profile.service == .codex, let model = accounts.codex(profile) {
             ProviderDialCard(name: "Codex", icon: profile.service.logo, availableWidth: width,
                              reading: model.reading, connected: model.connected, busy: model.loading,
                              error: model.error, failure: model.connectionFailure,
-                             accountLabel: showLabel ? profile.label : nil,
+                             accountLabel: accountLabel,
                              history: model.history, historyUnavailable: model.historyUnavailable,
                              tokenHistory: model.tokenHistory, tokenHistoryUnavailable: model.tokenHistoryUnavailable,
                              tokenHistoryLoading: model.tokenHistoryLoading,
@@ -207,11 +209,23 @@ struct MultiAccountOverviewView: View {
             ProviderDialCard(name: "Claude", icon: profile.service.logo, availableWidth: width,
                              reading: model.reading, connected: model.connected, busy: model.loading,
                              error: model.error, failure: model.connectionFailure,
-                             accountLabel: showLabel ? profile.label : nil,
+                             accountLabel: accountLabel,
                              onReconnect: { selected = .init(kind: .connection, profile: profile) }) {
                 selected = .init(kind: .detail, profile: profile)
             }
         }
+    }
+
+    private func overviewAccountLabel(_ label: String) -> String? {
+        let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let parts = trimmed.split(whereSeparator: \.isWhitespace)
+        if parts.count == 2,
+           (parts[0].lowercased() == "account" || parts[0].lowercased() == "service"),
+           !parts[1].isEmpty, parts[1].allSatisfy(\.isNumber) {
+            return nil
+        }
+        return trimmed
     }
 
     @ViewBuilder private func sheetContent(_ selection: AccountSheetSelection) -> some View {

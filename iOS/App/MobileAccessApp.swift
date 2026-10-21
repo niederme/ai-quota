@@ -39,6 +39,15 @@ struct MobileAccessApp: App {
                     AccountProfile(id: "fixture-codex-work", service: .codex, label: "Work", isLegacy: false),
                     AccountProfile(id: "fixture-claude-work", service: .claude, label: "Work", isLegacy: false)
                 ])
+            } else if ProcessInfo.processInfo.arguments.contains("-genericAccountLabelsUITest") {
+                MultiAccountOverviewView(fixtureProfiles: [
+                    AccountProfile(id: "fixture-codex-1", service: .codex, label: "Account 1", isLegacy: false),
+                    AccountProfile(id: "fixture-codex-2", service: .codex, label: "Account 2", isLegacy: false),
+                    AccountProfile(id: "fixture-claude-1", service: .claude, label: "Service 1", isLegacy: false),
+                    AccountProfile(id: "fixture-claude-2", service: .claude, label: "Service 2", isLegacy: false)
+                ])
+            } else if ProcessInfo.processInfo.arguments.contains("-businessMonthlyOverviewUITest") {
+                BusinessMonthlyOverviewFixtureView()
             } else if ProcessInfo.processInfo.arguments.contains("-multiAccountReorderUITest") {
                 MultiAccountReorderFixtureView(
                     reset: ProcessInfo.processInfo.arguments.contains("-resetMultiAccountReorderFixture")
@@ -71,6 +80,31 @@ struct MobileAccessApp: App {
 }
 
 #if DEBUG
+private struct BusinessMonthlyOverviewFixtureView: View {
+    private let reading = QuotaReading(
+        fetchedAt: .now,
+        shortTerm: nil,
+        weekly: nil,
+        metadata: AccountMetadata(plan: "business", balanceUSD: nil, usageSpent: nil, usageCurrency: nil),
+        monthlyBudget: MonthlyBudget(used: 7.82, limit: 7_000, unit: "credits", resetsAt: .now.addingTimeInterval(7 * 86400))
+    )
+
+    var body: some View {
+        NavigationStack {
+            GeometryReader { geometry in
+                ScrollView {
+                    ProviderDialCard(name: "Codex", icon: "logo-openai",
+                                     availableWidth: geometry.size.width - 32,
+                                     reading: reading, connected: true, busy: false, error: nil) {}
+                        .padding(16)
+                }
+                .background { OverviewBackground().ignoresSafeArea() }
+            }
+            .navigationTitle("AIQuota")
+        }
+    }
+}
+
 private struct MultiAccountReorderFixtureView: View {
     private let store: AccountRegistry.Store
 

@@ -575,6 +575,7 @@ struct ProviderDialCard: View {
 /// Shared by the overview and service sheets; settings retain their existing UI.
 enum OverviewStyle {
     static let accent = Color("OverviewAccent")
+    static let resetAccent = Color("OverviewResetAccent")
     static let warning = Color("OverviewWarning")
     static let critical = Color("OverviewCritical")
     static let primary = Color("OverviewPrimary")
@@ -753,7 +754,7 @@ struct ProviderDialCardContent: View {
                             .foregroundStyle(OverviewStyle.secondary)
                         if let reset = budget.confirmedResetDescription() {
                             Text(reset).modifier(OverviewDetailType())
-                                .foregroundStyle(OverviewStyle.secondary)
+                                .foregroundStyle(OverviewStyle.resetAccent)
                         }
                     }
                 }
@@ -780,7 +781,7 @@ struct ProviderDialCardContent: View {
         let value = reading?.metadata?.usageCurrency.map { amount.formatted(.currency(code: $0)) }
             ?? amount.formatted(.number.precision(.fractionLength(0...2))) + " credits"
         return Text("Credits used  \(value)")
-            .modifier(OverviewDetailType()).foregroundStyle(OverviewStyle.warning)
+            .modifier(OverviewDetailType()).foregroundStyle(OverviewStyle.secondary)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityLabel("Credits used: \(value)")
     }
@@ -837,7 +838,7 @@ struct ProviderDialCardContent: View {
             return "\(label) \(window.resetDescription())"
         }()
         return Text(text).modifier(OverviewDetailType())
-            .foregroundStyle(window == nil ? OverviewStyle.secondary : tint)
+            .foregroundStyle(window == nil ? OverviewStyle.secondary : OverviewStyle.resetAccent)
             .fixedSize(horizontal: false, vertical: true)
     }
     private func arc(_ window: QuotaWindow?, opacity: Double) -> some View {

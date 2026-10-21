@@ -1,6 +1,49 @@
 import XCTest
 
 final class MultiAccountFlowTests: XCTestCase {
+    func testBusinessMonthlyResetAppearsWithNeutralCredits() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-businessMonthlyOverviewUITest"]
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["Business plan"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["credits this month"].exists)
+        XCTAssertTrue(app.staticTexts.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "Monthly resets")
+        ).firstMatch.exists)
+        let overview = XCTAttachment(screenshot: app.screenshot())
+        overview.name = "Business monthly reset and credits"
+        overview.lifetime = .keepAlways
+        add(overview)
+    }
+
+    func testDefaultOverviewOmitsGenericNumberedAccountLabels() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-genericAccountLabelsUITest"]
+        app.launch()
+
+        XCTAssertTrue(app.buttons.matching(identifier: "codexServiceCard").element(boundBy: 0).waitForExistence(timeout: 10))
+        XCTAssertEqual(app.buttons.matching(identifier: "codexServiceCard").count, 2)
+        XCTAssertEqual(app.buttons.matching(identifier: "claudeServiceCard").count, 2)
+        XCTAssertTrue(app.staticTexts["Demo plan"].firstMatch.exists)
+        XCTAssertFalse(app.staticTexts["Demo plan · Account 1"].exists)
+        XCTAssertFalse(app.staticTexts["Demo plan · Account 2"].exists)
+        XCTAssertFalse(app.staticTexts["Demo plan · Service 1"].exists)
+        XCTAssertFalse(app.staticTexts["Demo plan · Service 2"].exists)
+
+        let overview = XCTAttachment(screenshot: app.screenshot())
+        overview.name = "Overview without generic numbered labels"
+        overview.lifetime = .keepAlways
+        add(overview)
+        app.scrollViews.firstMatch.swipeUp()
+        let lowerCards = XCTAttachment(screenshot: app.screenshot())
+        lowerCards.name = "Four-account overview lower cards"
+        lowerCards.lifetime = .keepAlways
+        add(lowerCards)
+    }
+
     func testAccountCardDragInterleavesServicesAndSurvivesRelaunch() throws {
         continueAfterFailure = false
         let app = XCUIApplication()
