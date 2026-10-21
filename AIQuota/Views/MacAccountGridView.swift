@@ -30,6 +30,7 @@ struct MacAccountGridView: View {
 
     @State private var orderIDs: [String] = []
     @State private var dragging: String?
+    @State private var contentHeight: CGFloat?
 
     private var accounts: [ConnectedAccount] {
         let visible = AccountRegistry.orderedAccounts().filter { account in
@@ -46,12 +47,12 @@ struct MacAccountGridView: View {
 
     private var columnCount: Int { MacAccountGridLayout.columns(for: Double(width)) }
     private var columns: [GridItem] {
-        Array(repeating: GridItem(.flexible(minimum: 250), spacing: 12, alignment: .top), count: columnCount)
+        Array(repeating: GridItem(.flexible(minimum: 250), spacing: 24, alignment: .top), count: columnCount)
     }
 
     var body: some View {
         ScrollView {
-            LazyVGrid(columns: columns, alignment: .leading, spacing: 12) {
+            LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
                 ForEach(accounts) { account in
                     MacAccountCard(account: account, session: session(for: account),
                                    showsAccountLabel: accounts.filter { $0.provider == account.provider }.count > 1,
@@ -76,15 +77,20 @@ struct MacAccountGridView: View {
                         .accessibilityAction(named: "Move later") { move(account.id, offset: 1) }
                 }
             }
-            .padding(14)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 8)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                if height > 0, contentHeight != height { contentHeight = height }
+            }
         }
-        .frame(width: width, height: CGFloat(MacAccountGridLayout.viewportHeight(
+        .frame(width: width, height: min(maxHeight, contentHeight ?? CGFloat(MacAccountGridLayout.viewportHeight(
             accountCount: accounts.count, width: Double(width), availableHeight: Double(maxHeight)
-        )))
+        ))))
         .scrollIndicators(.automatic)
         .onAppear { orderIDs = AccountRegistry.orderedAccounts().map(\.id) }
         .onChange(of: viewModel.additionalAccounts.map(\.id)) { _, _ in
             orderIDs = AccountRegistry.orderedAccounts().map(\.id)
+            contentHeight = nil
         }
     }
 

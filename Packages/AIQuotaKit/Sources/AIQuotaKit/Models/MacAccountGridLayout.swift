@@ -12,6 +12,10 @@ public enum MacAccountGridLayout {
     }
 
     public static func viewportHeight(accountCount: Int, width: Double, availableHeight: Double) -> Double {
-        min(availableHeight, Double(max(1, rows(accountCount: accountCount, width: width))) * 180 + 16)
+        let count = max(1, rows(accountCount: accountCount, width: width))
+        // Match MacAccountCard's 126-point minimum, 8-point row gap and the
+        // ScrollView's 8-point top/bottom padding. Extra height belonged to
+        // the viewport and appeared as a blank strip above the footer.
+        return min(availableHeight, Double(count * 126 + (count - 1) * 8 + 16))
     }
 }

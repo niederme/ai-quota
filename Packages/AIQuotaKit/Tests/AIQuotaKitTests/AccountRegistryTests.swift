@@ -9,11 +9,16 @@ struct AccountRegistryTests {
         for count in 1...6 {
             #expect(MacAccountGridLayout.rows(accountCount: count, width: 652) == (count + 1) / 2)
             #expect(MacAccountGridLayout.rows(accountCount: count, width: 500) == count)
+            let rows = Double((count + 1) / 2)
+            #expect(MacAccountGridLayout.viewportHeight(accountCount: count, width: 652,
+                                                         availableHeight: 900) == rows * 134 + 8)
+            #expect(MacAccountGridLayout.viewportHeight(accountCount: count, width: 652,
+                                                         availableHeight: 300) <= 300)
         }
         #expect(MacAccountGridLayout.viewportHeight(accountCount: 6, width: 652,
-                                                     availableHeight: 900) == 556)
+                                                     availableHeight: 900) == 410)
         #expect(MacAccountGridLayout.viewportHeight(accountCount: 6, width: 652,
-                                                     availableHeight: 500) == 500)
+                                                     availableHeight: 300) == 300)
     }
 
     @Test("Mac account overview never borrows another account's metric")

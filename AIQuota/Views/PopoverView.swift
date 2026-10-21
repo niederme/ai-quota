@@ -1444,16 +1444,11 @@ private struct MenuBarPopoverHost: NSViewRepresentable {
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView view: MenuBarPopoverContainer,
                       context: Context) -> CGSize? {
-        // MenuBarExtra uses this ideal to place its window beneath the status
-        // item. Keep that ideal compact for the entire presentation so a detail
-        // page cannot trigger a second system reposition. Once AppKit expands
-        // the window, accept its finite viewport and let the hosted page fill it.
-        func dimension(_ proposed: CGFloat?, target: CGFloat, compact: CGFloat) -> CGFloat {
-            guard let proposed, proposed > 0 else { return max(target, compact) }
-            return max(target, min(proposed, 10_000))
-        }
-        return CGSize(width: dimension(proposal.width, target: size.width, compact: view.compactSize.width),
-                      height: dimension(proposal.height, target: size.height, compact: view.compactSize.height))
+        // MenuBarExtra can keep proposing the previous (taller) window size.
+        // Reporting that stale proposal made the overview retain empty space
+        // below the footer. The native window handles detail-page expansion;
+        // SwiftUI always advertises the measured compact content size.
+        view.compactSize
     }
 }
 

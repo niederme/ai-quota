@@ -50,7 +50,9 @@ struct MacAccountCard: View {
         if account.provider == .codex, codexUsage?.reportedWindowShape == nil,
            let value = codexUsage?.displayableMonthlyBudget,
            let used = value.used, let limit = value.limit {
-            return (used, limit, value.unit ?? "monthly allowance", nil, value.resetAt)
+            let unit = value.unit ?? "monthly allowance"
+            let currency = unit.count == 3 && unit.lowercased() != "credit" ? unit.uppercased() : nil
+            return (used, limit, unit, currency, value.resetAt)
         }
         if account.provider == .claude, claudeUsage?.primaryMetric.kind == .spendLimit,
            let value = claudeUsage?.spendLimit,
@@ -84,19 +86,17 @@ struct MacAccountCard: View {
 
     var body: some View {
         Button(action: connected || hasReading ? open : reconnect) {
-            HStack(alignment: .top, spacing: 16) {
+            HStack(alignment: .top, spacing: 14) {
                 MacAccountDial(icon: icon, primaryPercent: primaryPercent,
                                primaryLabel: primaryLabel, secondaryPercent: secondaryPercent,
                                loading: loading, connected: connected, hasIssue: issue != nil)
-                    .frame(width: 112, height: 112)
+                    .frame(width: 100, height: 100)
                 details
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(14)
-            .frame(maxWidth: .infinity, minHeight: 154, alignment: .topLeading)
-            .contentShape(RoundedRectangle(cornerRadius: 14))
-            .background(Color(nsColor: .controlBackgroundColor).opacity(0.24),
-                        in: RoundedRectangle(cornerRadius: 14))
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity, minHeight: 126, alignment: .topLeading)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .disabled(loading && !connected && !hasReading)
@@ -105,7 +105,7 @@ struct MacAccountCard: View {
     }
 
     private var details: some View {
-        VStack(alignment: .leading, spacing: 5) {
+        VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(serviceName)
                     .font(.system(size: 18, weight: .semibold))
@@ -129,20 +129,17 @@ struct MacAccountCard: View {
                     .foregroundStyle(.primary)
             }
             if let budget {
-                Text("\(amount(budget.used, currency: budget.currency)) of \(amount(budget.limit, currency: budget.currency))")
+                Text(budgetSummary(budget))
                     .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                Text(budget.unit)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.primary.opacity(0.82))
                 if let reset = budget.reset {
-                    resetCaption("Monthly", at: reset)
+                    resetCaption(at: reset)
                 }
             } else if let usage = codexUsage, usage.reportedWindowShape != nil {
-                resetCaption(primaryLabel, at: usage.reportedWindowShape == .dual ? usage.hourlyResetAt : usage.weeklyResetAt)
+                resetCaption(at: usage.reportedWindowShape == .dual ? usage.hourlyResetAt : usage.weeklyResetAt)
                 if usage.reportedWindowShape == .dual { resetCaption("7d", at: usage.weeklyResetAt) }
             } else if let usage = claudeUsage {
-                resetCaption(usage.primaryMetricLabel, at: usage.resetAt)
+                resetCaption(at: usage.resetAt)
                 if secondaryPercent != nil { resetCaption("7d", at: usage.sevenDayResetsAt) }
             }
             if let status {
@@ -164,11 +161,22 @@ struct MacAccountCard: View {
         return nil
     }
 
-    private func resetCaption(_ window: String, at date: Date?) -> some View {
-        Text(ResetTimeTextFormatter.compactWindowCaption(window, resetAt: date))
+    private func resetCaption(_ window: String? = nil, at date: Date?) -> some View {
+        Text(resetText(window, at: date))
             .font(.caption.monospacedDigit())
             .foregroundStyle(Color.gaugeAccent.opacity(0.85))
             .fixedSize(horizontal: false, vertical: true)
+    }
+
+    private func resetText(_ window: String?, at date: Date?) -> String {
+        let prefix = window.map { "\($0) " } ?? ""
+        guard let date, date != .distantFuture, date != .distantPast else {
+            return "\(prefix)Reset time unavailable"
+        }
+        guard date > .now else { return "\(prefix)Reset unconfirmed" }
+        let day = date.formatted(.dateTime.weekday(.abbreviated))
+        let time = date.formatted(.dateTime.hour().minute())
+        return "\(prefix)Resets \(day) at \(time)"
     }
 
     private func amount(_ value: Double, currency: String?) -> String {
@@ -176,9 +184,16 @@ struct MacAccountCard: View {
         return value.formatted(.number.precision(.fractionLength(0...2)))
     }
 
+    private func budgetSummary(_ budget: (used: Double, limit: Double, unit: String,
+                                           currency: String?, reset: Date?)) -> String {
+        let verb = account.provider == .claude || budget.currency != nil ? "Spent" : "Used"
+        let suffix = budget.currency == nil && budget.unit.lowercased() == "credit" ? " credits" : ""
+        return "\(verb) \(amount(budget.used, currency: budget.currency)) of \(amount(budget.limit, currency: budget.currency))\(suffix)"
+    }
+
     private var accessibilitySummary: String {
         let identity = accountLabel.map { " · \($0)" } ?? ""
-        let percentage = primaryPercent.map { ", \($0) percent \(primaryLabel)" } ?? ""
+        let percentage = primaryPercent.map { ", \($0) percent used in \(primaryLabel)" } ?? ""
         return "\(serviceName)\(identity)\(plan.map { ", \($0) plan" } ?? "")\(percentage)\(status.map { ", \($0)" } ?? "")"
     }
 }
@@ -207,25 +222,22 @@ private struct MacAccountDial: View {
                 arc(percent: secondaryPercent, lineWidth: 7, opacity: 0.65)
                     .padding(10)
             }
-            VStack(spacing: 4) {
-                Image(icon).resizable().scaledToFit().frame(width: 18, height: 18)
+            VStack(spacing: 2) {
+                Image(icon).resizable().scaledToFit().frame(width: 16, height: 16)
                 if loading && primaryPercent == nil {
                     ProgressView().controlSize(.mini)
                 } else if let primaryPercent {
-                    if primaryLabel == "Monthly" {
-                        Text("\(primaryPercent)%")
-                            .font(.system(size: 16, weight: .semibold).monospacedDigit())
-                        Text("Monthly")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text("\(primaryPercent)% \(primaryLabel)")
-                            .font(.system(size: 13, weight: .semibold).monospacedDigit())
-                    }
+                    Text("\(primaryPercent)%")
+                        .font(.system(size: 16, weight: .semibold).monospacedDigit())
+                    Text(primaryLabel)
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(.secondary)
                     if let secondaryPercent {
-                        Text("\(secondaryPercent)% 7d")
-                            .font(.system(size: 12, weight: .medium).monospacedDigit())
-                            .opacity(0.75)
+                        Text("\(secondaryPercent)%")
+                            .font(.system(size: 11, weight: .medium).monospacedDigit())
+                        Text("7d")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundStyle(.secondary)
                     }
                 } else {
                     Text("—").font(.subheadline)
@@ -233,7 +245,7 @@ private struct MacAccountDial: View {
             }
             .foregroundStyle(tint)
         }
-        .frame(width: 112, height: 112)
+        .frame(width: 100, height: 100)
         .accessibilityHidden(true)
     }
 
