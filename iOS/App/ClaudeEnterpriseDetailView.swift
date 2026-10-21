@@ -205,6 +205,12 @@ struct ClaudeEnterpriseDetailView: View {
                 if let period = reportingPeriod(spend) {
                     Text(period).font(.footnote).foregroundStyle(OverviewStyle.secondary)
                 }
+                if let fetchedAt = session.spendFetchedAt {
+                    TimelineView(.periodic(from: .now, by: 30)) { context in
+                        Text("Spend · " + analyticsFreshnessLabel(fetchedAt, at: context.date, saved: false))
+                            .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                    }
+                }
             }
             if !daily.isEmpty {
                 Chart(daily) { value in
@@ -221,11 +227,9 @@ struct ClaudeEnterpriseDetailView: View {
                 .chartYScale(domain: 0...max(1, Double(highestDay) / 100 * 1.15))
                 .chartXScale(domain: chartDateDomain(chartDays))
                 .chartXAxis {
-                    AxisMarks(values: chartAxisDates(chartDays)) { value in
+                    AxisMarks(values: chartAxisDates(chartDays)) { _ in
                         AxisGridLine()
                         AxisTick()
-                        AxisValueLabel(format: Date.FormatStyle(timeZone: TimeZone(secondsFromGMT: 0)!)
-                            .month(.abbreviated).day(), centered: false)
                     }
                 }
                 .chartYAxis { AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) }
@@ -233,13 +237,14 @@ struct ClaudeEnterpriseDetailView: View {
                     domain: products.map(\.name),
                     range: products.map { productColor(id: $0.id, name: $0.name) }
                 )
-                .chartLegend(position: .bottom, alignment: .leading, spacing: 10)
+                .chartLegend(.hidden)
                 .chartXSelection(value: $selectedSpendDate)
                 .frame(height: dynamicTypeSize.isAccessibilitySize ? 260 : 220)
                 .environment(\.calendar, utcChartCalendar)
                 .environment(\.timeZone, utcChartCalendar.timeZone)
                 .accessibilityLabel("Daily spend by product")
                 .accessibilityHint("Tap a day to show its product amounts. A missing bar means no spend was reported for that day.")
+                chartDateLabels(chartDays)
                 Text(chartCoverageLabel(dayCount: chartDays.count,
                                         explicitZeroDays: explicitZeroDays,
                                         unreportedDays: unreportedDays))
@@ -277,6 +282,12 @@ struct ClaudeEnterpriseDetailView: View {
                 if let cutoff = skillsCutoff(skills, fallbackEndDate: reportingEndDate) {
                     Text("Through \(cutoff) · UTC")
                         .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                }
+                if let fetchedAt = session.skillsFetchedAt {
+                    TimelineView(.periodic(from: .now, by: 30)) { context in
+                        Text("Skills · " + analyticsFreshnessLabel(fetchedAt, at: context.date, saved: false))
+                            .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                    }
                 }
             }
             ForEach(visibleItems, id: \.offset) { entry in
@@ -483,6 +494,23 @@ struct ClaudeEnterpriseDetailView: View {
         return indexes.map { dates[$0] }
     }
 
+    private func chartDateLabels(_ days: [String]) -> some View {
+        let dates = chartAxisDates(days)
+        return HStack(spacing: 4) {
+            ForEach(Array(dates.enumerated()), id: \.offset) { index, date in
+                if index > 0 { Spacer(minLength: 0) }
+                Text(date.formatted(Date.FormatStyle(timeZone: TimeZone(secondsFromGMT: 0)!)
+                    .month(.abbreviated).day()))
+                    .lineLimit(1)
+            }
+        }
+        .font(.caption2)
+        .foregroundStyle(OverviewStyle.secondary)
+        .padding(.leading, 32)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Reporting dates, \(days.first ?? "") to \(days.last ?? ""), UTC")
+    }
+
     private func selectedDayKey(_ selection: Date, days: [String]) -> String? {
         days.min { lhs, rhs in
             let left = ClaudeEnterpriseDateOnly.bucketDate(lhs) ?? .distantPast
@@ -559,7 +587,12 @@ struct ClaudeEnterpriseDetailView: View {
             account.connect()
             showAccountReconnect = true
         } else {
-            Task { await session.beginReconnect(); showSignIn = true }
+            Task {
+                await session.beginReconnect()
+                // A saved or test session may verify while cookie preparation
+                // is finishing. Never present login after details are ready.
+                if session.state == .awaitingSignIn { showSignIn = true }
+            }
         }
     }
 

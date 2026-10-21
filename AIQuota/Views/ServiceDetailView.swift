@@ -398,8 +398,6 @@ private struct ClaudeEnterpriseSpendView: View {
                         AxisMarks(values: axisDates) {
                             AxisGridLine()
                             AxisTick()
-                            AxisValueLabel(format: .dateTime.month(.abbreviated).day())
-                                .font(.caption2)
                         }
                     }
                     .chartYAxis { AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) }
@@ -444,7 +442,10 @@ private struct ClaudeEnterpriseSpendView: View {
                                 .transition(.opacity)
                         }
                     }
-                    productLegend
+                    chartDateLabels
+                    Text(chartCoverageLabel)
+                        .font(.footnote)
+                        .foregroundStyle(AnalyticsStyle.secondary)
                 }
                 if hasReportedSpend, products.isEmpty {
                     Text("No product spend reported for this month.")
@@ -455,7 +456,8 @@ private struct ClaudeEnterpriseSpendView: View {
                         HStack(alignment: .firstTextBaseline, spacing: 12) {
                             HStack(spacing: 7) {
                                 Circle().fill(productColor(product.id)).frame(width: 7, height: 7)
-                                Text(product.name).lineLimit(2)
+                                Text(product.name)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
                             Spacer(minLength: 12)
                             VStack(alignment: .trailing, spacing: 2) {
@@ -520,24 +522,11 @@ private struct ClaudeEnterpriseSpendView: View {
         .accessibilityLabel("Loading Claude spend details")
     }
 
-    @ViewBuilder
-    private var productLegend: some View {
-        if !products.isEmpty {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 96), spacing: 8)], alignment: .leading, spacing: 5) {
-                ForEach(products) { product in
-                    HStack(spacing: 5) {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(productColor(product.id))
-                            .frame(width: 9, height: 9)
-                        Text(product.name).lineLimit(1)
-                    }
-                }
-            }
-            .font(.caption2)
-            .foregroundStyle(AnalyticsStyle.secondary)
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("Chart legend: " + products.map(\.name).joined(separator: ", "))
-        }
+    private var chartCoverageLabel: String {
+        let missing = days.filter { $0.minorUnits == nil }.count
+        let zeros = days.filter { $0.minorUnits == 0 }.count
+        return "\(days.count) calendar days · \(missing) without reported data" +
+            (zeros > 0 ? " · \(zeros) reported as zero" : "")
     }
 
     private func dayPopover(_ day: Day) -> some View {
@@ -594,6 +583,22 @@ private struct ClaudeEnterpriseSpendView: View {
         guard days.count > 1 else { return [first] }
         if days.count <= 7 { return [first, last] }
         return [first, days[days.count / 2].date, last]
+    }
+
+    private var chartDateLabels: some View {
+        HStack(spacing: 4) {
+            ForEach(Array(axisDates.enumerated()), id: \.offset) { index, date in
+                if index > 0 { Spacer(minLength: 0) }
+                Text(date.formatted(Date.FormatStyle(timeZone: TimeZone(secondsFromGMT: 0)!)
+                    .month(.abbreviated).day()))
+                    .lineLimit(1)
+            }
+        }
+        .font(.caption2)
+        .foregroundStyle(AnalyticsStyle.secondary)
+        .padding(.leading, 30)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Reporting dates, \(days.first?.id ?? "") to \(days.last?.id ?? ""), UTC")
     }
 
     private var utcChartCalendar: Calendar {

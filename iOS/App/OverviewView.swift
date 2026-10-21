@@ -376,7 +376,7 @@ struct ServiceDetailContent<Account: View>: View {
                     planLabel
                     if let reading {
                         TimelineView(.periodic(from: .now, by: 30)) { context in
-                            Text("Usage · " + overviewFreshnessLabel(reading.fetchedAt, at: context.date,
+                            Text("Allowance · " + overviewFreshnessLabel(reading.fetchedAt, at: context.date,
                                  saved: failure != nil || error != nil))
                                 .font(.footnote).foregroundStyle(OverviewStyle.secondary)
                         }
@@ -425,7 +425,7 @@ struct ServiceDetailContent<Account: View>: View {
         .background { BrandSurfaceBackground().ignoresSafeArea() }
         .toolbarBackground(.hidden, for: .navigationBar)
         .navigationTitle(name)
-        .toolbarTitleDisplayMode(.inlineLarge)
+        .toolbarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Refresh", systemImage: "arrow.clockwise", action: refresh)
