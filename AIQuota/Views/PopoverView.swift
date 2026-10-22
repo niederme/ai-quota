@@ -189,9 +189,10 @@ struct PopoverView: View {
     private var popoverSurface: some View {
         ZStack {
             if #available(macOS 26.0, *) {
-                // No material of our own: the menu-bar window's glass already blurs
-                // the desktop, and a second layer stacked on it made the sheet opaque.
-                Color.clear
+                // Extra blur over the window's own glass, so the desktop reads as
+                // soft colour rather than recognisable shapes. Paired with a light tint.
+                Rectangle()
+                    .fill(.ultraThinMaterial)
             } else {
                 // Sequoia's MenuBarExtra material is substantially more transparent
                 // than Tahoe's glass treatment. Stabilize contrast while retaining a
