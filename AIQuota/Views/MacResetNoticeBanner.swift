@@ -12,32 +12,29 @@ struct MacResetNoticeBanner: View {
         HStack(alignment: .top, spacing: 8) {
             Button(action: onReadMore) {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("Codex reset")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(accent)
                     // The one-account panel is 340pt; wider constrained panels
-                    // can place the link beside the title without crowding it.
+                    // can place the link icon beside the title without crowding it.
                     if width >= 420 {
                         HStack(alignment: .firstTextBaseline, spacing: 12) {
                             noticeTitle
                             Spacer(minLength: 8)
-                            readMore
+                            linkIcon
                                 .fixedSize(horizontal: true, vertical: false)
                         }
                     } else {
                         noticeTitle
-                        readMore
+                        linkIcon
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
-            .accessibilityLabel("Codex reset: \(title). Read more")
+            .accessibilityLabel("\(title). Read more on Codex Resets")
 
             Button(action: onDismiss) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.secondary)
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color(nsColor: .secondaryLabelColor))
                     .frame(width: 32, height: 32)
                     .contentShape(Rectangle())
             }
@@ -52,14 +49,16 @@ struct MacResetNoticeBanner: View {
 
     private var noticeTitle: some View {
         Text(title)
-            .font(.system(size: 12, weight: .semibold))
+            .font(.body.weight(.semibold))
             .foregroundStyle(.primary)
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    private var readMore: some View {
-        Label("Read more", systemImage: "arrow.up.right")
-            .font(.system(size: 11))
+    private var linkIcon: some View {
+        Image(systemName: "arrow.up.right")
+            .font(.system(size: 12, weight: .medium))
             .foregroundStyle(accent)
+            .frame(width: 24, height: 24, alignment: .leading)
+            .accessibilityHidden(true)
     }
 }
