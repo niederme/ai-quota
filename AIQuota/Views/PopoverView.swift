@@ -190,7 +190,13 @@ struct PopoverView: View {
 
     private func finishDetailFade() {
         guard navigationPhase == .fadingDetail else { return }
-        navigationPhase = .shrinking
+        if detailSize == overviewSize {
+            selectedService = nil
+            selectedAccountID = nil
+            navigationPhase = .overview
+        } else {
+            navigationPhase = .shrinking
+        }
     }
 
     private func resetNavigation() {
@@ -281,7 +287,7 @@ struct PopoverView: View {
         focusedService = nil
         selectedService = service
         selectedAccountID = nil
-        navigationPhase = reduceMotion ? .detail : .expanding
+        navigationPhase = reduceMotion || detailSize == overviewSize ? .detail : .expanding
     }
 
     private func openAccount(_ account: ConnectedAccount) {
@@ -291,7 +297,7 @@ struct PopoverView: View {
         } else {
             selectedService = account.provider
             selectedAccountID = account.id
-            navigationPhase = reduceMotion ? .detail : .expanding
+            navigationPhase = reduceMotion || detailSize == overviewSize ? .detail : .expanding
         }
     }
 
