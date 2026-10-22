@@ -11,7 +11,7 @@ extension Color {
     static let gaugeAccentInk = Color(light: (0x5c, 0x16, 0x88, 1), dark: (0xea, 0xd2, 0xff, 1))
 
     // Tinted glass sheet (see prototypes/sheet-material)
-    static let sheetTint = Color(light: (246, 241, 251, 0.58), dark: (26, 21, 36, 0.45))
+    static let sheetTint = Color(light: (246, 241, 251, 0.7), dark: (26, 21, 36, 0.6))
     static let sheetGlow = Color(light: (191, 120, 242, 0.34), dark: (150, 86, 214, 0.40))
     static let sheetGlowTrailing = Color(light: (175, 82, 222, 0.10), dark: (110, 60, 170, 0.18))
     static let sheetRim = Color(light: (255, 255, 255, 1), dark: (255, 255, 255, 0.55))

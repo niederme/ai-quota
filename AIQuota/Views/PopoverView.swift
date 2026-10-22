@@ -206,7 +206,7 @@ struct PopoverView: View {
         }
     }
 
-    // Plum glass over the window's own glass: a 45% tint (58% in light) lets the
+    // Plum glass over the window's own glass: a 60% tint (70% in light) lets the
     // desktop through; captions are near-white / deep plum to stay legible.
     private var sheetTint: some View {
         ZStack {
