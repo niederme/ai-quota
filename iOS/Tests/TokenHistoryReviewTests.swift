@@ -4,11 +4,11 @@ import MobileAccessCore
 @testable import AIQuota_iOS
 
 final class TokenHistoryReviewTests: XCTestCase {
-    @MainActor func testAnnualGridNarrowLargeLightDark() async throws {
+    @MainActor func testThirteenWeekGridNarrowLargeLightDark() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
         let previous = scene.windows.first(where: \.isKeyWindow)
         let history = try XCTUnwrap(DemoQuotaData.tokenHistory())
-        XCTAssertEqual(history.days().count, 364)
+        XCTAssertEqual(history.days().count, 91)
         for width in [320.0, 440.0] {
             for (name, scheme) in [("light", ColorScheme.light), ("dark", .dark)] {
                 let content = NavigationStack {
@@ -40,7 +40,7 @@ final class TokenHistoryReviewTests: XCTestCase {
             }
         }
     }
-    func testPresentationDoesNotConfuseMissingZeroOrFailure() throws {
+    @MainActor func testPresentationDoesNotConfuseMissingZeroOrFailure() throws {
         func history(_ buckets: String) throws -> CodexTokenHistory {
             try XCTUnwrap(CodexTokenHistory.decode(Data("{\"page\":{\"activity_graph\":{\"daily_usage_buckets\":\(buckets)}}}".utf8)))
         }
@@ -59,6 +59,47 @@ final class TokenHistoryReviewTests: XCTestCase {
             XCTAssertEqual(MobileTokenHistoryView.presentation(history: zero, unavailable: unavailable, loading: loading, now: now), .populated)
         }
         XCTAssertNil(zero.tokensByDate["2026-10-07"])
+    }
+
+    @MainActor func testPositiveColorStepsRemainDistinct() {
+        let values = [0.1, 0.3, 0.5, 0.7, 0.9].map { MobileTokenHistoryView.positiveOpacity(fraction: $0) }
+        XCTAssertEqual(values, [0.35, 0.52, 0.69, 0.84, 1])
+    }
+
+    @MainActor func testMonthLabelsFollowUTCWeekColumns() throws {
+        let history = try XCTUnwrap(DemoQuotaData.tokenHistory())
+        let now = try XCTUnwrap(CodexTokenHistory.dateFormatter().date(from: "2026-10-22"))
+        let days = history.days(now: now)
+        let labels = (0..<CodexTokenHistory.visibleWeeks).compactMap { MobileTokenHistoryView.monthLabel(days, week: $0) }
+        XCTAssertEqual(labels, ["Aug", "Sep", "Oct"])
+    }
+
+    @MainActor func testNarrowAccessibilityLayoutRenders() throws {
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let history = try XCTUnwrap(DemoQuotaData.tokenHistory())
+        let content = ScrollView {
+            ProviderDialCardContent(name: "Codex", icon: "logo-openai", availableWidth: 288,
+                                    reading: DemoQuotaData.reading(.codex), connected: true,
+                                    busy: false, error: nil, tokenHistory: history)
+                .padding(16)
+        }
+        .frame(width: 320, height: 1100)
+        .environment(\.dynamicTypeSize, .accessibility2)
+        .environment(\.colorScheme, .dark)
+        let host = UIHostingController(rootView: content)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 320, height: 1100)
+        window.rootViewController = host; window.makeKeyAndVisible()
+        defer { window.isHidden = true; previous?.makeKey() }
+        host.view.layoutIfNeeded()
+        let image = UIGraphicsImageRenderer(size: window.frame.size).image { _ in
+            host.view.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+        let path = FileManager.default.temporaryDirectory.appendingPathComponent("ios-token-accessibility-dark.png")
+        try image.pngData()?.write(to: path)
+        print("TOKEN_ACCESSIBILITY_REVIEW " + path.path)
+        XCTAssertEqual(image.size.width, 320)
     }
 
     @MainActor func testEmptyLoadingErrorAndCachedTransitionsLightDark() async throws {
