@@ -11,7 +11,7 @@ make dev-local SITE_ROOT=prototypes/<name> PORT=8131
 | --- | --- | --- |
 | [`cost-value`](cost-value/README.md) | Language for API-equivalent usage value that does not read as a bill | Exploration |
 | [`sheet-material`](sheet-material/README.md) | Round 1: tinted purple glass for the Mac menu-bar sheet, judged over white and black desktops | Shipped in [PR #114](https://github.com/niederme/ai-quota/pull/114), superseded by round 2 |
-| [`sheet-material-round-2`](sheet-material/README.md#round-2) | Round 2: four tint strengths compared with large text behind the sheet, to let the desktop show through | Option B (60% dark, 72% light) shipped in [PR #116](https://github.com/niederme/ai-quota/pull/116); still read as opaque on a real build, because the app's own material stacked on the menu-bar window's glass. Round 3 drops that layer on macOS 26 and lowers the tint to 45% / 58%; round 4 keeps 45% / 58% but restores an ultraThin blur layer, after a real build read round 3 as too see-through with shapes still recognisable |
+| [`sheet-material-round-2`](sheet-material/README.md#round-2) | Round 2: four tint strengths compared with large text behind the sheet, to let the desktop show through | Option B (60% dark, 72% light) shipped in [PR #116](https://github.com/niederme/ai-quota/pull/116); still read as opaque on a real build, because the app's own material stacked on the menu-bar window's glass. Round 3 drops that layer on macOS 26 and lowers the tint to 45% / 58%; round 4 restored an ultraThin blur layer and went opaque again; round 5 drops it for good and sets the tint to 53% / 66% |
 
 ## Design sources
 
