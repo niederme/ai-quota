@@ -138,6 +138,8 @@ struct PopoverTypographyTests {
         #expect(colorsSource.contains("static let sheetTint = Color(light: (246, 241, 251, 0.66), dark: (26, 21, 36, 0.53))"))
         #expect(popoverSource.contains(".fill(.ultraThinMaterial)\n                    .opacity(0.7)"))
         #expect(itemSource.contains(".foregroundStyle(Color.gaugeAccentInk)"))
+        let dialSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/MacAccountDial.swift"), encoding: .utf8)
+        #expect(!dialSource.contains(".foregroundStyle(.secondary)"))
     }
 
     @Test("accent text uses adaptive colors without shadows")
@@ -147,7 +149,7 @@ struct PopoverTypographyTests {
         let colorsSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/AdaptiveColors.swift"), encoding: .utf8)
 
         #expect(colorsSource.contains(#"static let brand = Color("BrandAccent")"#))
-        #expect(colorsSource.contains(#"static let gaugeAccent = Color(nsColor: .systemPurple)"#))
+        #expect(colorsSource.contains(#"static let gaugeAccent = Color(light: (0x85, 0x30, 0xbd, 1), dark: (0xc8, 0x6c, 0xf5, 1))"#))
         #expect(colorsSource.contains(#"static let warningAmber = Color(nsColor: .systemOrange)"#))
         #expect(colorsSource.contains(#"static let critical = Color(nsColor: .systemRed)"#))
         #expect(gaugeSource.contains("static let accent = Color.gaugeAccent"))
