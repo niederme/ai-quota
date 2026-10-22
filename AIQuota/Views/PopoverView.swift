@@ -58,9 +58,10 @@ struct PopoverView: View {
         // Keep the native panel's horizontal bounds fixed while navigating.
         // With two accounts the former 652 -> 460 point resize visibly swept
         // the detail sheet sideways from its menu-bar anchor.
-        // The detail is a scrollable viewport, not a near-full-screen sheet.
-        // A long analytics report must not stretch the popover and its shadow.
-        let preferredHeight = max(540, min(overviewSize.height, 680))
+        // Keep the sheet's height when entering details. A fixed detail cap
+        // made a four-account overview visibly shrink on every card click.
+        // Smaller overviews can expand to a useful scroll viewport.
+        let preferredHeight = max(overviewSize.height, 540)
         return CGSize(width: overviewWidth, height: min(availableHeight, preferredHeight))
     }
     private var popoverSize: CGSize {
