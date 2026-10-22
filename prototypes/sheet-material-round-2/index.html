@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sheet Glass Round 2</title>
+<style>
+  /* Tinted glass material for the Mac menu-bar sheet.
+     Only the surface is under review here; the layout is a stand-in
+     so there is real text to judge legibility against. */
+  :root {
+    --accent: #bf5af2;
+    --accent-dim: #9b55c9;
+    --accent-ink: #d77ef7; /* small text: reset accent from the app */
+    --text: #ffffff;
+    --text-2: rgba(235, 228, 245, 0.72);
+    --text-3: rgba(235, 228, 245, 0.42);
+    --hairline: rgba(255, 255, 255, 0.10);
+
+    /* Dark material */
+    --m-glow: rgba(150, 86, 214, 0.40);
+    --m-glow-2: rgba(110, 60, 170, 0.18);
+    --m-edge: rgba(255, 255, 255, 0.14);
+    --m-edge-top: rgba(255, 255, 255, 0.22);
+    --m-opacity: 0.90;
+  }
+  .light {
+    --accent: #af52de;
+    --accent-dim: #8a3fbf;
+    --accent-ink: #7a24a6;
+    --text: #1d1424;
+    --text-2: rgba(40, 24, 56, 0.70);
+    --text-3: rgba(40, 24, 56, 0.40);
+    --hairline: rgba(60, 20, 90, 0.10);
+    --m-glow: rgba(191, 120, 242, 0.34);
+    --m-glow-2: rgba(175, 82, 222, 0.10);
+    --m-edge: rgba(80, 30, 120, 0.12);
+    --m-edge-top: rgba(255, 255, 255, 0.9);
+    --m-opacity: 0.90;
+  }
+
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: Inter, -apple-system, system-ui, sans-serif; background: #8a8a8a; }
+  .grid { display: grid; grid-template-columns: repeat(4, 640px); gap: 0; }
+
+  .desk { --m-base: rgba(26, 21, 36, var(--m-opacity)); --m-bright: .6; }
+  .desk.light { --m-base: rgba(246, 241, 251, var(--m-opacity)); --m-bright: 1.15; }
+  .desk { position: relative; width: 640px; height: 760px; overflow: hidden; }
+  .desk.white { background: #ffffff; }
+  .desk.black { background: #000000; }
+  .label {
+    position: absolute; left: 20px; bottom: 16px; font-size: 13px; font-weight: 600;
+    letter-spacing: .02em; padding: 5px 10px; border-radius: 6px;
+  }
+  .white .label { color: #222; background: #eee; }
+  .black .label { color: #ddd; background: #1b1b1b; }
+
+  /* Desktop clutter behind the sheet, so the translucency has something to show. */
+  .clutter { position: absolute; inset: 0; }
+  .big { position: absolute; left: 20px; top: 250px; font-size: 120px; font-weight: 800; line-height: .95; letter-spacing: -.03em; }
+  .white .big { color: #111; } .black .big { color: #f2f2f2; }
+  .clutter .win {
+    position: absolute; left: 330px; top: 150px; width: 300px; height: 380px; border-radius: 12px;
+    padding: 46px 22px; font-size: 15px; line-height: 1.5;
+  }
+  .white .win { background: #fff; color: #111; box-shadow: 0 0 0 1px #ddd, 0 10px 30px rgba(0,0,0,.12); }
+  .black .win { background: #111; color: #eee; box-shadow: 0 0 0 1px #333; }
+  .win b { display:block; font-size: 22px; margin-bottom: 8px; }
+  .chip { position: absolute; width: 140px; height: 140px; border-radius: 50%; }
+  .c1 { left: 16px; top: 420px; background: #ff9f0a; }
+  .c2 { left: 470px; top: 560px; background: #0a84ff; }
+  .c3 { left: 60px; top: 160px; width: 60px; height: 60px; background: #30d158; border-radius: 14px; }
+
+  .menubar {
+    position: absolute; left: 0; right: 0; top: 0; height: 30px; display: flex; align-items: center;
+    justify-content: flex-end; gap: 18px; padding: 0 18px; font-size: 13px; font-weight: 600;
+  }
+  .white .menubar { background: rgba(255,255,255,.7); color: #111; box-shadow: 0 1px 0 rgba(0,0,0,.06); }
+  .black .menubar { background: rgba(0,0,0,.6); color: #eee; }
+  .menubar .item { padding: 2px 8px; border-radius: 5px; }
+  .menubar .on { background: rgba(127,127,127,.25); }
+
+  /* ---------- the material ---------- */
+  .sheet {
+    position: absolute; left: 40px; top: 42px; width: 420px; border-radius: 22px; overflow: hidden;
+    color: var(--text);
+    -webkit-backdrop-filter: blur(44px) saturate(190%) brightness(var(--m-bright, 1));
+    backdrop-filter: blur(44px) saturate(190%) brightness(var(--m-bright, 1));
+    background:
+      radial-gradient(120% 70% at 0% 0%, var(--m-glow) 0%, transparent 62%),
+      radial-gradient(90% 60% at 100% 100%, var(--m-glow-2) 0%, transparent 70%),
+      linear-gradient(180deg, transparent 0%, rgba(0,0,0,.10) 100%),
+      var(--m-base);
+    box-shadow:
+      inset 0 0 0 1px var(--m-edge),
+      inset 0 1px 0 0 var(--m-edge-top),
+      0 22px 60px rgba(0,0,0,.35), 0 2px 8px rgba(0,0,0,.18);
+  }
+  .light .sheet {
+    background:
+      radial-gradient(120% 70% at 0% 0%, var(--m-glow) 0%, transparent 62%),
+      radial-gradient(90% 60% at 100% 100%, var(--m-glow-2) 0%, transparent 70%),
+      var(--m-base);
+    box-shadow:
+      inset 0 0 0 1px var(--m-edge),
+      inset 0 1px 0 0 var(--m-edge-top),
+      0 22px 60px rgba(40,10,70,.22), 0 2px 8px rgba(0,0,0,.10);
+  }
+  /* Liquid Glass rim: a specular highlight that is brightest on the top-left
+     edge and fades round the sheet, drawn as a 1.5px gradient border. */
+  .sheet::before {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; pointer-events: none; z-index: 2;
+    background: linear-gradient(135deg, rgba(255,255,255,.55), rgba(255,255,255,.08) 35%, rgba(255,255,255,0) 60%, rgba(255,255,255,.18));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+  }
+  .light .sheet::before { background: linear-gradient(135deg, rgba(255,255,255,1), rgba(255,255,255,.3) 35%, rgba(255,255,255,0) 60%, rgba(255,255,255,.6)); }
+  /* film grain keeps the gradient from banding */
+  .sheet::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .05; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  /* ---------- stand-in content ---------- */
+  .hd { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--hairline); }
+  .icon { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg,#2a1c3d,#120c1a); box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); display:grid; place-items:center; }
+  .hd h1 { font-size: 17px; font-weight: 700; flex: 1; }
+  .legend { display: flex; gap: 10px; font-size: 13px; font-weight: 600; }
+  .legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; background: currentColor; vertical-align: 0; }
+  .l5 { color: var(--accent); } .l7 { color: var(--accent-dim); }
+  .body { display: grid; grid-template-columns: 1fr 1fr; padding: 18px 8px 14px; border-bottom: 1px solid var(--hairline); }
+  .svc { text-align: center; position: relative; }
+  .svc + .svc { border-left: 1px solid var(--hairline); }
+  .dial { position: relative; width: 150px; height: 140px; margin: 0 auto; }
+  .dial svg { position: absolute; inset: 0; }
+  .dial .nums { position: absolute; inset: 44px 0 0; font-size: 15px; font-weight: 700; line-height: 1.25; }
+  .n5 { color: var(--accent); } .n7 { color: var(--accent-dim); }
+  .svc h2 { font-size: 16px; font-weight: 700; margin-top: 4px; }
+  .svc p { font-size: 12px; color: var(--accent-ink); margin-top: 3px; line-height: 1.4; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; padding: 14px 18px; font-size: 13px; color: var(--text-2); gap: 6px; border-bottom: 1px solid var(--hairline); }
+  .stats b { color: var(--text); }
+  .ft { display: flex; justify-content: space-between; padding: 13px 18px; font-size: 14px; font-weight: 500; }
+  .ft .a { color: var(--accent-ink); }
+  .ft .m { color: var(--text-3); }
+  /* On translucent glass, colour stays on the big marks (rings, legend);
+     small text goes vibrant near-white so it holds over any backdrop. */
+  .glass { --accent-ink: #ead2ff; --text-3: rgba(235, 228, 245, 0.6); }
+  .glass.light { --accent-ink: #5c1688; --text-3: rgba(40, 24, 56, 0.55); }
+</style>
+</head>
+<body>
+<div class="grid" id="grid"></div>
+
+<template id="sheet">
+  <div class="sheet">
+    <div class="hd">
+      <div class="icon"><svg width="18" height="18" viewBox="0 0 18 18"><path d="M3 13a6 6 0 1 1 12 0" fill="none" stroke="#bf5af2" stroke-width="2.2" stroke-linecap="round"/><circle cx="9" cy="11" r="1.6" fill="#fff"/></svg></div>
+      <h1>AIQuota</h1>
+      <div class="legend"><span class="l5">5h</span><span class="l7">7d</span></div>
+    </div>
+    <div class="body">
+      <div class="svc" data-a="0.33" data-b="0.56">
+        <div class="dial"></div>
+        <h2>Codex</h2>
+        <p>5h resets 11:24am<br>7d resets Sat. 2:10pm</p>
+      </div>
+      <div class="svc" data-a="0.57" data-b="0.47">
+        <div class="dial"></div>
+        <h2>Claude Code</h2>
+        <p>5h resets 10:05am<br>7d resets Tue. 9:40am</p>
+      </div>
+    </div>
+    <div class="stats">
+      <div>Plan: <b>Plus</b></div><div>Plan: <b>Max</b></div>
+      <div>Credit balance: <b>$10.44</b></div><div></div>
+    </div>
+    <div class="ft"><span class="a">Settings</span><span class="m">Just now</span><span class="a">Quit</span></div>
+  </div>
+</template>
+
+<script>
+  const scenes = [
+    { desk: 'white', mode: 'dark',  op: 0.90, label: 'Round 1 · 90%' },
+    { desk: 'white', mode: 'dark',  op: 0.72, label: 'A · 72%' },
+    { desk: 'white', mode: 'dark',  op: 0.60, label: 'B · 60% (recommended)', glass: true },
+    { desk: 'white', mode: 'dark',  op: 0.48, label: 'C · 48%', glass: true },
+    { desk: 'black', mode: 'dark',  op: 0.90, label: 'Round 1 · 90%' },
+    { desk: 'black', mode: 'dark',  op: 0.72, label: 'A · 72%' },
+    { desk: 'black', mode: 'dark',  op: 0.60, label: 'B · 60% (recommended)', glass: true },
+    { desk: 'black', mode: 'dark',  op: 0.48, label: 'C · 48%', glass: true },
+    { desk: 'white', mode: 'light', op: 0.72, label: 'B light · 72%', glass: true },
+    { desk: 'black', mode: 'light', op: 0.72, label: 'B light · 72%', glass: true },
+  ]; const params = new URLSearchParams(location.search);
+  const only = params.get('mode');
+  const grid = document.getElementById('grid');
+  const tpl = document.getElementById('sheet');
+
+  function arc(r, frac, sweep = 270, start = 135) {
+    const a0 = (start) * Math.PI / 180, a1 = (start + sweep * frac) * Math.PI / 180;
+    const p = a => [75 + r * Math.cos(a), 75 + r * Math.sin(a)];
+    const [x0, y0] = p(a0), [x1, y1] = p(a1);
+    return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${r} ${r} 0 ${sweep * frac > 180 ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+  }
+
+  for (const s of scenes) {
+    if (only && s.mode !== only) continue;
+    const desk = document.createElement('div');
+    desk.className = `desk ${s.desk} ${s.mode}${s.glass ? ' glass' : ''}`;
+    desk.style.setProperty('--m-opacity', s.op);
+    desk.innerHTML = `
+      <div class="clutter">
+        <div class="chip c1"></div><div class="chip c2"></div><div class="chip c3"></div>
+        <div class="big">Usage<br>break<br>down</div><div class="win"><b>Notes</b>Text on the desktop runs behind the sheet so you can see how much of it bleeds through the glass.</div>
+      </div>
+      <div class="menubar"><span>🔍</span><span class="item on">◐◐</span><span>Wi‑Fi</span><span>9:41 AM</span></div>
+      <div class="label">${s.label}</div>`;
+    desk.appendChild(tpl.content.cloneNode(true));
+    desk.querySelectorAll('.svc').forEach(svc => {
+      const track = s.mode === 'dark' ? 'rgba(255,255,255,.07)' : 'rgba(60,20,90,.07)';
+      const a = +svc.dataset.a, b = +svc.dataset.b;
+      svc.querySelector('.dial').innerHTML = `
+        <svg viewBox="0 0 150 150" width="150" height="150">
+          <path d="${arc(62, 1)}" stroke="${track}" stroke-width="11" fill="none" stroke-linecap="round"/>
+          <path d="${arc(48, 1)}" stroke="${track}" stroke-width="11" fill="none" stroke-linecap="round"/>
+          <path d="${arc(62, a)}" stroke="var(--accent)" stroke-width="11" fill="none" stroke-linecap="round"/>
+          <path d="${arc(48, b)}" stroke="var(--accent-dim)" stroke-width="11" fill="none" stroke-linecap="round"/>
+        </svg>
+        <div class="nums"><div class="n5">${Math.round(a*100)}% 5h</div><div class="n7">${Math.round(b*100)}% 7d</div></div>`;
+    });
+    grid.appendChild(desk);
+  }
+</script>
+</body>
+</html>

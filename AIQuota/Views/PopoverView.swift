@@ -189,8 +189,9 @@ struct PopoverView: View {
     private var popoverSurface: some View {
         ZStack {
             if #available(macOS 26.0, *) {
+                // Thin material so the desktop reads through the tint below.
                 Rectangle()
-                    .fill(.regularMaterial)
+                    .fill(.ultraThinMaterial)
             } else {
                 // Sequoia's MenuBarExtra material is substantially more transparent
                 // than Tahoe's glass treatment. Stabilize contrast while retaining a
@@ -205,8 +206,8 @@ struct PopoverView: View {
         }
     }
 
-    // Plum glass over the material. The tint is ~90% opaque so the sheet reads
-    // the same over white and black desktops; a lighter tint greys out on white.
+    // Plum glass over the material: a 60% tint (72% in light) lets the desktop
+    // through while keeping captions above 4.5:1 over white and black desktops.
     private var sheetTint: some View {
         ZStack {
             Color.sheetTint
@@ -215,7 +216,25 @@ struct PopoverView: View {
             EllipticalGradient(colors: [.sheetGlowTrailing, .clear], center: .bottomTrailing,
                                startRadiusFraction: 0, endRadiusFraction: 0.6)
         }
+        .overlay { sheetRim }
         .allowsHitTesting(false)
+    }
+
+    // Specular edge, brightest at the top-leading corner, for the Liquid Glass read.
+    @ViewBuilder
+    private var sheetRim: some View {
+        if #available(macOS 26.0, *) {
+            ContainerRelativeShape()
+                .strokeBorder(
+                    LinearGradient(stops: [
+                        .init(color: .sheetRim, location: 0),
+                        .init(color: .sheetRim.opacity(0.15), location: 0.35),
+                        .init(color: .clear, location: 0.6),
+                        .init(color: .sheetRim.opacity(0.35), location: 1),
+                    ], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    lineWidth: 1
+                )
+        }
     }
 
     private func openSettingsWindow() {

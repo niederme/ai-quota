@@ -135,7 +135,8 @@ struct PopoverTypographyTests {
 
         #expect(popoverSource.contains("            sheetTint\n"))
         #expect(popoverSource.contains("Color.sheetTint"))
-        #expect(colorsSource.contains("static let sheetTint = Color(light: (246, 241, 251, 0.9), dark: (26, 21, 36, 0.9))"))
+        #expect(colorsSource.contains("static let sheetTint = Color(light: (246, 241, 251, 0.72), dark: (26, 21, 36, 0.6))"))
+        #expect(popoverSource.contains(".fill(.ultraThinMaterial)"))
         #expect(itemSource.contains(".foregroundStyle(Color.gaugeAccentInk)"))
     }
 
