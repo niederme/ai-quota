@@ -78,34 +78,44 @@ struct DoubleMenuBarIconView: View {
     let right: MenuBarGaugeInput
     let showsUpdateBadge: Bool
 
+    var body: some View {
+        MultiMenuBarIconView(inputs: [left, right], showsUpdateBadge: showsUpdateBadge)
+    }
+}
+
+/// MenuBarExtra extracts a single image from its label. Compose every selected
+/// account into that image instead of supplying an HStack of individual images.
+struct MultiMenuBarIconView: View {
+    let inputs: [MenuBarGaugeInput]
+    let showsUpdateBadge: Bool
+
     private let gaugeSize: CGFloat = 22
     private let spacing: CGFloat = 5
+
+    private var totalWidth: CGFloat {
+        gaugeSize * CGFloat(inputs.count) + spacing * CGFloat(max(0, inputs.count - 1))
+    }
 
     var body: some View {
         Image(nsImage: combinedImage())
             .interpolation(.high)
             .antialiased(true)
-            .frame(width: gaugeSize * 2 + spacing, height: gaugeSize)
+            .frame(width: totalWidth, height: gaugeSize)
     }
 
     private func combinedImage() -> NSImage {
-        let totalWidth = gaugeSize * 2 + spacing
         let image = NSImage(size: NSSize(width: totalWidth, height: gaugeSize))
         image.lockFocusFlipped(false)
 
-        gaugeImage(for: left).draw(
-            in: NSRect(x: 0, y: 0, width: gaugeSize, height: gaugeSize),
-            from: .zero,
-            operation: .sourceOver,
-            fraction: 1
-        )
-
-        gaugeImage(for: right).draw(
-            in: NSRect(x: gaugeSize + spacing, y: 0, width: gaugeSize, height: gaugeSize),
-            from: .zero,
-            operation: .sourceOver,
-            fraction: 1
-        )
+        for (index, input) in inputs.enumerated() {
+            gaugeImage(for: input).draw(
+                in: NSRect(x: CGFloat(index) * (gaugeSize + spacing), y: 0,
+                           width: gaugeSize, height: gaugeSize),
+                from: .zero,
+                operation: .sourceOver,
+                fraction: 1
+            )
+        }
 
         image.unlockFocus()
         if showsUpdateBadge { MenuBarUpdateBadge.draw(in: image) }

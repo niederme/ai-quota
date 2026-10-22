@@ -153,23 +153,14 @@ private struct MenuBarStatusLabel: View {
             if selected.isEmpty {
                 Image("AppBrandIcon").resizable().frame(width: 20, height: 20)
                     .help("AIQuota")
-            } else if selected.count == 2 {
-                DoubleMenuBarIconView(
-                    left: menuBarGaugeInput(for: selected[0]),
-                    right: menuBarGaugeInput(for: selected[1]),
+            } else {
+                MultiMenuBarIconView(
+                    inputs: selected.map { menuBarGaugeInput(for: $0) },
                     showsUpdateBadge: updaterViewModel.availableUpdateVersion != nil
                 )
-            } else {
-                HStack(spacing: 5) {
-                    ForEach(Array(selected.enumerated()), id: \.element.id) { item in
-                        MenuBarIconView(
-                            input: menuBarGaugeInput(for: item.element),
-                            showsUpdateBadge: item.offset == selected.count - 1 &&
-                                updaterViewModel.availableUpdateVersion != nil
-                        )
-                        .help("\(item.element.provider == .codex ? "Codex" : "Claude Code") · \(item.element.displayLabel)")
-                    }
-                }
+                .help(selected.map {
+                    "\($0.provider == .codex ? "Codex" : "Claude Code") · \($0.displayLabel)"
+                }.joined(separator: "\n"))
             }
         } else if shouldShowBothMenuBarGauges {
             DoubleMenuBarIconView(
