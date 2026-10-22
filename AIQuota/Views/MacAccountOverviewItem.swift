@@ -12,6 +12,8 @@ struct MacAccountCard: View {
 
     let account: ConnectedAccount
     let session: AdditionalAccountSession?
+    let tokenHistory: CodexTokenHistory?
+    let availableWidth: CGFloat
     let showsAccountLabel: Bool
     let open: () -> Void
     let reconnect: () -> Void
@@ -90,13 +92,22 @@ struct MacAccountCard: View {
 
     var body: some View {
         Button(action: connected || hasReading ? open : reconnect) {
-            HStack(alignment: .top, spacing: 14) {
-                MacAccountDial(icon: icon, primaryPercent: primaryPercent,
-                               primaryLabel: primaryLabel, secondaryPercent: secondaryPercent,
-                               loading: loading, connected: connected, hasIssue: issue != nil)
-                    .frame(width: 100, height: 100)
-                details
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .top, spacing: 14) {
+                    MacAccountDial(icon: icon, primaryPercent: primaryPercent,
+                                   primaryLabel: primaryLabel, secondaryPercent: secondaryPercent,
+                                   loading: loading, connected: connected, hasIssue: issue != nil)
+                        .frame(width: 100, height: 100)
+                    details
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxWidth: .infinity, minHeight: 114, alignment: .topLeading)
+
+                if connected, account.provider == .codex, let tokenHistory,
+                   CodexTokenHistoryView.hasVisibleData(tokenHistory) {
+                    CodexTokenHistoryView(history: tokenHistory, availableWidth: availableWidth)
+                        .padding(.top, 8)
+                }
             }
             .padding(.vertical, 6)
             .padding(.horizontal, 8)
@@ -200,71 +211,7 @@ struct MacAccountCard: View {
     private var accessibilitySummary: String {
         let identity = accountLabel.map { " · \($0)" } ?? ""
         let percentage = primaryPercent.map { ", \($0) percent used in \(primaryLabel)" } ?? ""
-        return "\(serviceName)\(identity)\(plan.map { ", \($0) plan" } ?? "")\(percentage)\(status.map { ", \($0)" } ?? "")"
-    }
-}
-
-private struct MacAccountDial: View {
-    let icon: String
-    let primaryPercent: Int?
-    let primaryLabel: String
-    let secondaryPercent: Int?
-    let loading: Bool
-    let connected: Bool
-    let hasIssue: Bool
-
-    private var tint: Color {
-        guard connected, !hasIssue else { return .secondary }
-        let worst = max(primaryPercent ?? 0, secondaryPercent ?? 0)
-        if worst >= 95 { return .critical }
-        if worst >= 85 { return .warningAmber }
-        return .gaugeAccent
-    }
-
-    var body: some View {
-        ZStack {
-            arc(percent: primaryPercent, lineWidth: secondaryPercent == nil ? 11 : 8, opacity: 1)
-            if secondaryPercent != nil {
-                arc(percent: secondaryPercent, lineWidth: 7, opacity: 0.65)
-                    .padding(10)
-            }
-            VStack(spacing: 2) {
-                Image(icon).resizable().scaledToFit().frame(width: 16, height: 16)
-                if loading && primaryPercent == nil {
-                    ProgressView().controlSize(.mini)
-                } else if let primaryPercent {
-                    Text("\(primaryPercent)%")
-                        .font(.system(size: 16, weight: .semibold).monospacedDigit())
-                    Text(primaryLabel)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.secondary)
-                    if let secondaryPercent {
-                        Text("\(secondaryPercent)%")
-                            .font(.system(size: 11, weight: .medium).monospacedDigit())
-                        Text("7d")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundStyle(.secondary)
-                    }
-                } else {
-                    Text("—").font(.subheadline)
-                }
-            }
-            .foregroundStyle(tint)
-        }
-        .frame(width: 100, height: 100)
-        .accessibilityHidden(true)
-    }
-
-    private func arc(percent: Int?, lineWidth: CGFloat, opacity: Double) -> some View {
-        ZStack {
-            Circle().trim(from: 0, to: 0.75)
-                .stroke(.fill.tertiary, style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt,
-                                                           dash: percent == nil && !loading ? [3, 4] : []))
-            if connected && !loading, let percent {
-                Circle().trim(from: 0, to: 0.75 * Double(max(0, min(100, percent))) / 100)
-                    .stroke(tint.opacity(opacity), style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt))
-            }
-        }
-        .rotationEffect(.degrees(135))
+        let secondary = secondaryPercent.map { ", \($0) percent used in 7d" } ?? ""
+        return "\(serviceName)\(identity)\(plan.map { ", \($0) plan" } ?? "")\(percentage)\(secondary)\(status.map { ", \($0)" } ?? "")"
     }
 }

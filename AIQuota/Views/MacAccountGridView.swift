@@ -49,12 +49,20 @@ struct MacAccountGridView: View {
     private var columns: [GridItem] {
         Array(repeating: GridItem(.flexible(minimum: 250), spacing: 24, alignment: .top), count: columnCount)
     }
+    private var cardWidth: CGFloat {
+        let horizontalPadding: CGFloat = 36
+        let columnSpacing = CGFloat(max(0, columnCount - 1)) * 24
+        return max(1, (width - horizontalPadding - columnSpacing) / CGFloat(columnCount))
+    }
+    private var cardContentWidth: CGFloat { max(1, cardWidth - 16) }
 
     var body: some View {
         ScrollView {
             LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
                 ForEach(accounts) { account in
                     MacAccountCard(account: account, session: session(for: account),
+                                   tokenHistory: tokenHistory(for: account),
+                                   availableWidth: cardContentWidth,
                                    showsAccountLabel: accounts.filter { $0.provider == account.provider }.count > 1,
                                    open: { openAccount(account) }, reconnect: { reconnect(account) })
                         .onDrag {
@@ -95,6 +103,7 @@ struct MacAccountGridView: View {
             orderIDs = AccountRegistry.orderedAccounts().map(\.id)
             contentHeight = nil
         }
+        .task(id: accounts.map(\.id)) { refreshTokenHistories() }
     }
 
     private func session(for account: ConnectedAccount) -> AdditionalAccountSession? {
@@ -102,8 +111,28 @@ struct MacAccountGridView: View {
         return viewModel.additionalAccounts.first { $0.id == account.id }
     }
 
+    private func tokenHistory(for account: ConnectedAccount) -> CodexTokenHistory? {
+        guard account.provider == .codex else { return nil }
+        switch account.connectionKind {
+        case .legacyPrimary:
+            return viewModel.codexTokenHistory
+        case .isolated:
+            return session(for: account)?.codexTokenHistory
+        }
+    }
+
+    private func refreshTokenHistories() {
+        if viewModel.isCodexAuthenticated { viewModel.refreshTokenHistory() }
+        for account in viewModel.additionalAccounts where account.provider == .codex && account.isAuthenticated {
+            account.refreshTokenHistory()
+        }
+    }
+
     private func refresh(_ account: ConnectedAccount) {
-        if let session = session(for: account) { Task { await session.refresh() } }
+        if let session = session(for: account) {
+            session.refreshTokenHistory(force: true)
+            Task { await session.refresh() }
+        }
         else { viewModel.manualRefresh() }
     }
 

@@ -1,65 +1,56 @@
 import SwiftUI
 
-/// The same reset notice adapts to the compact and multi-account panel widths.
+/// Mac-sized presentation of the iOS reset notice's two-line copy and link.
 struct MacResetNoticeBanner: View {
+    @Environment(\.colorScheme) private var colorScheme
     let title: String
-    let width: CGFloat
-    let accent: Color
     let onReadMore: () -> Void
     let onDismiss: () -> Void
+
+    // Match the OverviewAccent and OverviewPrimary assets in iOS 2.0 (80).
+    private var accent: Color {
+        colorScheme == .dark
+            ? Color(red: 0.749020, green: 0.352941, blue: 0.949020)
+            : Color(red: 0.686275, green: 0.321569, blue: 0.870588)
+    }
+    private var primary: Color {
+        colorScheme == .dark ? .white : Color(red: 0.043137, green: 0.023529, blue: 0.058824)
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
             Button(action: onReadMore) {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("Codex reset")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundStyle(accent)
-                    // The one-account panel is 340pt; wider constrained panels
-                    // can place the link beside the title without crowding it.
-                    if width >= 420 {
-                        HStack(alignment: .firstTextBaseline, spacing: 12) {
-                            noticeTitle
-                            Spacer(minLength: 8)
-                            readMore
-                                .fixedSize(horizontal: true, vertical: false)
-                        }
-                    } else {
-                        noticeTitle
-                        readMore
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(title)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(primary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("Read more on Codex Resets")
+                        Image(systemName: "arrow.up.right")
+                            .accessibilityHidden(true)
                     }
+                    .font(.system(size: 15))
+                    .foregroundStyle(accent)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
-            .accessibilityLabel("Codex reset: \(title). Read more")
+            .accessibilityLabel("\(title). Read more on Codex Resets")
 
             Button(action: onDismiss) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 32, height: 32)
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Color(nsColor: .secondaryLabelColor).opacity(0.75))
+                    .frame(width: 32, height: 32, alignment: .topTrailing)
                     .contentShape(Rectangle())
             }
             .accessibilityLabel("Dismiss reset announcement")
         }
         .buttonStyle(.plain)
         .padding(12)
-        .background(accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+        .background(accent.opacity(0.22), in: RoundedRectangle(cornerRadius: 10))
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
-    }
-
-    private var noticeTitle: some View {
-        Text(title)
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(.primary)
-            .fixedSize(horizontal: false, vertical: true)
-    }
-
-    private var readMore: some View {
-        Label("Read more", systemImage: "arrow.up.right")
-            .font(.system(size: 11))
-            .foregroundStyle(accent)
     }
 }
