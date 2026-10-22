@@ -341,8 +341,7 @@ struct PopoverView: View {
     @ViewBuilder
     private var resetNoticeRow: some View {
         if let announcement = resetAnnouncement {
-            MacResetNoticeBanner(title: announcement.title, width: overviewWidth,
-                                 accent: CircularGaugeView.accent) {
+            MacResetNoticeBanner(title: announcement.title) {
                 NSWorkspace.shared.open(CodexResetNotice.website)
             } onDismiss: {
                     #if DEMO_MODE
