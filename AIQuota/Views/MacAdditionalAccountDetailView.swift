@@ -7,6 +7,7 @@ struct MacAdditionalAccountDetailView: View {
     let height: CGFloat
     let close: () -> Void
     let openSettings: () -> Void
+    let reconnect: () -> Void
 
     private var serviceName: String { session.provider == .codex ? "Codex" : "Claude Code" }
 
@@ -34,6 +35,10 @@ struct MacAdditionalAccountDetailView: View {
                         Label(issue, systemImage: "exclamationmark.triangle")
                             .foregroundStyle(.orange)
                             .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if !session.isAuthenticated {
+                        Button("Reconnect \(serviceName)", action: reconnect)
+                            .disabled(session.isLoading)
                     }
                     if let usage = session.codexUsage {
                         codex(usage)
