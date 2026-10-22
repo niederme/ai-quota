@@ -74,6 +74,17 @@ final class TokenHistoryReviewTests: XCTestCase {
         XCTAssertEqual(labels, ["Aug", "Sep", "Oct"])
     }
 
+    @MainActor func testCompactGridKeepsOriginalCellSizeAndHeight() {
+        for width: CGFloat in [256, 288, 329, 376] {
+            let side = MobileTokenHistoryView.cellSide(for: width)
+            let originalSide = max(1, (width - 51) / 52)
+            let originalHeight = max(44, 7 * originalSide + 6) + 16
+            XCTAssertEqual(side, originalSide, accuracy: 0.01)
+            XCTAssertEqual(MobileTokenHistoryView.graphHeight(for: width), originalHeight, accuracy: 0.01)
+            XCTAssertLessThan(13 * side + 12, width * 0.3)
+        }
+    }
+
     @MainActor func testNarrowAccessibilityLayoutRenders() throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
         let previous = scene.windows.first(where: \.isKeyWindow)
