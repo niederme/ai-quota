@@ -56,9 +56,9 @@ public struct CodexTokenHistory: Codable, Sendable {
         return formatter
     }
 
-    public static let visibleWeeks = 26
+    public static let visibleWeeks = 39
 
-    /// Thirteen Sunday-first columns; the current week is always the rightmost.
+    /// Sunday-first columns; the current week is always the rightmost.
     public func days(now: Date = .now) -> [Day] {
         let calendar = Self.calendar
         let today = calendar.startOfDay(for: now)
