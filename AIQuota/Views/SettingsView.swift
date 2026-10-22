@@ -190,7 +190,9 @@ struct SettingsView: View {
         // macOS keeps the Settings window alive between opens (just hides it),
         // so onAppear doesn’t re-fire. Observing didBecomeKey resets the Form’s
         // identity each time the window is brought to front, scrolling back to top.
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { note in
+            guard let window = note.object as? NSWindow,
+                  window.title == "Settings", window.sheetParent == nil else { return }
             formID = UUID()
         }
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: notifSectionsEnabled)
@@ -407,7 +409,6 @@ struct NotificationInlineControls: View {
 private struct AccountDiagnosticsRows: View {
     @Environment(QuotaViewModel.self) private var viewModel
     @State private var addingProvider: ServiceType?
-    @State private var newAccountName = ""
     @State private var renamingAccountID: String?
     @State private var accountName = ""
     @State private var codexAttempts: [CodexSourceAttempt] = []
@@ -426,83 +427,132 @@ private struct AccountDiagnosticsRows: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            AccountServiceStatusRow(
-                label: "Codex",
-                logo: "logo-openai",
-                isAuthenticated: viewModel.isCodexAuthenticated,
-                statusDetail: statusDetail(isAuthenticated: viewModel.isCodexAuthenticated, attempt: codexAttempts.last),
-                statusColor: statusColor(isAuthenticated: viewModel.isCodexAuthenticated, attempt: codexAttempts.last),
-                signIn: { Task { await viewModel.signIn() } },
-                signOut: { viewModel.signOut() }
-            )
+            VStack(alignment: .leading, spacing: 8) {
+                AccountServiceStatusRow(
+                    label: "Codex",
+                    logo: "logo-openai",
+                    isAuthenticated: viewModel.isCodexAuthenticated,
+                    statusDetail: statusDetail(isAuthenticated: viewModel.isCodexAuthenticated, attempt: codexAttempts.last),
+                    statusColor: statusColor(isAuthenticated: viewModel.isCodexAuthenticated, attempt: codexAttempts.last),
+                    signIn: { Task { await viewModel.signIn() } },
+                    signOut: { viewModel.signOut() }
+                )
 
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Button("Codex Resets…") {
-                    NSWorkspace.shared.open(CodexResetNotice.website)
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Button("Codex Resets…") {
+                        NSWorkspace.shared.open(CodexResetNotice.website)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+
+                    if let date = lastResetDate {
+                        Text("Last reset on \(date.formatted(date: .abbreviated, time: .omitted))")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.small)
+                .padding(.leading, 28)
 
-                if let date = lastResetDate {
-                    Text("Last reset on \(date.formatted(date: .abbreviated, time: .omitted))")
+                additionalAccountRows(for: .codex)
+                addAccountButton(for: .codex)
+            }
+            .task {
+                #if !DEMO_MODE
+                while !Task.isCancelled {
+                    await resetNotice.refresh()
+                    do { try await Task.sleep(for: .seconds(60)) }
+                    catch { return }
+                }
+                #endif
+            }
+
+            Divider()
+
+            VStack(alignment: .leading, spacing: 8) {
+                AccountServiceStatusRow(
+                    label: "Claude Code",
+                    logo: "logo-claude",
+                    isAuthenticated: viewModel.isClaudeAuthenticated,
+                    statusDetail: statusDetail(isAuthenticated: viewModel.isClaudeAuthenticated, attempt: claudeAttempts.last),
+                    statusColor: statusColor(isAuthenticated: viewModel.isClaudeAuthenticated, attempt: claudeAttempts.last),
+                    signIn: { Task { await viewModel.signInClaude() } },
+                    signOut: { viewModel.signOutClaude() }
+                )
+                additionalAccountRows(for: .claude)
+                addAccountButton(for: .claude)
+            }
+
+            Divider()
+
+            if viewModel.hasAdditionalAccounts {
+                Text("Additional accounts appear in the menu bar popover. Alerts currently follow the original connection for each service.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if AppDistribution.allowsHostCredentialDiscovery {
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("Reuse Claude Code Keychain credentials", isOn: $reuseClaudeCodeKeychain)
+                    Text("Optional. Reuses Claude Code’s saved sign-in only when macOS allows access without a permission prompt. Otherwise, sign in to Claude in AIQuota.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .padding(.leading, 28)
-        }
-        .task {
-            #if !DEMO_MODE
-            while !Task.isCancelled {
-                await resetNotice.refresh()
-                do { try await Task.sleep(for: .seconds(60)) }
-                catch { return }
-            }
-            #endif
-        }
 
-        AccountServiceStatusRow(
-            label: "Claude Code",
-            logo: "logo-claude",
-            isAuthenticated: viewModel.isClaudeAuthenticated,
-            statusDetail: statusDetail(isAuthenticated: viewModel.isClaudeAuthenticated, attempt: claudeAttempts.last),
-            statusColor: statusColor(isAuthenticated: viewModel.isClaudeAuthenticated, attempt: claudeAttempts.last),
-            signIn: { Task { await viewModel.signInClaude() } },
-            signOut: { viewModel.signOutClaude() }
-        )
-
-        Divider()
-
-        HStack(spacing: 8) {
-            Button("Add Codex account") {
-                addingProvider = .codex
-                newAccountName = ""
+            HStack(alignment: .firstTextBaseline) {
+                Button("Refresh Status") { reload() }
+                Button("Copy Diagnostics") { copyDiagnostics() }
+                Spacer()
             }
-            Button("Add Claude account") {
-                addingProvider = .claude
-                newAccountName = ""
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Copy Diagnostics includes both services: auth source, HTTP status, error category, and timestamp.")
+                Text("No tokens, headers, cookies, or response bodies are included.")
             }
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .task { reload() }
         }
-        .controlSize(.small)
-        .alert("Name this account", isPresented: Binding(
+        .sheet(isPresented: Binding(
             get: { addingProvider != nil },
             set: { if !$0 { addingProvider = nil } }
         )) {
-            TextField("Account name", text: $newAccountName)
-            Button("Connect") {
-                if let provider = addingProvider {
-                    let name = newAccountName
+            if let provider = addingProvider {
+                AddAccountNameSheet(provider: provider, cancel: { addingProvider = nil }) { name in
+                    addingProvider = nil
                     Task { await viewModel.addAccount(for: provider, named: name) }
                 }
-                addingProvider = nil
             }
-            .disabled(newAccountName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            Button("Cancel", role: .cancel) { addingProvider = nil }
-        } message: {
-            Text("Choose a name such as Personal or Work. You can change it later.")
         }
+        .alert("Account name", isPresented: Binding(
+            get: { renamingAccountID != nil },
+            set: { if !$0 { renamingAccountID = nil } }
+        )) {
+            TextField("Name", text: $accountName)
+            Button("Save") {
+                if let id = renamingAccountID { viewModel.renameAccount(id: id, to: accountName) }
+                renamingAccountID = nil
+            }
+            Button("Cancel", role: .cancel) { renamingAccountID = nil }
+        } message: {
+            Text("Use a name that helps you recognize this account.")
+        }
+    }
 
-        ForEach(viewModel.additionalAccounts) { account in
+    private func addAccountButton(for provider: ServiceType) -> some View {
+        Button("Add \(provider == .codex ? "Codex" : "Claude Code") account", systemImage: "plus") {
+            addingProvider = provider
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+        .padding(.leading, 28)
+    }
+
+    private func additionalAccountRows(for provider: ServiceType) -> some View {
+        ForEach(viewModel.additionalAccounts.filter { $0.provider == provider }) { account in
             HStack {
                 AccountServiceStatusRow(
                     label: "\(account.provider == .codex ? "Codex" : "Claude") · \(account.account.displayLabel)",
@@ -524,51 +574,6 @@ private struct AccountDiagnosticsRows: View {
                 .controlSize(.small)
             }
         }
-        .alert("Account name", isPresented: Binding(
-            get: { renamingAccountID != nil },
-            set: { if !$0 { renamingAccountID = nil } }
-        )) {
-            TextField("Name", text: $accountName)
-            Button("Save") {
-                if let id = renamingAccountID { viewModel.renameAccount(id: id, to: accountName) }
-                renamingAccountID = nil
-            }
-            Button("Cancel", role: .cancel) { renamingAccountID = nil }
-        } message: {
-            Text("Use a name that helps you recognize this account.")
-        }
-
-        if viewModel.hasAdditionalAccounts {
-            Text("Additional accounts appear in the menu bar popover. Alerts currently follow the original connection for each service.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-
-        if AppDistribution.allowsHostCredentialDiscovery {
-            VStack(alignment: .leading, spacing: 4) {
-                Toggle("Reuse Claude Code Keychain credentials", isOn: $reuseClaudeCodeKeychain)
-                Text("Optional. Reuses Claude Code’s saved sign-in only when macOS allows access without a permission prompt. Otherwise, sign in to Claude in AIQuota.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-
-        HStack(alignment: .firstTextBaseline) {
-            Button("Refresh Status") { reload() }
-            Button("Copy Diagnostics") { copyDiagnostics() }
-            Spacer()
-        }
-
-        VStack(alignment: .leading, spacing: 2) {
-            Text("Copy Diagnostics includes both services: auth source, HTTP status, error category, and timestamp.")
-            Text("No tokens, headers, cookies, or response bodies are included.")
-        }
-        .font(.footnote)
-        .foregroundStyle(.secondary)
-        .fixedSize(horizontal: false, vertical: true)
-        .task { reload() }
     }
 
     private func reload() {
@@ -731,6 +736,47 @@ private struct AccountDiagnosticsRows: View {
     }()
 
     private static let timestampFormatter = ISO8601DateFormatter()
+}
+
+private struct AddAccountNameSheet: View {
+    let provider: ServiceType
+    let cancel: () -> Void
+    let connect: (String) -> Void
+
+    @State private var name = ""
+    @FocusState private var nameFocused: Bool
+
+    private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var serviceName: String { provider == .codex ? "Codex" : "Claude Code" }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Add \(serviceName) account")
+                .font(.headline)
+            Text("Choose a name such as Personal or Work. You can change it later.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            TextField("Account name", text: $name)
+                .focused($nameFocused)
+                .onSubmit(submit)
+            HStack {
+                Spacer()
+                Button("Cancel", action: cancel)
+                    .keyboardShortcut(.cancelAction)
+                Button("Connect", action: submit)
+                    .keyboardShortcut(.defaultAction)
+                    .disabled(trimmedName.isEmpty)
+            }
+        }
+        .padding(20)
+        .frame(width: 360)
+        .onAppear { nameFocused = true }
+    }
+
+    private func submit() {
+        guard !trimmedName.isEmpty else { return }
+        connect(trimmedName)
+    }
 }
 
 private struct AccountServiceStatusRow: View {
