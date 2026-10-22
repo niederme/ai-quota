@@ -65,8 +65,8 @@ struct SettingsView: View {
     }
 }
 
-/// Settings stays above AIQuota's utility windows while the app is active,
-/// and returns to the normal window level when the user switches apps.
+/// Keep Settings above other windows while it is open, including when another
+/// app becomes active.
 private struct SettingsWindowPresentation: NSViewRepresentable {
     func makeNSView(context: Context) -> SettingsWindowObserver { SettingsWindowObserver() }
     func updateNSView(_ nsView: SettingsWindowObserver, context: Context) {}
@@ -80,21 +80,11 @@ private final class SettingsWindowObserver: NSView {
         super.viewDidMoveToWindow()
         guard window !== settingsWindow else { return }
         if let settingsWindow { settingsWindow.level = originalLevel }
-        NotificationCenter.default.removeObserver(self)
         settingsWindow = window
         guard let window else { return }
         originalLevel = window.level
-        for name in [NSApplication.didBecomeActiveNotification, NSApplication.didResignActiveNotification] {
-            NotificationCenter.default.addObserver(self, selector: #selector(updateWindowLevel), name: name, object: NSApp)
-        }
-        updateWindowLevel()
+        window.level = .floating
     }
-
-    @objc private func updateWindowLevel() {
-        settingsWindow?.level = NSApp.isActive ? .floating : originalLevel
-    }
-
-    deinit { NotificationCenter.default.removeObserver(self) }
 }
 
 private extension View {
