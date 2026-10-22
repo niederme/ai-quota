@@ -48,9 +48,21 @@ struct MacResetNoticeBanner: View {
             .accessibilityLabel("Dismiss reset announcement")
         }
         .buttonStyle(.plain)
-        .padding(12)
-        .background(accent.opacity(0.22), in: RoundedRectangle(cornerRadius: 10))
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background {
+            RoundedRectangle(cornerRadius: 24)
+                .fill(.regularMaterial)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 24)
+                        .fill(accent.opacity(0.22))
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 24)
+                        .strokeBorder(primary.opacity(0.16), lineWidth: 1)
+                }
+        }
+        .padding(.horizontal, 16)
         .padding(.vertical, 8)
     }
 }

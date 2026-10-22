@@ -37,7 +37,7 @@ struct MacAccountCard: View {
     private var issue: String? {
         session?.issue ?? (account.provider == .codex ? viewModel.codexError?.localizedDescription : viewModel.claudeError?.localizedDescription)
     }
-    private var serviceName: String { account.provider == .codex ? "Codex" : "Claude Code" }
+    private var serviceName: String { account.provider == .codex ? "Codex" : "Claude" }
     private var icon: String { account.provider == .codex ? "logo-openai" : "logo-claude" }
     private var plan: String? {
         account.provider == .codex ? codexUsage?.displayPlan : claudeUsage?.planLabel.displayName
@@ -93,29 +93,36 @@ struct MacAccountCard: View {
     var body: some View {
         Button(action: connected || hasReading ? open : reconnect) {
             VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .top, spacing: 14) {
+                HStack(alignment: .top, spacing: 20) {
                     MacAccountDial(icon: icon, primaryPercent: primaryPercent,
                                    primaryLabel: primaryLabel, secondaryPercent: secondaryPercent,
                                    loading: loading, connected: connected, hasIssue: issue != nil)
-                        .frame(width: 100, height: 100)
+                        .frame(width: 120, height: 120)
                     details
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxWidth: .infinity, minHeight: 100, alignment: .topLeading)
+                .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
 
                 if connected, account.provider == .codex, let tokenHistory,
                    CodexTokenHistoryView.hasVisibleData(tokenHistory) {
-                    CodexTokenHistoryView(history: tokenHistory, availableWidth: max(1, availableWidth - 24))
-                        .padding(.top, 4)
+                    CodexTokenHistoryView(history: tokenHistory, availableWidth: availableWidth)
+                        .padding(.top, 8)
                 }
             }
-            .padding(.vertical, 6)
-            .padding(.horizontal, 8)
-            .frame(maxWidth: .infinity, minHeight: 126, alignment: .topLeading)
-            .contentShape(Rectangle())
+            .padding(16)
+            .frame(maxWidth: .infinity, minHeight: 156, alignment: .topLeading)
+            .contentShape(RoundedRectangle(cornerRadius: 24))
             .background {
-                RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.primary.opacity(hovered || focused ? 0.07 : 0))
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(.regularMaterial)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(Color.overviewPrimary.opacity(hovered || focused ? 0.07 : 0))
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 24)
+                            .strokeBorder(Color.overviewPrimary.opacity(0.16), lineWidth: 1)
+                    }
             }
         }
         .buttonStyle(.plain)
@@ -129,26 +136,35 @@ struct MacAccountCard: View {
     }
 
     private var details: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(serviceName)
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(.primary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.85)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text(serviceName)
+                    .font(.system(size: 20, weight: .semibold))
+                    .tracking(-0.25)
+                    .foregroundStyle(Color.overviewPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                Spacer(minLength: 0)
+                if connected || hasReading {
+                    Image(systemName: "chevron.right.circle.fill")
+                        .foregroundStyle(Color.overviewTertiary)
+                        .accessibilityHidden(true)
+                }
+            }
             if let plan {
                 Text("\(plan) plan" + (accountLabel.map { " · \($0)" } ?? ""))
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.overviewPrimary)
                     .fixedSize(horizontal: false, vertical: true)
             } else if let accountLabel {
                 Text(accountLabel)
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.overviewPrimary)
             }
             if let budget {
                 Text(budgetSummary(budget))
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.primary.opacity(0.82))
+                    .font(.system(size: 13).monospacedDigit())
+                    .foregroundStyle(Color.overviewSecondary)
                 if let reset = budget.reset {
                     resetCaption(at: reset)
                 }
@@ -161,8 +177,8 @@ struct MacAccountCard: View {
             }
             if let status {
                 Text(status)
-                    .font(.caption)
-                    .foregroundStyle(issue == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(.orange))
+                    .font(.system(size: 13))
+                    .foregroundStyle(issue == nil ? AnyShapeStyle(Color.overviewSecondary) : AnyShapeStyle(Color.overviewWarning))
                     .fixedSize(horizontal: false, vertical: true)
                     .help(issue ?? status)
             }
@@ -180,8 +196,8 @@ struct MacAccountCard: View {
 
     private func resetCaption(_ window: String? = nil, at date: Date?) -> some View {
         Text(resetText(window, at: date))
-            .font(.caption.monospacedDigit())
-            .foregroundStyle(Color.gaugeAccentInk)
+            .font(.system(size: 13).monospacedDigit())
+            .foregroundStyle(Color.overviewResetAccent)
             .fixedSize(horizontal: false, vertical: true)
     }
 

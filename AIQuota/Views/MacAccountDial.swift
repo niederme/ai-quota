@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// Two-window readings use the iOS dial's compact value-and-period lines.
-/// Keeping the Mac dial at 100 points protects the neighboring account text.
+/// The iOS overview's account dial, sized for a Mac account row.
 struct MacAccountDial: View {
     let icon: String
     let primaryPercent: Int?
@@ -14,20 +13,20 @@ struct MacAccountDial: View {
     private var tint: Color {
         guard connected, !hasIssue else { return .secondary }
         let worst = max(primaryPercent ?? 0, secondaryPercent ?? 0)
-        if worst >= 95 { return .critical }
-        if worst >= 85 { return .warningAmber }
-        return .gaugeAccent
+        if worst >= 95 { return .overviewCritical }
+        if worst >= 85 { return .overviewWarning }
+        return .overviewAccent
     }
 
     var body: some View {
         ZStack {
-            arc(percent: primaryPercent, lineWidth: secondaryPercent == nil ? 11 : 8, opacity: 1)
+            arc(percent: primaryPercent, lineWidth: secondaryPercent == nil ? 12 : 8, opacity: 1)
             if secondaryPercent != nil {
-                arc(percent: secondaryPercent, lineWidth: 7, opacity: 0.65)
+                arc(percent: secondaryPercent, lineWidth: 8, opacity: 0.7)
                     .padding(10)
             }
             VStack(spacing: secondaryPercent == nil ? 2 : 5) {
-                Image(icon).resizable().scaledToFit().frame(width: 16, height: 16)
+                Image(icon).resizable().scaledToFit().frame(width: 18, height: 18)
                 if loading && primaryPercent == nil {
                     ProgressView().controlSize(.mini)
                 } else if let primaryPercent {
@@ -41,7 +40,7 @@ struct MacAccountDial: View {
                         }
                     } else {
                         Text("\(primaryPercent)%")
-                            .font(.system(size: 16, weight: .semibold).monospacedDigit())
+                            .font(.system(size: 17, weight: .semibold).monospacedDigit())
                         // The period label is the ring's key, so it keeps the ring colour.
                         Text(primaryLabel)
                             .font(.system(size: 10, weight: .medium))
@@ -52,16 +51,16 @@ struct MacAccountDial: View {
             }
             .foregroundStyle(tint)
         }
-        .frame(width: 100, height: 100)
+        .frame(width: 120, height: 120)
         .accessibilityHidden(true)
     }
 
     private func arc(percent: Int?, lineWidth: CGFloat, opacity: Double) -> some View {
         ZStack {
             Circle().trim(from: 0, to: 0.75)
-                .stroke(.fill.tertiary, style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt,
+                .stroke(Color(nsColor: .quaternaryLabelColor), style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt,
                                                            dash: percent == nil && !loading ? [3, 4] : []))
-            if connected && !loading, let percent {
+            if connected, let percent {
                 Circle().trim(from: 0, to: 0.75 * Double(max(0, min(100, percent))) / 100)
                     .stroke(tint.opacity(opacity), style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt))
             }

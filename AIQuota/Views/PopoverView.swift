@@ -34,14 +34,18 @@ struct PopoverView: View {
     private var overviewWidth: CGFloat {
         let visibleWidth = (menuBarWindow?.screen ?? NSScreen.main)?.visibleFrame.width ?? 800
         let accountCount = viewModel.enrolledServices.count + viewModel.additionalAccounts.count
-        let ideal: CGFloat = accountCount > 1 ? 652 : 340
-        return min(ideal, max(320, visibleWidth - 16))
+        let ideal: CGFloat = accountCount > 1 ? 480 : 420
+        return min(ideal, max(280, visibleWidth - 16))
     }
     private var overviewBodyMaxHeight: CGFloat {
         let screen = menuBarWindow?.screen ?? NSScreen.main
         let visible = screen?.visibleFrame ?? CGRect(x: 0, y: 0, width: 800, height: 800)
         let top = menuBarWindow?.frame.maxY ?? visible.maxY
-        return max(220, min(visible.height * 0.88, top - visible.minY - 16) - 110)
+        let available = min(visible.height * 0.88, top - visible.minY - 16)
+        let chrome: CGFloat = 125 + (resetAnnouncement == nil ? 0 : 85)
+            + CGFloat(errorBanners.count) * 60
+            + (updater.availableUpdateVersion == nil ? 0 : 40)
+        return max(120, available - chrome)
     }
     private var overviewSize: CGSize {
         CGSize(width: overviewWidth, height: overviewHeight ?? 400)
@@ -844,21 +848,33 @@ struct PopoverView: View {
 
     @ViewBuilder private var header: some View {
         HStack(spacing: 8) {
-            Image("AppBrandIcon")
-                .resizable()
-                .frame(width: 20, height: 20)
-            Text("AIQuota").font(.headline)
+            Text("AIQuota")
+                .font(.system(size: 26, weight: .semibold))
+                .tracking(-0.4)
+                .foregroundStyle(Color.overviewPrimary)
             Spacer()
-            let accountCount = viewModel.enrolledServices.count + viewModel.additionalAccounts.count
-            if accountCount > 1 {
-                Text("\(accountCount) accounts")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            HStack(spacing: 2) {
+                Button { viewModel.manualRefresh() } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .frame(width: 30, height: 30)
+                }
+                .help("Refresh usage")
+                .accessibilityLabel("Refresh usage")
+                Button { openSettingsWindow() } label: {
+                    Image(systemName: "gearshape")
+                        .frame(width: 30, height: 30)
+                }
+                .help("Settings")
+                .accessibilityLabel("Settings")
             }
+            .buttonStyle(.plain)
+            .foregroundStyle(Color.overviewPrimary)
+            .padding(3)
+            .background(Color.overviewPrimary.opacity(0.08), in: Capsule())
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        Divider()
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+        .padding(.bottom, 12)
     }
 
     // MARK: - Footer
@@ -866,9 +882,6 @@ struct PopoverView: View {
     private var footer: some View {
         ZStack {
             HStack {
-                Button { openSettingsWindow() } label: {
-                    footerActionLabel("Settings")
-                }
                 Spacer()
                 Button(role: .destructive) { NSApp.terminate(nil) } label: {
                     footerActionLabel("Quit")

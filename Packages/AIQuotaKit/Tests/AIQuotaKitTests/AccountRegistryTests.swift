@@ -4,20 +4,21 @@ import Testing
 
 @Suite(.serialized)
 struct AccountRegistryTests {
-    @Test("Mac overview holds two columns and scrolls only on real height overflow")
+    @Test("Mac overview stacks every account and scrolls only on real height overflow")
     func gridGeometry() {
-        for count in 1...6 {
-            #expect(MacAccountGridLayout.rows(accountCount: count, width: 652) == (count + 1) / 2)
-            #expect(MacAccountGridLayout.rows(accountCount: count, width: 500) == count)
-            let rows = Double((count + 1) / 2)
-            #expect(MacAccountGridLayout.viewportHeight(accountCount: count, width: 652,
-                                                         availableHeight: 900) == rows * 134 + 8)
-            #expect(MacAccountGridLayout.viewportHeight(accountCount: count, width: 652,
-                                                         availableHeight: 300) <= 300)
+        for width in [280.0, 420.0, 480.0] {
+            for count in 1...6 {
+                #expect(MacAccountGridLayout.columns(for: width) == 1)
+                #expect(MacAccountGridLayout.rows(accountCount: count, width: width) == count)
+                #expect(MacAccountGridLayout.viewportHeight(accountCount: count, width: width,
+                                                             availableHeight: 1200) == Double(count) * 172)
+                #expect(MacAccountGridLayout.viewportHeight(accountCount: count, width: width,
+                                                             availableHeight: 300) <= 300)
+            }
         }
-        #expect(MacAccountGridLayout.viewportHeight(accountCount: 6, width: 652,
-                                                     availableHeight: 900) == 410)
-        #expect(MacAccountGridLayout.viewportHeight(accountCount: 6, width: 652,
+        #expect(MacAccountGridLayout.viewportHeight(accountCount: 6, width: 480,
+                                                     availableHeight: 1200) == 1032)
+        #expect(MacAccountGridLayout.viewportHeight(accountCount: 6, width: 480,
                                                      availableHeight: 300) == 300)
     }
 

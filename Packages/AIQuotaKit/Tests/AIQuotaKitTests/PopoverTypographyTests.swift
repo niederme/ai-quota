@@ -18,10 +18,10 @@ struct PopoverTypographyTests {
     func popoverUsesLargerFontSizes() throws {
         let popoverSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/PopoverView.swift"), encoding: .utf8)
         let gaugeSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/CircularGaugeView.swift"), encoding: .utf8)
+        let accountDialSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/MacAccountDial.swift"), encoding: .utf8)
 
-        #expect(popoverSource.contains(#"ringKey(label: "7d", opacity: 0.5)"#))
+        #expect(accountDialSource.contains(#"Text("\(secondaryPercent)% 7d")"#))
         #expect(popoverSource.contains(#"secondaryLabel: "7d""#))
-        #expect(!popoverSource.contains(#"ringKey(label: "7-day", opacity: 0.5)"#))
         #expect(!popoverSource.contains(#"secondaryLabel: "7-day""#))
 
         #expect(popoverSource.contains(#".font(.system(size: 13, weight: .medium))"#))
@@ -137,7 +137,7 @@ struct PopoverTypographyTests {
         #expect(popoverSource.contains("Color.sheetTint"))
         #expect(colorsSource.contains("static let sheetTint = Color(light: (246, 241, 251, 0.66), dark: (26, 21, 36, 0.53))"))
         #expect(popoverSource.contains(".fill(.ultraThinMaterial)\n                    .opacity(0.7)"))
-        #expect(itemSource.contains(".foregroundStyle(Color.gaugeAccentInk)"))
+        #expect(itemSource.contains(".foregroundStyle(Color.overviewResetAccent)"))
         let dialSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/MacAccountDial.swift"), encoding: .utf8)
         #expect(!dialSource.contains(".foregroundStyle(.secondary)"))
     }
