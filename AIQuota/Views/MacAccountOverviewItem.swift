@@ -181,7 +181,7 @@ struct MacAccountCard: View {
     private func resetCaption(_ window: String? = nil, at date: Date?) -> some View {
         Text(resetText(window, at: date))
             .font(.caption.monospacedDigit())
-            .foregroundStyle(Color.gaugeAccent.opacity(0.85))
+            .foregroundStyle(Color.gaugeAccentInk)
             .fixedSize(horizontal: false, vertical: true)
     }
 
