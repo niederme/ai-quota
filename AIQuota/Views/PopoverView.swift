@@ -187,19 +187,35 @@ struct PopoverView: View {
 
     @ViewBuilder
     private var popoverSurface: some View {
-        if #available(macOS 26.0, *) {
-            Rectangle()
-                .fill(.regularMaterial)
-        } else {
-            // Sequoia's MenuBarExtra material is substantially more transparent
-            // than Tahoe's glass treatment. Stabilize contrast while retaining a
-            // small amount of desktop color.
-            Rectangle()
-                .fill(.regularMaterial)
-                .overlay {
-                    Color(nsColor: .windowBackgroundColor).opacity(0.92)
-                }
+        ZStack {
+            if #available(macOS 26.0, *) {
+                Rectangle()
+                    .fill(.regularMaterial)
+            } else {
+                // Sequoia's MenuBarExtra material is substantially more transparent
+                // than Tahoe's glass treatment. Stabilize contrast while retaining a
+                // small amount of desktop color.
+                Rectangle()
+                    .fill(.regularMaterial)
+                    .overlay {
+                        Color(nsColor: .windowBackgroundColor).opacity(0.92)
+                    }
+            }
+            sheetTint
         }
+    }
+
+    // Plum glass over the material. The tint is ~90% opaque so the sheet reads
+    // the same over white and black desktops; a lighter tint greys out on white.
+    private var sheetTint: some View {
+        ZStack {
+            Color.sheetTint
+            EllipticalGradient(colors: [.sheetGlow, .clear], center: .topLeading,
+                               startRadiusFraction: 0, endRadiusFraction: 0.75)
+            EllipticalGradient(colors: [.sheetGlowTrailing, .clear], center: .bottomTrailing,
+                               startRadiusFraction: 0, endRadiusFraction: 0.6)
+        }
+        .allowsHitTesting(false)
     }
 
     private func openSettingsWindow() {

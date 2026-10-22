@@ -127,6 +127,18 @@ struct PopoverTypographyTests {
         #expect(popoverSource.contains("Color(nsColor: .windowBackgroundColor).opacity(0.92)"))
     }
 
+    @Test("popover surface carries the tinted glass")
+    func popoverSurfaceCarriesTintedGlass() throws {
+        let popoverSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/PopoverView.swift"), encoding: .utf8)
+        let colorsSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/AdaptiveColors.swift"), encoding: .utf8)
+        let itemSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/MacAccountOverviewItem.swift"), encoding: .utf8)
+
+        #expect(popoverSource.contains("            sheetTint\n"))
+        #expect(popoverSource.contains("Color.sheetTint"))
+        #expect(colorsSource.contains("static let sheetTint = Color(light: (246, 241, 251, 0.9), dark: (26, 21, 36, 0.9))"))
+        #expect(itemSource.contains(".foregroundStyle(Color.gaugeAccentInk)"))
+    }
+
     @Test("accent text uses adaptive colors without shadows")
     func accentTextUsesAdaptiveColorsWithoutShadows() throws {
         let gaugeSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/CircularGaugeView.swift"), encoding: .utf8)
