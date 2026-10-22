@@ -4,11 +4,11 @@ import MobileAccessCore
 @testable import AIQuota_iOS
 
 final class TokenHistoryReviewTests: XCTestCase {
-    @MainActor func testNineMonthGridNarrowLargeLightDark() async throws {
+    @MainActor func testFortyTwoWeekGridNarrowLargeLightDark() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
         let previous = scene.windows.first(where: \.isKeyWindow)
         let history = try XCTUnwrap(DemoQuotaData.tokenHistory())
-        XCTAssertEqual(history.days().count, 273)
+        XCTAssertEqual(history.days().count, 294)
         for width in [320.0, 440.0] {
             for (name, scheme) in [("light", ColorScheme.light), ("dark", .dark)] {
                 let content = NavigationStack {
@@ -72,15 +72,34 @@ final class TokenHistoryReviewTests: XCTestCase {
         let days = history.days(now: now)
         let labels = (0..<CodexTokenHistory.visibleWeeks).compactMap { MobileTokenHistoryView.monthLabel(days, week: $0) }
         XCTAssertEqual(labels, ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"])
+        let visible = MobileTokenHistoryView.visibleMonthWeeks(days, width: 416)
+        XCTAssertEqual(visible.compactMap { MobileTokenHistoryView.monthLabel(days, week: $0) }, labels)
     }
 
-    @MainActor func testNineMonthGridFillsCardWithSquareCells() {
+    @MainActor func testMonthLabelsKeepEdgesAndAvoidOverlap() throws {
+        let history = try XCTUnwrap(DemoQuotaData.tokenHistory())
+        let now = try XCTUnwrap(CodexTokenHistory.dateFormatter().date(from: "2026-11-12"))
+        let days = history.days(now: now)
+        for width: CGFloat in [160, 256, 288, 416] {
+            let weeks = MobileTokenHistoryView.visibleMonthWeeks(days, width: width)
+            XCTAssertEqual(MobileTokenHistoryView.monthLabel(days, week: try XCTUnwrap(weeks.first)), "Jan")
+            XCTAssertEqual(MobileTokenHistoryView.monthLabel(days, week: try XCTUnwrap(weeks.last)), "Nov")
+            XCTAssertFalse(weeks.contains(1), "February should not collide with January")
+            for (left, right) in zip(weeks, weeks.dropFirst()) {
+                XCTAssertGreaterThanOrEqual(
+                    MobileTokenHistoryView.monthLabelOffset(week: right, width: width) -
+                    MobileTokenHistoryView.monthLabelOffset(week: left, width: width), 24)
+            }
+        }
+    }
+
+    @MainActor func testFortyTwoWeekGridFillsCardWithSquareCells() {
         for width: CGFloat in [256, 288, 329, 376] {
             let side = MobileTokenHistoryView.cellSide(for: width)
             let gap = MobileTokenHistoryView.cellGap
-            XCTAssertEqual(39 * side + 38 * gap, width, accuracy: 0.01)
+            XCTAssertEqual(42 * side + 41 * gap, width, accuracy: 0.01)
             XCTAssertEqual(MobileTokenHistoryView.graphHeight(for: width), max(44, 7 * side + 6 * gap) + 16, accuracy: 0.01)
-            XCTAssertGreaterThan(side, 5)
+            XCTAssertGreaterThan(side, 4)
             XCTAssertLessThan(side, 9)
         }
     }
