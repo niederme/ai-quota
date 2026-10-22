@@ -2,29 +2,51 @@ import Foundation
 import MobileAccessCore
 import OSLog
 
+public enum ClaudeEnterpriseReconnectReason: Sendable, Equatable {
+    case webAuthenticationRequired
+    case accountMismatch
+    case oauthExpired
+    case oauthIncompatible
+}
+
+public enum ClaudeEnterpriseDetailAccessError: Error, Sendable, Equatable {
+    case reconnectRequired(
+        reason: ClaudeEnterpriseReconnectReason,
+        expectedOrganizationID: String?
+    )
+    case temporarilyUnavailable
+}
+
 // MARK: - ClaudeClient
 
 public actor ClaudeClient {
     private let coordinator: ClaudeAuthCoordinator
     private let session: URLSession
+    private let accountStorageID: String?
+    private let isScoped: Bool
     private let baseURL = URL(string: "https://claude.ai")!
     private let logger = Logger(subsystem: "app.aiquota", category: "ClaudeClient")
     private var oauthPolicyFailures = 0
     private var oauthDisabledForSession = false
 
-    public init(coordinator: ClaudeAuthCoordinator) {
+    public init(coordinator: ClaudeAuthCoordinator, accountStorageID: String? = nil) {
         self.coordinator = coordinator
+        self.accountStorageID = accountStorageID
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 15
-        config.httpCookieStorage = HTTPCookieStorage.shared
-        config.httpShouldSetCookies = true
+        self.isScoped = accountStorageID != nil || coordinator.accountStorageID != nil
+        config.httpCookieStorage = isScoped ? nil : HTTPCookieStorage.shared
+        // Scoped coordinators provide an explicit cookie snapshot. Prevent
+        // URLSession from reading/writing the process-wide cookie jar in that
+        // mode, which could mix accounts during concurrent refreshes.
+        config.httpShouldSetCookies = !isScoped
         self.session = URLSession(configuration: config)
     }
 
     // MARK: - Public API
 
     public func fetchUsage() async throws -> ClaudeUsage {
-        if !oauthDisabledForSession {
+        if !isScoped && !oauthDisabledForSession {
             do {
                 let oauth = try await coordinator.loadOAuthCredentials(allowKeychain: false)
                 do {
@@ -77,7 +99,8 @@ public actor ClaudeClient {
 
         let ctx = try await coordinator.requestContext()
         do {
-            let usage = try await fetchUsageData(path: "/api/organizations/\(ctx.orgId)/usage")
+            let usage = try await fetchUsageData(path: "/api/organizations/\(ctx.orgId)/usage",
+                                                  cookies: ctx.cookies)
             recordAttempt(source: .web, httpStatus: 200, category: .success)
             return usage
         } catch let error as NetworkError {
@@ -87,6 +110,142 @@ public actor ClaudeClient {
             recordAttempt(source: .web, httpStatus: nil, category: .network)
             throw error
         }
+    }
+
+    /// Returns the organization that would be used for cookie-authenticated
+    /// enterprise detail requests. OAuth-only sessions intentionally have no
+    /// organization scope and therefore cannot load these optional details.
+    public func enterpriseDetailScopeID(requiresOAuthMatch: Bool) async throws -> String {
+        let oauthOrganizationID: String?
+        if requiresOAuthMatch {
+            let credentials: ClaudeOAuthCredentials
+            do {
+                credentials = try await coordinator.loadOAuthCredentials(allowKeychain: false)
+            } catch let error as ClaudeOAuthCredentialsError {
+                throw Self.enterpriseDetailAccessError(for: error)
+            } catch {
+                throw ClaudeEnterpriseDetailAccessError.reconnectRequired(
+                    reason: .oauthIncompatible,
+                    expectedOrganizationID: nil
+                )
+            }
+
+            do {
+                guard let rawOrganizationID = try await self.oauthOrganizationID(credentials: credentials),
+                      let validated = try? Self.validatedEnterpriseOrganizationID(rawOrganizationID)
+                else {
+                    throw ClaudeEnterpriseDetailAccessError.reconnectRequired(
+                        reason: .oauthIncompatible,
+                        expectedOrganizationID: nil
+                    )
+                }
+                oauthOrganizationID = validated
+            } catch let error as ClaudeEnterpriseDetailAccessError {
+                throw error
+            } catch let error as NetworkError {
+                throw Self.enterpriseProfileAccessError(for: error)
+            } catch {
+                throw ClaudeEnterpriseDetailAccessError.temporarilyUnavailable
+            }
+        } else {
+            oauthOrganizationID = nil
+        }
+
+        let rawWebOrganizationID: String
+        do {
+            rawWebOrganizationID = try await coordinator.requestContext().orgId
+        } catch {
+            if requiresOAuthMatch {
+                throw ClaudeEnterpriseDetailAccessError.reconnectRequired(
+                    reason: .webAuthenticationRequired,
+                    expectedOrganizationID: oauthOrganizationID
+                )
+            }
+            throw error
+        }
+
+        guard let webOrganizationID = try? Self.validatedEnterpriseOrganizationID(rawWebOrganizationID) else {
+            if requiresOAuthMatch {
+                throw ClaudeEnterpriseDetailAccessError.reconnectRequired(
+                    reason: .webAuthenticationRequired,
+                    expectedOrganizationID: oauthOrganizationID
+                )
+            }
+            throw NetworkError.decodingError(
+                underlying: ClaudeEnterpriseDetailValidationError.invalidOrganizationID
+            )
+        }
+        guard let oauthOrganizationID else { return webOrganizationID }
+        guard oauthOrganizationID.caseInsensitiveCompare(webOrganizationID) == .orderedSame else {
+            throw ClaudeEnterpriseDetailAccessError.reconnectRequired(
+                reason: .accountMismatch,
+                expectedOrganizationID: oauthOrganizationID
+            )
+        }
+        return webOrganizationID
+    }
+
+    public func fetchEnterpriseSpend(
+        period: ClaudeEnterprisePeriod,
+        verifiedOrganizationID: String
+    ) async throws -> ScopedClaudeEnterpriseSpend {
+        let context = try await coordinator.requestContext()
+        let organizationID = try Self.validatedEnterpriseOrganizationID(context.orgId)
+        let verifiedOrganizationID = try Self.validatedEnterpriseOrganizationID(verifiedOrganizationID)
+        guard organizationID == verifiedOrganizationID else {
+            throw ClaudeEnterpriseDetailAccessError.reconnectRequired(
+                reason: .accountMismatch,
+                expectedOrganizationID: verifiedOrganizationID
+            )
+        }
+        let path = enterprisePath(
+            organizationID: organizationID,
+            resource: "spend",
+            period: period,
+            extraQuery: "&group_by=product_surface&granularity=daily"
+        )
+        let data = try await fetchWebData(
+            path: path,
+            verifiedOrganizationID: verifiedOrganizationID,
+            cookies: context.cookies
+        )
+        return try Self._decodeEnterpriseSpendForTesting(
+            data,
+            scopeID: organizationID,
+            period: period,
+            fetchedAt: .now
+        )
+    }
+
+    public func fetchEnterpriseSkills(
+        period: ClaudeEnterprisePeriod,
+        verifiedOrganizationID: String
+    ) async throws -> ScopedClaudeEnterpriseSkills {
+        let context = try await coordinator.requestContext()
+        let organizationID = try Self.validatedEnterpriseOrganizationID(context.orgId)
+        let verifiedOrganizationID = try Self.validatedEnterpriseOrganizationID(verifiedOrganizationID)
+        guard organizationID == verifiedOrganizationID else {
+            throw ClaudeEnterpriseDetailAccessError.reconnectRequired(
+                reason: .accountMismatch,
+                expectedOrganizationID: verifiedOrganizationID
+            )
+        }
+        let path = enterprisePath(
+            organizationID: organizationID,
+            resource: "skills",
+            period: period
+        )
+        let data = try await fetchWebData(
+            path: path,
+            verifiedOrganizationID: verifiedOrganizationID,
+            cookies: context.cookies
+        )
+        return try Self._decodeEnterpriseSkillsForTesting(
+            data,
+            scopeID: organizationID,
+            period: period,
+            fetchedAt: .now
+        )
     }
 
     // MARK: - Private
@@ -137,8 +296,8 @@ public actor ClaudeClient {
         }
     }
 
-    private func fetchUsageData(path: String) async throws -> ClaudeUsage {
-        let req = makeRequest(path: path)
+    private func fetchUsageData(path: String, cookies: [HTTPCookie]) async throws -> ClaudeUsage {
+        let req = makeRequest(path: path, cookies: cookies)
 
         // Use the async URLSession API so cooperative cancellation works correctly.
         // When the enclosing Task is cancelled (e.g. startAutoRefresh() restarts the
@@ -154,11 +313,7 @@ public actor ClaudeClient {
         }
 
         let status = (response as? HTTPURLResponse)?.statusCode ?? -1
-        logger.info("[ClaudeClient] GET \(path) → HTTP \(status)")
-        if status != 200 {
-            let headers = (response as? HTTPURLResponse)?.allHeaderFields ?? [:]
-            logger.warning("[ClaudeClient] non-200 headers: \(headers as NSDictionary)")
-        }
+        logger.info("[ClaudeClient] usage request → HTTP \(status)")
 
         try checkStatus(response, data: data)
 
@@ -166,10 +321,134 @@ public actor ClaudeClient {
             let raw = try Self.decoder.decode(ClaudeUsageResponse.self, from: data)
             return Self.buildUsage(from: raw, planLabel: nil, source: .web, weeklyBreakdown: Self.weeklyBreakdown(from: data))
         } catch {
-            let preview = String(data: data.prefix(2000), encoding: .utf8) ?? "<non-utf8>"
-            logger.error("[ClaudeClient] decodingError: \(error) | body: \(preview)")
+            logger.error("[ClaudeClient] usage response decoding failed")
             throw NetworkError.decodingError(underlying: error)
         }
+    }
+
+    private func fetchWebData(
+        path: String,
+        verifiedOrganizationID: String,
+        cookies: [HTTPCookie]
+    ) async throws -> Data {
+        let request = makeRequest(path: path, cookies: cookies)
+        let (data, response): (Data, URLResponse)
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw error
+        }
+        if let http = response as? HTTPURLResponse,
+           let accessError = Self.enterpriseDetailEndpointAccessError(
+               statusCode: http.statusCode,
+               verifiedOrganizationID: verifiedOrganizationID
+           ) {
+            throw accessError
+        }
+        try checkStatus(response, data: data)
+        return data
+    }
+
+    private func enterprisePath(
+        organizationID: String,
+        resource: String,
+        period: ClaudeEnterprisePeriod,
+        extraQuery: String = ""
+    ) -> String {
+        let safeOrganizationID = organizationID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
+            ?? organizationID
+        return "/api/organizations/\(safeOrganizationID)/usage/\(resource)"
+            + "?start_date=\(period.apiStartDate)"
+            + "&end_date=\(period.apiEndDate)"
+            + extraQuery
+    }
+
+    static func _validatedEnterpriseOrganizationIDForTesting(_ organizationID: String) throws -> String {
+        try validatedEnterpriseOrganizationID(organizationID)
+    }
+
+    static func _enterpriseDetailAccessErrorForTesting(
+        _ error: ClaudeOAuthCredentialsError
+    ) -> ClaudeEnterpriseDetailAccessError {
+        enterpriseDetailAccessError(for: error)
+    }
+
+    static func _enterpriseProfileAccessErrorForTesting(
+        statusCode: Int
+    ) -> ClaudeEnterpriseDetailAccessError {
+        enterpriseProfileAccessError(for: .httpError(statusCode: statusCode))
+    }
+
+    static func _enterpriseDetailEndpointAccessErrorForTesting(
+        statusCode: Int,
+        verifiedOrganizationID: String
+    ) -> ClaudeEnterpriseDetailAccessError? {
+        enterpriseDetailEndpointAccessError(
+            statusCode: statusCode,
+            verifiedOrganizationID: verifiedOrganizationID
+        )
+    }
+
+    private nonisolated static func validatedEnterpriseOrganizationID(
+        _ organizationID: String
+    ) throws -> String {
+        guard let uuid = UUID(uuidString: organizationID) else {
+            throw ClaudeEnterpriseDetailValidationError.invalidOrganizationID
+        }
+        return uuid.uuidString.lowercased()
+    }
+
+    private nonisolated static func enterpriseDetailAccessError(
+        for error: ClaudeOAuthCredentialsError
+    ) -> ClaudeEnterpriseDetailAccessError {
+        switch error {
+        case .expired:
+            return .reconnectRequired(reason: .oauthExpired, expectedOrganizationID: nil)
+        case .notFound, .decodeFailed, .missingOAuth, .missingAccessToken, .missingScope:
+            return .reconnectRequired(reason: .oauthIncompatible, expectedOrganizationID: nil)
+        }
+    }
+
+    private nonisolated static func enterpriseProfileAccessError(
+        for error: NetworkError
+    ) -> ClaudeEnterpriseDetailAccessError {
+        if case .httpError(let statusCode) = error, statusCode == 401 {
+            return .reconnectRequired(reason: .oauthExpired, expectedOrganizationID: nil)
+        }
+        return .temporarilyUnavailable
+    }
+
+    private nonisolated static func enterpriseDetailEndpointAccessError(
+        statusCode: Int,
+        verifiedOrganizationID: String
+    ) -> ClaudeEnterpriseDetailAccessError? {
+        guard statusCode == 401 else { return nil }
+        return .reconnectRequired(
+            reason: .webAuthenticationRequired,
+            expectedOrganizationID: verifiedOrganizationID
+        )
+    }
+
+    private func oauthOrganizationID(
+        credentials: ClaudeOAuthCredentials
+    ) async throws -> String? {
+        var request = URLRequest(url: URL(string: "https://api.anthropic.com/api/oauth/profile")!)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 10
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.setValue("Bearer \(credentials.accessToken)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
+        request.setValue("claude-code/2.1.0", forHTTPHeaderField: "User-Agent")
+        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            throw NetworkError.networkUnavailable
+        }
+        guard (200...299).contains(http.statusCode) else {
+            throw NetworkError.httpError(statusCode: http.statusCode)
+        }
+        return ClaudeAPI.decodeOrganizationID(data)
     }
 
     // ISO 8601 with fractional seconds, e.g. "2026-03-18T22:00:01.194181+00:00"
@@ -202,7 +481,7 @@ public actor ClaudeClient {
         return d
     }
 
-    private func makeRequest(path: String) -> URLRequest {
+    private func makeRequest(path: String, cookies: [HTTPCookie]) -> URLRequest {
         let url = URL(string: "https://claude.ai\(path)")!
         var req = URLRequest(url: url)
         req.httpMethod = "GET"
@@ -215,13 +494,17 @@ public actor ClaudeClient {
         req.setValue("en-US,en;q=0.9", forHTTPHeaderField: "Accept-Language")
         req.setValue("web_claude_ai", forHTTPHeaderField: "anthropic-client-platform")
         req.setValue("1.0.0", forHTTPHeaderField: "anthropic-client-version")
-        if let deviceId = cookie(named: "anthropic-device-id") {
+        let scopedCookies = isScoped ? cookies : (HTTPCookieStorage.shared.cookies ?? [])
+        if isScoped, let cookieHeader = HTTPCookie.requestHeaderFields(with: cookies)["Cookie"] {
+            req.setValue(cookieHeader, forHTTPHeaderField: "Cookie")
+        }
+        if let deviceId = scopedCookies.first(where: { $0.name == "anthropic-device-id" })?.value {
             req.setValue(deviceId, forHTTPHeaderField: "anthropic-device-id")
         }
-        if let anonId = cookie(named: "ajs_anonymous_id") {
+        if let anonId = scopedCookies.first(where: { $0.name == "ajs_anonymous_id" })?.value {
             req.setValue(anonId, forHTTPHeaderField: "anthropic-anonymous-id")
         }
-        if let sessionId = cookie(named: "activitySessionId") {
+        if let sessionId = scopedCookies.first(where: { $0.name == "activitySessionId" })?.value {
             req.setValue(sessionId, forHTTPHeaderField: "x-activity-session-id")
         }
         return req
@@ -255,6 +538,34 @@ public actor ClaudeClient {
     ) throws -> ClaudeUsage {
         let raw = try decoder.decode(ClaudeUsageResponse.self, from: data)
         return buildUsage(from: raw, planLabel: planLabel, source: source, fetchedAt: fetchedAt, weeklyBreakdown: weeklyBreakdown(from: data))
+    }
+
+    public nonisolated static func _decodeEnterpriseSpendForTesting(
+        _ data: Data,
+        scopeID: String,
+        period: ClaudeEnterprisePeriod,
+        fetchedAt: Date
+    ) throws -> ScopedClaudeEnterpriseSpend {
+        ScopedClaudeEnterpriseSpend(
+            report: try JSONDecoder().decode(ClaudeSpendHistory.self, from: data),
+            scopeID: scopeID,
+            period: period,
+            fetchedAt: fetchedAt
+        )
+    }
+
+    public nonisolated static func _decodeEnterpriseSkillsForTesting(
+        _ data: Data,
+        scopeID: String,
+        period: ClaudeEnterprisePeriod,
+        fetchedAt: Date
+    ) throws -> ScopedClaudeEnterpriseSkills {
+        ScopedClaudeEnterpriseSkills(
+            report: try JSONDecoder().decode(ClaudeEnterpriseSkillsResponse.self, from: data),
+            scopeID: scopeID,
+            period: period,
+            fetchedAt: fetchedAt
+        )
     }
 
     private nonisolated static func weeklyBreakdown(from data: Data) -> ClaudeWeeklyBreakdown? {
@@ -385,6 +696,10 @@ public actor ClaudeClient {
         httpStatus: Int?,
         category: ClaudeSourceAttempt.ErrorCategory
     ) {
+        // The existing diagnostics ring describes the original connection.
+        // Additional accounts have their own visible error state and must not
+        // overwrite that ring with another organization's result.
+        guard !isScoped else { return }
         SharedDefaults.appendClaudeSourceAttempt(.init(
             source: source,
             httpStatus: httpStatus,
@@ -503,6 +818,10 @@ private enum ClaudeOAuthFetchError: Error {
     case invalidResponse(status: Int?)
     case serverError(Int)
     case networkError(Error)
+}
+
+private enum ClaudeEnterpriseDetailValidationError: Error {
+    case invalidOrganizationID
 }
 
 private extension NetworkError {

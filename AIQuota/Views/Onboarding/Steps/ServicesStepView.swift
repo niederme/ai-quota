@@ -1,298 +1,154 @@
-// AIQuota/Views/Onboarding/Steps/ServicesStepView.swift
 import SwiftUI
 import AIQuotaKit
 
 struct ServicesStepView: View {
     @Environment(QuotaViewModel.self) private var viewModel
+    @State private var accounts = AccountRegistry.orderedAccounts()
+    @State private var addingProvider: ServiceType?
+    @State private var connecting = false
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
             VStack(spacing: 6) {
-                Text("Connect your services")
-                    .font(.title).fontWeight(.bold)
-                Text("Sign in to the services you use.")
-                    .font(.body)
+                Text("Connect your accounts").font(.title.bold())
+                Text("Add the personal and work accounts you use.")
                     .foregroundStyle(.secondary)
             }
             .padding(.top, 40)
-            .padding(.bottom, 32)
+            .padding(.bottom, 24)
 
-            // Service rows
-            VStack(spacing: 12) {
-                ServiceRow(
-                    logoName: "logo-openai",
-                    name: "Codex",
-                    subtitle: "ChatGPT / OpenAI",
-                    isAuthenticated: viewModel.isCodexAuthenticated,
-                    isRestoring: viewModel.isRestoringSession,
-                    onSignIn: { Task { await viewModel.signIn() } }
-                )
-
-                ServiceRow(
-                    logoName: "logo-claude",
-                    name: "Claude Code",
-                    subtitle: "Anthropic / claude.ai",
-                    isAuthenticated: viewModel.isClaudeAuthenticated,
-                    isRestoring: viewModel.isRestoringSession,
-                    onSignIn: { Task { await viewModel.signInClaude() } }
-                )
-            }
-            .padding(.horizontal, 32)
-
-            if viewModel.isCodexAuthenticated && viewModel.isClaudeAuthenticated {
-                MenuBarDisplayPicker(
-                    selection: MenuBarDisplayOption.current(
-                        settings: viewModel.settings,
-                        enrolledServices: viewModel.enrolledServices
-                    ),
-                    onSelect: { option in
-                        applyMenuBarDisplayOption(option)
-                        viewModel.saveSettings()
+            ScrollView {
+                VStack(spacing: 16) {
+                    ForEach(ServiceType.allCases, id: \.self) { provider in
+                        providerCard(provider)
                     }
-                )
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
-            }
-
-            if viewModel.isCodexAuthenticated || viewModel.isClaudeAuthenticated {
-                RefreshPreferencePicker(
-                    selection: viewModel.settings.refreshIntervalMinutes,
-                    onSelect: { minutes in
-                        viewModel.settings.refreshIntervalMinutes = minutes
-                        viewModel.saveSettings()
+                    if !accounts.isEmpty {
+                        RefreshPreferencePicker(
+                            selection: viewModel.settings.refreshIntervalMinutes,
+                            onSelect: { minutes in
+                                viewModel.settings.refreshIntervalMinutes = minutes
+                                viewModel.saveSettings()
+                            }
+                        )
                     }
-                )
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
-            }
-
-            Spacer()
-
-            Text("You can connect more services later in Settings.")
-                .font(.footnote)
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
+                }
                 .padding(.horizontal, 32)
-                .padding(.bottom, 12)
+                .padding(.bottom, 20)
+            }
+            Text("You can add and manage accounts later in Settings.")
+                .font(.footnote).foregroundStyle(.secondary)
+                .padding(.horizontal, 32).padding(.vertical, 12)
         }
-        .animation(.spring(response: 0.35, dampingFraction: 0.85),
-                   value: viewModel.isCodexAuthenticated && viewModel.isClaudeAuthenticated)
+        .tint(Color.brand)
+        .onAppear(perform: reload)
+        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in reload() }
+        .onChange(of: viewModel.additionalAccounts.map(\.id)) { reload() }
+        .onChange(of: viewModel.enrolledServices) { reload() }
+        .sheet(isPresented: Binding(get: { addingProvider != nil }, set: { if !$0 { addingProvider = nil } })) {
+            if let provider = addingProvider {
+                AddAccountNameSheet(provider: provider, cancel: { addingProvider = nil }) { name, showInMenuBar in
+                    addingProvider = nil
+                    connecting = true
+                    Task {
+                        await viewModel.connectAccount(for: provider, named: name, showInMenuBar: showInMenuBar)
+                        connecting = false
+                        reload()
+                    }
+                }
+            }
+        }
     }
 
-    private func applyMenuBarDisplayOption(_ option: MenuBarDisplayOption) {
-        switch option {
-        case .codex:
-            viewModel.settings.menuBarDisplayMode = .single
-            viewModel.settings.menuBarService = .codex
-        case .claude:
-            viewModel.settings.menuBarDisplayMode = .single
-            viewModel.settings.menuBarService = .claude
-        case .both:
-            viewModel.settings.menuBarDisplayMode = .both
+    private func providerCard(_ provider: ServiceType) -> some View {
+        let providerAccounts = accounts.filter { $0.provider == provider }
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 12) {
+                Image(provider == .codex ? "logo-openai" : "logo-claude")
+                    .resizable().scaledToFit().frame(width: 28, height: 28)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(provider.displayName).font(.headline)
+                    Text(provider == .codex ? "ChatGPT / OpenAI" : "Anthropic / claude.ai")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            ForEach(providerAccounts) { account in
+                let status = AccountConnectionStatus(account: account, viewModel: viewModel)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(account.displayLabel).fontWeight(.medium)
+                        Spacer()
+                        if status.connected {
+                            Label("Connected", systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(.green).font(.callout)
+                        } else {
+                            Button("Sign In") { reconnect(account) }
+                                .disabled(connecting || viewModel.isReadOnlyPreview)
+                        }
+                        if !status.connected && account.connectionKind == .isolated {
+                            Button("Remove", role: .destructive) {
+                                Task { await viewModel.removeAccount(id: account.id); reload() }
+                            }
+                            .disabled(connecting || viewModel.isReadOnlyPreview)
+                        }
+                    }
+                    if let issue = status.issue {
+                        Text(issue).font(.footnote).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            HStack {
+                Button {
+                    addingProvider = provider
+                } label: {
+                    Label(providerAccounts.isEmpty ? "Add Account…" : "Add Another Account…", systemImage: "plus")
+                }
+                .disabled(connecting || viewModel.isRestoringSession || viewModel.isReadOnlyPreview)
+                if connecting { ProgressView().controlSize(.small) }
+            }
+            if providerAccounts.isEmpty {
+                let issue = provider == .codex ? viewModel.codexError : viewModel.claudeError
+                if let issue {
+                    Text(issue.localizedDescription).font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.background, in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func reload() { accounts = AccountRegistry.orderedAccounts() }
+    private func reconnect(_ account: ConnectedAccount) {
+        connecting = true
+        Task {
+            if account.connectionKind == .isolated { await viewModel.reconnectAccount(id: account.id) }
+            else if account.provider == .codex { await viewModel.signIn() }
+            else { await viewModel.signInClaude() }
+            connecting = false
+            reload()
         }
     }
 }
 
-// MARK: - Refresh preference picker
-
-@MainActor
 private struct RefreshPreferencePicker: View {
     let selection: Int
     let onSelect: (Int) -> Void
 
-    private let options = AppSettings.supportedRefreshIntervalMinutes
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Divider()
-
-            Text("How often should AIQuota refresh?")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .center)
-
-            Picker(
-                "Refresh interval",
-                selection: Binding(get: { selection }, set: { newValue in onSelect(newValue) })
-            ) {
-                ForEach(options, id: \.self) { minutes in
-                    Text(refreshLabel(for: minutes)).tag(minutes)
-                }
+        VStack(alignment: .leading, spacing: 8) {
+            Picker("Refresh usage", selection: Binding(get: { selection }, set: onSelect)) {
+                Text("Automatically").tag(0)
+                Text("Every minute").tag(1)
+                ForEach([5, 10, 30], id: \.self) { Text("Every \($0) minutes").tag($0) }
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-
-            Text("Auto refreshes every 5 min, speeds up to 1 min when usage is changing or near a threshold, and slows down when your Mac is idle.")
-                .font(.footnote)
-                .foregroundStyle(.tertiary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.horizontal, 32)
-        .padding(.top, 16)
-    }
-
-    private func refreshLabel(for minutes: Int) -> String {
-        minutes == AppSettings.autoRefreshIntervalMinutes ? "Auto" : "\(minutes)"
-    }
-}
-
-// MARK: - Service Row
-
-private struct ServiceRow: View {
-    let logoName: String
-    let name: String
-    let subtitle: String
-    let isAuthenticated: Bool
-    let isRestoring: Bool
-    let onSignIn: () -> Void
-
-    var body: some View {
-        HStack(spacing: 16) {
-            // Logo
-            Image(logoName)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 36, height: 36)
-                .padding(10)
-                .background(
-                    Circle()
-                        .fill(isAuthenticated
-                              ? Color.brand.opacity(0.1)
-                              : Color.secondary.opacity(0.08))
-                )
-                .overlay(
-                    Circle()
-                        .strokeBorder(
-                            isAuthenticated ? Color.brand.opacity(0.3) : Color.clear,
-                            lineWidth: 1.5
-                        )
-                )
-
-            // Name + subtitle
-            VStack(alignment: .leading, spacing: 2) {
-                Text(name)
-                    .font(.title3).fontWeight(.semibold)
-                Text(subtitle)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            // Status
-            if isAuthenticated {
-                Label("Connected", systemImage: "checkmark.circle.fill")
-                    .font(.callout.weight(.medium))
-                    .foregroundColor(.green)
-                    .transition(.scale.combined(with: .opacity))
-            } else {
-                Button("Sign In", action: onSignIn)
-                    .buttonStyle(.borderedProminent)
-                    .tint(Color.brand)
-                    .controlSize(.small)
-                    .disabled(isRestoring)
+            if selection == AppSettings.autoRefreshIntervalMinutes {
+                Text("Checks every 5 minutes, more often near a limit, and less often when your Mac is idle.")
+                    .font(.footnote).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: isAuthenticated)
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(.background)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .strokeBorder(
-                            isAuthenticated
-                                ? Color.brand.opacity(0.35)
-                                : Color.secondary.opacity(0.12),
-                            lineWidth: 1
-                        )
-                )
-        )
-    }
-}
-
-// MARK: - Menu Bar Display Picker
-
-private struct MenuBarDisplayPicker: View {
-    let selection: MenuBarDisplayOption
-    let onSelect: (MenuBarDisplayOption) -> Void
-
-    var body: some View {
-        VStack(spacing: 10) {
-            Divider()
-
-            Text("What should show in your menu bar?")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-
-            HStack(spacing: 10) {
-                card(for: .codex, logoNames: ["logo-openai"])
-                card(for: .claude, logoNames: ["logo-claude"])
-                card(for: .both, logoNames: ["logo-openai", "logo-claude"])
-            }
-        }
-        .padding(.horizontal, 32)
-        .padding(.top, 16)
-    }
-
-    @ViewBuilder
-    private func card(for option: MenuBarDisplayOption, logoNames: [String]) -> some View {
-        let isSelected = selection == option
-        Button { onSelect(option) } label: {
-            VStack(spacing: 10) {
-                HStack(spacing: -8) {
-                    ForEach(logoNames, id: \.self) { logoName in
-                        Image(logoName)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 28, height: 28)
-                            .padding(8)
-                            .background(
-                                Circle()
-                                    .fill(isSelected
-                                          ? Color.brand.opacity(0.1)
-                                          : Color.secondary.opacity(0.08))
-                            )
-                            .overlay(
-                                Circle()
-                                    .strokeBorder(
-                                        isSelected ? Color.brand.opacity(0.3) : Color.clear,
-                                        lineWidth: 1.5
-                                    )
-                            )
-                    }
-                }
-                .frame(height: 44)
-
-                Text(option.displayName)
-                    .font(.callout).fontWeight(.semibold)
-
-                Circle()
-                    .strokeBorder(isSelected ? Color.brand : Color.secondary.opacity(0.3),
-                                  lineWidth: 2)
-                    .frame(width: 16, height: 16)
-                    .overlay(
-                        Circle()
-                            .fill(Color.brand)
-                            .frame(width: 8, height: 8)
-                            .opacity(isSelected ? 1 : 0)
-                    )
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(.background)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(
-                                isSelected ? Color.brand.opacity(0.35) : Color.secondary.opacity(0.12),
-                                lineWidth: 1
-                            )
-                    )
-            )
-            .animation(.spring(response: 0.3, dampingFraction: 0.75), value: isSelected)
-        }
-        .buttonStyle(.plain)
+        .padding(.top, 8)
     }
 }

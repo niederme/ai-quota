@@ -63,6 +63,58 @@ struct SharedDefaultsPersistenceTests {
         #expect(attempts.last?.httpStatus == 511)
     }
 
+    @Test("Codex snapshots are isolated by account")
+    func codexSnapshotsAreAccountScoped() {
+        let firstID = UUID().uuidString
+        let secondID = UUID().uuidString
+        defer {
+            SharedDefaults.clearUsage(forAccountID: firstID)
+            SharedDefaults.clearUsage(forAccountID: secondID)
+        }
+
+        SharedDefaults.saveUsage(.placeholder, forAccountID: firstID)
+        SharedDefaults.saveUsage(.placeholder, forAccountID: secondID)
+        SharedDefaults.clearUsage(forAccountID: firstID)
+
+        #expect(SharedDefaults.loadCachedUsage(forAccountID: firstID) == nil)
+        #expect(SharedDefaults.loadCachedUsage(forAccountID: secondID) != nil)
+    }
+
+    @Test("Claude snapshots are isolated by account")
+    func claudeSnapshotsAreAccountScoped() {
+        let firstID = UUID().uuidString
+        let secondID = UUID().uuidString
+        defer {
+            SharedDefaults.clearClaudeUsage(forAccountID: firstID)
+            SharedDefaults.clearClaudeUsage(forAccountID: secondID)
+        }
+
+        SharedDefaults.saveClaudeUsage(.placeholder, forAccountID: firstID)
+        SharedDefaults.saveClaudeUsage(.placeholder, forAccountID: secondID)
+        SharedDefaults.clearClaudeUsage(forAccountID: firstID)
+
+        #expect(SharedDefaults.loadCachedClaudeUsage(forAccountID: firstID) == nil)
+        #expect(SharedDefaults.loadCachedClaudeUsage(forAccountID: secondID) != nil)
+    }
+
+    @Test("connected account IDs are stable UUID strings and metadata contains no credentials")
+    func connectedAccountMetadataIsNonSecret() throws {
+        let id = UUID()
+        let account = ConnectedAccount(
+            id: id,
+            provider: .codex,
+            displayLabel: "Work",
+            workspaceID: "workspace-123",
+            authSource: .oauth
+        )
+
+        #expect(account.id == id.uuidString)
+        let json = String(decoding: try JSONEncoder().encode(account), as: UTF8.self)
+        #expect(!json.contains("accessToken"))
+        #expect(!json.contains("sessionToken"))
+        #expect(!json.contains("cookie"))
+    }
+
     private var repoRoot: URL {
         URL(filePath: #filePath)
             .deletingLastPathComponent()

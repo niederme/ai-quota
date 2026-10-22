@@ -72,7 +72,10 @@ struct OnboardingView: View {
     let codex: ProbeModel
     let claude: ClaudeProbeModel
     let progress: OnboardingProgress
+    var accounts: MobileAccountCollection? = nil
     @State private var accountDestination: AccountDestination?
+    @State private var selectedAccount: AccountProfile?
+    @State private var addedAccount: AccountProfile?
     private enum AccountDestination: String, Identifiable {
         case codex, claude
         var id: String { rawValue }
@@ -100,13 +103,19 @@ struct OnboardingView: View {
                                     Text("Connect your services").font(.title.bold())
                                     Text("Sign in to the services you use.").foregroundStyle(OverviewStyle.secondary)
                                 }
-                                service("Codex", subtitle: "ChatGPT / OpenAI", logo: "logo-openai", connected: codex.connected, error: codex.error) {
-                                    accountDestination = .codex
+                                service("Codex", subtitle: accountSubtitle(.codex, fallback: "ChatGPT / OpenAI"), logo: "logo-openai", connected: accounts?.connected(.codex).isEmpty == false || codex.connected, error: codex.error) {
+                                    openAccount(.codex)
                                 }
-                                service("Claude Code", subtitle: "Anthropic / claude.ai", logo: "logo-claude", connected: claude.connected, error: claude.error ?? (claude.connectionFailure != nil ? "Needs attention" : nil)) {
-                                    accountDestination = .claude
+                                service("Claude Code", subtitle: accountSubtitle(.claude, fallback: "Anthropic / claude.ai"), logo: "logo-claude", connected: accounts?.connected(.claude).isEmpty == false || claude.connected, error: claude.error ?? (claude.connectionFailure != nil ? "Needs attention" : nil)) {
+                                    openAccount(.claude)
                                 }
-                                if codex.connected || claude.connected {
+                                if accounts?.hasConnection == true || codex.connected || claude.connected {
+                                    if let accounts {
+                                        Menu("Add another account", systemImage: "plus") {
+                                            Button("Codex") { addAccount(.codex, to: accounts) }
+                                            Button("Claude") { addAccount(.claude, to: accounts) }
+                                        }
+                                    }
                                     Divider()
                                     VStack(alignment: .leading, spacing: 10) {
                                         Text("How often should AIQuota refresh?").font(.subheadline.weight(.medium))
@@ -118,7 +127,7 @@ struct OnboardingView: View {
                                             .font(.footnote).foregroundStyle(OverviewStyle.secondary)
                                     }
                                 }
-                                Text("You can connect more services later in Settings.").font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                                Text("You can add accounts or services later in Settings.").font(.footnote).foregroundStyle(OverviewStyle.secondary)
                             case .notifications:
                                 EmptyView()
                             case .widgets:
@@ -192,7 +201,7 @@ struct OnboardingView: View {
                                 let index = OnboardingProgress.order.firstIndex(of: progress.step) ?? 0
                                 progress.setStep(OnboardingProgress.order[index + 1])
                             }.modifier(OnboardingPrimaryButtonStyle())
-                                .disabled(!progress.canAdvance(hasConnectedService: codex.connected || claude.connected))
+                                .disabled(!progress.canAdvance(hasConnectedService: accounts?.hasConnection == true || codex.connected || claude.connected))
                         }
                     }
                     .frame(minWidth: 0, maxWidth: .infinity, alignment: .trailing)
@@ -215,7 +224,7 @@ struct OnboardingView: View {
         }.tint(OverviewStyle.accent)
             .foregroundStyle(OverviewStyle.primary)
             .presentationBackground(OverviewStyle.base)
-            .sheet(item: $accountDestination) { destination in
+            .sheet(item: $accountDestination, onDismiss: { accounts?.reload() }) { destination in
                 ServiceAccountSheet {
                     switch destination {
                     case .codex: ProbeView(model: codex)
@@ -223,6 +232,43 @@ struct OnboardingView: View {
                     }
                 }
             }
+            .sheet(item: $selectedAccount, onDismiss: {
+                if let addedAccount { accounts?.discardIfUnconnected(addedAccount) }
+                addedAccount = nil
+                accounts?.reload()
+            }) { profile in
+                ServiceAccountSheet {
+                    if profile.service == .codex, let model = accounts?.codex(profile) {
+                        ProbeView(model: model)
+                    } else if let model = accounts?.claude(profile) {
+                        ClaudeProbeView(model: model)
+                    }
+                }
+            }
+    }
+
+    private func accountSubtitle(_ service: QuotaService, fallback: String) -> String {
+        guard let accounts else { return fallback }
+        let count = accounts.connected(service).count
+        return count == 0 ? fallback : "\(count) \(count == 1 ? "account" : "accounts") connected"
+    }
+
+    private func openAccount(_ service: QuotaService) {
+        guard let accounts else {
+            accountDestination = service == .codex ? .codex : .claude
+            return
+        }
+        if let profile = accounts.connected(service).first ?? accounts.all(service).first {
+            selectedAccount = profile
+        } else {
+            addAccount(service, to: accounts)
+        }
+    }
+
+    private func addAccount(_ service: QuotaService, to accounts: MobileAccountCollection) {
+        let profile = accounts.add(service)
+        addedAccount = profile
+        selectedAccount = profile
     }
 
     private var skipButton: some View {

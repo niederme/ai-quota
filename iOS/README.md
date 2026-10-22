@@ -194,8 +194,11 @@ Closing, copying, and reopening the same attempt have been exercised on the
 owner's phone. Face ID, every provider login variant, and the non-UI copy action
 still require end-to-end device coverage before release.
 
-Claude uses browser authorization, PKCE, and manually pasted `code#state`.
-State must match the current attempt, which expires after 15 minutes. The app
+Claude uses the existing browser authorization and PKCE grant. The in-app browser
+captures a matching HTTPS callback so the user normally does not paste a code.
+Safari and manual `code#state` entry remain available when an SSO page cannot
+complete in the in-app browser. State must match the current attempt, which
+expires after 15 minutes. The app
 requests `org:create_api_key user:profile`; it does not request inference scope,
 create API keys, send prompts, purchase credits, or redeem resets.
 

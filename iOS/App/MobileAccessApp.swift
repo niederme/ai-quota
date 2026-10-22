@@ -7,18 +7,161 @@ import MobileAccessCore
 struct MobileAccessApp: App {
     @UIApplicationDelegateAdaptor(MobileAnalyticsAppDelegate.self) private var analyticsDelegate
     @State private var demoEnabled = DemoQuotaData.isEnabled
+    init() {
+        // The default WebKit store can outlive an app uninstall. A new install
+        // must not silently inherit a former user's Claude web session.
+        let marker = "claudeDetails.installPrepared"
+        if !UserDefaults.standard.bool(forKey: marker) {
+            UserDefaults.standard.set(true, forKey: marker)
+            Task { await ClaudeWebDetailsSession.clearSession() }
+        }
+    }
     var body: some Scene {
         WindowGroup {
-            OverviewView(isDemo: demoEnabled).id(demoEnabled)
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("-claudeSSOUITest") {
+                ClaudeDetailSSOUITestHarness()
+            } else if ProcessInfo.processInfo.arguments.contains("-claudeOAuthUITest") {
+                NavigationStack { ClaudeProbeView(model: ClaudeProbeModel(restore: false)) }
+            } else if ProcessInfo.processInfo.arguments.contains("-claudeDetailUITest") {
+                ClaudeDetailUITestHarness()
+            } else if ProcessInfo.processInfo.arguments.contains("-serviceDetailLoadingUITest") {
+                ServiceDetailLoadingUITestHarness(
+                    service: ProcessInfo.processInfo.arguments.contains("-claudeService") ? "Claude" : "Codex"
+                )
+            } else if ProcessInfo.processInfo.arguments.contains("-claudeEnterpriseLoadingUITest") {
+                ClaudeEnterpriseLoadingUITestHarness()
+            } else if ProcessInfo.processInfo.arguments.contains("-codexHistoryVisualUITest") {
+                CodexHistoryVisualUITestHarness()
+            } else if ProcessInfo.processInfo.arguments.contains("-multiAccountUITest") {
+                MultiAccountOverviewView(fixtureProfiles: [
+                    AccountProfile(id: "fixture-codex-personal", service: .codex, label: "Personal", isLegacy: false),
+                    AccountProfile(id: "fixture-codex-work", service: .codex, label: "Work", isLegacy: false),
+                    AccountProfile(id: "fixture-claude-work", service: .claude, label: "Work", isLegacy: false)
+                ])
+            } else if ProcessInfo.processInfo.arguments.contains("-multiAccountResetNoticeUITest") {
+                MultiAccountResetNoticeFixtureView()
+            } else if ProcessInfo.processInfo.arguments.contains("-genericAccountLabelsUITest") {
+                MultiAccountOverviewView(fixtureProfiles: [
+                    AccountProfile(id: "fixture-codex-1", service: .codex, label: "Account 1", isLegacy: false),
+                    AccountProfile(id: "fixture-codex-2", service: .codex, label: "Account 2", isLegacy: false),
+                    AccountProfile(id: "fixture-claude-1", service: .claude, label: "Service 1", isLegacy: false),
+                    AccountProfile(id: "fixture-claude-2", service: .claude, label: "Service 2", isLegacy: false)
+                ])
+            } else if ProcessInfo.processInfo.arguments.contains("-businessMonthlyOverviewUITest") {
+                BusinessMonthlyOverviewFixtureView()
+            } else if ProcessInfo.processInfo.arguments.contains("-multiAccountReorderUITest") {
+                MultiAccountReorderFixtureView(
+                    reset: ProcessInfo.processInfo.arguments.contains("-resetMultiAccountReorderFixture")
+                )
+            } else {
+                Group {
+                    if demoEnabled { OverviewView(isDemo: true).id(demoEnabled) }
+                    else { MultiAccountOverviewView().id(demoEnabled) }
+                }
+                    .environment(\.setDemoEnabled) { enabled in
+                        MobileAnalytics.shared.setDemoEnabled(enabled)
+                        demoEnabled = enabled
+                        DemoQuotaData.setEnabled(enabled)
+                    }
+            }
+            #else
+            Group {
+                if demoEnabled { OverviewView(isDemo: true).id(demoEnabled) }
+                else { MultiAccountOverviewView().id(demoEnabled) }
+            }
                 .environment(\.setDemoEnabled) { enabled in
                     // Update presentation directly; app-group defaults are for persistence and widgets.
                     MobileAnalytics.shared.setDemoEnabled(enabled)
                     demoEnabled = enabled
                     DemoQuotaData.setEnabled(enabled)
                 }
+            #endif
         }
     }
 }
+
+#if DEBUG
+private struct MultiAccountResetNoticeFixtureView: View {
+    private let profiles: [AccountProfile]
+    private let notice: CodexResetNotice
+
+    init() {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-resetNoticeClearDismissal") {
+            UserDefaults.standard.removeObject(forKey: CodexResetNotice.dismissalKey)
+        }
+        profiles = (arguments.contains("-resetNoticeNoCodex") ? [] : [
+            AccountProfile(id: "fixture-codex-personal", service: .codex, label: "Personal", isLegacy: false)
+        ]) + [AccountProfile(id: "fixture-claude-work", service: .claude, label: "Work", isLegacy: false)]
+        let now = Date.now
+        let format = ISO8601DateFormatter()
+        let generatedAt = arguments.contains("-resetNoticeStale") ? now.addingTimeInterval(-3600) : now
+        let author = arguments.contains("-resetNoticeInapplicable") ? "other" : "thsottiaux"
+        let data = Data("""
+        {"data":{"scheduled_reset":{"id":"fixture-codex-reset","status":"scheduled",
+        "reset_type":"regular","announced_at":"\(format.string(from: now.addingTimeInterval(-3600)))",
+        "scheduled_for":"\(format.string(from: now.addingTimeInterval(7200)))",
+        "source":{"type":"x_post","author":"\(author)","url":"https://x.com/thsottiaux/status/1"}},
+        "latest_reset":null},"meta":{"api_version":"v1","generated_at":"\(format.string(from: generatedAt))"}}
+        """.utf8)
+        notice = CodexResetNotice(initialStatus: try! CodexResetStatus.decode(data))
+    }
+
+    var body: some View {
+        MultiAccountOverviewView(fixtureProfiles: profiles, resetNotice: notice)
+    }
+}
+
+private struct BusinessMonthlyOverviewFixtureView: View {
+    private let reading = QuotaReading(
+        fetchedAt: .now,
+        shortTerm: nil,
+        weekly: nil,
+        metadata: AccountMetadata(plan: "business", balanceUSD: nil, usageSpent: nil, usageCurrency: nil),
+        monthlyBudget: MonthlyBudget(used: 7.82, limit: 7_000, unit: "credits", resetsAt: .now.addingTimeInterval(7 * 86400))
+    )
+
+    var body: some View {
+        NavigationStack {
+            GeometryReader { geometry in
+                ScrollView {
+                    ProviderDialCard(name: "Codex", icon: "logo-openai",
+                                     availableWidth: geometry.size.width - 32,
+                                     reading: reading, connected: true, busy: false, error: nil) {}
+                        .padding(16)
+                }
+                .background { OverviewBackground().ignoresSafeArea() }
+            }
+            .navigationTitle("AIQuota")
+        }
+    }
+}
+
+private struct MultiAccountReorderFixtureView: View {
+    private let store: AccountRegistry.Store
+
+    init(reset: Bool) {
+        let root = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("multi-account-reorder-ui-fixture", isDirectory: true)
+        if reset { try? FileManager.default.removeItem(at: root) }
+        let store = AccountRegistry.Store(root: root, legacyServices: [])
+        if store.all().isEmpty {
+            let personal = store.add(service: .codex)
+            store.rename(service: .codex, id: personal.id, label: "Personal")
+            let other = store.add(service: .codex)
+            store.rename(service: .codex, id: other.id, label: "Other")
+            let enterprise = store.add(service: .claude)
+            store.rename(service: .claude, id: enterprise.id, label: "Enterprise")
+        }
+        self.store = store
+    }
+
+    var body: some View {
+        MultiAccountOverviewView(fixtureProfiles: store.all(), orderStore: store)
+    }
+}
+#endif
 
 struct CodexSignInContent: View {
     let code: String?

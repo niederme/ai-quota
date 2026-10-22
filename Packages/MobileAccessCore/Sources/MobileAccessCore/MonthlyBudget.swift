@@ -19,16 +19,26 @@ public struct MonthlyBudget: Codable, Sendable, Equatable {
     public var usedPercent: Double { min(100, max(0, used / limit * 100)) }
 
     public func amountText(_ value: Double) -> String {
-        if unit?.uppercased() == "USD" { return value.formatted(.currency(code: "USD")) }
+        if let code = currencyCode { return value.formatted(.currency(code: code)) }
         return value.formatted(.number.precision(.fractionLength(0...2)))
+    }
+
+    private var currencyCode: String? {
+        guard let code = unit?.uppercased(), code.count == 3,
+              code.allSatisfy({ $0 >= "A" && $0 <= "Z" }) else { return nil }
+        return code
     }
 
     public var unitLabel: String {
         switch unit?.lowercased() {
         case "credit", "credits": "credits this month"
-        case "usd": "monthly spend"
-        default: "monthly allowance"
+        default: currencyCode == nil ? "monthly allowance" : "monthly spend"
         }
+    }
+
+    public func confirmedResetDescription(relativeTo date: Date = .now) -> String? {
+        guard let resetsAt, resetsAt > date else { return nil }
+        return "Monthly resets \(resetsAt.formatted(.dateTime.month(.abbreviated).day().hour().minute()))"
     }
 
     public func resetDescription(relativeTo date: Date = .now) -> String {

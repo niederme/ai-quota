@@ -20,32 +20,29 @@ struct CodexAnalyticsView: View {
                     Text("7 days").tag(7)
                     Text("30 days").tag(30)
                 }.pickerStyle(.segmented).labelsHidden().frame(maxWidth: 180)
-                .help("Plan usage credits, not messages or extra charges.")
+                .help("Usage credits reported by Codex.")
                 #if os(iOS)
-                Text("Plan usage credits · not messages or extra charges.")
+                Text("Usage credits reported by Codex")
                     .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
                 #endif
             }
-            if let history, showsHistoryFreshness(history) {
-                TimelineView(.periodic(from: .now, by: 30)) { context in
-                    Text("History · " + analyticsFreshnessLabel(history.fetchedAt, at: context.date, saved: historyUnavailable))
-                        .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
+            if history == nil, busy {
+                ForEach(["Daily usage", "By model", "By app"], id: \.self) { title in
+                    AnalyticsSkeletonCard(title: title)
                 }
-            }
-            if historyUnavailable || history == nil {
-                VStack(alignment: .leading, spacing: 12) {
-                    Label(historyUnavailable ? "History couldn’t refresh" : busy ? "Loading history…" : "History not reported",
-                          systemImage: "exclamationmark.triangle")
-                        .font(.headline)
-                    if history != nil {
-                        Text("Showing the last available history. Missing days stay empty.")
-                            .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
-                    }
-                    Button("Retry history", action: refresh).disabled(busy)
-                }.modifier(AnalyticsCard())
+                .accessibilityIdentifier("codexHistoryLoadingSkeleton")
+            } else if historyUnavailable || history == nil {
+                HStack {
+                    Text(historyUnavailable ? "History couldn’t refresh" : "History unavailable")
+                        .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
+                    Spacer(minLength: 8)
+                    Button("Retry", action: refresh).disabled(busy)
+                }
+                .frame(maxWidth: .infinity, minHeight: 44)
             }
             if history != nil {
-                CodexTrendCard(title: "Daily usage", data: data, breakdown: nil)
+                CodexTrendCard(title: "Daily usage", data: data, breakdown: nil,
+                               fetchedAt: history?.fetchedAt, saved: historyUnavailable)
                 CodexTrendCard(title: "By model", data: data, breakdown: .models)
                 CodexTrendCard(title: "By app", data: data, breakdown: .surfaces)
             }
@@ -63,13 +60,6 @@ struct CodexAnalyticsView: View {
         }.foregroundStyle(AnalyticsStyle.primary).tint(AnalyticsStyle.accent)
     }
 
-    private func showsHistoryFreshness(_ history: CodexUsageHistory) -> Bool {
-        #if os(macOS)
-        historyUnavailable || Date.now.timeIntervalSince(history.fetchedAt) >= 1800
-        #else
-        true
-        #endif
-    }
 }
 
 struct AnalyticsCard: ViewModifier {
@@ -91,11 +81,43 @@ struct AnalyticsCard: ViewModifier {
     }
 }
 
+/// Reserves roughly the final chart-card geometry without inventing usage
+/// values while the first history request is in flight.
+struct AnalyticsSkeletonCard: View {
+    let title: String
+    var rows = 2
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text(title).font(.headline).foregroundStyle(AnalyticsStyle.secondary)
+            RoundedRectangle(cornerRadius: 5)
+                .fill(AnalyticsStyle.track)
+                .frame(width: 104, height: 34)
+            RoundedRectangle(cornerRadius: 8)
+                .fill(AnalyticsStyle.track)
+                .frame(maxWidth: .infinity)
+                .frame(height: typeSize.isAccessibilitySize ? 190 : 150)
+            ForEach(0..<rows, id: \.self) { index in
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(AnalyticsStyle.track)
+                    .frame(width: index == rows - 1 ? 142 : nil, height: 12)
+                    .frame(maxWidth: index == rows - 1 ? nil : .infinity, alignment: .leading)
+            }
+        }
+        .modifier(AnalyticsCard())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Loading \(title.lowercased())")
+    }
+}
+
 struct CodexTrendCard: View {
     let title: String
     let data: CodexHistoryPeriod
     let breakdown: CodexHistoryPeriod.Breakdown?
     var focusedID: String? = nil
+    var fetchedAt: Date? = nil
+    var saved = false
     @State private var selection: Date?
     @State private var showDays = false
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -106,8 +128,21 @@ struct CodexTrendCard: View {
         if let focusedID { return series.filter { $0.id == focusedID } }
         return Array(series.prefix(3))
     }
-    private var total: Double {
-        focusedID.flatMap { id in series.first { $0.id == id }?.total } ?? data.total
+    private var coverage: String {
+        let reported = data.reportedDays
+        let calendar = data.days.count
+        guard let breakdown else {
+            let zeroDays = data.days.filter { $0.credits == 0 }.count
+            return "\(reported) of \(calendar) calendar days reported" +
+                (reported < calendar ? " · missing days left empty" : "") +
+                (zeroDays > 0 ? " · \(zeroDays) reported as zero" : "")
+        }
+        let attributed = data.days.filter { day in
+            guard day.credits != nil else { return false }
+            let values = breakdown == .models ? day.models : day.surfaces
+            return values?.isEmpty == false
+        }.count
+        return "\(reported) of \(calendar) days reported · \(attributed) include \(breakdown == .models ? "model" : "app") attribution"
     }
     private var selectedIndex: Int? {
         guard let selection else { return nil }
@@ -143,24 +178,28 @@ struct CodexTrendCard: View {
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(title).font(.headline).foregroundStyle(AnalyticsStyle.secondary)
+            Text(title).font(.headline).foregroundStyle(AnalyticsStyle.primary)
             if (breakdown == nil && data.reportedDays > 0) || !series.isEmpty {
-                Text(total.formatted(.number.precision(.fractionLength(0...2))))
-                    .font(.largeTitle.bold()).monospacedDigit()
-                Text("usage credits" + (data.isPartial ? " · partial period" : ""))
-                    .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
+                if breakdown == nil || focusedID != nil {
+                    Text((focusedID.flatMap { id in series.first { $0.id == id }?.total } ?? data.total)
+                        .formatted(.number.precision(.fractionLength(0...2))) + " usage credits")
+                        .font(.title.bold()).monospacedDigit()
+                }
                 if showsDateRange, let first = data.days.first, let last = data.days.last {
-                    Text(Self.dateLabel(first.date) + " – " + Self.dateLabel(last.date))
+                    Text(Self.dateLabel(first.date) + " – " + Self.dateLabel(last.date) + " · UTC")
                         .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
                 }
+                if let fetchedAt {
+                    TimelineView(.periodic(from: .now, by: 30)) { context in
+                        Text("History · " + analyticsFreshnessLabel(fetchedAt, at: context.date, saved: saved))
+                            .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
+                    }
+                }
                 chart
+                chartDateLabels
+                Text(coverage).font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
                 if let index = selectedIndex {
                     selectedDay(index)
-                } else {
-                    #if os(iOS)
-                    Text(daySelectionHint)
-                        .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
-                    #endif
                 }
                 if let breakdown, data.missingAttribution(breakdown) {
                     Text("Some reported usage has no \(breakdown == .models ? "model" : "app") attribution.")
@@ -183,8 +222,19 @@ struct CodexTrendCard: View {
                             .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
                     }
                 }
-                Button("View daily readings") { showDays.toggle() }
-                    .font(.callout.weight(.semibold)).padding(.vertical, 4)
+                Button { showDays.toggle() } label: {
+                    HStack {
+                        Text("View daily readings")
+                        Spacer()
+                        Image(systemName: "chevron.down")
+                            .rotationEffect(.degrees(showDays ? 180 : 0))
+                    }
+                    .font(.callout.weight(.semibold))
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(AnalyticsDisclosureButtonStyle())
+                .accessibilityValue(showDays ? "Expanded" : "Collapsed")
                 if showDays {
                     ForEach(Array(data.days.enumerated()), id: \.element.id) { index, _ in
                         selectedDay(index)
@@ -195,7 +245,7 @@ struct CodexTrendCard: View {
                      : "No \(breakdown == .models ? "model" : "app") breakdown reported for this period.")
                     .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
             }
-        }.modifier(AnalyticsCard())
+        }.modifier(CodexTrendSurface(principal: breakdown == nil || focusedID != nil))
             .onChange(of: data.days.map(\.date)) { _, _ in selection = nil }
     }
     private var daySelectionHint: String {
@@ -225,14 +275,14 @@ struct CodexTrendCard: View {
         .chartXScale(domain: dateDomain)
         .chartXAxis {
             AxisMarks(values: axisDates) {
-                AxisValueLabel(format: Date.FormatStyle(timeZone: TimeZone(secondsFromGMT: 0)!).month(.abbreviated).day(), centered: false)
-                    .font(.caption2)
+                AxisGridLine()
+                AxisTick()
             }
         }
         .chartYAxis { AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) }
         .chartLegend(.hidden)
         .chartXSelection(value: $selection)
-        .frame(height: typeSize.isAccessibilitySize ? 220 : 170)
+        .frame(height: typeSize.isAccessibilitySize ? 220 : (breakdown == nil || focusedID != nil ? 170 : 130))
         .accessibilityLabel(title + " trend")
         .accessibilityHint("Daily values are also available using View daily readings.")
         #if os(macOS)
@@ -240,21 +290,41 @@ struct CodexTrendCard: View {
         #endif
     }
     private var axisDates: [Date] {
-        let first = dateDomain.lowerBound, last = dateDomain.upperBound
+        let first = data.days.first.flatMap { CodexHistoryPeriod.date($0.date) } ?? .now
+        let last = data.days.last.flatMap { CodexHistoryPeriod.date($0.date) } ?? first
         if typeSize.isAccessibilitySize { return [first, last] }
         return [first, first.addingTimeInterval(last.timeIntervalSince(first) / 2), last]
+    }
+    private var chartDateLabels: some View {
+        HStack(spacing: 4) {
+            ForEach(Array(axisDates.enumerated()), id: \.offset) { index, date in
+                if index > 0 { Spacer(minLength: 0) }
+                Text(axisDateLabel(date))
+                    .lineLimit(1)
+            }
+        }
+        .font(.caption2)
+        .foregroundStyle(AnalyticsStyle.secondary)
+        .padding(.leading, 34)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("From \(axisDates.first.map(axisDateLabel) ?? "") to \(axisDates.last.map(axisDateLabel) ?? ""), UTC")
+    }
+    private func axisDateLabel(_ date: Date) -> String {
+        date.formatted(Date.FormatStyle(timeZone: TimeZone(secondsFromGMT: 0)!)
+            .month(.abbreviated).day())
     }
     private var dateDomain: ClosedRange<Date> {
         let start = data.days.first.flatMap { CodexHistoryPeriod.date($0.date) } ?? .now
         let end = data.days.last.flatMap { CodexHistoryPeriod.date($0.date) } ?? start
-        return start...max(start.addingTimeInterval(86400), end)
+        return start.addingTimeInterval(-43_200)...max(start.addingTimeInterval(129_600), end.addingTimeInterval(43_200))
     }
     private func selectedDay(_ index: Int) -> some View {
         let day = data.days[index]
-        let amount = focusedID.flatMap { id in series.first { $0.id == id }?.values[index] } ?? (focusedID == nil ? day.credits : nil)
+        let amount = focusedID.flatMap { id in series.first { $0.id == id }?.values[index] } ?? day.credits
         return VStack(alignment: .leading, spacing: 4) {
             Text(Self.dateLabel(day.date)).font(.callout.weight(.semibold))
-            Text(amount.map { $0.formatted(.number.precision(.fractionLength(0...2))) + " usage credits" } ?? "Not reported")
+            Text(amount.map { $0.formatted(.number.precision(.fractionLength(0...2))) +
+                 (breakdown != nil && focusedID == nil ? " total usage credits" : " usage credits") } ?? "Not reported")
                 .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -285,6 +355,28 @@ struct CodexTrendCard: View {
          "mobile": "Mobile", "sdk": "SDK", "github_code_review": "GitHub review",
          "codex-auto-review": "Auto review"][name]
             ?? name.replacingOccurrences(of: "gpt-", with: "GPT-").replacingOccurrences(of: "_", with: " ")
+    }
+}
+
+private struct CodexTrendSurface: ViewModifier {
+    let principal: Bool
+    @ViewBuilder func body(content: Content) -> some View {
+        if principal {
+            content.modifier(AnalyticsCard())
+        } else {
+            content.padding(.horizontal, 8).padding(.vertical, 12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .overlay(alignment: .top) { Divider() }
+        }
+    }
+}
+
+private struct AnalyticsDisclosureButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(.horizontal, 8)
+            .background(AnalyticsStyle.track.opacity(configuration.isPressed ? 0.6 : 0),
+                        in: RoundedRectangle(cornerRadius: 8))
     }
 }
 

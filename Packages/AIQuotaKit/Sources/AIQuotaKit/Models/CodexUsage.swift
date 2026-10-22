@@ -395,6 +395,7 @@ public struct CodexMonthlyUsageResponse: Decodable, Sendable, Equatable {
             if let string = try? c.decode(String.self) { limit = Double(string); return }
             limit = nil
         }
+
     }
 
     private enum CodingKeys: String, CodingKey { case effectiveMonthlyLimit, currentMonthUsage }

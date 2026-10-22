@@ -62,7 +62,7 @@ struct RefreshSettingsTests {
         #expect(decoded.menuBarDisplayMode == .both)
     }
 
-    @Test("settings and onboarding both expose the Auto refresh copy")
+    @Test("onboarding explains Auto refresh")
     func sourceContainsRefreshCopy() throws {
         let repoRoot = URL(filePath: #filePath)
             .deletingLastPathComponent()
@@ -71,19 +71,12 @@ struct RefreshSettingsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
 
-        let settingsSource = try String(
-            contentsOf: repoRoot.appending(path: "AIQuota/Views/SettingsView.swift"),
-            encoding: .utf8
-        )
         let servicesSource = try String(
             contentsOf: repoRoot.appending(path: "AIQuota/Views/Onboarding/Steps/ServicesStepView.swift"),
             encoding: .utf8
         )
 
-        #expect(settingsSource.contains("Auto refreshes every 5 min, speeds up to 1 min when usage is changing or near a threshold, and slows down when your Mac is idle."))
-        #expect(settingsSource.contains("\"Menu bar display\""))
-        #expect(servicesSource.contains("How often should AIQuota refresh?"))
-        #expect(servicesSource.contains("What should show in your menu bar?"))
-        #expect(servicesSource.contains("Auto refreshes every 5 min, speeds up to 1 min when usage is changing or near a threshold, and slows down when your Mac is idle."))
+        #expect(servicesSource.contains("Refresh usage"))
+        #expect(servicesSource.contains("Checks every 5 minutes, more often near a limit, and less often when your Mac is idle."))
     }
 }

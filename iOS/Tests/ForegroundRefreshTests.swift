@@ -102,3 +102,96 @@ final class ForegroundRefreshTests: XCTestCase {
         if let root = store.root { try FileManager.default.removeItem(at: root) }
     }
 }
+
+@MainActor
+final class ProfileModelIsolationTests: XCTestCase {
+    private func root() -> URL {
+        FileManager.default.temporaryDirectory.appendingPathComponent("profile-model-" + UUID().uuidString)
+    }
+
+    private nonisolated static func codexTokens(_ account: String) -> CodexTokens {
+        CodexTokens(accessToken: "access-" + account, refreshToken: "refresh-" + account,
+                    accountID: account, expiresAt: .now.addingTimeInterval(3600))
+    }
+
+    private nonisolated static func claudeTokens(_ account: String) throws -> ClaudeTokens {
+        try JSONDecoder().decode(ClaudeTokens.self, from: Data(
+            "{\"accessToken\":\"access-\(account)\",\"refreshToken\":\"refresh-\(account)\",\"expiresAt\":1900000000}".utf8))
+    }
+
+    private func reading(_ percent: Double) -> QuotaReading {
+        QuotaReading(fetchedAt: .now, shortTerm: QuotaWindow(
+            usedPercent: percent, durationSeconds: 300, resetsAt: .now.addingTimeInterval(300)), weekly: nil)
+    }
+
+    func testCodexProfileDisconnectKeepsOtherProfileCredentialsAndReading() async throws {
+        let root = root()
+        let first = AccountProfile(id: UUID().uuidString, service: .codex, label: "First", isLegacy: false)
+        let second = AccountProfile(id: UUID().uuidString, service: .codex, label: "Second", isLegacy: false)
+        let firstStore = SharedQuotaStore(first, root: root)
+        let secondStore = SharedQuotaStore(second, root: root)
+        try await firstStore.withLease { try firstStore.saveCredentials(Self.codexTokens("first")) }
+        try await secondStore.withLease { try secondStore.saveCredentials(Self.codexTokens("second")) }
+        let secondReading = reading(22)
+        _ = try await secondStore.fetch(CodexTokens.self, source: "test", renew: { $0 }, usage: { _ in secondReading })
+
+        let model = ProbeModel(shared: firstStore, profile: first)
+        model.disconnect()
+        await model.refreshAndWait()
+
+        XCTAssertNil(try firstStore.load(CodexTokens.self))
+        XCTAssertNil(firstStore.reading())
+        XCTAssertEqual(try secondStore.load(CodexTokens.self)?.accountID, "second")
+        XCTAssertEqual(secondStore.reading(), secondReading)
+        try FileManager.default.removeItem(at: root)
+    }
+
+    func testClaudeProfileDisconnectKeepsOtherProfileCredentialsAndReading() async throws {
+        let root = root()
+        let first = AccountProfile(id: UUID().uuidString, service: .claude, label: "First", isLegacy: false)
+        let second = AccountProfile(id: UUID().uuidString, service: .claude, label: "Second", isLegacy: false)
+        let firstStore = SharedQuotaStore(first, root: root)
+        let secondStore = SharedQuotaStore(second, root: root)
+        try await firstStore.withLease { try firstStore.saveCredentials(try Self.claudeTokens("first")) }
+        try await secondStore.withLease { try secondStore.saveCredentials(try Self.claudeTokens("second")) }
+        let secondReading = reading(44)
+        _ = try await secondStore.fetch(ClaudeTokens.self, source: "test", renew: { $0 }, usage: { _ in secondReading })
+
+        let model = ClaudeProbeModel(shared: firstStore, profile: first)
+        model.disconnect()
+        await model.refreshAndWait()
+
+        XCTAssertNil(try firstStore.load(ClaudeTokens.self))
+        XCTAssertNil(firstStore.reading())
+        XCTAssertEqual(try secondStore.load(ClaudeTokens.self)?.accessToken, "access-second")
+        XCTAssertEqual(secondStore.reading(), secondReading)
+        try FileManager.default.removeItem(at: root)
+    }
+
+    func testProfileFallbackCachesArePrivateAndIgnoreLegacyCache() async throws {
+        let root = root()
+        let suite = "profile-model-defaults-" + UUID().uuidString
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let first = AccountProfile(id: UUID().uuidString, service: .claude, label: "First", isLegacy: false)
+        let second = AccountProfile(id: UUID().uuidString, service: .claude, label: "Second", isLegacy: false)
+        let firstStore = SharedQuotaStore(first, root: root)
+        let secondStore = SharedQuotaStore(second, root: root)
+        try await firstStore.withLease { try firstStore.saveCredentials(try Self.claudeTokens("first")) }
+        try await secondStore.withLease { try secondStore.saveCredentials(try Self.claudeTokens("second")) }
+        let firstReading = reading(11)
+        let secondReading = reading(77)
+        defaults.set(try JSONEncoder().encode(firstReading), forKey: "mobileProbe.claudeReading." + first.id)
+        defaults.set(try JSONEncoder().encode(secondReading), forKey: "mobileProbe.claudeReading." + second.id)
+        defaults.set(try JSONEncoder().encode(reading(99)), forKey: "mobileProbe.claudeReading")
+
+        XCTAssertEqual(ClaudeProbeModel(shared: firstStore, defaults: defaults, profile: first).reading, firstReading)
+        XCTAssertEqual(ClaudeProbeModel(shared: secondStore, defaults: defaults, profile: second).reading, secondReading)
+
+        let third = AccountProfile(id: UUID().uuidString, service: .claude, label: "Third", isLegacy: false)
+        let thirdStore = SharedQuotaStore(third, root: root)
+        try await thirdStore.withLease { try thirdStore.saveCredentials(try Self.claudeTokens("third")) }
+        XCTAssertNil(ClaudeProbeModel(shared: thirdStore, defaults: defaults, profile: third).reading)
+        try FileManager.default.removeItem(at: root)
+    }
+}

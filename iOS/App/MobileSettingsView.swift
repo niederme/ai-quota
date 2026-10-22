@@ -205,9 +205,18 @@ struct MobileNotificationControls: View {
             if enabled {
                 serviceGroup("Codex", service: .codex, enabled: $codex)
                 serviceGroup("Claude Code", service: .claude, enabled: $claude)
+                ForEach(QuotaService.allCases, id: \.self) { service in
+                    ForEach(AccountRegistry.profiles(for: service).filter { $0.id != "live" }, id: \.id) { profile in
+                        if let reading = SharedQuotaStore(profile).reading(), !reading.windows.isEmpty {
+                            Section("\(service.name) · \(profile.label)") {
+                                MobileAccountAlertControls(service: service, namespace: profile.id, reading: reading)
+                            }.listRowBackground(OverviewStyle.track)
+                        }
+                    }
+                }
                 if readings.values.contains(where: { !$0.windows.isEmpty }) {
                     Section {} footer: {
-                        Text("Usage alerts are checked when the app or widgets update. Reset reminders use your last fresh reading and are estimates; open the app to confirm availability.")
+                        Text("One usage alert per window, checked when the app or widgets update. Reset reminders use your last fresh reading and are estimates; open the app to confirm availability.")
                     }
                 }
             }
@@ -234,12 +243,7 @@ struct MobileNotificationControls: View {
             Section {
                 Toggle(name, isOn: enabled)
                 if enabled.wrappedValue {
-                    if let window = reading.shortTerm {
-                        MobileWindowAlertControls(service: service, window: "5h", title: window.label + " window")
-                    }
-                    if let window = reading.weekly {
-                        MobileWindowAlertControls(service: service, window: "7d", title: window.label + " window")
-                    }
+                    MobileAccountAlertControls(service: service, reading: reading, showsMasterSwitch: false)
                 }
             }.listRowBackground(OverviewStyle.track)
         }
@@ -263,6 +267,7 @@ enum MobileSettingsReset {
             shared.removeObject(forKey: key)
         }
         for service in QuotaService.allCases {
+            shared.removeObject(forKey: "notifications.\(service.rawValue).usageThreshold")
             for window in ["5h", "7d"] {
                 for suffix in ["resetMode", "resetThreshold", "usageEnabled", "usageThreshold", "limitEnabled", "usageState"] {
                     shared.removeObject(forKey: "notifications.\(service.rawValue).\(window).\(suffix)")
@@ -280,25 +285,17 @@ struct MobileWindowAlertControls: View {
     @AppStorage private var mode: String
     @AppStorage private var threshold: Double
     @AppStorage private var usageEnabled: Bool
-    @AppStorage private var usageThreshold: Double
-    @AppStorage private var limitEnabled: Bool
     let title: String
-    init(service: QuotaService, window: String, title: String) {
+    init(service: QuotaService, window: String, title: String, namespace: String = "live") {
         self.title = title
-        let prefix = "notifications.\(service.rawValue).\(window)."
+        let prefix = MobileResetNotifications.windowPrefix(service, window, namespace: namespace)
         _mode = AppStorage(wrappedValue: "nearLimit", prefix + "resetMode", store: MobileResetNotifications.defaults)
         _threshold = AppStorage(wrappedValue: 90, prefix + "resetThreshold", store: MobileResetNotifications.defaults)
         _usageEnabled = AppStorage(wrappedValue: true, prefix + "usageEnabled", store: MobileResetNotifications.defaults)
-        _usageThreshold = AppStorage(wrappedValue: 85, prefix + "usageThreshold", store: MobileResetNotifications.defaults)
-        _limitEnabled = AppStorage(wrappedValue: true, prefix + "limitEnabled", store: MobileResetNotifications.defaults)
     }
     var body: some View {
         DisclosureGroup(title, isExpanded: $expanded) {
-            Toggle("Approaching the limit", isOn: $usageEnabled)
-            if usageEnabled {
-                Stepper("Alert at \(Int(usageThreshold))% used", value: $usageThreshold, in: 5...95, step: 5)
-            }
-            Toggle("Limit reached", isOn: $limitEnabled)
+            Toggle("Usage alert", isOn: $usageEnabled)
             Picker("Reset reminders", selection: $mode) {
                 Text("Off").tag("off")
                 Text("Near the limit").tag("nearLimit")
@@ -310,5 +307,37 @@ struct MobileWindowAlertControls: View {
         }
         .onChange(of: mode) { Task { await MobileResetNotifications.reconcile() } }
         .onChange(of: threshold) { Task { await MobileResetNotifications.reconcile() } }
+    }
+}
+
+private struct MobileAccountAlertControls: View {
+    let service: QuotaService
+    let namespace: String
+    let reading: QuotaReading
+    let showsMasterSwitch: Bool
+    @AppStorage private var enabled: Bool
+    @AppStorage private var threshold: Double
+
+    init(service: QuotaService, namespace: String = "live", reading: QuotaReading, showsMasterSwitch: Bool = true) {
+        self.service = service; self.namespace = namespace; self.reading = reading
+        self.showsMasterSwitch = showsMasterSwitch
+        let key = MobileResetNotifications.servicePreferenceKey(service, namespace: namespace)
+        _enabled = AppStorage(wrappedValue: true, key, store: MobileResetNotifications.defaults)
+        _threshold = AppStorage(wrappedValue: MobileResetNotifications.usageThreshold(service, namespace: namespace),
+                                key + ".usageThreshold", store: MobileResetNotifications.defaults)
+    }
+    var body: some View {
+        if showsMasterSwitch { Toggle("Allow notifications", isOn: $enabled) }
+        if enabled {
+            Stepper("Alert at \(Int(threshold))% used", value: $threshold, in: 5...100, step: 5)
+            if let window = reading.shortTerm {
+                MobileWindowAlertControls(service: service, window: "5h", title: window.label + " window", namespace: namespace)
+            }
+            if let window = reading.weekly {
+                MobileWindowAlertControls(service: service, window: "7d", title: window.label + " window", namespace: namespace)
+            }
+        }
+        // Reconcile cancels scheduled reminders immediately after an account is disabled.
+        Color.clear.frame(height: 0).onChange(of: enabled) { Task { await MobileResetNotifications.reconcile() } }
     }
 }

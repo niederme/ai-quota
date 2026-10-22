@@ -72,6 +72,10 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
     public var codexEnabled: Bool = true
     public var claudeEnabled: Bool = true
 
+    /// One editable usage threshold per service, shared by its windows.
+    public var codexUsageThreshold: Int = 90
+    public var claudeUsageThreshold: Int = 90
+
     // Codex — 5-hour window
     public var codex5hAt15: Bool = true
     public var codex5hAt5: Bool = true
@@ -112,6 +116,8 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
         enabled              = try c.decodeIfPresent(Bool.self, forKey: .enabled)              ?? true
         codexEnabled         = try c.decodeIfPresent(Bool.self, forKey: .codexEnabled)         ?? true
         claudeEnabled        = try c.decodeIfPresent(Bool.self, forKey: .claudeEnabled)        ?? true
+        codexUsageThreshold = min(100, max(5, try c.decodeIfPresent(Int.self, forKey: .codexUsageThreshold) ?? 90))
+        claudeUsageThreshold = min(100, max(5, try c.decodeIfPresent(Int.self, forKey: .claudeUsageThreshold) ?? 90))
         codex5hAt15          = try c.decodeIfPresent(Bool.self, forKey: .codex5hAt15)          ?? true
         codex5hAt5           = try c.decodeIfPresent(Bool.self, forKey: .codex5hAt5)           ?? true
         codex5hLimitReached  = try c.decodeIfPresent(Bool.self, forKey: .codex5hLimitReached)  ?? true
@@ -191,6 +197,9 @@ public struct AppSettings: Codable, Sendable, Equatable {
     public var menuBarService: ServiceType
     /// Whether the menu bar shows one selected service or both services side by side.
     public var menuBarDisplayMode: MenuBarDisplayMode
+    /// Nil means an older install has not yet received its initial account choice.
+    /// An empty array is an explicit app-icon-only choice.
+    public var menuBarAccountIDs: [String]?
     /// Whether the user opted into anonymous usage analytics.
     public var analyticsEnabled: Bool
 
@@ -199,6 +208,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
         notifications: NotificationPreferences(),
         menuBarService: .codex,
         menuBarDisplayMode: .both,
+        menuBarAccountIDs: nil,
         analyticsEnabled: false
     )
 
@@ -207,13 +217,27 @@ public struct AppSettings: Codable, Sendable, Equatable {
         notifications: NotificationPreferences = NotificationPreferences(),
         menuBarService: ServiceType = .codex,
         menuBarDisplayMode: MenuBarDisplayMode = .both,
+        menuBarAccountIDs: [String]? = nil,
         analyticsEnabled: Bool = false
     ) {
         self.refreshIntervalMinutes = Self.normalizeRefreshIntervalMinutes(refreshIntervalMinutes)
         self.notifications = notifications
         self.menuBarService = menuBarService
         self.menuBarDisplayMode = menuBarDisplayMode
+        self.menuBarAccountIDs = menuBarAccountIDs
         self.analyticsEnabled = analyticsEnabled
+    }
+
+    /// Defaults only apply when adding a new account; existing visibility choices are preserved.
+    public mutating func registerMenuBarAccount(
+        id: String, existingAccountIDs: [String], showInMenuBar: Bool? = nil
+    ) {
+        guard !existingAccountIDs.contains(id) else { return }
+        var selected = menuBarAccountIDs ?? []
+        if (showInMenuBar ?? (existingAccountIDs.count < 2)) && !selected.contains(id) {
+            selected.append(id)
+        }
+        menuBarAccountIDs = selected
     }
 
     /// Migration-safe decoder: unknown keys are ignored, missing keys use defaults.
@@ -224,6 +248,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
         refreshIntervalMinutes = Self.normalizeRefreshIntervalMinutes(decodedRefreshInterval)
         menuBarService = try c.decodeIfPresent(ServiceType.self, forKey: .menuBarService) ?? .codex
         menuBarDisplayMode = try c.decodeIfPresent(MenuBarDisplayMode.self, forKey: .menuBarDisplayMode) ?? .both
+        menuBarAccountIDs = try c.decodeIfPresent([String].self, forKey: .menuBarAccountIDs)
         notifications = try c.decodeIfPresent(NotificationPreferences.self, forKey: .notifications)
             ?? NotificationPreferences()
         analyticsEnabled = try c.decodeIfPresent(Bool.self, forKey: .analyticsEnabled) ?? false

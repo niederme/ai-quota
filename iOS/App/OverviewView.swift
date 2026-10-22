@@ -206,7 +206,8 @@ struct OverviewView: View {
                     if !claude.connected { ClaudeProbeView(model: claude) } else {
                     ServiceDetailContent(name: "Claude", icon: "logo-claude", reading: claude.reading,
                         connected: claude.connected, busy: claude.busy, error: claude.error,
-                        failure: claude.connectionFailure, refresh: { claude.refresh() }) { ClaudeProbeView(model: claude) }
+                        failure: claude.connectionFailure, claudeAccount: claude,
+                        refresh: { claude.refresh() }) { ClaudeProbeView(model: claude) }
                     }
                 }
             }
@@ -359,25 +360,24 @@ struct ServiceDetailContent<Account: View>: View {
     let busy: Bool
     let error: String?
     let failure: SharedQuotaStore.Failure?
+    var accountLabel: String? = nil
     var history: CodexUsageHistory? = nil
     var historyUnavailable = false
+    var claudeAccount: ClaudeProbeModel? = nil
     let refresh: () -> Void
     @ViewBuilder var account: () -> Account
     @State private var showAccount = false
     @State private var showResetWebsite = false
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .leading, spacing: 8) {
-                    if usesPlanSubtitle == false {
-                        planLabel
-                    }
+                    planLabel
                     if let reading {
                         TimelineView(.periodic(from: .now, by: 30)) { context in
-                            Text("Usage · " + overviewFreshnessLabel(reading.fetchedAt, at: context.date,
+                            Text("Allowance · " + overviewFreshnessLabel(reading.fetchedAt, at: context.date,
                                  saved: failure != nil || error != nil))
                                 .font(.footnote).foregroundStyle(OverviewStyle.secondary)
                         }
@@ -392,38 +392,28 @@ struct ServiceDetailContent<Account: View>: View {
                           systemImage: "exclamationmark.triangle")
                         .font(.callout).foregroundStyle(OverviewStyle.warning)
                 }
-                if let budget = reading?.monthlyBudget {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Monthly allowance").font(.headline)
-                        Text("\(budget.amountText(budget.used)) of \(budget.amountText(budget.limit))")
-                            .font(.title2.bold()).monospacedDigit()
-                        Text(budget.unitLabel).foregroundStyle(OverviewStyle.secondary)
-                        ProgressView(value: budget.usedPercent, total: 100)
-                            .tint(OverviewStyle.accent)
-                        Text(budget.resetDescription()).font(.footnote)
-                            .foregroundStyle(OverviewStyle.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(16)
-                    .modifier(OverviewCardMaterial())
+                if name == "Codex", history == nil || history?.days.contains(where: { $0.credits != nil }) == true {
+                    CodexAnalyticsView(reading: reading, history: history,
+                                       historyUnavailable: historyUnavailable, busy: busy, refresh: refresh)
+                } else if name == "Claude",
+                          reading?.claudeBreakdown != nil || (busy && reading?.monthlyBudget == nil) {
+                    ClaudeAnalyticsView(reading: reading, busy: busy,
+                                        failed: failure != nil || error != nil, refresh: refresh)
                 }
-                if reading?.monthlyBudget == nil || reading?.windows.isEmpty == false {
-                    Group {
-                        if name == "Codex" {
-                            CodexAnalyticsView(reading: reading, history: history,
-                                               historyUnavailable: historyUnavailable, busy: busy, refresh: refresh)
-                        } else {
-                            ClaudeAnalyticsView(reading: reading, busy: busy, failed: failure != nil || error != nil, refresh: refresh)
-                        }
-                    }.modifier(UsageLoadingState(loading: busy && reading == nil))
+                if name == "Claude", reading?.monthlyBudget != nil, let claudeAccount, !claudeAccount.isDemo {
+                    ClaudeEnterpriseDetailView(account: claudeAccount)
                 }
-                Divider()
+                if error != nil || failure == .reconnect || failure == .renewal || name == "Codex" {
+                    Divider()
+                }
                 if let error {
                     Label(error, systemImage: "exclamationmark.triangle")
                         .font(.callout).foregroundStyle(OverviewStyle.warning)
                 }
-                Button { showAccount = true } label: {
-                    Label(connected ? "Account and connection" : "Connect \(name)", systemImage: "person.crop.circle")
+                if failure == .reconnect || failure == .renewal {
+                    Button { showAccount = true } label: {
+                        Label("Reconnect \(name)", systemImage: "person.crop.circle")
+                    }
                 }
                 if name == "Codex" {
                     Button { showResetWebsite = true } label: {
@@ -436,8 +426,7 @@ struct ServiceDetailContent<Account: View>: View {
         .background { BrandSurfaceBackground().ignoresSafeArea() }
         .toolbarBackground(.hidden, for: .navigationBar)
         .navigationTitle(name)
-        .toolbarTitleDisplayMode(.inlineLarge)
-        .modifier(ServicePlanSubtitle(plan: usesPlanSubtitle ? planText : ""))
+        .toolbarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Refresh", systemImage: "arrow.clockwise", action: refresh)
@@ -462,31 +451,15 @@ struct ServiceDetailContent<Account: View>: View {
         }
     }
     private var planText: String {
-        reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported"
-    }
-    private var usesPlanSubtitle: Bool {
-        if #available(iOS 26.0, *) {
-            return !typeSize.isAccessibilitySize && planText.count <= 24
-        }
-        return false
+        let plan = reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported"
+        return accountLabel.map { "\($0) · \(plan)" } ?? plan
     }
     private var planLabel: some View {
         Text(planText)
-            .font(.callout).foregroundStyle(OverviewStyle.secondary)
+            .font(.subheadline).foregroundStyle(OverviewStyle.secondary)
             .fixedSize(horizontal: false, vertical: true)
     }
 
-}
-
-private struct ServicePlanSubtitle: ViewModifier {
-    let plan: String
-    func body(content: Content) -> some View {
-        if #available(iOS 26.0, *) {
-            content.navigationSubtitle(plan)
-        } else {
-            content
-        }
-    }
 }
 
 struct UsageLoadingState: ViewModifier {
@@ -581,6 +554,7 @@ struct ProviderDialCard: View {
     let busy: Bool
     let error: String?
     var failure: SharedQuotaStore.Failure? = nil
+    var accountLabel: String? = nil
     var history: CodexUsageHistory? = nil
     var historyUnavailable = false
     var tokenHistory: CodexTokenHistory? = nil
@@ -591,7 +565,8 @@ struct ProviderDialCard: View {
     var body: some View {
         ProviderDialCardContent(name: name, icon: icon, availableWidth: availableWidth,
             reading: reading, connected: connected, busy: busy, error: error, failure: failure,
-            onOpen: onOpen, onReconnect: onReconnect, history: history, historyUnavailable: historyUnavailable,
+            onOpen: onOpen, onReconnect: onReconnect, accountLabel: accountLabel,
+            history: history, historyUnavailable: historyUnavailable,
             tokenHistory: tokenHistory, tokenHistoryUnavailable: tokenHistoryUnavailable, tokenHistoryLoading: tokenHistoryLoading)
     }
 }
@@ -600,6 +575,7 @@ struct ProviderDialCard: View {
 /// Shared by the overview and service sheets; settings retain their existing UI.
 enum OverviewStyle {
     static let accent = Color("OverviewAccent")
+    static let resetAccent = Color("OverviewResetAccent")
     static let warning = Color("OverviewWarning")
     static let critical = Color("OverviewCritical")
     static let primary = Color("OverviewPrimary")
@@ -676,6 +652,7 @@ struct ProviderDialCardContent: View {
     var failure: SharedQuotaStore.Failure? = nil
     var onOpen: (() -> Void)? = nil
     var onReconnect: (() -> Void)? = nil
+    var accountLabel: String? = nil
     var history: CodexUsageHistory? = nil
     var historyUnavailable = false
     var tokenHistory: CodexTokenHistory? = nil
@@ -717,9 +694,12 @@ struct ProviderDialCardContent: View {
         }
     }
     private var cardContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             summary.modifier(UsageLoadingState(loading: busy && reading == nil))
-            if name == "Codex", connected {
+            if name == "Codex", connected,
+               MobileTokenHistoryView.presentation(history: tokenHistory,
+                                                   unavailable: tokenHistoryUnavailable,
+                                                   loading: tokenHistoryLoading ?? busy) == .populated {
                 MobileTokenHistoryView(history: tokenHistory, unavailable: tokenHistoryUnavailable || (tokenHistory == nil && error != nil), loading: tokenHistoryLoading ?? busy, availableWidth: availableWidth - 32)
             }
         }
@@ -734,7 +714,7 @@ struct ProviderDialCardContent: View {
             if usesColumns {
                 HStack(alignment: .top, spacing: 24) { dial; details }
             } else {
-                VStack(alignment: .leading, spacing: 16) { dial; details }
+                VStack(alignment: .leading, spacing: 12) { dial; details }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -745,7 +725,7 @@ struct ProviderDialCardContent: View {
             accountSummary
             if connected, reading?.monthlyBudget == nil,
                let spent = reading?.metadata?.usageSpent, spent > 0 { spending(spent) }
-        }.padding(.top, 4).frame(maxWidth: .infinity, alignment: .leading)
+        }.padding(.top, 2).frame(maxWidth: .infinity, alignment: .leading)
     }
     private var accountSummary: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -758,8 +738,9 @@ struct ProviderDialCardContent: View {
                         .foregroundStyle(OverviewStyle.tertiary).accessibilityHidden(true)
                 }
             }
-            Text(connected ? (reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported") : "Not connected")
-                .modifier(OverviewDetailType(weight: .regular)).foregroundStyle(OverviewStyle.secondary)
+            Text(connected ? ((reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported")
+                + (accountLabel.map { " · \($0)" } ?? "")) : "Not connected")
+                .modifier(OverviewDetailType(weight: .semibold)).foregroundStyle(OverviewStyle.primary)
             }
             if connected {
                 VStack(alignment: .leading, spacing: 4) {
@@ -767,10 +748,14 @@ struct ProviderDialCardContent: View {
                         resetCaption(window, label: window.resetLabel)
                     }
                     if let budget = reading?.monthlyBudget {
+                        Text("\(budget.amountText(budget.used)) of \(budget.amountText(budget.limit))")
+                            .modifier(OverviewDetailType()).foregroundStyle(OverviewStyle.secondary)
                         Text(budget.unitLabel).modifier(OverviewDetailType())
                             .foregroundStyle(OverviewStyle.secondary)
-                        Text(budget.resetDescription()).modifier(OverviewDetailType())
-                            .foregroundStyle(OverviewStyle.secondary)
+                        if let reset = budget.confirmedResetDescription() {
+                            Text(reset).modifier(OverviewDetailType())
+                                .foregroundStyle(OverviewStyle.resetAccent)
+                        }
                     }
                 }
                 if failure != nil || error != nil || reading == nil || worst >= 100 {
@@ -796,7 +781,7 @@ struct ProviderDialCardContent: View {
         let value = reading?.metadata?.usageCurrency.map { amount.formatted(.currency(code: $0)) }
             ?? amount.formatted(.number.precision(.fractionLength(0...2))) + " credits"
         return Text("Credits used  \(value)")
-            .modifier(OverviewDetailType()).foregroundStyle(OverviewStyle.warning)
+            .modifier(OverviewDetailType()).foregroundStyle(OverviewStyle.secondary)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityLabel("Credits used: \(value)")
     }
@@ -819,9 +804,9 @@ struct ProviderDialCardContent: View {
                 if !allowanceOnly {
                 VStack(spacing: 2) {
                     if let budget = budgetOnly {
-                        Text(budget.amountText(budget.used))
+                        Text("\(Int(budget.usedPercent.rounded()))%")
                             .font(largeDial ? .title.bold() : .subheadline.bold())
-                        Text("of \(budget.amountText(budget.limit))")
+                        Text("Monthly")
                             .font(largeDial ? .body : .caption2)
                             .foregroundStyle(OverviewStyle.secondary)
                     } else {
@@ -853,7 +838,7 @@ struct ProviderDialCardContent: View {
             return "\(label) \(window.resetDescription())"
         }()
         return Text(text).modifier(OverviewDetailType())
-            .foregroundStyle(window == nil ? OverviewStyle.secondary : tint)
+            .foregroundStyle(window == nil ? OverviewStyle.secondary : OverviewStyle.resetAccent)
             .fixedSize(horizontal: false, vertical: true)
     }
     private func arc(_ window: QuotaWindow?, opacity: Double) -> some View {

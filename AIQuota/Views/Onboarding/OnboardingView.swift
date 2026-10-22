@@ -20,7 +20,7 @@ struct OnboardingView: View {
     @State private var step: OnboardingStep = .welcome
     @State private var direction: Int = 1   // +1 forward, -1 backward
 
-    // Fixed window size — tall enough for the services step with the menu bar picker
+    // Fixed window size; account lists and notification controls scroll within each step.
     static let width:  CGFloat = 520
     static let height: CGFloat = 660
 
@@ -42,6 +42,7 @@ struct OnboardingView: View {
                 .frame(maxWidth: .infinity)
         }
         .frame(width: Self.width, height: Self.height)
+        .tint(Color.brand)
         .ignoresSafeArea()
         .background {
             onboardingSurface
@@ -158,6 +159,7 @@ struct OnboardingView: View {
         // Services step: require at least one authenticated service
         if step == .services {
             return viewModel.isCodexAuthenticated || viewModel.isClaudeAuthenticated
+                || viewModel.additionalAccounts.contains { $0.isAuthenticated }
         }
         return true
     }

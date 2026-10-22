@@ -7,6 +7,7 @@ import MobileAccessCore
 
 @MainActor @Observable
 final class ProbeModel {
+    let profile: AccountProfile?
     private let shared: SharedQuotaStore
     private var foregroundRefresh = ForegroundRefreshPolicy()
     private(set) var quietlyRefreshing = false
@@ -28,7 +29,7 @@ final class ProbeModel {
     private var tokenHistoryAttempt: Date?
     private(set) var history: CodexUsageHistory?
     private(set) var historyUnavailable = false
-    private let historyCacheKey = "mobileProbe.codexHistory"
+    private let historyCacheKey: String
     private(set) var reading: QuotaReading?
     private(set) var signInCompletionID: UUID?
     private(set) var busy = false
@@ -38,17 +39,24 @@ final class ProbeModel {
     private(set) var connectionFailure: SharedQuotaStore.Failure?
     let isDemo: Bool
     var connected: Bool { isDemo || tokens != nil }
-    private let cacheKey = "mobileProbe.codexReading"
+    private let cacheKey: String
+    private var usesLegacyStorage: Bool { profile?.isLegacy ?? true }
 
-    init(isDemo: Bool = false, api: CodexAPI = CodexAPI(), shared: SharedQuotaStore = SharedQuotaStore(.codex),
+    init(isDemo: Bool = false, api: CodexAPI = CodexAPI(), shared: SharedQuotaStore? = nil,
          defaults: UserDefaults = .standard,
+         profile: AccountProfile? = nil,
          fetchUsage: (@Sendable (Bool, TimeInterval) async throws -> QuotaReading)? = nil) {
         self.isDemo = isDemo
         self.api = api
-        self.shared = shared
+        self.profile = profile
+        self.shared = shared ?? SharedQuotaStore(.codex, namespace: profile?.id ?? "live")
         self.defaults = defaults
         self.fetchUsage = fetchUsage
-        self.tokenHistoryCache = CodexTokenHistoryCache(defaults: defaults)
+        self.cacheKey = Self.cacheKey("mobileProbe.codexReading", profile: profile)
+        self.historyCacheKey = Self.cacheKey("mobileProbe.codexHistory", profile: profile)
+        self.tokenHistoryCache = CodexTokenHistoryCache(
+            defaults: defaults,
+            key: Self.cacheKey("mobileProbe.codexTokenHistory", profile: profile))
         if isDemo {
             reading = DemoQuotaData.reading(.codex)
             history = DemoQuotaData.history()
@@ -57,20 +65,38 @@ final class ProbeModel {
             return
         }
         do {
-            tokens = try shared.load(CodexTokens.self) ?? TokenStore.load()
+            tokens = try self.shared.load(CodexTokens.self)
+                ?? (usesLegacyStorage ? TokenStore.load() : nil)
             if tokens != nil {
+                updateProviderIdentity(from: tokens)
                 alignTokenHistory(to: tokens)
-                connectionFailure = shared.failure()
+                connectionFailure = self.shared.failure()
                 message = "Connected. Your usage updates automatically."
-                reading = shared.reading()
-                if let data = defaults.data(forKey: historyCacheKey) {
+                reading = self.shared.reading()
+                if let data = cachedData(forKey: historyCacheKey, legacyKey: "mobileProbe.codexHistory") {
                     history = try? JSONDecoder().decode(CodexUsageHistory.self, from: data)
                 }
-                if reading == nil, let data = defaults.data(forKey: cacheKey) {
+                if reading == nil,
+                   let data = cachedData(forKey: cacheKey, legacyKey: "mobileProbe.codexReading") {
                     reading = try? JSONDecoder().decode(QuotaReading.self, from: data)
                 }
             }
         } catch { self.error = "Could not read this device’s saved connection." }
+    }
+    private static func cacheKey(_ base: String, profile: AccountProfile?) -> String {
+        profile.map { base + "." + $0.id } ?? base
+    }
+    private func cachedData(forKey key: String, legacyKey: String) -> Data? {
+        if let data = defaults.data(forKey: key) { return data }
+        guard profile?.isLegacy == true, let data = defaults.data(forKey: legacyKey) else { return nil }
+        defaults.set(data, forKey: key)
+        defaults.removeObject(forKey: legacyKey)
+        return data
+    }
+    private func updateProviderIdentity(from credential: CodexTokens?) {
+        guard let profile, let identity = credential?.accountID?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !identity.isEmpty else { return }
+        AccountRegistry.setProviderIdentity(service: .codex, id: profile.id, identity: identity)
     }
     func connect() {
         guard !isDemo else { return }
@@ -105,10 +131,12 @@ final class ProbeModel {
         message = "Couldn’t connect this account."
     }
     private func finishSignIn(_ newTokens: CodexTokens) async throws {
+        let migrateLegacy = usesLegacyStorage
         try await shared.withLease { [shared] in
             try shared.saveCredentials(newTokens)
-            try TokenStore.clear()
+            if migrateLegacy { try TokenStore.clear() }
         }
+        updateProviderIdentity(from: newTokens)
         clearTokenHistory()
         tokenHistoryCache.clear()
         history = nil
@@ -137,7 +165,8 @@ final class ProbeModel {
         guard !isDemo else { refresh(); return }
         guard !busy, connected else { return }
         // Invalidate token history before the foreground quota throttle on account changes.
-        let current = try? shared.load(CodexTokens.self) ?? TokenStore.load()
+        let current = try? shared.load(CodexTokens.self)
+            ?? (usesLegacyStorage ? TokenStore.load() : nil)
         alignTokenHistory(to: current)
         // A widget may have published a newer successful reading while the app was inactive.
         if let cached = shared.reading(), cached.fetchedAt > (reading?.fetchedAt ?? .distantPast) {
@@ -161,7 +190,8 @@ final class ProbeModel {
         refresh()
     }
     private func fetch(forceRenewal: Bool, minimumAge: TimeInterval = 0) async throws {
-        let current = try? shared.load(CodexTokens.self) ?? TokenStore.load()
+        let current = try? shared.load(CodexTokens.self)
+            ?? (usesLegacyStorage ? TokenStore.load() : nil)
         alignTokenHistory(to: current)
         let backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "Refresh allowance") { [weak self] in
             Task { @MainActor in self?.work?.cancel() }
@@ -169,12 +199,15 @@ final class ProbeModel {
         defer { if backgroundTask != .invalid { UIApplication.shared.endBackgroundTask(backgroundTask) } }
 
         // Migrate once under the same lease used by widget renewal. Never overwrite newer shared credentials.
+        let migrateLegacy = usesLegacyStorage
         try await shared.withLease { [shared] in
-            if try shared.load(CodexTokens.self) == nil, let old = try TokenStore.load() {
+            if migrateLegacy, try shared.load(CodexTokens.self) == nil, let old = try TokenStore.load() {
                 try shared.saveCredentials(old)
             }
-            try TokenStore.clear()
-            try WidgetStore.clearAccess()
+            if migrateLegacy {
+                try TokenStore.clear()
+                try WidgetStore.clearAccess()
+            }
         }
         message = "Refreshing…"
         let value: QuotaReading
@@ -182,6 +215,7 @@ final class ProbeModel {
         else { value = try await shared.fetch(source: "app", forceRenewal: forceRenewal, minimumAge: minimumAge) }
         try Task.checkCancellation()
         tokens = try shared.load(CodexTokens.self)
+        updateProviderIdentity(from: tokens)
         alignTokenHistory(to: tokens)
         reading = value
         connectionFailure = nil
@@ -299,13 +333,18 @@ final class ProbeModel {
         message = "Connect Codex to see your usage."
     }
     private func clearConnection() async throws {
+        let clearLegacy = usesLegacyStorage
         try await shared.withLease { [shared] in
-            try TokenStore.clear()
-            try WidgetStore.clear()
+            if clearLegacy {
+                try TokenStore.clear()
+                try WidgetStore.clear()
+            }
             try shared.clear()
         }
-        await WKWebsiteDataStore.default().removeData(
-            ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast)
+        if profile == nil {
+            await WKWebsiteDataStore.default().removeData(
+                ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast)
+        }
         WidgetCenter.shared.reloadAllTimelines()
         defaults.removeObject(forKey: cacheKey)
         defaults.removeObject(forKey: historyCacheKey)

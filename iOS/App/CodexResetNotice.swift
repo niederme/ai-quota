@@ -22,7 +22,8 @@ final class CodexResetNotice {
     private(set) var fetching = false
     private let session: URLSession
 
-    init(session: URLSession? = nil) {
+    init(session: URLSession? = nil, initialStatus: CodexResetStatus? = nil) {
+        status = initialStatus
         if let session { self.session = session }
         else {
             let configuration = URLSessionConfiguration.ephemeral

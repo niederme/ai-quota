@@ -12,6 +12,7 @@ struct PopoverView: View {
     /// after Settings opens (which steals key focus and causes the window to close).
     @State private var menuBarWindow: NSWindow?
     @State private var selectedService: ServiceType?
+    @State private var selectedAccountID: String?
     @State private var hoveredService: ServiceType?
     @State private var focusedService: ServiceType?
     @State private var overviewHeight: CGFloat?
@@ -32,7 +33,16 @@ struct PopoverView: View {
     }
 
     private var overviewWidth: CGFloat {
-        viewModel.isCodexEnrolled ? 360 : (viewModel.enrolledServices.count == 1 ? 240 : 340)
+        let visibleWidth = (menuBarWindow?.screen ?? NSScreen.main)?.visibleFrame.width ?? 800
+        let accountCount = viewModel.enrolledServices.count + viewModel.additionalAccounts.count
+        let ideal: CGFloat = accountCount > 1 ? 652 : 340
+        return min(ideal, max(320, visibleWidth - 16))
+    }
+    private var overviewBodyMaxHeight: CGFloat {
+        let screen = menuBarWindow?.screen ?? NSScreen.main
+        let visible = screen?.visibleFrame ?? CGRect(x: 0, y: 0, width: 800, height: 800)
+        let top = menuBarWindow?.frame.maxY ?? visible.maxY
+        return max(220, min(visible.height * 0.88, top - visible.minY - 16) - 110)
     }
     private var overviewSize: CGSize {
         CGSize(width: overviewWidth, height: overviewHeight ?? 400)
@@ -42,7 +52,10 @@ struct PopoverView: View {
         let visible = screen?.visibleFrame ?? CGRect(x: 0, y: 0, width: 800, height: 800)
         let top = menuBarWindow?.frame.maxY ?? visible.maxY
         let availableHeight = max(300, top - visible.minY - 8)
-        return CGSize(width: min(460, visible.width - 16),
+        // Keep the native panel's horizontal bounds fixed while navigating.
+        // With two accounts the former 652 -> 460 point resize visibly swept
+        // the detail sheet sideways from its menu-bar anchor.
+        return CGSize(width: overviewWidth,
                       height: min(availableHeight, max(visible.height * 0.85, overviewSize.height)))
     }
     private var popoverSize: CGSize {
@@ -60,7 +73,7 @@ struct PopoverView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .environment(viewModel).environment(updater)),
             size: popoverSize,
-            layoutSize: popoverLayoutSize,
+            compactSize: overviewSize,
             animateResize: !reduceMotion && navigationPhase.resizesWindow,
             presentationID: presentationID,
             onCapture: { menuBarWindow = $0 },
@@ -85,37 +98,45 @@ struct PopoverView: View {
 
     private var pageContent: some View {
         ZStack(alignment: .topLeading) {
-            // Once the outgoing page is transparent, leave only the material
-            // during the shrink. Hidden charts and gauges still incur layout.
-            if navigationPhase != .shrinking {
-                Group {
-                    if !viewModel.enrolledServices.isEmpty {
-                        authenticatedContent
-                    } else {
-                        signInContent
-                    }
+            Group {
+                    if !viewModel.enrolledServices.isEmpty || viewModel.hasAdditionalAccounts {
+                        gridAuthenticatedContent
+                } else {
+                    signInContent
                 }
-                .frame(width: overviewWidth)
-                .fixedSize(horizontal: false, vertical: true)
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
-                    if height > 0, navigationPhase != .shrinking, overviewHeight != height { overviewHeight = height }
-                }
-                .modifier(PopoverPageVisibility(isVisible: navigationPhase == .overview,
-                                                reduceMotion: reduceMotion, distance: 0, onHidden: {}))
-                .allowsHitTesting(navigationPhase == .overview)
-                .accessibilityHidden(navigationPhase != .overview)
+            }
+            .frame(width: overviewWidth)
+            .fixedSize(horizontal: false, vertical: true)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                if height > 0, navigationPhase == .overview, overviewHeight != height { overviewHeight = height }
+            }
+            // Crossfade into the overview before the native window begins its
+            // close so the returning panel always has content while shrinking.
+            .modifier(PopoverPageVisibility(isVisible: navigationPhase.showsOverview,
+                                            reduceMotion: reduceMotion, distance: 0, onHidden: {}))
+            .allowsHitTesting(navigationPhase == .overview)
+            .accessibilityHidden(navigationPhase != .overview)
 
-                if let selectedService {
-                    ServiceDetailView(service: selectedService, height: detailSize.height,
-                                      close: closeService, openAccount: openSettingsKeepingPopover)
-                        .frame(width: detailSize.width)
-                        .id(selectedService)
-                        .modifier(PopoverPageVisibility(isVisible: navigationPhase == .detail,
-                                                        reduceMotion: reduceMotion, distance: 6,
-                                                        onHidden: finishDetailFade))
-                        .allowsHitTesting(navigationPhase == .detail)
-                        .accessibilityHidden(navigationPhase != .detail)
-                }
+            if let selectedService {
+                    Group {
+                        if let selectedAccountID,
+                           let session = viewModel.additionalAccounts.first(where: { $0.id == selectedAccountID }) {
+                            MacAdditionalAccountDetailView(session: session, height: detailSize.height,
+                                                           close: closeService, openSettings: openSettingsKeepingPopover)
+                        } else {
+                            ServiceDetailView(service: selectedService, height: detailSize.height,
+                                              close: closeService, openAccount: openSettingsKeepingPopover)
+                        }
+                    }
+                    .frame(width: detailSize.width)
+                    .id(selectedService)
+                    // Start revealing the detail as the window expands. Waiting
+                    // for the resize completion leaves a blank full-height panel.
+                    .modifier(PopoverPageVisibility(isVisible: navigationPhase.showsDetail,
+                                                    reduceMotion: reduceMotion, distance: 6,
+                                                    onHidden: finishDetailFade))
+                    .allowsHitTesting(navigationPhase == .detail)
+                    .accessibilityHidden(navigationPhase != .detail)
             }
         }
         .frame(width: popoverLayoutSize.width, height: popoverLayoutSize.height, alignment: .topLeading)
@@ -135,6 +156,7 @@ struct PopoverView: View {
             navigationPhase = .detail
         case .shrinking:
             selectedService = nil
+            selectedAccountID = nil
             navigationPhase = .overview
         default:
             break
@@ -157,6 +179,7 @@ struct PopoverView: View {
 
     private func resetNavigation() {
         selectedService = nil
+        selectedAccountID = nil
         navigationPhase = .overview
         hoveredService = nil
         focusedService = nil
@@ -203,7 +226,34 @@ struct PopoverView: View {
         hoveredService = nil
         focusedService = nil
         selectedService = service
+        selectedAccountID = nil
         navigationPhase = reduceMotion ? .detail : .expanding
+    }
+
+    private func openAccount(_ account: ConnectedAccount) {
+        guard navigationPhase == .overview else { return }
+        if account.connectionKind == .legacyPrimary {
+            openService(account.provider)
+        } else {
+            selectedService = account.provider
+            selectedAccountID = account.id
+            navigationPhase = reduceMotion ? .detail : .expanding
+        }
+    }
+
+    private var gridAuthenticatedContent: some View {
+        VStack(spacing: 0) {
+            header
+            ForEach(errorBanners) { banner in
+                errorBanner(banner)
+            }
+            if viewModel.isCodexAuthenticated { resetNoticeRow }
+            MacAccountGridView(width: overviewWidth, maxHeight: overviewBodyMaxHeight,
+                               openAccount: openAccount, openSettings: openSettingsKeepingPopover)
+            updateAvailableRow
+            Divider()
+            footer
+        }
     }
 
     private func service(at x: CGFloat) -> ServiceType? {
@@ -291,42 +341,15 @@ struct PopoverView: View {
     @ViewBuilder
     private var resetNoticeRow: some View {
         if let announcement = resetAnnouncement {
-            HStack(alignment: .top, spacing: 8) {
-                Button { NSWorkspace.shared.open(CodexResetNotice.website) } label: {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text("Codex reset")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(CircularGaugeView.accent)
-                        Text(announcement.title)
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(.primary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Label("Read more", systemImage: "arrow.up.right")
-                            .font(.system(size: 11))
-                            .foregroundStyle(CircularGaugeView.accent)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-                }
-                Button {
+            MacResetNoticeBanner(title: announcement.title) {
+                NSWorkspace.shared.open(CodexResetNotice.website)
+            } onDismiss: {
                     #if DEMO_MODE
                     demoResetDismissed = true
                     #else
                     dismissedResetID = announcement.id
                     #endif
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                        .frame(width: 24, height: 24)
-                        .contentShape(Rectangle())
-                }
-                .accessibilityLabel("Dismiss reset announcement")
             }
-            .buttonStyle(.plain)
-            .padding(12)
-            .background(CircularGaugeView.accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
         }
     }
 
@@ -403,26 +426,41 @@ struct PopoverView: View {
     private var claudeGaugeSlot: some View {
         if viewModel.isClaudeAuthenticated {
             if let u = viewModel.claudeUsage {
-                CircularGaugeView(
-                    primaryPercent: u.usedPercent,
-                    primaryLimitReached: u.limitReached,
-                    showsPrimaryMetric: true,
-                    secondaryPercent: Int(u.sevenDayUtilization?.rounded() ?? 0),
-                    secondaryLimitReached: (u.sevenDayUtilization ?? 0) >= 100,
-                    showsSecondaryMetric: u.primaryMetric.kind != .sevenDay && u.sevenDayUtilization != nil,
-                    isLoading: false,
-                    icon: "logo-claude",
-                    label: "Claude Code",
-                    primaryLabel: u.primaryMetricLabel,
-                    secondaryLabel: "7d",
-                    resetAt: u.resetAt,
-                    weeklyResetAt: u.sevenDayResetsAt,
-                    isRefreshing: viewModel.isClaudeLoading,
-                    onRefresh: { viewModel.manualRefresh() }
-                )
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel("Claude usage")
-                .accessibilityValue(claudeAccessibilitySummary(u))
+                if u.primaryMetric.kind == .spendLimit,
+                   let spend = u.spendLimit,
+                   spend.used.isFinite, spend.used >= 0,
+                   spend.limit.isFinite, spend.limit > 0 {
+                    BudgetGaugeView(
+                        used: spend.used, limit: spend.limit,
+                        usedText: budgetValue(spend.used, unit: spend.currencyCode),
+                        limitText: budgetValue(spend.limit, unit: spend.currencyCode),
+                        unitLabel: spend.currencyCode?.uppercased() == "USD" ? "monthly spend" : "monthly allowance",
+                        icon: "logo-claude", label: "Claude Code", resetAt: nil,
+                        isRefreshing: viewModel.isClaudeLoading,
+                        onRefresh: { viewModel.manualRefresh() }
+                    )
+                } else {
+                    CircularGaugeView(
+                        primaryPercent: u.usedPercent,
+                        primaryLimitReached: u.limitReached,
+                        showsPrimaryMetric: true,
+                        secondaryPercent: Int(u.sevenDayUtilization?.rounded() ?? 0),
+                        secondaryLimitReached: (u.sevenDayUtilization ?? 0) >= 100,
+                        showsSecondaryMetric: u.primaryMetric.kind != .sevenDay && u.sevenDayUtilization != nil,
+                        isLoading: false,
+                        icon: "logo-claude",
+                        label: "Claude Code",
+                        primaryLabel: u.primaryMetricLabel,
+                        secondaryLabel: "7d",
+                        resetAt: u.resetAt,
+                        weeklyResetAt: u.sevenDayResetsAt,
+                        isRefreshing: viewModel.isClaudeLoading,
+                        onRefresh: { viewModel.manualRefresh() }
+                    )
+                    .accessibilityElement(children: .contain)
+                    .accessibilityLabel("Claude usage")
+                    .accessibilityValue(claudeAccessibilitySummary(u))
+                }
             } else {
                 CircularGaugeView(
                     primaryPercent: 0, primaryLimitReached: false,
@@ -446,13 +484,18 @@ struct PopoverView: View {
     private var codexColumn: some View {
         VStack(spacing: 0) {
             codexGaugeSlot
-            if viewModel.isCodexAuthenticated {
-                CodexTokenHistoryView()
+            if viewModel.isCodexAuthenticated,
+               let history = viewModel.codexTokenHistory,
+               CodexTokenHistoryView.hasVisibleData(history) {
+                CodexTokenHistoryView(history: history, availableWidth: max(1, overviewWidth / CGFloat(visibleServices.count) - 28))
                     .padding(.horizontal, 14)
                     .padding(.top, 8)
             }
         }
         .frame(maxWidth: .infinity)
+        .task(id: viewModel.isCodexAuthenticated) {
+            if viewModel.isCodexAuthenticated { viewModel.refreshTokenHistory() }
+        }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Codex service")
         .accessibilityIdentifier("codexServiceColumn")
@@ -769,26 +812,16 @@ struct PopoverView: View {
                 .frame(width: 20, height: 20)
             Text("AIQuota").font(.headline)
             Spacer()
-            // Colour key for the dual rings
-            HStack(spacing: 12) {
-                ringKey(label: "5h",    opacity: 1.0)
-                ringKey(label: "7d", opacity: 0.5)
+            let accountCount = viewModel.enrolledServices.count + viewModel.additionalAccounts.count
+            if accountCount > 1 {
+                Text("\(accountCount) accounts")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         Divider()
-    }
-
-    private func ringKey(label: String, opacity: Double) -> some View {
-        HStack(spacing: 2) {
-            Circle()
-                .fill(CircularGaugeView.accent.opacity(opacity))
-                .frame(width: 6, height: 6)
-            Text(label)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(CircularGaugeView.accent.opacity(opacity))
-        }
     }
 
     // MARK: - Footer
@@ -1351,6 +1384,10 @@ private struct PopoverPageVisibility: ViewModifier {
 private enum PopoverNavigationPhase {
     case overview, expanding, detail, fadingDetail, shrinking
 
+    var showsOverview: Bool {
+        self == .overview || self == .fadingDetail || self == .shrinking
+    }
+    var showsDetail: Bool { self == .expanding || self == .detail }
     var isExpanded: Bool {
         self == .expanding || self == .detail || self == .fadingDetail
     }
@@ -1363,38 +1400,32 @@ private enum PopoverNavigationPhase {
 private struct MenuBarPopoverHost: NSViewRepresentable {
     let content: AnyView
     let size: CGSize
-    let layoutSize: CGSize
+    let compactSize: CGSize
     let animateResize: Bool
     let presentationID: Int
     let onCapture: (NSWindow?) -> Void
     let onResizeFinished: (CGSize) -> Void
 
     func makeNSView(context: Context) -> MenuBarPopoverContainer {
-        MenuBarPopoverContainer(content: content, size: size, layoutSize: layoutSize)
+        MenuBarPopoverContainer(content: content, size: size, compactSize: compactSize)
     }
 
     func updateNSView(_ view: MenuBarPopoverContainer, context: Context) {
-        view.layoutSize = layoutSize
         view.host.rootView = content
         view.onCapture = onCapture
         view.onResizeFinished = onResizeFinished
+        view.compactSize = compactSize
         view.resetAnchor(for: presentationID)
         view.resize(to: size, animate: animateResize)
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView view: MenuBarPopoverContainer,
                       context: Context) -> CGSize? {
-        // Keep the ideal expanded until the native close finishes. Finite
-        // proposals can follow its intermediate viewport while stale undersized
-        // proposals remain bounded by the native destination.
-        func dimension(_ proposed: CGFloat?, target: CGFloat, ideal: CGFloat, minimum: CGFloat) -> CGFloat {
-            if proposed == 0 { return minimum }
-            guard let proposed else { return ideal }
-            return max(target, min(proposed, 10_000))
-        }
-        let result = CGSize(width: dimension(proposal.width, target: size.width, ideal: layoutSize.width, minimum: view.compactSize.width),
-                            height: dimension(proposal.height, target: size.height, ideal: layoutSize.height, minimum: view.compactSize.height))
-        return result
+        // MenuBarExtra can keep proposing the previous (taller) window size.
+        // Reporting that stale proposal made the overview retain empty space
+        // below the footer. The native window handles detail-page expansion;
+        // SwiftUI always advertises the measured compact content size.
+        view.compactSize
     }
 }
 
@@ -1410,25 +1441,21 @@ extension NSHostingView: ManualPopoverSizing {
 private final class MenuBarPopoverContainer: NSView {
     let host: NSHostingView<AnyView>
     let initialSize: CGSize
-    private(set) var compactSize: CGSize
+    var compactSize: CGSize {
+        didSet { if compactSize != oldValue { invalidateIntrinsicContentSize() } }
+    }
     var onCapture: (NSWindow?) -> Void = { _ in }
     var onResizeFinished: (CGSize) -> Void = { _ in }
-    var layoutSize: CGSize {
-        didSet {
-            if layoutSize != oldValue { invalidateIntrinsicContentSize() }
-        }
-    }
     private var desiredSize: CGSize
     private var appliedSize: CGSize?
     private var topRight: CGPoint?
     private var presentationID: Int?
     private var resizeGeneration = 0
 
-    init(content: AnyView, size: CGSize, layoutSize: CGSize) {
+    init(content: AnyView, size: CGSize, compactSize: CGSize) {
         host = NSHostingView(rootView: content)
         initialSize = size
-        compactSize = size
-        self.layoutSize = layoutSize
+        self.compactSize = compactSize
         desiredSize = size
         super.init(frame: CGRect(origin: .zero, size: size))
         host.sizingOptions = []
@@ -1438,7 +1465,10 @@ private final class MenuBarPopoverContainer: NSView {
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-    override var intrinsicContentSize: NSSize { layoutSize }
+    // The native window owns expanded sizing. Advertising the detail page as
+    // this view's intrinsic size makes MenuBarExtra independently resize and
+    // reposition the same window midway through our anchored animation.
+    override var intrinsicContentSize: NSSize { compactSize }
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
@@ -1463,7 +1493,6 @@ private final class MenuBarPopoverContainer: NSView {
         if desiredSize != size {
             desiredSize = size
         }
-        if size.width <= initialSize.width { compactSize = size }
         guard appliedSize != size else { return }
         DispatchQueue.main.async { [weak self] in
             guard let self, let window = self.window, self.desiredSize == size,

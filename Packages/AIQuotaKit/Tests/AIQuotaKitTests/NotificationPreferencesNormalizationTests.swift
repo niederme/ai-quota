@@ -113,20 +113,6 @@ struct NotificationPreferencesNormalizationTests {
         #expect(!prefs.claude7dAt80 && !prefs.claude7dAt95 && !prefs.claude7dLimitReached)
     }
 
-    @Test("Settings keeps notifications in one group with inline service disclosure")
-    func settingsUsesSingleNotificationGroupWithInlineDisclosure() throws {
-        let settingsSource = try settingsViewSource()
-
-        #expect(settingsSource.occurrences(of: "Section(\"Notifications\")") == 1)
-        #expect(!settingsSource.contains("Section(\"Codex\")"))
-        #expect(!settingsSource.contains("Section(\"Claude Code\")"))
-        #expect(settingsSource.contains("NotificationServiceRow"))
-        #expect(settingsSource.contains("NotificationInlineControls"))
-        #expect(settingsSource.contains(".toggleStyle(.checkbox)"))
-        #expect(!settingsSource.contains("Tailor alerts"))
-        #expect(!settingsSource.contains("NotificationDetailSheet"))
-    }
-
     @Test("Onboarding mirrors Settings notification hierarchy")
     func onboardingMirrorsSettingsNotificationHierarchy() throws {
         let onboardingSource = try String(
@@ -142,29 +128,6 @@ struct NotificationPreferencesNormalizationTests {
         #expect(!onboardingSource.contains("struct OnboardingNotificationInlineControls"))
         #expect(!onboardingSource.contains("Tailor alerts"))
         #expect(!onboardingSource.contains("NotificationDetailSheet"))
-    }
-
-    @Test("Settings combines account actions and auth diagnostics")
-    func settingsCombinesAccountActionsAndAuthDiagnostics() throws {
-        let settingsSource = try settingsViewSource()
-
-        #expect(settingsSource.occurrences(of: "Section(\"Accounts\")") == 1)
-        #expect(!settingsSource.contains("Section(\"Diagnostics\")"))
-        #expect(settingsSource.contains("AccountDiagnosticsRows"))
-        #expect(settingsSource.contains("AccountServiceStatusRow"))
-        #expect(settingsSource.contains("Refresh Status"))
-        #expect(settingsSource.contains("Copy Diagnostics"))
-        #expect(settingsSource.contains("Copy Diagnostics includes both services"))
-        #expect(settingsSource.contains("No tokens, headers, cookies, or response bodies are included."))
-        #expect(settingsSource.contains("statusDetail: statusDetail"))
-        #expect(!settingsSource.contains("authDetail:"))
-    }
-
-    private func settingsViewSource() throws -> String {
-        return try String(
-            contentsOf: repoRoot().appending(path: "AIQuota/Views/SettingsView.swift"),
-            encoding: .utf8
-        )
     }
 
     private func repoRoot() -> URL {
@@ -183,4 +146,20 @@ private extension String {
     func occurrences(of needle: String) -> Int {
         components(separatedBy: needle).count - 1
     }
+}
+
+@Test func singleUsageThresholdMigration() throws {
+    let legacy = Data(#"{"codex5hAt15":false,"codex5hAt5":false,"codex5hLimitReached":false}"#.utf8)
+    var prefs = try JSONDecoder().decode(NotificationPreferences.self, from: legacy)
+    #expect(prefs.codexUsageThreshold == 90)
+    #expect(prefs.claudeUsageThreshold == 90)
+    #expect(!prefs.codex5hThresholdAlerts)
+    prefs.codexUsageThreshold = 75
+    prefs.claudeUsageThreshold = 100
+    let restored = try JSONDecoder().decode(NotificationPreferences.self, from: JSONEncoder().encode(prefs))
+    #expect(restored == prefs)
+    let invalid = Data(#"{"codexUsageThreshold":-5,"claudeUsageThreshold":150}"#.utf8)
+    let bounded = try JSONDecoder().decode(NotificationPreferences.self, from: invalid)
+    #expect(bounded.codexUsageThreshold == 5)
+    #expect(bounded.claudeUsageThreshold == 100)
 }

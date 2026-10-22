@@ -1,5 +1,6 @@
 import Foundation
 import UserNotifications
+import MobileAccessCore
 
 /// Fires local notifications when quota crosses key thresholds or resets.
 ///
@@ -80,85 +81,14 @@ public actor NotificationManager {
             )
         }
 
-        let storedResetAt  = defaults.object(forKey: Key.codexLastResetAt) as? Double
-        let currentResetAt = current.weeklyResetAt.timeIntervalSince1970
-
-        if let stored = storedResetAt {
-            let storedDate = Date(timeIntervalSince1970: stored)
-            if storedDate < .now {
-                clearThresholds(key: Key.codexThresholds)
-                defaults.set(currentResetAt, forKey: Key.codexLastResetAt)
-                return
-            } else if stored != currentResetAt {
-                defaults.set(currentResetAt, forKey: Key.codexLastResetAt)
-            }
-        } else {
-            defaults.set(currentResetAt, forKey: Key.codexLastResetAt)
-            return
-        }
-
-        // ── 5-hour threshold notifications ────────────────────────────────
         if current.hasHourlyWindow {
-            let hourlyResetAt = current.hourlyResetAt.timeIntervalSince1970
-            let storedHourly = defaults.object(forKey: Key.codex5hLastResetAt) as? Double
-
-            if let stored5h = storedHourly {
-                let storedDate5h = Date(timeIntervalSince1970: stored5h)
-                if storedDate5h < .now {
-                    clearThresholds(key: Key.codex5hThresholds)
-                    defaults.set(hourlyResetAt, forKey: Key.codex5hLastResetAt)
-                } else {
-                    if stored5h != hourlyResetAt { defaults.set(hourlyResetAt, forKey: Key.codex5hLastResetAt) }
-                    let notified5h = loadThresholds(key: Key.codex5hThresholds)
-                    let remaining5h = max(0, 100 - current.hourlyUsedPercent)
-                    if current.limitReached && !notified5h.contains("limitReached") && prefs.codex5hLimitReached {
-                        markThreshold("limitReached", key: Key.codex5hThresholds)
-                        await send(id: "codex5hLimitReached", title: "Codex 5-hour limit reached",
-                                   body: "You've hit the limit for your Codex 5-hour window. Resets in \(timeString(current.hourlyResetAfterSeconds)).")
-                    } else if remaining5h < 5 && !notified5h.contains("below5") && prefs.codex5hAt5 {
-                        markThreshold("below5", key: Key.codex5hThresholds)
-                        await send(id: "codex5hBelow5", title: "Codex 5-hour near limit",
-                                   body: "You're almost at the limit for your Codex 5-hour window. Resets in \(timeString(current.hourlyResetAfterSeconds)).")
-                    } else if remaining5h < 15 && !notified5h.contains("below15") && prefs.codex5hAt15 {
-                        markThreshold("below15", key: Key.codex5hThresholds)
-                        await send(id: "codex5hBelow15", title: "Codex 5-hour usage high",
-                                   body: "You've used most of your Codex 5-hour window. Resets in \(timeString(current.hourlyResetAfterSeconds)).")
-                    }
-                }
-            } else {
-                defaults.set(hourlyResetAt, forKey: Key.codex5hLastResetAt)
-            }
-        } else {
-            clearThresholds(key: Key.codex5hThresholds)
-            defaults.removeObject(forKey: Key.codex5hLastResetAt)
+            await evaluateUsage(key: Key.codex5hThresholds, legacyEndKey: Key.codex5hLastResetAt,
+                service: "Codex", window: "5-hour", used: Double(current.hourlyUsedPercent),
+                end: current.hourlyResetAt, enabled: prefs.codex5hThresholdAlerts, threshold: prefs.codexUsageThreshold)
         }
-
-        // ── Weekly threshold notifications ────────────────────────────────
-        let notified  = loadThresholds(key: Key.codexThresholds)
-        let remaining = current.weeklyRemaining
-
-        if current.limitReached && !notified.contains("limitReached") && prefs.codexLimitReached {
-            markThreshold("limitReached", key: Key.codexThresholds)
-            await send(
-                id: "codexLimitReached",
-                title: "Codex 7-day limit reached",
-                body: "You've hit the limit for your Codex 7-day window. Resets in \(timeString(current.weeklyResetAfterSeconds))."
-            )
-        } else if remaining < 5 && !notified.contains("below5") && prefs.codexAt5 {
-            markThreshold("below5", key: Key.codexThresholds)
-            await send(
-                id: "codexBelow5",
-                title: "Codex 7-day near limit",
-                body: "You're almost at the limit for your Codex 7-day window. Resets in \(timeString(current.weeklyResetAfterSeconds))."
-            )
-        } else if remaining < 15 && !notified.contains("below15") && prefs.codexAt15 {
-            markThreshold("below15", key: Key.codexThresholds)
-            await send(
-                id: "codexBelow15",
-                title: "Codex 7-day usage high",
-                body: "You've used most of your Codex 7-day window. Resets in \(timeString(current.weeklyResetAfterSeconds))."
-            )
-        }
+        await evaluateUsage(key: Key.codexThresholds, legacyEndKey: Key.codexLastResetAt,
+            service: "Codex", window: "7-day", used: Double(current.weeklyUsedPercent),
+            end: current.weeklyResetAt, enabled: prefs.codexWeeklyThresholdAlerts, threshold: prefs.codexUsageThreshold)
     }
 
     // MARK: - Codex top-up detection
@@ -182,7 +112,7 @@ public actor NotificationManager {
         guard currentBalance > lastBalance + topUpNoiseFloor else { return }
 
         // Real top-up detected; fire if permitted
-        guard prefs.enabled, prefs.codexTopUp else { return }
+        guard prefs.enabled, prefs.codexEnabled, prefs.codexTopUp else { return }
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized else { return }
@@ -230,117 +160,50 @@ public actor NotificationManager {
             )
         }
 
-        if let fiveHourUsed = claude.fiveHourUtilization,
-           let fiveHourResetAt = claude.fiveHourResetsAt {
-            let storedResetAt  = defaults.object(forKey: Key.claudeLastResetAt) as? Double
-            let currentResetAt = fiveHourResetAt.timeIntervalSince1970
-
-            if let stored = storedResetAt {
-                let storedDate = Date(timeIntervalSince1970: stored)
-                if storedDate < .now {
-                    clearThresholds(key: Key.claudeThresholds)
-                    defaults.set(currentResetAt, forKey: Key.claudeLastResetAt)
-                    return
-                } else if stored != currentResetAt {
-                    defaults.set(currentResetAt, forKey: Key.claudeLastResetAt)
-                }
-            } else {
-                defaults.set(currentResetAt, forKey: Key.claudeLastResetAt)
-                return
-            }
-
-            let notified = loadThresholds(key: Key.claudeThresholds)
-            let used = Int(fiveHourUsed.rounded())
-            let remaining = max(0, 100 - used)
-            let resetSeconds = max(0, Int(fiveHourResetAt.timeIntervalSinceNow))
-
-            if fiveHourUsed >= 100 && !notified.contains("limitReached") && prefs.claude5hLimitReached {
-                markThreshold("limitReached", key: Key.claudeThresholds)
-                await send(
-                    id: "claudeLimitReached",
-                    title: "Claude 5-hour limit reached",
-                    body: "You've hit the limit for your Claude 5-hour window. Resets in \(timeString(resetSeconds))."
-                )
-            } else if remaining < 5 && !notified.contains("below5") && prefs.claude5hAt5 {
-                markThreshold("below5", key: Key.claudeThresholds)
-                await send(
-                    id: "claudeBelow5",
-                    title: "Claude 5-hour near limit",
-                    body: "You're almost at the limit for your Claude 5-hour window. Resets in \(timeString(resetSeconds))."
-                )
-            } else if remaining < 15 && !notified.contains("below15") && prefs.claude5hAt15 {
-                markThreshold("below15", key: Key.claudeThresholds)
-                await send(
-                    id: "claudeBelow15",
-                    title: "Claude 5-hour usage high",
-                    body: "You've used most of your Claude 5-hour window. Resets in \(timeString(resetSeconds))."
-                )
-            }
-        } else {
-            clearThresholds(key: Key.claudeThresholds)
-            defaults.removeObject(forKey: Key.claudeLastResetAt)
+        if let used = claude.fiveHourUtilization, let end = claude.fiveHourResetsAt {
+            await evaluateUsage(key: Key.claudeThresholds, legacyEndKey: Key.claudeLastResetAt,
+                service: "Claude", window: "5-hour", used: used, end: end,
+                enabled: prefs.claude5hThresholdAlerts, threshold: prefs.claudeUsageThreshold)
         }
-
-        // ── 7-day threshold notifications ──────────────────────────────────
-        guard let sevenDayUtilization = claude.sevenDayUtilization,
-              let sevenDayResetsAt = claude.sevenDayResetsAt
-        else {
-            clearThresholds(key: Key.claudeSevenDayThresholds)
-            defaults.removeObject(forKey: Key.claudeSevenDayLastResetAt)
-            return
+        if let used = claude.sevenDayUtilization, let end = claude.sevenDayResetsAt {
+            await evaluateUsage(key: Key.claudeSevenDayThresholds, legacyEndKey: Key.claudeSevenDayLastResetAt,
+                service: "Claude", window: "7-day", used: used, end: end,
+                enabled: prefs.claude7dThresholdAlerts, threshold: prefs.claudeUsageThreshold)
         }
-        let sevenDayUsed     = Int(sevenDayUtilization.rounded())
-        let sevenDayNotified = loadThresholds(key: Key.claudeSevenDayThresholds)
-        let sevenDayResetAt  = sevenDayResetsAt.timeIntervalSince1970
-        let sevenDayResetSeconds = max(0, Int(sevenDayResetsAt.timeIntervalSinceNow))
-        let storedSevenDay   = defaults.object(forKey: Key.claudeSevenDayLastResetAt) as? Double
+    }
 
-        if let stored = storedSevenDay {
-            let storedDate = Date(timeIntervalSince1970: stored)
-            if storedDate < .now {
-                clearThresholds(key: Key.claudeSevenDayThresholds)
-                defaults.set(sevenDayResetAt, forKey: Key.claudeSevenDayLastResetAt)
-            } else {
-                if stored != sevenDayResetAt {
-                    defaults.set(sevenDayResetAt, forKey: Key.claudeSevenDayLastResetAt)
-                }
-                if sevenDayUsed >= 100 && !sevenDayNotified.contains("limitReached") && prefs.claude7dLimitReached {
-                    markThreshold("limitReached", key: Key.claudeSevenDayThresholds)
-                    await send(
-                        id: "claudeSevenDayLimit",
-                        title: "Claude 7-day limit reached",
-                        body: "You've hit the limit for your Claude 7-day window. Resets in \(timeString(sevenDayResetSeconds))."
-                    )
-                } else if sevenDayUsed >= 95 && !sevenDayNotified.contains("above95") && prefs.claude7dAt95 {
-                    markThreshold("above95", key: Key.claudeSevenDayThresholds)
-                    await send(
-                        id: "claudeSevenDay95",
-                        title: "Claude 7-day near limit",
-                        body: "You're almost at the limit for your Claude 7-day window. Resets in \(timeString(sevenDayResetSeconds))."
-                    )
-                } else if sevenDayUsed >= 80 && !sevenDayNotified.contains("above80") && prefs.claude7dAt80 {
-                    markThreshold("above80", key: Key.claudeSevenDayThresholds)
-                    await send(
-                        id: "claudeSevenDay80",
-                        title: "Claude 7-day usage high",
-                        body: "You've used most of your Claude 7-day window. Resets in \(timeString(sevenDayResetSeconds))."
-                    )
-                }
-            }
-        } else {
-            defaults.set(sevenDayResetAt, forKey: Key.claudeSevenDayLastResetAt)
+    private func evaluateUsage(key: String, legacyEndKey: String, service: String, window: String,
+                               used: Double, end: Date, enabled: Bool, threshold: Int) async {
+        guard end > .now else { return }
+        let stateKey = key + ".singleUsage"
+        var state = defaults.data(forKey: stateKey).flatMap { try? JSONDecoder().decode(UsageAlertState.self, from: $0) }
+        // An alert already delivered by the old version counts for this window too.
+        if state == nil, let oldEnd = defaults.object(forKey: legacyEndKey) as? Double,
+           oldEnd == end.timeIntervalSince1970, !loadThresholds(key: key).isEmpty {
+            state = UsageAlertState(windowEnd: end, highestNotified: Double(threshold))
         }
+        var observation = state ?? UsageAlertState(windowEnd: end)
+        observation.updateWindow(end: end, now: .now)
+        defaults.set(try? JSONEncoder().encode(observation), forKey: stateKey)
+        guard let level = observation.next(used: used, now: .now, enabled: enabled, threshold: Double(threshold)) else { return }
+        observation.highestNotified = level
+        // Reserve before awaiting delivery so concurrent refreshes cannot duplicate the alert.
+        defaults.set(try? JSONEncoder().encode(observation), forKey: stateKey)
+        let delivered = await send(id: key + ".usage", title: "\(service) \(window) usage at \(Int(used.rounded()))%",
+            body: "Your \(threshold)% threshold was reached. Resets in \(timeString(max(0, Int(end.timeIntervalSinceNow)))).")
+        if !delivered { defaults.removeObject(forKey: stateKey) }
     }
 
     // MARK: - Private helpers
 
-    private func send(id: String, title: String, body: String) async {
+    @discardableResult
+    private func send(id: String, title: String, body: String) async -> Bool {
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
         content.sound = .default
         let request = UNNotificationRequest(identifier: id, content: content, trigger: nil)
-        do { try await UNUserNotificationCenter.current().add(request) } catch {}
+        do { try await UNUserNotificationCenter.current().add(request); return true } catch { return false }
     }
 
     private func loadThresholds(key: String) -> Set<String> {
@@ -349,7 +212,15 @@ public actor NotificationManager {
 
     public func clearResetHistory(for service: ServiceType) {
         let keys = service == .codex ? [Key.codexLastResetAt, Key.codex5hLastResetAt] : [Key.claudeLastResetAt, Key.claudeSevenDayLastResetAt]
-        for key in keys { defaults.removeObject(forKey: key + ".resetObservation") }
+        for key in keys {
+            defaults.removeObject(forKey: key + ".resetObservation")
+            defaults.removeObject(forKey: key)
+        }
+        let usageKeys = service == .codex ? [Key.codexThresholds, Key.codex5hThresholds] : [Key.claudeThresholds, Key.claudeSevenDayThresholds]
+        for key in usageKeys {
+            defaults.removeObject(forKey: key + ".singleUsage")
+            defaults.removeObject(forKey: key)
+        }
     }
 
     private func observeReset(key: String, used: Double, end: Date) -> Double? {
@@ -359,16 +230,6 @@ public actor NotificationManager {
         let priorPeak = observation.observe(used: used, end: end, now: .now)
         if let data = try? JSONEncoder().encode(observation) { defaults.set(data, forKey: storageKey) }
         return priorPeak
-    }
-
-    private func markThreshold(_ threshold: String, key: String) {
-        var set = loadThresholds(key: key)
-        set.insert(threshold)
-        defaults.set(Array(set), forKey: key)
-    }
-
-    private func clearThresholds(key: String) {
-        defaults.removeObject(forKey: key)
     }
 
     private func timeString(_ seconds: Int) -> String {

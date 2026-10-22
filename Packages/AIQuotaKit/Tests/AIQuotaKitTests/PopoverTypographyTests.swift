@@ -206,7 +206,6 @@ struct PopoverTypographyTests {
         #expect(popoverSource.contains("showsSecondaryMetric: hasHourlyWindow"))
         #expect(popoverSource.contains("secondaryPercent: u.weeklyUsedPercent"))
         #expect(notificationSource.contains("if current.hasHourlyWindow"))
-        #expect(notificationSource.contains("defaults.removeObject(forKey: Key.codex5hLastResetAt)"))
         #expect(viewModelSource.contains("codexUsage.hasHourlyWindow && codexUsage.hourlyResetAfterSeconds <= 900"))
 
         // PopoverView: Claude passes real 7-day reset dates and exhaustion state
