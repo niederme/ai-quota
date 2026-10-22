@@ -8,7 +8,7 @@ struct ServiceDetailView: View {
     let service: ServiceType
     let height: CGFloat
     let close: () -> Void
-    let openAccount: () -> Void
+    let reconnect: () -> Void
     @Environment(QuotaViewModel.self) private var viewModel
 
     private var isCodex: Bool { service == .codex }
@@ -128,7 +128,7 @@ struct ServiceDetailView: View {
                         }
                         if !connected || isCodex { Divider() }
                         if !connected {
-                            Button(action: openAccount) {
+                            Button(action: reconnect) {
                                 Label("Reconnect \(name)", systemImage: "person.crop.circle")
                             }
                         }
@@ -143,10 +143,15 @@ struct ServiceDetailView: View {
                         }
                     }.padding(16)
                 }
+                .defaultScrollAnchor(.top, for: .sizeChanges)
             }
+            // Analytics can grow while history and enterprise data arrive.
+            // Keep the scroll viewport bounded so the header stays in place.
+            .frame(maxHeight: .infinity, alignment: .top)
         }
         .tint(Color.gaugeAccent)
-        .frame(height: height)
+        .frame(height: height, alignment: .top)
+        .clipped()
         .accessibilityIdentifier("serviceDetailView")
         .task(id: connected) {
             if isCodex, connected {

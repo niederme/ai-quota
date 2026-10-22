@@ -125,14 +125,24 @@ struct PopoverView: View {
                         if let selectedAccountID,
                            let session = viewModel.additionalAccounts.first(where: { $0.id == selectedAccountID }) {
                             MacAdditionalAccountDetailView(session: session, height: detailSize.height,
-                                                           close: closeService, openSettings: openSettingsWindow)
+                                                           close: closeService, openSettings: openSettingsWindow,
+                                                           reconnect: {
+                                                               Task { await viewModel.reconnectAccount(id: session.id) }
+                                                           })
                         } else {
                             ServiceDetailView(service: selectedService, height: detailSize.height,
-                                              close: closeService, openAccount: openSettingsWindow)
+                                              close: closeService, reconnect: {
+                                                  Task {
+                                                      if selectedService == .codex { await viewModel.signIn() }
+                                                      else { await viewModel.signInClaude() }
+                                                  }
+                                              })
                         }
                     }
                     .frame(width: detailSize.width)
-                    .id(selectedService)
+                    // A provider can have several accounts. Give each detail
+                    // its own navigation and scroll state when switching cards.
+                    .id("\(selectedService.rawValue):\(selectedAccountID ?? "primary")")
                     // Start revealing the detail as the window expands. Waiting
                     // for the resize completion leaves a blank full-height panel.
                     .modifier(PopoverPageVisibility(isVisible: navigationPhase.showsDetail,
