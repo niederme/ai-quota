@@ -14,6 +14,7 @@ struct MultiAccountSettingsView: View {
     @State private var showOnboarding = false
     @State private var showNotifications = false
     @State private var showWidgets = false
+    @State private var showCodexResets = false
     @State private var confirmReset = false
     @State private var resetting = false
     @State private var resetError: String?
@@ -62,6 +63,8 @@ struct MultiAccountSettingsView: View {
             Section {
                 Button("Notifications") { showNotifications = true }
                 Button("Widgets") { showWidgets = true }
+                Button("Codex Resets", systemImage: "arrow.up.right") { showCodexResets = true }
+                    .accessibilityHint("Opens Codex Resets in the in-app browser")
             }
             Section("Onboarding") {
                 Button("Guided Setup…") { onboarding.replay(); showOnboarding = true }
@@ -150,6 +153,7 @@ struct MultiAccountSettingsView: View {
         }
         .sheet(isPresented: $showNotifications) { ServiceAccountSheet { MobileNotificationsView() } }
         .sheet(isPresented: $showWidgets) { ServiceAccountSheet { LockScreenSetupView() } }
+        .sheet(isPresented: $showCodexResets) { ProbeBrowser(url: CodexResetNotice.website) }
     }
 
     private func accountRow(_ profile: AccountProfile) -> some View {

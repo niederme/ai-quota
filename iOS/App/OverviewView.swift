@@ -694,7 +694,7 @@ struct ProviderDialCardContent: View {
         }
     }
     private var cardContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             summary.modifier(UsageLoadingState(loading: busy && reading == nil))
             if name == "Codex", connected,
                MobileTokenHistoryView.presentation(history: tokenHistory,
@@ -714,7 +714,7 @@ struct ProviderDialCardContent: View {
             if usesColumns {
                 HStack(alignment: .top, spacing: 24) { dial; details }
             } else {
-                VStack(alignment: .leading, spacing: 16) { dial; details }
+                VStack(alignment: .leading, spacing: 12) { dial; details }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -725,7 +725,7 @@ struct ProviderDialCardContent: View {
             accountSummary
             if connected, reading?.monthlyBudget == nil,
                let spent = reading?.metadata?.usageSpent, spent > 0 { spending(spent) }
-        }.padding(.top, 4).frame(maxWidth: .infinity, alignment: .leading)
+        }.padding(.top, 2).frame(maxWidth: .infinity, alignment: .leading)
     }
     private var accountSummary: some View {
         VStack(alignment: .leading, spacing: 8) {

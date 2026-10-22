@@ -37,16 +37,23 @@ struct MultiAccountOverviewView: View {
     @State private var selected: AccountSheetSelection?
     @State private var accountOrder: [String]
     @State private var draggingAccount: String?
+    @State private var resetNotice: CodexResetNotice
+    @State private var showResetDetails = false
+    @AppStorage(CodexResetNotice.dismissalKey) private var dismissedResetID = ""
     private let orderStore: AccountRegistry.Store?
+    private let isFixtureMode: Bool
     @AppStorage("refreshIntervalMinutes") private var refreshMinutes = 0
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(fixtureProfiles: [AccountProfile]? = nil, orderStore: AccountRegistry.Store? = nil) {
+    init(fixtureProfiles: [AccountProfile]? = nil, orderStore: AccountRegistry.Store? = nil,
+         resetNotice: CodexResetNotice? = nil) {
         _accounts = State(initialValue: MobileAccountCollection(fixtureProfiles: fixtureProfiles))
+        _resetNotice = State(initialValue: resetNotice ?? CodexResetNotice())
         _needsInitialSetup = State(initialValue: fixtureProfiles == nil && AccountRegistry.all().isEmpty)
         _accountOrder = State(initialValue: orderStore?.accountOrder() ?? AccountRegistry.accountOrder())
         self.orderStore = orderStore
+        isFixtureMode = fixtureProfiles != nil
     }
 
     var body: some View {
@@ -88,6 +95,14 @@ struct MultiAccountOverviewView: View {
             GeometryReader { geometry in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
+                        if let announcement = resetAnnouncement {
+                            CodexResetNoticeBanner(announcement: announcement,
+                                                   openDetails: { showResetDetails = true },
+                                                   dismiss: { dismissedResetID = announcement.id },
+                                                   loading: resetNotice.fetching || accounts.connected(.codex).contains {
+                                                       accounts.codex($0)?.loading == true
+                                                   })
+                        }
                         VStack(alignment: .leading, spacing: 16) {
                             ForEach(orderedProfiles, id: \.orderKey) { profile in
                                 accountCard(profile, width: min(geometry.size.width, 780) - 32)
@@ -120,7 +135,10 @@ struct MultiAccountOverviewView: View {
                     .frame(maxWidth: 780)
                     .frame(maxWidth: .infinity)
                 }
-                .refreshable { await accounts.refreshAll() }
+                .refreshable {
+                    await accounts.refreshAll()
+                    if hasConnectedCodex, !isFixtureMode { await resetNotice.refresh() }
+                }
                 .background { OverviewBackground().ignoresSafeArea() }
             }
             .navigationTitle("AIQuota")
@@ -129,7 +147,10 @@ struct MultiAccountOverviewView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         MobileAnalytics.shared.manualRefresh()
-                        Task { await accounts.refreshAll() }
+                        Task {
+                            await accounts.refreshAll()
+                            if hasConnectedCodex, !isFixtureMode { await resetNotice.refresh() }
+                        }
                     } label: { Image(systemName: "arrow.clockwise") }
                         .tint(OverviewStyle.primary)
                         .accessibilityLabel("Refresh usage")
@@ -166,6 +187,14 @@ struct MultiAccountOverviewView: View {
                     await accounts.refreshAll()
                 }
             }
+            .task(id: "\(scenePhase)-\(hasConnectedCodex)") {
+                guard !isFixtureMode, scenePhase == .active, hasConnectedCodex else { return }
+                while !Task.isCancelled {
+                    await resetNotice.refresh()
+                    do { try await Task.sleep(for: .seconds(60)) }
+                    catch { return }
+                }
+            }
         }
         .tint(OverviewStyle.accent)
         .sheet(item: $selected, onDismiss: {
@@ -180,6 +209,16 @@ struct MultiAccountOverviewView: View {
                 sheetContent(selection)
             }
         }
+        .sheet(isPresented: $showResetDetails) {
+            ProbeBrowser(url: CodexResetNotice.website)
+        }
+    }
+
+    private var hasConnectedCodex: Bool { !accounts.connected(.codex).isEmpty }
+
+    private var resetAnnouncement: CodexResetAnnouncement? {
+        guard hasConnectedCodex else { return nil }
+        return resetNotice.announcement(dismissedID: dismissedResetID)
     }
 
     private var orderedProfiles: [AccountProfile] {

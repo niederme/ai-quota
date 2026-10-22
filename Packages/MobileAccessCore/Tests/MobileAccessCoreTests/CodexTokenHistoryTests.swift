@@ -13,8 +13,8 @@ struct CodexTokenHistoryTests {
         #expect(history.tokensByDate["2026-10-07"] == nil)
         let now = try #require(CodexTokenHistory.dateFormatter().date(from: "2026-10-09"))
         let days = history.days(now: now)
-        #expect(days.count == 364)
-        #expect(days.first?.key == "2025-10-12")
+        #expect(days.count == 182)
+        #expect(days.first?.key == "2026-04-12")
         #expect(days.last?.key == "2026-10-10")
         #expect(days.filter(\.isFuture).count == 1)
         #expect(days.filter(\.isToday).count == 1)
@@ -36,11 +36,15 @@ struct CodexTokenHistoryTests {
         let history = try #require(try CodexTokenHistory.decode(response("[]")))
         let formatter = CodexTokenHistory.dateFormatter()
         let sunday = history.days(now: try #require(formatter.date(from: "2027-01-03")))
-        #expect(sunday[357].key == "2027-01-03")
+        #expect(sunday.first?.key == "2026-07-12")
+        #expect(sunday[175].key == "2027-01-03")
+        #expect(sunday.last?.key == "2027-01-09")
         #expect(sunday.filter(\.isFuture).count == 6)
         let leap = history.days(now: try #require(formatter.date(from: "2024-03-01")))
+        #expect(leap.first?.key == "2023-09-03")
         #expect(leap.contains { $0.key == "2024-02-29" })
-        #expect(Set(leap.map(\.key)).count == 364)
+        #expect(Set(leap.map(\.key)).count == 182)
+        #expect(leap.filter { CodexTokenHistory.calendar.component(.weekday, from: $0.date) == 1 }.count == 26)
     }
 }
 
