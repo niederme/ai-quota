@@ -54,12 +54,14 @@ struct PopoverView: View {
         let screen = menuBarWindow?.screen ?? NSScreen.main
         let visible = screen?.visibleFrame ?? CGRect(x: 0, y: 0, width: 800, height: 800)
         let top = menuBarWindow?.frame.maxY ?? visible.maxY
-        let availableHeight = max(300, top - visible.minY - 8)
+        let availableHeight = max(120, min(visible.height - 16, top - visible.minY - 12))
         // Keep the native panel's horizontal bounds fixed while navigating.
         // With two accounts the former 652 -> 460 point resize visibly swept
         // the detail sheet sideways from its menu-bar anchor.
-        return CGSize(width: overviewWidth,
-                      height: min(availableHeight, max(visible.height * 0.85, overviewSize.height)))
+        // The detail is a scrollable viewport, not a near-full-screen sheet.
+        // A long analytics report must not stretch the popover and its shadow.
+        let preferredHeight = max(540, min(overviewSize.height, 680))
+        return CGSize(width: overviewWidth, height: min(availableHeight, preferredHeight))
     }
     private var popoverSize: CGSize {
         navigationPhase.isExpanded ? detailSize : overviewSize
@@ -76,7 +78,7 @@ struct PopoverView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .environment(viewModel).environment(updater)),
             size: popoverSize,
-            compactSize: overviewSize,
+            layoutSize: popoverLayoutSize,
             animateResize: !reduceMotion && navigationPhase.resizesWindow,
             presentationID: presentationID,
             onCapture: { menuBarWindow = $0 },
@@ -302,7 +304,6 @@ struct PopoverView: View {
             MacAccountGridView(width: overviewWidth, maxHeight: overviewBodyMaxHeight,
                                openAccount: openAccount, openSettings: openSettingsWindow)
             updateAvailableRow
-            Divider()
             footer
         }
     }
@@ -384,7 +385,6 @@ struct PopoverView: View {
             serviceArea
 
             updateAvailableRow
-            Divider()
             footer
         }
     }
@@ -863,24 +863,16 @@ struct PopoverView: View {
                 .tracking(-0.4)
                 .foregroundStyle(Color.overviewPrimary)
             Spacer()
-            HStack(spacing: 2) {
-                Button { viewModel.manualRefresh() } label: {
-                    Image(systemName: "arrow.clockwise")
-                        .frame(width: 30, height: 30)
-                }
-                .help("Refresh usage")
-                .accessibilityLabel("Refresh usage")
-                Button { openSettingsWindow() } label: {
-                    Image(systemName: "gearshape")
-                        .frame(width: 30, height: 30)
-                }
-                .help("Settings")
-                .accessibilityLabel("Settings")
+            Button { viewModel.manualRefresh() } label: {
+                Image(systemName: "arrow.clockwise")
+                    .frame(width: 30, height: 30)
             }
+            .help("Refresh usage")
+            .accessibilityLabel("Refresh usage")
             .buttonStyle(.plain)
             .foregroundStyle(Color.overviewPrimary)
             .padding(3)
-            .background(Color.overviewPrimary.opacity(0.08), in: Capsule())
+            .background(Color.overviewPrimary.opacity(0.08), in: Circle())
         }
         .padding(.horizontal, 16)
         .padding(.top, 16)
@@ -892,6 +884,9 @@ struct PopoverView: View {
     private var footer: some View {
         ZStack {
             HStack {
+                Button { openSettingsWindow() } label: {
+                    footerActionLabel("Settings")
+                }
                 Spacer()
                 Button(role: .destructive) { NSApp.terminate(nil) } label: {
                     footerActionLabel("Quit")
@@ -939,7 +934,6 @@ struct PopoverView: View {
             }
             .padding(24)
             updateAvailableRow
-            Divider()
             HStack {
                 Button { openSettingsWindow() } label: {
                     footerActionLabel("Settings")
@@ -1460,32 +1454,32 @@ private enum PopoverNavigationPhase {
 private struct MenuBarPopoverHost: NSViewRepresentable {
     let content: AnyView
     let size: CGSize
-    let compactSize: CGSize
+    let layoutSize: CGSize
     let animateResize: Bool
     let presentationID: Int
     let onCapture: (NSWindow?) -> Void
     let onResizeFinished: (CGSize) -> Void
 
     func makeNSView(context: Context) -> MenuBarPopoverContainer {
-        MenuBarPopoverContainer(content: content, size: size, compactSize: compactSize)
+        MenuBarPopoverContainer(content: content, size: size, layoutSize: layoutSize)
     }
 
     func updateNSView(_ view: MenuBarPopoverContainer, context: Context) {
         view.host.rootView = content
         view.onCapture = onCapture
         view.onResizeFinished = onResizeFinished
-        view.compactSize = compactSize
+        view.layoutSize = layoutSize
         view.resetAnchor(for: presentationID)
         view.resize(to: size, animate: animateResize)
     }
 
     func sizeThatFits(_ proposal: ProposedViewSize, nsView view: MenuBarPopoverContainer,
                       context: Context) -> CGSize? {
-        // MenuBarExtra can keep proposing the previous (taller) window size.
-        // Reporting that stale proposal made the overview retain empty space
-        // below the footer. The native window handles detail-page expansion;
-        // SwiftUI always advertises the measured compact content size.
-        view.compactSize
+        // Advertise the page actually laid out in the native window. Returning
+        // the compact size while the window was expanded left the hosting view
+        // shorter than its shadow and clipped the detail header offscreen.
+        // Ignore stale proposals from MenuBarExtra after navigation.
+        layoutSize
     }
 }
 
@@ -1500,9 +1494,8 @@ extension NSHostingView: ManualPopoverSizing {
 
 private final class MenuBarPopoverContainer: NSView {
     let host: NSHostingView<AnyView>
-    let initialSize: CGSize
-    var compactSize: CGSize {
-        didSet { if compactSize != oldValue { invalidateIntrinsicContentSize() } }
+    var layoutSize: CGSize {
+        didSet { if layoutSize != oldValue { invalidateIntrinsicContentSize() } }
     }
     var onCapture: (NSWindow?) -> Void = { _ in }
     var onResizeFinished: (CGSize) -> Void = { _ in }
@@ -1512,10 +1505,9 @@ private final class MenuBarPopoverContainer: NSView {
     private var presentationID: Int?
     private var resizeGeneration = 0
 
-    init(content: AnyView, size: CGSize, compactSize: CGSize) {
+    init(content: AnyView, size: CGSize, layoutSize: CGSize) {
         host = NSHostingView(rootView: content)
-        initialSize = size
-        self.compactSize = compactSize
+        self.layoutSize = layoutSize
         desiredSize = size
         super.init(frame: CGRect(origin: .zero, size: size))
         host.sizingOptions = []
@@ -1525,10 +1517,7 @@ private final class MenuBarPopoverContainer: NSView {
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
-    // The native window owns expanded sizing. Advertising the detail page as
-    // this view's intrinsic size makes MenuBarExtra independently resize and
-    // reposition the same window midway through our anchored animation.
-    override var intrinsicContentSize: NSSize { compactSize }
+    override var intrinsicContentSize: NSSize { layoutSize }
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
