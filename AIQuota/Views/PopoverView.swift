@@ -189,9 +189,12 @@ struct PopoverView: View {
     private var popoverSurface: some View {
         ZStack {
             if #available(macOS 26.0, *) {
-                // No material of our own: any SwiftUI material stacked on the
-                // menu-bar window's glass made the sheet read as opaque.
-                Color.clear
+                // A half-strength blur over the menu-bar window's glass. At full
+                // strength any SwiftUI material here made the sheet read as opaque;
+                // with none, shapes behind stayed too sharp.
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .opacity(0.5)
             } else {
                 // Sequoia's MenuBarExtra material is substantially more transparent
                 // than Tahoe's glass treatment. Stabilize contrast while retaining a
