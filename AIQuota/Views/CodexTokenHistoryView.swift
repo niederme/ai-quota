@@ -15,6 +15,7 @@ struct CodexTokenHistoryView: View {
         let days = Array(history.days().suffix(Self.weeks * 7))
         let positives = days.filter { !$0.isFuture }.compactMap(\.tokens).filter { $0 > 0 }.sorted()
         let side = Self.cellSide(for: availableWidth)
+        let cellHeight = Self.cellHeight(for: availableWidth)
         let gridWidth = CGFloat(Self.weeks) * side + CGFloat(Self.weeks - 1) * Self.cellGap
 
         VStack(alignment: .leading, spacing: 4) {
@@ -30,7 +31,7 @@ struct CodexTokenHistoryView: View {
                                         .strokeBorder(Color.secondary.opacity(day.tokens == nil ? 0.35 : 0), lineWidth: 0.5)
                                         .opacity(day.isFuture ? 0 : 1)
                                 }
-                                .frame(width: side, height: side)
+                                .frame(width: side, height: cellHeight)
                                 .help(description(day))
                                 .accessibilityLabel(day.isToday ? "Today, \(description(day))" : description(day))
                                 .accessibilityHidden(day.isFuture)
@@ -38,7 +39,7 @@ struct CodexTokenHistoryView: View {
                     }
                 }
             }
-            .frame(width: gridWidth, height: 7 * side + 6 * Self.cellGap, alignment: .topLeading)
+            .frame(width: gridWidth, height: 7 * cellHeight + 6 * Self.cellGap, alignment: .topLeading)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("tokenActivityGrid")
 
@@ -66,8 +67,12 @@ struct CodexTokenHistoryView: View {
         max(1, (width - CGFloat(weeks - 1) * cellGap) / CGFloat(weeks))
     }
 
+    static func cellHeight(for width: CGFloat) -> CGFloat {
+        cellSide(for: width) * 2 / 3
+    }
+
     static func graphHeight(for width: CGFloat) -> CGFloat {
-        7 * cellSide(for: width) + 9 + 16
+        7 * cellHeight(for: width) + 6 * cellGap + 16
     }
 
     static func hasVisibleData(_ history: CodexTokenHistory, now: Date = .now) -> Bool {

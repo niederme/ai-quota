@@ -74,12 +74,14 @@ final class TokenHistoryReviewTests: XCTestCase {
         XCTAssertEqual(labels, ["May", "Jun", "Jul", "Aug", "Sep", "Oct"])
     }
 
-    @MainActor func testSixMonthGridFillsCardWithSquareCells() {
+    @MainActor func testSixMonthGridFillsCardWithShorterCells() {
         for width: CGFloat in [256, 288, 329, 376] {
             let side = MobileTokenHistoryView.cellSide(for: width)
+            let cellHeight = MobileTokenHistoryView.cellHeight(for: width)
             let gap = MobileTokenHistoryView.cellGap
             XCTAssertEqual(26 * side + 25 * gap, width, accuracy: 0.01)
-            XCTAssertEqual(MobileTokenHistoryView.graphHeight(for: width), 7 * side + 6 * gap + 16, accuracy: 0.01)
+            XCTAssertEqual(cellHeight, side * 2 / 3, accuracy: 0.01)
+            XCTAssertEqual(MobileTokenHistoryView.graphHeight(for: width), max(44, 7 * cellHeight + 6 * gap) + 16, accuracy: 0.01)
             XCTAssertGreaterThan(side, 8)
             XCTAssertLessThan(side, 14)
         }
