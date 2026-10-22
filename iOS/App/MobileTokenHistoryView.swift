@@ -4,7 +4,7 @@ import MobileAccessCore
 /// Profile tokens, never the credit-spending history shown in service analytics.
 struct MobileTokenHistoryView: View {
     private static let weeks = CodexTokenHistory.visibleWeeks
-    static let cellGap: CGFloat = 1.5
+    static let cellGap: CGFloat = 1
     let history: CodexTokenHistory?
     let unavailable: Bool
     let loading: Bool
@@ -27,7 +27,6 @@ struct MobileTokenHistoryView: View {
             GeometryReader { geometry in
                 let gap = Self.cellGap
                 let side = Self.cellSide(for: geometry.size.width)
-                let cellHeight = Self.cellHeight(for: geometry.size.width)
                 let gridWidth = CGFloat(Self.weeks) * side + CGFloat(Self.weeks - 1) * gap
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .top, spacing: gap) {
@@ -42,7 +41,7 @@ struct MobileTokenHistoryView: View {
                                                 .strokeBorder(Color.secondary.opacity(day.tokens == nil ? 0.35 : 0), lineWidth: 0.5)
                                                 .opacity(day.isFuture ? 0 : 1)
                                         }
-                                        .frame(width: side, height: cellHeight)
+                                        .frame(width: side, height: side)
                                         .accessibilityLabel(day.isToday ? "Today, \(description(day))" : description(day))
                                         .accessibilityHidden(day.isFuture)
                                 }
@@ -65,18 +64,15 @@ struct MobileTokenHistoryView: View {
             }
             .frame(height: graphHeight)
             .accessibilityElement(children: .contain)
-            .accessibilityLabel("Token activity, past 26 weeks")
+            .accessibilityLabel("Token activity, past 39 weeks")
             .accessibilityHint("Outlined cells have no record. Dates are in UTC.")
         }
     }
     static func cellSide(for width: CGFloat) -> CGFloat {
         max(1, (width - CGFloat(weeks - 1) * cellGap) / CGFloat(weeks))
     }
-    static func cellHeight(for width: CGFloat) -> CGFloat {
-        cellSide(for: width) * 2 / 3
-    }
     static func graphHeight(for width: CGFloat) -> CGFloat {
-        max(44, 7 * cellHeight(for: width) + 6 * cellGap) + 16
+        max(44, 7 * cellSide(for: width) + 6 * cellGap) + 16
     }
     private var graphHeight: CGFloat { Self.graphHeight(for: availableWidth) }
     private func fill(_ day: CodexTokenHistory.Day, sortedPositives: [Double]) -> Color {
