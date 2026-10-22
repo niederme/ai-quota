@@ -28,11 +28,6 @@ struct CodexTokenHistoryView: View {
                             let day = days[week * 7 + row]
                             RoundedRectangle(cornerRadius: 1)
                                 .fill(fill(day, sortedPositives: positives))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 1)
-                                        .strokeBorder(Color.secondary.opacity(day.tokens == nil ? 0.35 : 0), lineWidth: 0.5)
-                                        .opacity(day.isFuture ? 0 : 1)
-                                }
                                 .frame(width: side, height: side)
                                 .help(description(day))
                                 .accessibilityLabel(day.isToday ? "Today, \(description(day))" : description(day))
@@ -61,7 +56,7 @@ struct CodexTokenHistoryView: View {
         .frame(width: availableWidth, height: Self.graphHeight(for: availableWidth), alignment: .topLeading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Token activity, past 42 weeks")
-        .accessibilityHint("Outlined cells have no record. Dates are in UTC.")
+        .accessibilityHint("Dim cells have no record. Dates are in UTC.")
         .accessibilityIdentifier("codexTokenActivity")
     }
 
@@ -101,7 +96,8 @@ struct CodexTokenHistoryView: View {
     }
 
     private func fill(_ day: CodexTokenHistory.Day, sortedPositives: [Double]) -> Color {
-        guard !day.isFuture, let tokens = day.tokens else { return .clear }
+        guard !day.isFuture else { return .clear }
+        guard let tokens = day.tokens else { return Color.secondary.opacity(0.18) }
         if tokens == 0 {
             return colorScheme == .dark
                 ? Color(red: 0.30, green: 0.28, blue: 0.34)
