@@ -40,8 +40,11 @@ support still needs field testing.
 3. Launch AIQuota and follow guided setup to connect your accounts.
 
 The menu-bar sheet shows a card for each connected account, with its dial,
-reset times, and (for Codex) the six-month activity graph. The sheet uses a
-tinted purple glass surface that adapts to light and dark appearance. The menu
+reset times, and (for Codex) the six-month activity graph. The sheet is
+translucent plum glass that lets the desktop show through, with a purple glow
+and a bright rim on its edge, and adapts to light and dark appearance. Captions
+on it are near-white in dark and deep plum in light so they stay readable over
+any desktop; purple stays on the rings. The menu
 bar itself shows gauges for the first two accounts by default; open an account
 in Settings to choose whether its gauge appears there. Drag accounts in
 **Settings → Accounts** to reorder their cards.
