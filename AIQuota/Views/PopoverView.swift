@@ -341,42 +341,16 @@ struct PopoverView: View {
     @ViewBuilder
     private var resetNoticeRow: some View {
         if let announcement = resetAnnouncement {
-            HStack(alignment: .top, spacing: 8) {
-                Button { NSWorkspace.shared.open(CodexResetNotice.website) } label: {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text("Codex reset")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundStyle(CircularGaugeView.accent)
-                        Text(announcement.title)
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(.primary)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Label("Read more", systemImage: "arrow.up.right")
-                            .font(.system(size: 11))
-                            .foregroundStyle(CircularGaugeView.accent)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-                }
-                Button {
+            MacResetNoticeBanner(title: announcement.title, width: overviewWidth,
+                                 accent: CircularGaugeView.accent) {
+                NSWorkspace.shared.open(CodexResetNotice.website)
+            } onDismiss: {
                     #if DEMO_MODE
                     demoResetDismissed = true
                     #else
                     dismissedResetID = announcement.id
                     #endif
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                        .frame(width: 24, height: 24)
-                        .contentShape(Rectangle())
-                }
-                .accessibilityLabel("Dismiss reset announcement")
             }
-            .buttonStyle(.plain)
-            .padding(12)
-            .background(CircularGaugeView.accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
         }
     }
 
