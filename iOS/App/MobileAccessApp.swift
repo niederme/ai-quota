@@ -39,6 +39,8 @@ struct MobileAccessApp: App {
                     AccountProfile(id: "fixture-codex-work", service: .codex, label: "Work", isLegacy: false),
                     AccountProfile(id: "fixture-claude-work", service: .claude, label: "Work", isLegacy: false)
                 ])
+            } else if ProcessInfo.processInfo.arguments.contains("-multiAccountResetNoticeUITest") {
+                MultiAccountResetNoticeFixtureView()
             } else if ProcessInfo.processInfo.arguments.contains("-genericAccountLabelsUITest") {
                 MultiAccountOverviewView(fixtureProfiles: [
                     AccountProfile(id: "fixture-codex-1", service: .codex, label: "Account 1", isLegacy: false),
@@ -80,6 +82,37 @@ struct MobileAccessApp: App {
 }
 
 #if DEBUG
+private struct MultiAccountResetNoticeFixtureView: View {
+    private let profiles: [AccountProfile]
+    private let notice: CodexResetNotice
+
+    init() {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-resetNoticeClearDismissal") {
+            UserDefaults.standard.removeObject(forKey: CodexResetNotice.dismissalKey)
+        }
+        profiles = (arguments.contains("-resetNoticeNoCodex") ? [] : [
+            AccountProfile(id: "fixture-codex-personal", service: .codex, label: "Personal", isLegacy: false)
+        ]) + [AccountProfile(id: "fixture-claude-work", service: .claude, label: "Work", isLegacy: false)]
+        let now = Date.now
+        let format = ISO8601DateFormatter()
+        let generatedAt = arguments.contains("-resetNoticeStale") ? now.addingTimeInterval(-3600) : now
+        let author = arguments.contains("-resetNoticeInapplicable") ? "other" : "thsottiaux"
+        let data = Data("""
+        {"data":{"scheduled_reset":{"id":"fixture-codex-reset","status":"scheduled",
+        "reset_type":"regular","announced_at":"\(format.string(from: now.addingTimeInterval(-3600)))",
+        "scheduled_for":"\(format.string(from: now.addingTimeInterval(7200)))",
+        "source":{"type":"x_post","author":"\(author)","url":"https://x.com/thsottiaux/status/1"}},
+        "latest_reset":null},"meta":{"api_version":"v1","generated_at":"\(format.string(from: generatedAt))"}}
+        """.utf8)
+        notice = CodexResetNotice(initialStatus: try! CodexResetStatus.decode(data))
+    }
+
+    var body: some View {
+        MultiAccountOverviewView(fixtureProfiles: profiles, resetNotice: notice)
+    }
+}
+
 private struct BusinessMonthlyOverviewFixtureView: View {
     private let reading = QuotaReading(
         fetchedAt: .now,

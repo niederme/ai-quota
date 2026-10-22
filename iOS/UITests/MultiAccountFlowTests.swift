@@ -1,6 +1,65 @@
 import XCTest
 
 final class MultiAccountFlowTests: XCTestCase {
+    func testLiveResetNoticeDismissalPersistsAndSettingsBrowserOpens() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-multiAccountResetNoticeUITest", "-resetNoticeClearDismissal"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["Codex usage reset announced"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["Dismiss reset announcement"].exists)
+        let overview = XCTAttachment(screenshot: app.screenshot())
+        overview.name = "Live multi-account reset notice"
+        overview.lifetime = .keepAlways
+        add(overview)
+
+        app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Read more on Codex Resets")).firstMatch.tap()
+        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 10))
+        app.buttons["Done"].tap()
+
+        app.buttons["Settings"].tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+        let resets = app.buttons["Codex Resets"]
+        for _ in 0..<5 where !resets.isHittable { app.collectionViews.firstMatch.swipeUp() }
+        XCTAssertTrue(resets.isHittable)
+        let settings = XCTAttachment(screenshot: app.screenshot())
+        settings.name = "Multi-account Settings Codex Resets link"
+        settings.lifetime = .keepAlways
+        add(settings)
+        resets.tap()
+        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 10))
+        app.buttons["Done"].tap()
+        app.buttons["Close"].firstMatch.tap()
+
+        app.buttons["Dismiss reset announcement"].tap()
+        XCTAssertFalse(app.staticTexts["Codex usage reset announced"].exists)
+        app.terminate()
+        app.launchArguments = ["-multiAccountResetNoticeUITest"]
+        app.launch()
+        XCTAssertTrue(app.buttons["codexServiceCard"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["Codex usage reset announced"].exists)
+    }
+
+    func testInapplicableStaleAndClaudeOnlyDoNotShowResetNotice() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        for state in ["-resetNoticeInapplicable", "-resetNoticeStale", "-resetNoticeNoCodex"] {
+            app.launchArguments = ["-multiAccountResetNoticeUITest", "-resetNoticeClearDismissal", state]
+            app.launch()
+            XCTAssertTrue(app.buttons["claudeServiceCard"].waitForExistence(timeout: 10))
+            XCTAssertFalse(app.staticTexts["Codex usage reset announced"].exists, state)
+            if state == "-resetNoticeNoCodex" {
+                XCTAssertFalse(app.buttons["codexServiceCard"].exists)
+                app.buttons["Settings"].tap()
+                XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+                let resets = app.buttons["Codex Resets"]
+                for _ in 0..<5 where !resets.exists { app.collectionViews.firstMatch.swipeUp() }
+                XCTAssertTrue(resets.exists)
+            }
+            app.terminate()
+        }
+    }
+
     func testBusinessMonthlyResetAppearsWithNeutralCredits() throws {
         continueAfterFailure = false
         let app = XCUIApplication()
