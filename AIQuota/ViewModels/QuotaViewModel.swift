@@ -1593,6 +1593,7 @@ final class AdditionalAccountSession: Identifiable {
     var isAuthenticated: Bool { state == .authenticated }
     var state: AuthState = .unknown
     var codexUsage: CodexUsage?
+    var codexTokenHistory: AIQuotaKit.CodexTokenHistory?
     var claudeUsage: ClaudeUsage?
     var isLoading = false
     var issue: String?
@@ -1602,6 +1603,10 @@ final class AdditionalAccountSession: Identifiable {
     private let codexClient: OpenAIClient?
     private let claudeClient: ClaudeClient?
     private var refreshGeneration = 0
+    private var tokenHistoryTask: Task<Void, Never>?
+    private var tokenHistoryAttempt: Date?
+    private var tokenHistoryGeneration = 0
+    private var tokenHistoryScope = AIQuotaKit.CodexTokenHistoryScope()
 
     init(account: ConnectedAccount) {
         self.id = account.id
@@ -1637,17 +1642,17 @@ final class AdditionalAccountSession: Identifiable {
         case .codex:
             guard let codexCoordinator else { return }
             Task { [weak self] in
-                for await value in codexCoordinator.stateStream { self?.state = value }
+                for await value in codexCoordinator.stateStream { self?.adoptState(value) }
             }
             await codexCoordinator.bootstrap()
-            state = await codexCoordinator.state
+            adoptState(await codexCoordinator.state)
         case .claude:
             guard let claudeCoordinator else { return }
             Task { [weak self] in
-                for await value in claudeCoordinator.stateStream { self?.state = value }
+                for await value in claudeCoordinator.stateStream { self?.adoptState(value) }
             }
             await claudeCoordinator.bootstrap()
-            state = await claudeCoordinator.state
+            adoptState(await claudeCoordinator.state)
         }
         if isAuthenticated, await bindIdentity() {
             await refresh()
@@ -1663,11 +1668,11 @@ final class AdditionalAccountSession: Identifiable {
             case .codex:
                 guard let codexCoordinator else { return }
                 try await codexCoordinator.signIn()
-                state = .authenticated
+                adoptState(.authenticated)
             case .claude:
                 guard let claudeCoordinator else { return }
                 try await claudeCoordinator.signIn()
-                state = .authenticated
+                adoptState(.authenticated)
             }
             guard await bindIdentity() else { return }
             await refresh()
@@ -1689,13 +1694,15 @@ final class AdditionalAccountSession: Identifiable {
             claudeUsage = nil
             SharedDefaults.clearClaudeUsage(forAccountID: id)
         }
-        state = .signedOutByUser
+        adoptState(.signedOutByUser)
         isLoading = false
         issue = nil
     }
 
     func refresh() async {
-        guard isAuthenticated, !isLoading else { return }
+        guard isAuthenticated else { return }
+        if provider == .codex { refreshTokenHistory() }
+        guard !isLoading else { return }
         let generation = refreshGeneration
         isLoading = true
         issue = nil
@@ -1726,12 +1733,12 @@ final class AdditionalAccountSession: Identifiable {
             case .codex:
                 if let codexCoordinator {
                     _ = await codexCoordinator.revalidateSessionAfterAuthFailure()
-                    state = await codexCoordinator.state
+                    adoptState(await codexCoordinator.state)
                 }
             case .claude:
                 if let claudeCoordinator {
                     _ = await claudeCoordinator.revalidateSessionAfterAuthFailure()
-                    state = await claudeCoordinator.state
+                    adoptState(await claudeCoordinator.state)
                 }
             }
             guard generation == refreshGeneration else { return }
@@ -1739,6 +1746,65 @@ final class AdditionalAccountSession: Identifiable {
         } catch {
             guard generation == refreshGeneration else { return }
             issue = error.localizedDescription
+        }
+    }
+
+    /// Optional profile history stays account-scoped and never changes quota auth state.
+    func refreshTokenHistory(force: Bool = false) {
+        guard provider == .codex, isAuthenticated, let codexClient else { return }
+        guard tokenHistoryTask == nil else { return }
+        let generation = tokenHistoryGeneration
+        tokenHistoryTask = Task {
+            defer {
+                if generation == tokenHistoryGeneration { tokenHistoryTask = nil }
+            }
+            var verifiedAccount = false
+            var requestScopeID: String?
+            do {
+                let scopeID = try await codexClient.tokenHistoryScopeID()
+                guard !Task.isCancelled, generation == tokenHistoryGeneration, isAuthenticated else { return }
+                if tokenHistoryScope.update(scopeID: scopeID) {
+                    codexTokenHistory = nil
+                    tokenHistoryAttempt = nil
+                }
+                verifiedAccount = true
+                requestScopeID = scopeID
+                if !force, let attempt = tokenHistoryAttempt, Date.now.timeIntervalSince(attempt) < 900 { return }
+                tokenHistoryAttempt = .now
+                let history = try await codexClient.fetchTokenHistory()
+                let currentScopeID = try await codexClient.tokenHistoryScopeID()
+                guard !Task.isCancelled, generation == tokenHistoryGeneration, isAuthenticated else { return }
+                guard currentScopeID == scopeID, history == nil || history?.scopeID == scopeID else {
+                    codexTokenHistory = nil
+                    tokenHistoryAttempt = nil
+                    _ = tokenHistoryScope.update(scopeID: currentScopeID)
+                    return
+                }
+                codexTokenHistory = history
+            } catch {
+                let currentScopeID = try? await codexClient.tokenHistoryScopeID()
+                guard !Task.isCancelled, generation == tokenHistoryGeneration else { return }
+                if !verifiedAccount || requestScopeID == nil || currentScopeID != requestScopeID {
+                    codexTokenHistory = nil
+                    tokenHistoryAttempt = nil
+                }
+            }
+        }
+    }
+
+    private func clearTokenHistory() {
+        tokenHistoryGeneration += 1
+        tokenHistoryScope = AIQuotaKit.CodexTokenHistoryScope()
+        tokenHistoryTask?.cancel()
+        tokenHistoryTask = nil
+        codexTokenHistory = nil
+        tokenHistoryAttempt = nil
+    }
+
+    private func adoptState(_ newState: AuthState) {
+        state = newState
+        if provider == .codex, newState != .authenticated {
+            clearTokenHistory()
         }
     }
 

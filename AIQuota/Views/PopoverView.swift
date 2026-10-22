@@ -485,8 +485,9 @@ struct PopoverView: View {
         VStack(spacing: 0) {
             codexGaugeSlot
             if viewModel.isCodexAuthenticated,
-               viewModel.codexTokenHistory?.days().contains(where: { !$0.isFuture && $0.tokens != nil }) == true {
-                CodexTokenHistoryView()
+               let history = viewModel.codexTokenHistory,
+               CodexTokenHistoryView.hasVisibleData(history) {
+                CodexTokenHistoryView(history: history, availableWidth: max(1, overviewWidth / CGFloat(visibleServices.count) - 28))
                     .padding(.horizontal, 14)
                     .padding(.top, 8)
             }

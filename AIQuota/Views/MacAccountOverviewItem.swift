@@ -12,6 +12,8 @@ struct MacAccountCard: View {
 
     let account: ConnectedAccount
     let session: AdditionalAccountSession?
+    let tokenHistory: CodexTokenHistory?
+    let availableWidth: CGFloat
     let showsAccountLabel: Bool
     let open: () -> Void
     let reconnect: () -> Void
@@ -90,13 +92,22 @@ struct MacAccountCard: View {
 
     var body: some View {
         Button(action: connected || hasReading ? open : reconnect) {
-            HStack(alignment: .top, spacing: 14) {
-                MacAccountDial(icon: icon, primaryPercent: primaryPercent,
-                               primaryLabel: primaryLabel, secondaryPercent: secondaryPercent,
-                               loading: loading, connected: connected, hasIssue: issue != nil)
-                    .frame(width: 100, height: 100)
-                details
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: 0) {
+                HStack(alignment: .top, spacing: 14) {
+                    MacAccountDial(icon: icon, primaryPercent: primaryPercent,
+                                   primaryLabel: primaryLabel, secondaryPercent: secondaryPercent,
+                                   loading: loading, connected: connected, hasIssue: issue != nil)
+                        .frame(width: 100, height: 100)
+                    details
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxWidth: .infinity, minHeight: 114, alignment: .topLeading)
+
+                if connected, account.provider == .codex, let tokenHistory,
+                   CodexTokenHistoryView.hasVisibleData(tokenHistory) {
+                    CodexTokenHistoryView(history: tokenHistory, availableWidth: availableWidth)
+                        .padding(.top, 8)
+                }
             }
             .padding(.vertical, 6)
             .padding(.horizontal, 8)
