@@ -4,8 +4,7 @@ import MobileAccessCore
 /// Profile tokens, never the credit-spending history shown in service analytics.
 struct MobileTokenHistoryView: View {
     private static let weeks = CodexTokenHistory.visibleWeeks
-    // Keep the former 52-column cell size and chart height when showing 13 weeks.
-    private static let footprintWeeks = 52
+    static let cellGap: CGFloat = 1.5
     let history: CodexTokenHistory?
     let unavailable: Bool
     let loading: Bool
@@ -26,7 +25,7 @@ struct MobileTokenHistoryView: View {
             let days = history.days()
             let positives = days.filter { !$0.isFuture }.compactMap(\.tokens).filter { $0 > 0 }.sorted()
             GeometryReader { geometry in
-                let gap = 1.0
+                let gap = Self.cellGap
                 let side = Self.cellSide(for: geometry.size.width)
                 let gridWidth = CGFloat(Self.weeks) * side + CGFloat(Self.weeks - 1) * gap
                 VStack(alignment: .leading, spacing: 4) {
@@ -65,30 +64,44 @@ struct MobileTokenHistoryView: View {
             }
             .frame(height: graphHeight)
             .accessibilityElement(children: .contain)
-            .accessibilityLabel("Token activity, past 13 weeks")
+            .accessibilityLabel("Token activity, past 26 weeks")
             .accessibilityHint("Outlined cells have no record. Dates are in UTC.")
         }
     }
     static func cellSide(for width: CGFloat) -> CGFloat {
-        max(1, (width - CGFloat(footprintWeeks - 1)) / CGFloat(footprintWeeks))
+        max(1, (width - CGFloat(weeks - 1) * cellGap) / CGFloat(weeks))
     }
     static func graphHeight(for width: CGFloat) -> CGFloat {
-        max(44, 7 * cellSide(for: width) + 6) + 16
+        max(44, 7 * cellSide(for: width) + 6 * cellGap) + 16
     }
     private var graphHeight: CGFloat { Self.graphHeight(for: availableWidth) }
     private func fill(_ day: CodexTokenHistory.Day, sortedPositives: [Double]) -> Color {
         guard !day.isFuture, let tokens = day.tokens else { return .clear }
-        if tokens == 0 { return Color.secondary.opacity(colorScheme == .dark ? 0.18 : 0.12) }
-        let rank = Double(sortedPositives.filter { $0 <= tokens }.count) / Double(sortedPositives.count)
-        let opacity = Self.positiveOpacity(fraction: rank)
-        return Color(red: 0.69, green: 0.32, blue: 0.91).opacity(opacity)
+        if tokens == 0 {
+            return colorScheme == .dark
+                ? Color(red: 0.30, green: 0.28, blue: 0.34)
+                : Color(red: 0.87, green: 0.85, blue: 0.90)
+        }
+        let rank = Double(sortedPositives.filter { $0 <= tokens }.count) / Double(max(1, sortedPositives.count))
+        let colors: [Color] = colorScheme == .dark ? [
+            Color(red: 0.43, green: 0.25, blue: 0.57),
+            Color(red: 0.59, green: 0.33, blue: 0.76),
+            Color(red: 0.75, green: 0.45, blue: 0.94),
+            Color(red: 0.89, green: 0.68, blue: 1.00)
+        ] : [
+            Color(red: 0.82, green: 0.67, blue: 0.94),
+            Color(red: 0.68, green: 0.44, blue: 0.86),
+            Color(red: 0.53, green: 0.25, blue: 0.74),
+            Color(red: 0.37, green: 0.12, blue: 0.57)
+        ]
+        return colors[Self.positiveLevel(fraction: rank)]
     }
-    static func positiveOpacity(fraction: Double) -> Double {
-        if fraction < 0.2 { return 0.35 }
-        if fraction < 0.4 { return 0.52 }
-        if fraction < 0.6 { return 0.69 }
-        if fraction < 0.8 { return 0.84 }
-        return 1
+    // Quartiles keep a single unusually busy day from washing out the rest.
+    static func positiveLevel(fraction: Double) -> Int {
+        if fraction <= 0.25 { return 0 }
+        if fraction <= 0.50 { return 1 }
+        if fraction <= 0.75 { return 2 }
+        return 3
     }
     private func description(_ day: CodexTokenHistory.Day) -> String {
         guard let tokens = day.tokens else { return "\(day.key): no record reported" }

@@ -4,11 +4,11 @@ import MobileAccessCore
 @testable import AIQuota_iOS
 
 final class TokenHistoryReviewTests: XCTestCase {
-    @MainActor func testThirteenWeekGridNarrowLargeLightDark() async throws {
+    @MainActor func testSixMonthGridNarrowLargeLightDark() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
         let previous = scene.windows.first(where: \.isKeyWindow)
         let history = try XCTUnwrap(DemoQuotaData.tokenHistory())
-        XCTAssertEqual(history.days().count, 91)
+        XCTAssertEqual(history.days().count, 182)
         for width in [320.0, 440.0] {
             for (name, scheme) in [("light", ColorScheme.light), ("dark", .dark)] {
                 let content = NavigationStack {
@@ -62,8 +62,8 @@ final class TokenHistoryReviewTests: XCTestCase {
     }
 
     @MainActor func testPositiveColorStepsRemainDistinct() {
-        let values = [0.1, 0.3, 0.5, 0.7, 0.9].map { MobileTokenHistoryView.positiveOpacity(fraction: $0) }
-        XCTAssertEqual(values, [0.35, 0.52, 0.69, 0.84, 1])
+        let values = [0.1, 0.25, 0.5, 0.75, 1].map { MobileTokenHistoryView.positiveLevel(fraction: $0) }
+        XCTAssertEqual(values, [0, 0, 1, 2, 3])
     }
 
     @MainActor func testMonthLabelsFollowUTCWeekColumns() throws {
@@ -71,17 +71,17 @@ final class TokenHistoryReviewTests: XCTestCase {
         let now = try XCTUnwrap(CodexTokenHistory.dateFormatter().date(from: "2026-10-22"))
         let days = history.days(now: now)
         let labels = (0..<CodexTokenHistory.visibleWeeks).compactMap { MobileTokenHistoryView.monthLabel(days, week: $0) }
-        XCTAssertEqual(labels, ["Aug", "Sep", "Oct"])
+        XCTAssertEqual(labels, ["May", "Jun", "Jul", "Aug", "Sep", "Oct"])
     }
 
-    @MainActor func testCompactGridKeepsOriginalCellSizeAndHeight() {
+    @MainActor func testSixMonthGridFillsCardWithSquareCells() {
         for width: CGFloat in [256, 288, 329, 376] {
             let side = MobileTokenHistoryView.cellSide(for: width)
-            let originalSide = max(1, (width - 51) / 52)
-            let originalHeight = max(44, 7 * originalSide + 6) + 16
-            XCTAssertEqual(side, originalSide, accuracy: 0.01)
-            XCTAssertEqual(MobileTokenHistoryView.graphHeight(for: width), originalHeight, accuracy: 0.01)
-            XCTAssertLessThan(13 * side + 12, width * 0.3)
+            let gap = MobileTokenHistoryView.cellGap
+            XCTAssertEqual(26 * side + 25 * gap, width, accuracy: 0.01)
+            XCTAssertEqual(MobileTokenHistoryView.graphHeight(for: width), 7 * side + 6 * gap + 16, accuracy: 0.01)
+            XCTAssertGreaterThan(side, 8)
+            XCTAssertLessThan(side, 14)
         }
     }
 
