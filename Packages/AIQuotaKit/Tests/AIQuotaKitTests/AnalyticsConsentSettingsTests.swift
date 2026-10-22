@@ -82,6 +82,5 @@ struct AnalyticsConsentSettingsTests {
         #expect(!analyticsCardSource.contains("LaunchAtLoginToggle()"))
         #expect(!analyticsCardSource.contains("Help John improve AIQuota"))
         #expect(settingsSource.contains("Share anonymous usage data"))
-        #expect(settingsSource.contains("menubar_display_changed"))
     }
 }

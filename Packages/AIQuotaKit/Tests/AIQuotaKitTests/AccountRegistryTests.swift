@@ -125,3 +125,50 @@ struct AccountRegistryTests {
         #expect(AccountRegistry.migrateLegacyAccountsIfNeeded().isEmpty)
     }
 }
+
+@Suite("New account menu bar defaults")
+struct NewAccountMenuBarDefaultsTests {
+    @Test("The first two accounts are visible and later accounts require opting in")
+    func defaultVisibility() {
+        var settings = AppSettings.default
+        settings.registerMenuBarAccount(id: "personal", existingAccountIDs: [])
+        settings.registerMenuBarAccount(id: "work", existingAccountIDs: ["personal"])
+        settings.registerMenuBarAccount(id: "third", existingAccountIDs: ["personal", "work"])
+        #expect(settings.menuBarAccountIDs == ["personal", "work"])
+        settings.registerMenuBarAccount(id: "fourth", existingAccountIDs: ["personal", "work", "third"], showInMenuBar: true)
+        #expect(settings.menuBarAccountIDs == ["personal", "work", "fourth"])
+    }
+
+    @Test("Hidden accounts still count toward the first two")
+    func hiddenAccountsCount() {
+        var settings = AppSettings.default
+        settings.menuBarAccountIDs = []
+        settings.registerMenuBarAccount(id: "third", existingAccountIDs: ["personal", "work"], showInMenuBar: false)
+        #expect(settings.menuBarAccountIDs == [])
+    }
+
+    @Test("Adding a second account preserves the first account's explicit opt-out")
+    func preservesOtherChoices() {
+        var settings = AppSettings.default
+        settings.menuBarAccountIDs = []
+        settings.registerMenuBarAccount(id: "work", existingAccountIDs: ["personal"])
+        #expect(settings.menuBarAccountIDs == ["work"])
+    }
+
+    @Test("Reconnecting or replaying setup cannot restore a hidden gauge")
+    func doesNotReapplyDefaults() {
+        var settings = AppSettings.default
+        settings.menuBarAccountIDs = []
+        settings.registerMenuBarAccount(id: "personal", existingAccountIDs: ["personal"])
+        #expect(settings.menuBarAccountIDs == [])
+    }
+
+    @Test("Account visibility survives a save and reload")
+    func roundTrip() throws {
+        var settings = AppSettings.default
+        settings.registerMenuBarAccount(id: "personal", existingAccountIDs: [])
+        settings.registerMenuBarAccount(id: "third", existingAccountIDs: ["personal", "work"], showInMenuBar: true)
+        let reloaded = try JSONDecoder().decode(AppSettings.self, from: JSONEncoder().encode(settings))
+        #expect(reloaded.menuBarAccountIDs == ["personal", "third"])
+    }
+}

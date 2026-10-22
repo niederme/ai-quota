@@ -109,13 +109,19 @@ struct AIQuotaApp: App {
         .windowResizability(.contentSize)
         .defaultPosition(.center)
 
+        Window("About AIQuota", id: "about") {
+            AboutSettingsPane().frame(width: 440, height: 560)
+        }
+        .windowResizability(.contentSize)
+        .commands { AIQuotaAboutCommands() }
+
         Settings {
             SettingsView()
                 .environment(viewModel)
                 .environment(updaterViewModel)
         }
-        .defaultSize(width: 500, height: 720)
-        .windowResizability(.contentSize)
+        .defaultSize(width: 800, height: 650)
+        .windowResizability(.contentMinSize)
     }
 
 }
@@ -335,6 +341,15 @@ private struct WindowVibrancyInstaller: NSViewRepresentable {
             window.backgroundColor = .clear
             // Float above other apps so it's never lost behind them
             window.level = .floating
+        }
+    }
+}
+
+private struct AIQuotaAboutCommands: Commands {
+    @Environment(\.openWindow) private var openWindow
+    var body: some Commands {
+        CommandGroup(replacing: .appInfo) {
+            Button("About AIQuota") { openWindow(id: "about") }
         }
     }
 }

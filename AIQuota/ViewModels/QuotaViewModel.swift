@@ -203,14 +203,19 @@ final class QuotaViewModel {
         AccountRegistry.accounts(for: provider).first { $0.connectionKind == .legacyPrimary }
     }
 
-    private func ensurePrimaryAccount(for provider: ServiceType) {
+    private func ensurePrimaryAccount(for provider: ServiceType, selectNewAccount: Bool = true) {
         guard primaryAccount(for: provider) == nil else { return }
+        let existingIDs = AccountRegistry.accounts().map(\.id)
         let account = AccountRegistry.upsert(
             provider: provider,
             displayLabel: "Personal",
             authSource: .webSession,
             connectionKind: .legacyPrimary
         )
+        if selectNewAccount {
+            settings.registerMenuBarAccount(id: account.id, existingAccountIDs: existingIDs)
+            saveSettings()
+        }
         if AccountRegistry.selectedAccountID(for: provider) == nil {
             AccountRegistry.selectAccount(id: account.id, for: provider)
         }
@@ -235,16 +240,42 @@ final class QuotaViewModel {
         SharedDefaults.saveSettings(settings)
     }
 
-    func addAccount(for provider: ServiceType, named rawName: String) async {
+    /// Shared entry point for onboarding and Settings.
+    func connectAccount(for provider: ServiceType, named name: String, showInMenuBar: Bool?) async {
+        guard !isReadOnlyPreview, !Self.isDemoBuild else { return }
+        if primaryAccount(for: provider) == nil {
+            if provider == .codex { await signIn() } else { await signInClaude() }
+            let authenticated = provider == .codex ? isCodexAuthenticated : isClaudeAuthenticated
+            guard authenticated else { return }
+            ensurePrimaryAccount(for: provider)
+            if let account = primaryAccount(for: provider) {
+                renameAccount(id: account.id, to: name)
+                if let showInMenuBar {
+                    var ids = settings.menuBarAccountIDs ?? []
+                    ids.removeAll { $0 == account.id }
+                    if showInMenuBar { ids.append(account.id) }
+                    settings.menuBarAccountIDs = ids
+                    saveSettings()
+                }
+            }
+        } else {
+            await addAccount(for: provider, named: name, showInMenuBar: showInMenuBar)
+        }
+    }
+
+    func addAccount(for provider: ServiceType, named rawName: String, showInMenuBar: Bool? = nil) async {
         guard !isReadOnlyPreview, !Self.isDemoBuild else { return }
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
         await bindPrimaryIdentity(for: provider)
+        let existingIDs = AccountRegistry.accounts().map(\.id)
         let account = AccountRegistry.upsert(
             provider: provider,
             displayLabel: name,
             authSource: .webSession
         )
+        settings.registerMenuBarAccount(id: account.id, existingAccountIDs: existingIDs, showInMenuBar: showInMenuBar)
+        saveSettings()
         let session = AdditionalAccountSession(account: account)
         additionalAccounts.append(session)
         await session.signIn()
@@ -520,15 +551,15 @@ final class QuotaViewModel {
         self.claudeClient      = ClaudeClient(coordinator: claude)
         self.codexClient       = OpenAIClient(coordinator: codex)
         self.resetCoordinator  = AppResetCoordinator(claude: claude, codex: codex)
-        AccountRegistry.migrateLegacyAccountsIfNeeded()
-        for provider in enrolledServices { ensurePrimaryAccount(for: provider) }
-        self.additionalAccounts = AccountRegistry.accounts()
-            .filter { $0.connectionKind == .isolated }
-            .map(AdditionalAccountSession.init(account:))
         #if DEBUG
         isReadOnlyPreview = readOnlyPreview
         if readOnlyPreview { return }
         #endif
+        AccountRegistry.migrateLegacyAccountsIfNeeded()
+        for provider in enrolledServices { ensurePrimaryAccount(for: provider, selectNewAccount: false) }
+        self.additionalAccounts = AccountRegistry.accounts()
+            .filter { $0.connectionKind == .isolated }
+            .map(AdditionalAccountSession.init(account:))
         initializeMenuBarAccountsIfNeeded()
         self.isCodexRecoveryPending = enrolledServices.contains(.codex)
         self.isClaudeRecoveryPending = enrolledServices.contains(.claude)
@@ -1446,6 +1477,8 @@ final class QuotaViewModel {
     func signIn() async {
         do {
             try await codexCoordinator.signIn()
+            codexState = .authenticated
+            ensurePrimaryAccount(for: .codex)
             await refreshCodex()
             if refreshTask == nil { startAutoRefresh() }
         } catch {
@@ -1523,6 +1556,7 @@ final class QuotaViewModel {
     // MARK: - Settings
 
     func saveSettings() {
+        guard !isReadOnlyPreview else { return }
         let previous = lastSavedSettings
         SharedDefaults.saveSettings(settings)
         if !previous.analyticsEnabled && settings.analyticsEnabled {

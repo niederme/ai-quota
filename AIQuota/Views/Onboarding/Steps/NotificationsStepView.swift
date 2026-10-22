@@ -6,6 +6,7 @@ import AIQuotaKit
 struct NotificationsStepView: View {
     @Environment(QuotaViewModel.self) private var viewModel
     @State private var permissionGranted = false
+    @State private var permissionDenied = false
 
     private var notificationControlsEnabled: Bool {
         viewModel.settings.notifications.enabled && permissionGranted
@@ -33,7 +34,7 @@ struct NotificationsStepView: View {
                 Section {
                     Toggle("Enable notifications", isOn: $vm.settings.notifications.enabled)
                         .onChange(of: vm.settings.notifications.enabled) { _, enabled in
-                            if enabled {
+                            if enabled && !viewModel.isReadOnlyPreview {
                                 Task {
                                     await NotificationManager.shared.requestPermission()
                                     await checkPermission()
@@ -44,34 +45,48 @@ struct NotificationsStepView: View {
                                 }
                             }
                         }
+                    if viewModel.settings.notifications.enabled && !permissionGranted {
+                        Button(permissionDenied ? "Open System Settings…" : "Allow Notifications…") {
+                            if permissionDenied {
+                                NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.notifications")!)
+                            } else {
+                                Task {
+                                    await NotificationManager.shared.requestPermission()
+                                    await checkPermission()
+                                }
+                            }
+                        }
+                        .disabled(viewModel.isReadOnlyPreview)
+                    }
                 }
 
                 if viewModel.settings.notifications.enabled {
-                    Section {
-                        if viewModel.isCodexEnrolled {
+                    if viewModel.isCodexEnrolled {
+                        Section {
                             OnboardingNotificationServiceRow(
-                                service: .codex,
-                                logo: "logo-openai",
+                                service: .codex, logo: "logo-openai",
                                 isOn: $vm.settings.notifications.codexEnabled,
                                 isEnabled: notificationControlsEnabled,
                                 preferences: $vm.settings.notifications
                             )
                         }
-
-                        if viewModel.isClaudeEnrolled {
+                    }
+                    if viewModel.isClaudeEnrolled {
+                        Section {
                             OnboardingNotificationServiceRow(
-                                service: .claude,
-                                logo: "logo-claude",
+                                service: .claude, logo: "logo-claude",
                                 isOn: $vm.settings.notifications.claudeEnabled,
                                 isEnabled: notificationControlsEnabled,
                                 preferences: $vm.settings.notifications
                             )
                         }
-
-                        if viewModel.enrolledServices.isEmpty {
-                            Text("Sign in to a service on the previous step to configure thresholds.")
-                                .foregroundStyle(.secondary)
-                        }
+                    }
+                    if viewModel.enrolledServices.isEmpty {
+                        Text("Connect a service on the previous step to configure thresholds.")
+                            .foregroundStyle(.secondary)
+                    }
+                    Section {} footer: {
+                        Text("One usage alert per window at your threshold. On Mac, alerts follow the original connection for each service.")
                     }
                 }
             }
@@ -83,9 +98,11 @@ struct NotificationsStepView: View {
     }
 
     private func checkPermission() async {
+        if viewModel.isReadOnlyPreview { permissionGranted = true; return }
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-            permissionGranted = settings.authorizationStatus == .authorized
+            permissionGranted = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
+            permissionDenied = settings.authorizationStatus == .denied
         }
     }
 }
@@ -97,67 +114,21 @@ private struct OnboardingNotificationServiceRow: View {
     let isEnabled: Bool
     @Binding var preferences: NotificationPreferences
 
-    @State private var isExpanded = false
-    @State private var isHovering = false
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 10) {
-                Button {
-                    toggleExpanded()
-                } label: {
-                    Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.tertiary)
-                        .frame(width: 12)
-                }
-                .buttonStyle(.plain)
-
+        VStack(alignment: .leading, spacing: 14) {
+            Toggle(isOn: $isOn) {
                 HStack(spacing: 10) {
-                    Image(logo)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 18, height: 18)
-
-                    Text(service.displayName)
-                        .foregroundStyle(.foreground)
-
-                    Spacer(minLength: 8)
+                    Image(logo).resizable().scaledToFit().frame(width: 18, height: 18)
+                    Text(service.displayName).fontWeight(.semibold)
                 }
-                .contentShape(Rectangle())
-                .onTapGesture(perform: toggleExpanded)
-
-                Toggle("", isOn: $isOn)
-                    .toggleStyle(.switch)
-                    .labelsHidden()
-                    .disabled(!isEnabled)
             }
-            .onHover { isHovering = $0 }
-            .padding(.horizontal, 4)
-            .padding(.vertical, 3)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(isHovering ? Color.primary.opacity(0.06) : Color.clear)
-            )
+            .toggleStyle(.switch)
+            .accessibilityLabel("Allow \(service.displayName) notifications")
+            .disabled(!isEnabled)
 
-            if isExpanded {
-                NotificationInlineControls(service: service, preferences: $preferences)
-                    .padding(.leading, 50)
-                    .padding(.top, 2)
-                    .padding(.bottom, 4)
-                    .disabled(!isOn || !isEnabled)
-                    .opacity(isOn && isEnabled ? 1 : 0.45)
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-            }
+            NotificationInlineControls(service: service, preferences: $preferences)
+                .disabled(!isOn || !isEnabled)
         }
-        .opacity(isEnabled ? 1 : 0.55)
-        .animation(.easeInOut(duration: 0.12), value: isHovering)
-    }
-
-    private func toggleExpanded() {
-        withAnimation(.spring(response: 0.25, dampingFraction: 0.86)) {
-            isExpanded.toggle()
-        }
+        .padding(.vertical, 6)
     }
 }

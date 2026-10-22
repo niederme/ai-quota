@@ -72,6 +72,10 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
     public var codexEnabled: Bool = true
     public var claudeEnabled: Bool = true
 
+    /// One editable usage threshold per service, shared by its windows.
+    public var codexUsageThreshold: Int = 90
+    public var claudeUsageThreshold: Int = 90
+
     // Codex — 5-hour window
     public var codex5hAt15: Bool = true
     public var codex5hAt5: Bool = true
@@ -112,6 +116,8 @@ public struct NotificationPreferences: Codable, Sendable, Equatable {
         enabled              = try c.decodeIfPresent(Bool.self, forKey: .enabled)              ?? true
         codexEnabled         = try c.decodeIfPresent(Bool.self, forKey: .codexEnabled)         ?? true
         claudeEnabled        = try c.decodeIfPresent(Bool.self, forKey: .claudeEnabled)        ?? true
+        codexUsageThreshold = min(100, max(5, try c.decodeIfPresent(Int.self, forKey: .codexUsageThreshold) ?? 90))
+        claudeUsageThreshold = min(100, max(5, try c.decodeIfPresent(Int.self, forKey: .claudeUsageThreshold) ?? 90))
         codex5hAt15          = try c.decodeIfPresent(Bool.self, forKey: .codex5hAt15)          ?? true
         codex5hAt5           = try c.decodeIfPresent(Bool.self, forKey: .codex5hAt5)           ?? true
         codex5hLimitReached  = try c.decodeIfPresent(Bool.self, forKey: .codex5hLimitReached)  ?? true
@@ -220,6 +226,18 @@ public struct AppSettings: Codable, Sendable, Equatable {
         self.menuBarDisplayMode = menuBarDisplayMode
         self.menuBarAccountIDs = menuBarAccountIDs
         self.analyticsEnabled = analyticsEnabled
+    }
+
+    /// Defaults only apply when adding a new account; existing visibility choices are preserved.
+    public mutating func registerMenuBarAccount(
+        id: String, existingAccountIDs: [String], showInMenuBar: Bool? = nil
+    ) {
+        guard !existingAccountIDs.contains(id) else { return }
+        var selected = menuBarAccountIDs ?? []
+        if (showInMenuBar ?? (existingAccountIDs.count < 2)) && !selected.contains(id) {
+            selected.append(id)
+        }
+        menuBarAccountIDs = selected
     }
 
     /// Migration-safe decoder: unknown keys are ignored, missing keys use defaults.

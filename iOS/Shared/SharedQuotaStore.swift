@@ -273,9 +273,19 @@ enum MobileResetNotifications {
             ? "notifications.\(service.rawValue).\(window)."
             : "notifications.\(service.rawValue).\(namespace).\(window)."
     }
-    private static func servicePreferenceKey(_ service: QuotaService, namespace: String) -> String {
+    static func servicePreferenceKey(_ service: QuotaService, namespace: String) -> String {
         namespace == "live" ? "notifications.\(service.rawValue)" : "notifications.\(service.rawValue).\(namespace)"
     }
+    static func usageThreshold(_ service: QuotaService, namespace: String = "live", store: UserDefaults = defaults) -> Double {
+        let key = servicePreferenceKey(service, namespace: namespace) + ".usageThreshold"
+        if let value = store.object(forKey: key) as? Double { return min(100, max(5, value.isFinite ? value : 90)) }
+        // Preserve an explicitly stored threshold. When old windows differ, use the earlier alert.
+        let previous = ["5h", "7d"].compactMap { store.object(forKey: windowPrefix(service, $0, namespace: namespace) + "usageThreshold") as? Double }.filter(\.isFinite)
+        let value = min(100, max(5, previous.min() ?? 90))
+        store.set(value, forKey: key)
+        return value
+    }
+
     private static func errorKey(_ service: QuotaService, namespace: String) -> String {
         namespace == "live" ? "notifications.error" : "notifications.error.\(service.rawValue).\(namespace)"
     }
@@ -359,15 +369,15 @@ enum MobileResetNotifications {
     private static func usageAlerts(_ service: QuotaService, reading: QuotaReading?, namespace: String) async throws {
         guard let reading, !WidgetFreshness.isOld(reading, at: .now) else { return }
         for (label, window) in [("5h", reading.shortTerm), ("7d", reading.weekly)] {
-            guard let window, let end = window.resetsAt else { continue }
+            guard let window, let end = window.resetsAt, end > .now else { continue }
             let prefix = windowPrefix(service, label, namespace: namespace)
             var state = defaults.data(forKey: prefix + "usageState").flatMap { try? JSONDecoder().decode(UsageAlertState.self, from: $0) }
                 ?? UsageAlertState(windowEnd: end)
-            if state.windowEnd != end { state = UsageAlertState(windowEnd: end) }
+            state.updateWindow(end: end, now: .now)
+            defaults.set(try JSONEncoder().encode(state), forKey: prefix + "usageState")
             guard let level = state.next(used: window.usedPercent, now: .now,
-                nearEnabled: alertEnabled(prefix + "usageEnabled"),
-                nearThreshold: defaults.object(forKey: prefix + "usageThreshold") as? Double ?? 85,
-                limitEnabled: alertEnabled(prefix + "limitEnabled")) else { continue }
+                enabled: alertEnabled(prefix + "usageEnabled"),
+                threshold: usageThreshold(service, namespace: namespace)) else { continue }
             let content = UNMutableNotificationContent()
             content.title = "\(displayName(service, namespace: namespace)) \(window.resetLabel) "
                 + (level == 100 ? "limit reached" : "usage high")

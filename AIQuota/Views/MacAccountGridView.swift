@@ -87,6 +87,9 @@ struct MacAccountGridView: View {
             accountCount: accounts.count, width: Double(width), availableHeight: Double(maxHeight)
         ))))
         .scrollIndicators(.automatic)
+        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
+            orderIDs = AccountRegistry.orderedAccounts().map(\.id)
+        }
         .onAppear { orderIDs = AccountRegistry.orderedAccounts().map(\.id) }
         .onChange(of: viewModel.additionalAccounts.map(\.id)) { _, _ in
             orderIDs = AccountRegistry.orderedAccounts().map(\.id)

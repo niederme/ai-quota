@@ -143,7 +143,6 @@
 		ADABF7DBD43E19C01A19B69B /* QuotaViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5F53FC0B0CEEDEB3DD6488A /* QuotaViewModel.swift */; };
 		ADD6CD78B8173A141696E733 /* AIQuotaWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FC79333A7787720CC4F63B8 /* AIQuotaWidget.swift */; };
 		AF27AB1BED0D330C2897026E /* AccountRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = F97652D4157C2C2A4AFDB212 /* AccountRegistry.swift */; };
-		B17ED57288E06B784BE26785 /* MenuBarStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16A509B1A8FEAD6765C30CB2 /* MenuBarStepView.swift */; };
 		B2719944C98CCEAFFCA0BBB9 /* NotificationsStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88FA3DF197FD04781EF8C4EF /* NotificationsStepView.swift */; };
 		B337EC2AC2655557CDE13EC2 /* LaunchServicesSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11BE061D1CEB4B5B6F120AD /* LaunchServicesSync.swift */; };
 		B4AC1E0B3686BE905CAA1BDB /* CodexWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC43070E1A6F758DB7AF31A6 /* CodexWidget.swift */; };
@@ -153,7 +152,6 @@
 		B63CE101E8B653EB0AAC7F4C /* CodexAnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7EF7635B21E03FC04EB0055 /* CodexAnalyticsView.swift */; };
 		B6E8AA43262B29E996180780 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2B1CD537E4DD95CEBAE23D6 /* OnboardingView.swift */; };
 		B9AB1446FA6064350C523453 /* WidgetGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 384CCB3989C01F13B3E22D43 /* WidgetGaugeView.swift */; };
-		BA0A75B36E2618F092C30C74 /* MenuBarStepView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16A509B1A8FEAD6765C30CB2 /* MenuBarStepView.swift */; };
 		BD011637B9A98BF66EB809CD /* CircularGaugeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07B0B4CEC9ACF96AC981FA29 /* CircularGaugeView.swift */; };
 		C27EF9F4B6924DA55E0C86C8 /* HomeQuotaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39129D16B4B1A86FA705A17C /* HomeQuotaView.swift */; };
 		C27FDAB7EA8FE04B0C665192 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716B00F14F1370CDAC33B5EB /* SettingsView.swift */; };
@@ -292,7 +290,6 @@
 		0F0D57082E84D75A742EACD6 /* CodexTokenHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexTokenHistoryView.swift; sourceTree = "<group>"; };
 		0FFBABD81D84B816E058A18A /* TokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenStore.swift; sourceTree = "<group>"; };
 		126972287BBBDE180220E188 /* ClaudeTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeTokenStore.swift; sourceTree = "<group>"; };
-		16A509B1A8FEAD6765C30CB2 /* MenuBarStepView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarStepView.swift; sourceTree = "<group>"; };
 		16BD0A4CB52E425D9A5A6C34 /* AIQuotaKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = AIQuotaKit; path = Packages/AIQuotaKit; sourceTree = SOURCE_ROOT; };
 		1D3DAB2AE10FEF44FAAAEEEE /* OnboardingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingTests.swift; sourceTree = "<group>"; };
 		1F1F18DB5A7FD4515D863D71 /* WidgetIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetIntent.swift; sourceTree = "<group>"; };
@@ -624,7 +621,6 @@
 			children = (
 				89176CF3C6B8574A223A6E55 /* AnalyticsConsentStepView.swift */,
 				F20C382E39D030AC581CA9B4 /* DoneStepView.swift */,
-				16A509B1A8FEAD6765C30CB2 /* MenuBarStepView.swift */,
 				88FA3DF197FD04781EF8C4EF /* NotificationsStepView.swift */,
 				C66610C3B005AD239F7EDE75 /* ServicesStepView.swift */,
 				872D4B7AB7221C3A55960CE1 /* WelcomeStepView.swift */,
@@ -1269,7 +1265,6 @@
 				0566A8E0BDF2CC72F6CEBCBD /* MacAdditionalAccountDetailView.swift in Sources */,
 				608B068A75078E0B21DA183A /* MacResetNoticeBanner.swift in Sources */,
 				4B1E60A90D0067714F4A261C /* MenuBarIconView.swift in Sources */,
-				B17ED57288E06B784BE26785 /* MenuBarStepView.swift in Sources */,
 				DF73B1ABD010C0FC8B4B0FE5 /* NotificationsStepView.swift in Sources */,
 				E160ECCBCF34150E6B3A8A61 /* OnboardingView.swift in Sources */,
 				D2EE7B19DE3D190D84FF160E /* PopoverView.swift in Sources */,
@@ -1326,7 +1321,6 @@
 				E6208E9986DE6F1DEE678DB7 /* MacAdditionalAccountDetailView.swift in Sources */,
 				7FA23D210B18C2EFE0DFAAFE /* MacResetNoticeBanner.swift in Sources */,
 				17126B49397A4A50A1B6325F /* MenuBarIconView.swift in Sources */,
-				BA0A75B36E2618F092C30C74 /* MenuBarStepView.swift in Sources */,
 				B2719944C98CCEAFFCA0BBB9 /* NotificationsStepView.swift in Sources */,
 				168599BDC65516BFAFB4B2DF /* OnboardingView.swift in Sources */,
 				F15449DA517BF7C4B79320DC /* PopoverView.swift in Sources */,

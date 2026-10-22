@@ -64,6 +64,20 @@ import MobileAccessCore
             }
         }
     }
+    func testSingleThresholdDefaultsMigrationAndAccountIsolation() {
+        let suite = "single-threshold-tests.\(UUID().uuidString)"
+        let store = UserDefaults(suiteName: suite)!
+        defer { store.removePersistentDomain(forName: suite) }
+        XCTAssertEqual(MobileResetNotifications.usageThreshold(.codex, store: store), 90)
+        store.set(75.0, forKey: "notifications.claude.5h.usageThreshold")
+        store.set(95.0, forKey: "notifications.claude.7d.usageThreshold")
+        XCTAssertEqual(MobileResetNotifications.usageThreshold(.claude, store: store), 75)
+        XCTAssertEqual(MobileResetNotifications.usageThreshold(.claude, namespace: "work", store: store), 90)
+        store.set(65.0, forKey: "notifications.claude.work.usageThreshold")
+        XCTAssertEqual(MobileResetNotifications.usageThreshold(.claude, namespace: "work", store: store), 65)
+        XCTAssertEqual(MobileResetNotifications.usageThreshold(.claude, store: store), 75)
+    }
+
     func testPerWindowResetRulesStayIndependent() throws {
         let name = UUID().uuidString
         let store = try XCTUnwrap(UserDefaults(suiteName: name))
