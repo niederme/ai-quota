@@ -5,6 +5,8 @@ import MobileAccessCore
 struct MobileTokenHistoryView: View {
     private static let weeks = CodexTokenHistory.visibleWeeks
     static let cellGap: CGFloat = 1
+    private static let monthLabelWidth: CGFloat = 20
+    private static let monthLabelSpacing: CGFloat = 4
     let history: CodexTokenHistory?
     let unavailable: Bool
     let loading: Bool
@@ -28,6 +30,7 @@ struct MobileTokenHistoryView: View {
                 let gap = Self.cellGap
                 let side = Self.cellSide(for: geometry.size.width)
                 let gridWidth = CGFloat(Self.weeks) * side + CGFloat(Self.weeks - 1) * gap
+                let visibleMonthWeeks = Self.visibleMonthWeeks(days, width: geometry.size.width)
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .top, spacing: gap) {
                         ForEach(0..<Self.weeks, id: \.self) { week in
@@ -52,11 +55,11 @@ struct MobileTokenHistoryView: View {
                     .accessibilityElement(children: .contain)
                     .accessibilityIdentifier("tokenActivityGrid")
                     ZStack(alignment: .topLeading) {
-                        ForEach(0..<Self.weeks, id: \.self) { week in
+                        ForEach(visibleMonthWeeks, id: \.self) { week in
                             if let label = Self.monthLabel(days, week: week) {
                                 Text(label).font(.system(size: 8)).foregroundStyle(.secondary)
-                                    .frame(width: 20, alignment: .leading)
-                                    .offset(x: min(gridWidth - 20, CGFloat(week) * (side + gap)))
+                                    .frame(width: Self.monthLabelWidth, alignment: .leading)
+                                    .offset(x: Self.monthLabelOffset(week: week, width: gridWidth))
                             }
                         }
                     }.frame(height: 12)
@@ -64,7 +67,7 @@ struct MobileTokenHistoryView: View {
             }
             .frame(height: graphHeight)
             .accessibilityElement(children: .contain)
-            .accessibilityLabel("Token activity, past 39 weeks")
+            .accessibilityLabel("Token activity, past 42 weeks")
             .accessibilityHint("Outlined cells have no record. Dates are in UTC.")
         }
     }
@@ -73,6 +76,27 @@ struct MobileTokenHistoryView: View {
     }
     static func graphHeight(for width: CGFloat) -> CGFloat {
         max(44, 7 * cellSide(for: width) + 6 * cellGap) + 16
+    }
+    static func monthLabelOffset(week: Int, width: CGFloat) -> CGFloat {
+        min(max(0, width - monthLabelWidth), CGFloat(week) * (cellSide(for: width) + cellGap))
+    }
+    static func visibleMonthWeeks(_ days: [CodexTokenHistory.Day], width: CGFloat) -> [Int] {
+        let candidates: [(week: Int, x: CGFloat)] = (0..<weeks).compactMap { week in
+            guard monthLabel(days, week: week) != nil else { return nil }
+            return (week, monthLabelOffset(week: week, width: width))
+        }
+        guard let first = candidates.first, let last = candidates.last else { return [] }
+        let minimumSpacing = monthLabelWidth + monthLabelSpacing
+        var visible = [first.week]
+        var lastX = first.x
+        for candidate in candidates.dropFirst().dropLast() {
+            guard candidate.x - lastX >= minimumSpacing,
+                  last.x - candidate.x >= minimumSpacing else { continue }
+            visible.append(candidate.week)
+            lastX = candidate.x
+        }
+        if last.week != first.week, last.x - lastX >= minimumSpacing { visible.append(last.week) }
+        return visible
     }
     private var graphHeight: CGFloat { Self.graphHeight(for: availableWidth) }
     private func fill(_ day: CodexTokenHistory.Day, sortedPositives: [Double]) -> Color {
