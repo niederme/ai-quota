@@ -42,9 +42,9 @@ struct MacAccountDial: View {
                     } else {
                         Text("\(primaryPercent)%")
                             .font(.system(size: 16, weight: .semibold).monospacedDigit())
+                        // The period label is the ring's key, so it keeps the ring colour.
                         Text(primaryLabel)
                             .font(.system(size: 10, weight: .medium))
-                            .foregroundStyle(.secondary)
                     }
                 } else {
                     Text("—").font(.subheadline)

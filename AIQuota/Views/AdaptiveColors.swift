@@ -2,7 +2,9 @@ import SwiftUI
 
 extension Color {
     static let brand = Color("BrandAccent")
-    static let gaugeAccent = Color(nsColor: .systemPurple)
+    /// Rings and dial readouts. systemPurple is too pale on the light glass sheet
+    /// (2.9:1), so light mode uses a deeper purple and dark mode a slightly lifted one.
+    static let gaugeAccent = Color(light: (0x85, 0x30, 0xbd, 1), dark: (0xc8, 0x6c, 0xf5, 1))
     static let warningAmber = Color(nsColor: .systemOrange)
     static let critical = Color(nsColor: .systemRed)
     /// Small text on the translucent sheet. Purple drops below 4.5:1 once the
