@@ -84,10 +84,10 @@ struct MobileTokenHistoryView: View {
         }
         let rank = Double(sortedPositives.filter { $0 <= tokens }.count) / Double(max(1, sortedPositives.count))
         let colors: [Color] = colorScheme == .dark ? [
-            Color(red: 0.43, green: 0.25, blue: 0.57),
-            Color(red: 0.59, green: 0.33, blue: 0.76),
-            Color(red: 0.75, green: 0.45, blue: 0.94),
-            Color(red: 0.89, green: 0.68, blue: 1.00)
+            Color(red: 0.32, green: 0.19, blue: 0.42),
+            Color(red: 0.47, green: 0.27, blue: 0.61),
+            Color(red: 0.64, green: 0.33, blue: 0.81),
+            Color(red: 0.77, green: 0.42, blue: 0.94)
         ] : [
             Color(red: 0.82, green: 0.67, blue: 0.94),
             Color(red: 0.68, green: 0.44, blue: 0.86),
