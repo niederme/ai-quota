@@ -25,25 +25,22 @@ struct MacAccountDial: View {
                 arc(percent: secondaryPercent, lineWidth: 8, opacity: 0.7)
                     .padding(10)
             }
-            VStack(spacing: secondaryPercent == nil ? 2 : 5) {
+            VStack(spacing: 5) {
                 Image(icon).resizable().scaledToFit().frame(width: 18, height: 18)
                 if loading && primaryPercent == nil {
                     ProgressView().controlSize(.mini)
                 } else if let primaryPercent {
-                    if let secondaryPercent {
-                        VStack(spacing: 2) {
-                            Text("\(primaryPercent)% \(primaryLabel)")
-                                .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                    VStack(spacing: 2) {
+                        Text("\(primaryPercent)% \(primaryLabel)")
+                            .font(.system(size: 14, weight: .semibold).monospacedDigit())
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                        if let secondaryPercent {
                             Text("\(secondaryPercent)% 7d")
-                                .font(.system(size: 11, weight: .medium).monospacedDigit())
+                                .font(.system(size: 14, weight: .semibold).monospacedDigit())
+                                .lineLimit(1)
                                 .opacity(0.7)
                         }
-                    } else {
-                        Text("\(primaryPercent)%")
-                            .font(.system(size: 17, weight: .semibold).monospacedDigit())
-                        // The period label is the ring's key, so it keeps the ring colour.
-                        Text(primaryLabel)
-                            .font(.system(size: 10, weight: .medium))
                     }
                 } else {
                     Text("—").font(.subheadline)
