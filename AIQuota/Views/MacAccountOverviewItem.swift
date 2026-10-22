@@ -101,12 +101,12 @@ struct MacAccountCard: View {
                     details
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxWidth: .infinity, minHeight: 114, alignment: .topLeading)
+                .frame(maxWidth: .infinity, minHeight: 100, alignment: .topLeading)
 
                 if connected, account.provider == .codex, let tokenHistory,
                    CodexTokenHistoryView.hasVisibleData(tokenHistory) {
-                    CodexTokenHistoryView(history: tokenHistory, availableWidth: availableWidth)
-                        .padding(.top, 8)
+                    CodexTokenHistoryView(history: tokenHistory, availableWidth: max(1, availableWidth - 24))
+                        .padding(.top, 4)
                 }
             }
             .padding(.vertical, 6)
