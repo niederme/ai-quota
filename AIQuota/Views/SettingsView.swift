@@ -188,40 +188,9 @@ private struct GeneralSettingsPane: View {
     }
 }
 
-@MainActor @Observable
-private final class SettingsAccountOrder {
-    var accounts = AccountRegistry.orderedAccounts()
-    var isReadOnly = false
-    func reload() { accounts = AccountRegistry.orderedAccounts() }
-    func set(_ ids: [String], undoManager: UndoManager?) {
-        guard !isReadOnly else { return }
-        let previous = AccountRegistry.orderedAccounts().map(\.id)
-        guard previous != ids else { return }
-        undoManager?.registerUndo(withTarget: self) { [weak undoManager] target in
-            MainActor.assumeIsolated { target.set(previous, undoManager: undoManager) }
-        }
-        undoManager?.setActionName("Reorder Accounts")
-        AccountRegistry.setAccountOrder(ids)
-        reload()
-    }
-    func move(_ id: String, to destination: String, undoManager: UndoManager?) {
-        var ids = accounts.map(\.id)
-        guard let from = ids.firstIndex(of: id), let to = ids.firstIndex(of: destination), from != to else { return }
-        ids.remove(at: from)
-        ids.insert(id, at: to)
-        set(ids, undoManager: undoManager)
-    }
-    func move(_ id: String, offset: Int, undoManager: UndoManager?) {
-        let ids = accounts.map(\.id)
-        guard let index = ids.firstIndex(of: id), ids.indices.contains(index + offset) else { return }
-        move(id, to: ids[index + offset], undoManager: undoManager)
-    }
-}
-
 private struct AccountsSettingsPane: View {
     @Environment(QuotaViewModel.self) private var viewModel
-    @Environment(\.undoManager) private var undoManager
-    @State private var order = SettingsAccountOrder()
+    @State private var accounts = AccountRegistry.orderedAccounts()
     @State private var selected: String?
     @State private var addingProvider: ServiceType?
     @State private var connecting = false
@@ -229,31 +198,32 @@ private struct AccountsSettingsPane: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    if order.accounts.isEmpty {
-                        ContentUnavailableView("No accounts", systemImage: "person.crop.circle.badge.plus",
-                                               description: Text("Connect an account to see your usage."))
-                    }
-                    ForEach(order.accounts) { account in
-                        accountRow(account)
-                    }
-                } header: { Text("Connected accounts") } footer: {
-                    if !order.accounts.isEmpty {
-                        Text("Drag to reorder the cards in your menu bar popover. Open an account to choose whether its gauge appears in the menu bar.")
-                    }
-                }
-                Section {
-                    Menu("Add Account…") {
-                        ForEach(ServiceType.allCases, id: \.self) { provider in
-                            Button(provider.displayName) { addingProvider = provider }
+                ForEach(ServiceType.allCases, id: \.self) { provider in
+                    Section {
+                        let serviceAccounts = accounts.filter { $0.provider == provider }
+                        if serviceAccounts.isEmpty {
+                            Text("No accounts yet").foregroundStyle(.secondary)
+                        }
+                        ForEach(serviceAccounts) { account in
+                            accountRow(account)
+                        }
+                        Button { addingProvider = provider } label: {
+                            Label("Add \(provider.displayName) Account…", systemImage: "plus")
+                        }
+                        .buttonStyle(.borderless)
+                        .disabled(connecting || viewModel.isReadOnlyPreview)
+                    } header: {
+                        Text(provider.displayName)
+                    } footer: {
+                        if provider == .claude, !accounts.isEmpty {
+                            Text("Drag account cards in the menu bar popover to change their order. Open an account to manage its connection and menu bar gauge.")
                         }
                     }
-                    .settingsAction()
-                    .fixedSize()
-                    .disabled(connecting || viewModel.isReadOnlyPreview)
                 }
             }
             .formStyle(.grouped)
+            .frame(maxWidth: 680)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
             .navigationDestination(item: $selected) { id in
                 if let account = AccountRegistry.account(id: id) {
                     SettingsAccountDetail(account: account).navigationTitle(account.displayLabel)
@@ -261,10 +231,11 @@ private struct AccountsSettingsPane: View {
                 }
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in order.reload() }
-        .onChange(of: viewModel.additionalAccounts.map(\.id)) { order.reload() }
-        .onChange(of: viewModel.enrolledServices) { order.reload() }
-        .onAppear { order.isReadOnly = viewModel.isReadOnlyPreview; order.reload() }
+        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in reloadAccounts() }
+        .onChange(of: viewModel.additionalAccounts.map(\.id)) { reloadAccounts() }
+        .onChange(of: viewModel.enrolledServices) { reloadAccounts() }
+        .onChange(of: selected) { _, id in if id == nil { reloadAccounts() } }
+        .onAppear(perform: reloadAccounts)
         .sheet(isPresented: Binding(get: { addingProvider != nil }, set: { if !$0 { addingProvider = nil } })) {
             if let provider = addingProvider {
                 AddAccountNameSheet(provider: provider, cancel: { addingProvider = nil }) { name, showInMenuBar in
@@ -273,67 +244,55 @@ private struct AccountsSettingsPane: View {
                     Task {
                         await viewModel.connectAccount(for: provider, named: name, showInMenuBar: showInMenuBar)
                         connecting = false
-                        order.reload()
+                        reloadAccounts()
                     }
                 }
             }
         }
     }
 
+    private func reloadAccounts() { accounts = AccountRegistry.orderedAccounts() }
+
     private func accountRow(_ account: ConnectedAccount) -> some View {
         let status = AccountConnectionStatus(account: account, viewModel: viewModel)
-        let needsDisambiguation = order.accounts.filter {
+        let needsDisambiguation = accounts.filter {
             $0.provider == account.provider && $0.displayLabel == account.displayLabel
         }.count > 1
-        let identity = needsDisambiguation ? " · ID …" + String((account.workspaceID ?? account.id).suffix(6)) : ""
-        return HStack(spacing: 12) {
-            Image(systemName: "line.3.horizontal")
-                .foregroundStyle(.tertiary)
-                .padding(.vertical, 12)
-                .contentShape(Rectangle())
-                .draggable(account.id)
-                .help("Drag to reorder \(account.displayLabel)")
-                .accessibilityHidden(true)
-            Button { selected = account.id } label: {
-                HStack(spacing: 12) {
-                    Image(account.provider == .codex ? "logo-openai" : "logo-claude")
-                        .resizable().scaledToFit().frame(width: 25, height: 25)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(account.displayLabel).fontWeight(.medium)
-                        Text(account.provider.displayName + identity)
-                            .foregroundStyle(.secondary)
-                        HStack(spacing: 5) {
-                            Image(systemName: status.symbol).foregroundStyle(status.color)
-                            Text(status.summary)
-                            if viewModel.settings.menuBarAccountIDs?.contains(account.id) == true {
-                                Text("· Shown in menu bar")
-                            }
-                        }
-                        .font(.caption).foregroundStyle(.secondary)
+        let shownInMenuBar = viewModel.settings.menuBarAccountIDs?.contains(account.id) == true
+        return Button { selected = account.id } label: {
+            HStack(spacing: 12) {
+                Image(account.provider == .codex ? "logo-openai" : "logo-claude")
+                    .resizable().scaledToFit().frame(width: 24, height: 24)
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(account.displayLabel)
+                        .fontWeight(.semibold)
+                        .lineLimit(1)
+                    if needsDisambiguation {
+                        Text("ID …" + String((account.workspaceID ?? account.id).suffix(6)))
+                            .font(.caption).foregroundStyle(.secondary)
                     }
-                    Spacer()
-                    Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                    if shownInMenuBar {
+                        Text("Shown in menu bar")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 }
-                .padding(.vertical, 7)
-                .contentShape(Rectangle())
+                .frame(maxWidth: .infinity, alignment: .leading)
+                HStack(spacing: 5) {
+                    Image(systemName: status.symbol).foregroundStyle(status.color)
+                    Text(status.summary).foregroundStyle(.secondary)
+                }
+                .font(.callout).lineLimit(1)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                    .accessibilityHidden(true)
             }
-            .buttonStyle(.plain)
+            .padding(.vertical, 7)
+            .contentShape(Rectangle())
         }
-        .dropDestination(for: String.self) { items, _ in
-            guard let id = items.first, order.accounts.contains(where: { $0.id == id }) else { return false }
-            order.move(id, to: account.id, undoManager: undoManager)
-            return true
-        }
-        .contextMenu {
-            Button("Account Details…") { selected = account.id }
-            Divider()
-            Button("Move Up") { order.move(account.id, offset: -1, undoManager: undoManager) }
-                .disabled(order.accounts.first?.id == account.id)
-            Button("Move Down") { order.move(account.id, offset: 1, undoManager: undoManager) }
-                .disabled(order.accounts.last?.id == account.id)
-        }
-        .accessibilityAction(named: "Move Up") { order.move(account.id, offset: -1, undoManager: undoManager) }
-        .accessibilityAction(named: "Move Down") { order.move(account.id, offset: 1, undoManager: undoManager) }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(account.provider.displayName), \(account.displayLabel), \(status.summary)\(shownInMenuBar ? ", shown in menu bar" : "")")
+        .accessibilityHint("Open account settings")
     }
 }
 
