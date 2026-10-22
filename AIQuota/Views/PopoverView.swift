@@ -8,8 +8,7 @@ struct PopoverView: View {
     @Environment(UpdaterViewModel.self) private var updater
     @Environment(\.openSettings) private var openSettings
 
-    /// Captured reference to the MenuBarExtra NSWindow so we can re-show it
-    /// after Settings opens (which steals key focus and causes the window to close).
+    /// Captured reference so opening Settings can dismiss the menu bar panel.
     @State private var menuBarWindow: NSWindow?
     @State private var selectedService: ServiceType?
     @State private var selectedAccountID: String?
@@ -122,10 +121,10 @@ struct PopoverView: View {
                         if let selectedAccountID,
                            let session = viewModel.additionalAccounts.first(where: { $0.id == selectedAccountID }) {
                             MacAdditionalAccountDetailView(session: session, height: detailSize.height,
-                                                           close: closeService, openSettings: openSettingsKeepingPopover)
+                                                           close: closeService, openSettings: openSettingsWindow)
                         } else {
                             ServiceDetailView(service: selectedService, height: detailSize.height,
-                                              close: closeService, openAccount: openSettingsKeepingPopover)
+                                              close: closeService, openAccount: openSettingsWindow)
                         }
                     }
                     .frame(width: detailSize.width)
@@ -203,10 +202,10 @@ struct PopoverView: View {
         }
     }
 
-    private func openSettingsKeepingPopover() {
+    private func openSettingsWindow() {
+        menuBarWindow?.orderOut(nil)
         NSApp.activate(ignoringOtherApps: true)
         openSettings()
-        DispatchQueue.main.async { menuBarWindow?.orderFront(nil) }
     }
 
     // MARK: - Authenticated layout
@@ -249,7 +248,7 @@ struct PopoverView: View {
             }
             if viewModel.isCodexAuthenticated { resetNoticeRow }
             MacAccountGridView(width: overviewWidth, maxHeight: overviewBodyMaxHeight,
-                               openAccount: openAccount, openSettings: openSettingsKeepingPopover)
+                               openAccount: openAccount, openSettings: openSettingsWindow)
             updateAvailableRow
             Divider()
             footer
@@ -829,7 +828,7 @@ struct PopoverView: View {
     private var footer: some View {
         ZStack {
             HStack {
-                Button { openSettingsKeepingPopover() } label: {
+                Button { openSettingsWindow() } label: {
                     footerActionLabel("Settings")
                 }
                 Spacer()
@@ -881,7 +880,7 @@ struct PopoverView: View {
             updateAvailableRow
             Divider()
             HStack {
-                Button { openSettingsKeepingPopover() } label: {
+                Button { openSettingsWindow() } label: {
                     footerActionLabel("Settings")
                 }
                 Spacer()

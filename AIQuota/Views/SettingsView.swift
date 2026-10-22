@@ -21,21 +21,22 @@ struct SettingsView: View {
     @State private var page: SettingsPage? = .general
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: .constant(.all)) {
             List(selection: $page) {
                 ForEach([SettingsPage.general, .accounts, .notifications]) { item in
-                    Label(item.rawValue, systemImage: item.icon).tag(item)
+                    sidebarLabel(item).tag(item)
                 }
             }
             .listStyle(.sidebar)
             .safeAreaInset(edge: .bottom) {
                 List(selection: $page) {
-                    Label("About", systemImage: SettingsPage.about.icon).tag(SettingsPage.about)
+                    sidebarLabel(.about).tag(SettingsPage.about)
                 }
                 .listStyle(.sidebar)
-                .frame(height: 52)
+                .frame(height: 64)
             }
-            .navigationSplitViewColumnWidth(min: 170, ideal: 190, max: 220)
+            .navigationSplitViewColumnWidth(min: 190, ideal: 200, max: 230)
+            .toolbar(removing: .sidebarToggle)
         } detail: {
             Group {
                 switch page ?? .general {
@@ -48,10 +49,67 @@ struct SettingsView: View {
             .navigationTitle((page ?? .general).rawValue)
         }
         .navigationSplitViewStyle(.balanced)
+        .background(SettingsWindowPresentation())
         .frame(minWidth: 740, idealWidth: 800, minHeight: 560, idealHeight: 650)
         .tint(Color.brand)
         .onChange(of: viewModel.settings) {
             if !viewModel.isReadOnlyPreview { viewModel.saveSettings() }
+        }
+    }
+
+    private func sidebarLabel(_ item: SettingsPage) -> some View {
+        Label(item.rawValue, systemImage: item.icon)
+            .font(.body.weight(.medium))
+            .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
+            .contentShape(Rectangle())
+    }
+}
+
+/// Settings stays above AIQuota's utility windows while the app is active,
+/// and returns to the normal window level when the user switches apps.
+private struct SettingsWindowPresentation: NSViewRepresentable {
+    func makeNSView(context: Context) -> SettingsWindowObserver { SettingsWindowObserver() }
+    func updateNSView(_ nsView: SettingsWindowObserver, context: Context) {}
+}
+
+private final class SettingsWindowObserver: NSView {
+    private weak var settingsWindow: NSWindow?
+    private var originalLevel: NSWindow.Level = .normal
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        guard window !== settingsWindow else { return }
+        if let settingsWindow { settingsWindow.level = originalLevel }
+        NotificationCenter.default.removeObserver(self)
+        settingsWindow = window
+        guard let window else { return }
+        originalLevel = window.level
+        for name in [NSApplication.didBecomeActiveNotification, NSApplication.didResignActiveNotification] {
+            NotificationCenter.default.addObserver(self, selector: #selector(updateWindowLevel), name: name, object: NSApp)
+        }
+        updateWindowLevel()
+    }
+
+    @objc private func updateWindowLevel() {
+        settingsWindow?.level = NSApp.isActive ? .floating : originalLevel
+    }
+
+    deinit { NotificationCenter.default.removeObserver(self) }
+}
+
+private extension View {
+    /// Native bezels distinguish actions from links and grouped row backgrounds.
+    @ViewBuilder func settingsAction() -> some View {
+        if #available(macOS 26.0, *) {
+            buttonStyle(.glass)
+                .tint(nil)
+                .foregroundStyle(.primary)
+                .controlSize(.regular)
+        } else {
+            buttonStyle(.bordered)
+                .tint(nil)
+                .foregroundStyle(.primary)
+                .controlSize(.regular)
         }
     }
 }
@@ -83,6 +141,7 @@ private struct GeneralSettingsPane: View {
             Section("Updates") {
                 Toggle("Check for updates automatically", isOn: $updates.automaticallyChecksForUpdates)
                 Button("Check for Updates…") { updater.checkForUpdates() }
+                    .settingsAction()
                     .disabled(!updater.canCheckForUpdates)
             }
             #endif
@@ -95,29 +154,29 @@ private struct GeneralSettingsPane: View {
                         .foregroundColor(.brand)
                 }
             }
-            Section {
-                DisclosureGroup("Troubleshooting") { SettingsDiagnostics() }
+            Section("Troubleshooting") {
+                SettingsDiagnostics()
             }
-            Section {
-                DisclosureGroup("Setup & Reset") {
-                    LabeledContent {
-                        Button("Guided Setup…") {
-                            viewModel.resetOnboardingForReplay()
-                            openWindow(id: "onboarding")
-                            NSApp.activate(ignoringOtherApps: true)
-                        }
+            Section("Setup & Reset") {
+                LabeledContent {
+                    Button("Guided Setup…") {
+                        viewModel.resetOnboardingForReplay()
+                        openWindow(id: "onboarding")
+                        NSApp.activate(ignoringOtherApps: true)
+                    }
+                    .settingsAction()
+                    .disabled(viewModel.isReadOnlyPreview)
+                } label: {
+                    Text("Revisit setup")
+                    Text("Keeps your accounts and preferences.").font(.caption).foregroundStyle(.secondary)
+                }
+                LabeledContent {
+                    Button("Reset AIQuota…", role: .destructive) { confirmReset = true }
+                        .settingsAction()
                         .disabled(viewModel.isReadOnlyPreview)
-                    } label: {
-                        Text("Revisit setup")
-                        Text("Keeps your accounts and preferences.").font(.caption).foregroundStyle(.secondary)
-                    }
-                    LabeledContent {
-                        Button("Reset AIQuota…", role: .destructive) { confirmReset = true }
-                            .disabled(viewModel.isReadOnlyPreview)
-                    } label: {
-                        Text("Start over")
-                        Text("Signs out and clears local settings and data.").font(.caption).foregroundStyle(.secondary)
-                    }
+                } label: {
+                    Text("Start over")
+                    Text("Signs out and clears local settings and data.").font(.caption).foregroundStyle(.secondary)
                 }
             }
         }
@@ -199,6 +258,7 @@ private struct AccountsSettingsPane: View {
                             Button(provider.displayName) { addingProvider = provider }
                         }
                     }
+                    .settingsAction()
                     .fixedSize()
                     .disabled(connecting || viewModel.isReadOnlyPreview)
                 }
@@ -350,7 +410,9 @@ private struct SettingsAccountDetail: View {
                         if let session = status.session { Task { await session.refresh() } }
                         else { viewModel.manualRefresh() }
                     }
+                    .settingsAction()
                     Button("Sign Out…", role: .destructive) { pendingAction = "Sign Out" }
+                        .settingsAction()
                 } else {
                     Button("Sign In…") {
                         busy = true
@@ -361,6 +423,7 @@ private struct SettingsAccountDetail: View {
                             busy = false
                         }
                     }
+                    .settingsAction()
                 }
                 if account.provider == .claude, account.connectionKind == .legacyPrimary,
                    AppDistribution.allowsHostCredentialDiscovery {
@@ -376,7 +439,10 @@ private struct SettingsAccountDetail: View {
                 Section { Link("Codex Resets…", destination: CodexResetNotice.website).foregroundColor(.brand) }
             }
             if account.connectionKind == .isolated {
-                Section { Button("Remove Account…", role: .destructive) { pendingAction = "Remove Account" } }
+                Section {
+                    Button("Remove Account…", role: .destructive) { pendingAction = "Remove Account" }
+                        .settingsAction()
+                }
             }
         }
         .formStyle(.grouped)
@@ -427,6 +493,7 @@ private struct NotificationsSettingsPane: View {
                             NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.notifications")!)
                         } else { Task { await NotificationManager.shared.requestPermission(); await checkPermission() } }
                     }
+                    .settingsAction()
                     .disabled(viewModel.isReadOnlyPreview)
                 }
             } footer: {
@@ -510,6 +577,7 @@ private struct SettingsDiagnostics: View {
                 Button(copied ? "Copied" : "Copy Diagnostics") { copyDiagnostics(); copied = true }
                 Button("Refresh Status") { reload(); copied = false }
             }
+            .settingsAction()
             Text("Codex: \(statusDetail(isAuthenticated: true, attempt: codexAttempts.last))")
             Text("Claude Code: \(statusDetail(isAuthenticated: true, attempt: claudeAttempts.last))")
         }
