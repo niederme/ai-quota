@@ -189,9 +189,9 @@ struct PopoverView: View {
     private var popoverSurface: some View {
         ZStack {
             if #available(macOS 26.0, *) {
-                // Thin material so the desktop reads through the tint below.
-                Rectangle()
-                    .fill(.ultraThinMaterial)
+                // No material of our own: the menu-bar window's glass already blurs
+                // the desktop, and a second layer stacked on it made the sheet opaque.
+                Color.clear
             } else {
                 // Sequoia's MenuBarExtra material is substantially more transparent
                 // than Tahoe's glass treatment. Stabilize contrast while retaining a
@@ -206,8 +206,8 @@ struct PopoverView: View {
         }
     }
 
-    // Plum glass over the material: a 60% tint (72% in light) lets the desktop
-    // through while keeping captions above 4.5:1 over white and black desktops.
+    // Plum glass over the window's own glass: a 45% tint (58% in light) lets the
+    // desktop through; captions are near-white / deep plum to stay legible.
     private var sheetTint: some View {
         ZStack {
             Color.sheetTint
