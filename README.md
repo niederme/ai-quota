@@ -4,6 +4,10 @@ Native apps for monitoring AI coding quota on Mac, iPhone, and iPad. Track
 [OpenAI Codex](https://openai.com/codex) and [Claude Code](https://claude.ai)
 with paired gauges for five-hour and seven-day allowances.
 
+This README describes AIQuota 2.0, which is in TestFlight on Mac, iPhone, and
+iPad. The current direct-download Mac release is 1.9.28, which does not yet
+include multiple accounts or the redesigned Settings.
+
 ![macOS 15+](https://img.shields.io/badge/macOS-15%2B-black?logo=apple)
 ![Swift 6](https://img.shields.io/badge/Swift-6.0-orange?logo=swift)
 
@@ -12,8 +16,12 @@ with paired gauges for five-hour and seven-day allowances.
 ## Features
 
 - See Codex and Claude usage together, or connect just the service you use.
+- Connect more than one account per service, rename them, and reorder their cards.
+- Follow six months of Codex activity in a daily heatmap on each Codex account.
+- Get a dismissible notice when Codex announces or hints at a usage reset.
 - Check reset times, plan information, and available spending or credit details.
-- Keep usage visible with widgets and configurable alerts.
+- Keep usage visible with widgets and alerts at a usage threshold you choose
+  (90% by default).
 - Get started with guided onboarding and choose how often usage refreshes.
 - See when a reading was last updated and when an account needs attention.
 
@@ -22,8 +30,8 @@ Background widget updates are scheduled by the operating system.
 
 ## Mac
 
-AIQuota lives in the menu bar, with a dashboard, desktop widgets, and automatic
-updates. Requires macOS 15 (Sequoia) or later and an account with access to Codex
+AIQuota lives in the menu bar, with a sheet of account cards, desktop widgets,
+and automatic updates. Requires macOS 15 (Sequoia) or later and an account with access to Codex
 or Claude Code. Claude Pro and Max support has been verified; Team and Enterprise
 support still needs field testing.
 
@@ -31,7 +39,19 @@ support still needs field testing.
 2. Unzip and move **AIQuota** to Applications.
 3. Launch AIQuota and follow guided setup to connect your accounts.
 
-On Mac, **Settings → Accounts → Reuse Claude Code Keychain credentials** is an
+The menu-bar sheet shows a card for each connected account, with its dial,
+reset times, and (for Codex) the six-month activity graph. The sheet uses a
+tinted purple glass surface that adapts to light and dark appearance. The menu
+bar itself shows gauges for the first two accounts by default; open an account
+in Settings to choose whether its gauge appears there. Drag accounts in
+**Settings → Accounts** to reorder their cards.
+
+Settings has four panes: **General** (launch at login, refresh interval, updates,
+privacy, troubleshooting, and reset), **Accounts**, **Notifications**, and
+**About**. On Mac, usage alerts follow the original connection for each service.
+
+On Mac, the Claude account's **Reuse Claude Code Keychain credentials** toggle in
+**Settings → Accounts** is an
 optional, default-off shortcut to Claude Code's saved sign-in. AIQuota only reads
 it when access is available without a macOS permission prompt. If access is
 unavailable, use Claude sign-in in AIQuota. Turning reuse off prevents subsequent
@@ -47,8 +67,12 @@ an update, removing and re-adding it can clear its cached state.
 **iPhone and iPad are in beta via TestFlight.** Public enrollment is not currently
 listed here.
 
-The app includes independent Codex and Claude sign-in, guided onboarding,
-Home Screen and Lock Screen widgets, refresh controls, and per-service alerts.
+The app includes independent Codex and Claude sign-in, multiple accounts per
+service, guided onboarding, Home Screen and Lock Screen widgets, refresh
+controls, and per-account alerts. In **Settings → Accounts** you can add, rename,
+and remove accounts and pick the widget default; drag cards on the overview to
+reorder them. Each Codex card includes a full-width six-month activity heatmap
+that matches the Mac palette.
 Codex sign-in uses one **Copy code and continue** action and retains the browser
 when you close and reopen the same attempt. **Reset All Settings** clears local
 connections, cached usage, and preferences so setup starts fresh.
@@ -82,11 +106,12 @@ The apps share an Xcode project with separate Mac and iOS schemes.
 - [iOS development, testing, and TestFlight releases](iOS/README.md)
 - [Website previews and deployment](docs/website-development.md)
 - [Roadmap and validation priorities](docs/roadmap.md)
+- [Design references and HTML prototypes](prototypes/README.md)
 
 ## Anonymous usage analytics
 
 Optional usage sharing is off by default. **Share anonymous usage data** appears
-in Settings → Privacy and guided setup, with matching consent copy on Mac and
+in Settings (General → Privacy on Mac, Privacy on iOS) and guided setup, with matching consent copy on Mac and
 iOS. It reports app activity and setup events without sending prompts,
 credentials, account identifiers, or quota readings. iOS demo activity is excluded,
 and Reset All Settings revokes consent.

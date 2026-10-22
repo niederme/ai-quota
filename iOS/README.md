@@ -4,6 +4,7 @@ The iPhone and iPad app is in beta via TestFlight. For features and availability
 see the [project README](../README.md#ios).
 
 - [Build and test](#build-and-validation)
+- [Multiple accounts](#multiple-accounts)
 - [Anonymous usage analytics](#anonymous-usage-analytics)
 - [TestFlight releases](#testflight-release-workflow)
 - [Remaining work](../docs/roadmap.md#ios)
@@ -54,6 +55,24 @@ so running from Xcode replaces the TestFlight app instead of installing a second
 copy. The old prototype installation can be removed separately. The iOS app uses
 the Mac's native Icon Composer asset.
 
+
+## Multiple accounts
+
+Version 2.0 supports more than one Codex or Claude account. Guided setup can
+connect several accounts per service, and **Settings → Accounts** adds, renames,
+and removes them. One account per service is the widget default, chosen with
+**Use as widget default**; names appear on overview cards and in widget choices.
+Drag cards on the overview to reorder them. Removing an account clears only its
+local connection and saved usage.
+
+Notifications are configured per account, with one editable usage threshold
+(90% by default) and a reset reminder that can be off, near the limit, or
+every reset. The Mac app shares the same
+threshold model.
+
+Each Codex card shows a full-width, 26-week activity heatmap built from Codex's
+server-side daily history. Its light, dark, zero, and missing states match the
+Mac palette. Claude does not report daily history, so Claude cards have no graph.
 
 ## Anonymous usage analytics
 
