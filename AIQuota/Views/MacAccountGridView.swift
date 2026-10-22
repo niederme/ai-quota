@@ -19,8 +19,8 @@ private struct AccountCardDropDelegate: DropDelegate {
     }
 }
 
-/// The open panel can show every account; its order is separate from menu-bar
-/// and widget choices. Two equal columns preserve the original comparison.
+/// The open panel follows the iOS account list. Its order remains separate
+/// from menu-bar and widget choices, and the list scrolls only when needed.
 struct MacAccountGridView: View {
     @Environment(QuotaViewModel.self) private var viewModel
     let width: CGFloat
@@ -45,20 +45,11 @@ struct MacAccountGridView: View {
         return saved + visible.filter { !included.contains($0.id) }
     }
 
-    private var columnCount: Int { MacAccountGridLayout.columns(for: Double(width)) }
-    private var columns: [GridItem] {
-        Array(repeating: GridItem(.flexible(minimum: 250), spacing: 24, alignment: .top), count: columnCount)
-    }
-    private var cardWidth: CGFloat {
-        let horizontalPadding: CGFloat = 36
-        let columnSpacing = CGFloat(max(0, columnCount - 1)) * 24
-        return max(1, (width - horizontalPadding - columnSpacing) / CGFloat(columnCount))
-    }
-    private var cardContentWidth: CGFloat { max(1, cardWidth - 16) }
+    private var cardContentWidth: CGFloat { max(1, width - 64) }
 
     var body: some View {
         ScrollView {
-            LazyVGrid(columns: columns, alignment: .leading, spacing: 8) {
+            LazyVStack(alignment: .leading, spacing: 16) {
                 ForEach(accounts) { account in
                     MacAccountCard(account: account, session: session(for: account),
                                    tokenHistory: tokenHistory(for: account),
@@ -85,7 +76,7 @@ struct MacAccountGridView: View {
                         .accessibilityAction(named: "Move later") { move(account.id, offset: 1) }
                 }
             }
-            .padding(.horizontal, 18)
+            .padding(.horizontal, 16)
             .padding(.vertical, 8)
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
                 if height > 0, contentHeight != height { contentHeight = height }

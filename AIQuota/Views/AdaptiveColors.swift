@@ -12,6 +12,16 @@ extension Color {
     /// and colour stays on the rings.
     static let gaugeAccentInk = Color(light: (0x5c, 0x16, 0x88, 1), dark: (0xea, 0xd2, 0xff, 1))
 
+    // The Mac account list uses the accepted iOS overview's semantic colors.
+    // Keep the values aligned with iOS/App/Assets.xcassets/Overview*.colorset.
+    static let overviewAccent = Color(light: (0xaf, 0x52, 0xde, 1), dark: (0xbf, 0x5a, 0xf2, 1))
+    static let overviewResetAccent = Color(light: (0x7a, 0x24, 0xa6, 1), dark: (0xd7, 0x7e, 0xf7, 1))
+    static let overviewPrimary = Color(light: (0x0b, 0x06, 0x0f, 1), dark: (0xff, 0xff, 0xff, 1))
+    static let overviewSecondary = Color(light: (0x3c, 0x3c, 0x43, 0.62), dark: (0xeb, 0xeb, 0xf5, 0.62))
+    static let overviewTertiary = Color(light: (0x3c, 0x3c, 0x43, 0.32), dark: (0xeb, 0xeb, 0xf5, 0.32))
+    static let overviewWarning = Color(light: (0xff, 0x95, 0x00, 1), dark: (0xff, 0x9f, 0x0a, 1))
+    static let overviewCritical = Color(light: (0xff, 0x3b, 0x30, 1), dark: (0xff, 0x45, 0x3a, 1))
+
     // Tinted glass sheet (see prototypes/sheet-material)
     static let sheetTint = Color(light: (246, 241, 251, 0.66), dark: (26, 21, 36, 0.53))
     static let sheetGlow = Color(light: (191, 120, 242, 0.34), dark: (150, 86, 214, 0.40))
