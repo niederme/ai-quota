@@ -76,6 +76,8 @@ struct OnboardingView: View {
     @State private var accountDestination: AccountDestination?
     @State private var selectedAccount: AccountProfile?
     @State private var addedAccount: AccountProfile?
+    @State private var namingService: QuotaService?
+    @State private var nameDraft = ""
     private enum AccountDestination: String, Identifiable {
         case codex, claude
         var id: String { rawValue }
@@ -112,8 +114,8 @@ struct OnboardingView: View {
                                 if accounts?.hasConnection == true || codex.connected || claude.connected {
                                     if let accounts {
                                         Menu("Add another account", systemImage: "plus") {
-                                            Button("Codex") { addAccount(.codex, to: accounts) }
-                                            Button("Claude") { addAccount(.claude, to: accounts) }
+                                            Button("Codex") { prepareName(for: .codex, accounts: accounts) }
+                                            Button("Claude") { prepareName(for: .claude, accounts: accounts) }
                                         }
                                     }
                                     Divider()
@@ -224,6 +226,19 @@ struct OnboardingView: View {
         }.tint(OverviewStyle.accent)
             .foregroundStyle(OverviewStyle.primary)
             .presentationBackground(OverviewStyle.base)
+            .alert("Add account", isPresented: Binding(
+                get: { namingService != nil }, set: { if !$0 { namingService = nil } }
+            )) {
+                TextField("Account name", text: $nameDraft)
+                Button("Connect") {
+                    if let namingService, let accounts { addAccount(namingService, to: accounts, named: nameDraft) }
+                    namingService = nil
+                }
+                .disabled(nameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Button("Cancel", role: .cancel) { namingService = nil }
+            } message: {
+                Text("Edit the suggested name now or rename the account later.")
+            }
             .sheet(item: $accountDestination, onDismiss: { accounts?.reload() }) { destination in
                 ServiceAccountSheet {
                     switch destination {
@@ -233,7 +248,10 @@ struct OnboardingView: View {
                 }
             }
             .sheet(item: $selectedAccount, onDismiss: {
-                if let addedAccount { accounts?.discardIfUnconnected(addedAccount) }
+                if let addedAccount {
+                    accounts?.updateSuggestedNameIfReady(addedAccount)
+                    accounts?.discardIfUnconnected(addedAccount)
+                }
                 addedAccount = nil
                 accounts?.reload()
             }) { profile in
@@ -261,12 +279,17 @@ struct OnboardingView: View {
         if let profile = accounts.connected(service).first ?? accounts.all(service).first {
             selectedAccount = profile
         } else {
-            addAccount(service, to: accounts)
+            prepareName(for: service, accounts: accounts)
         }
     }
 
-    private func addAccount(_ service: QuotaService, to accounts: MobileAccountCollection) {
-        let profile = accounts.add(service)
+    private func prepareName(for service: QuotaService, accounts: MobileAccountCollection) {
+        nameDraft = accounts.suggestedName(for: service)
+        namingService = service
+    }
+
+    private func addAccount(_ service: QuotaService, to accounts: MobileAccountCollection, named name: String) {
+        let profile = accounts.add(service, named: name)
         addedAccount = profile
         selectedAccount = profile
     }

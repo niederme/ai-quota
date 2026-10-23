@@ -90,4 +90,25 @@ final class AccountCardOrderTests: XCTestCase {
         XCTAssertEqual(registry.accountOrder(), [claude.orderKey, codex.orderKey])
         XCTAssertEqual(registry.all().count, 2)
     }
+
+    func testSuggestedPlanNameIsAppliedOnceWithoutReplacingCustomNames() throws {
+        let root = root()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let registry = AccountRegistry.Store(root: root, legacyServices: [])
+        let first = registry.add(service: .claude)
+        XCTAssertEqual(first.label, "Claude")
+        registry.applySuggestedPlan(service: .claude, id: first.id, plan: "Enterprise")
+        XCTAssertEqual(registry.all().first?.label, "Claude Enterprise")
+
+        let second = registry.add(service: .claude)
+        registry.applySuggestedPlan(service: .claude, id: second.id, plan: "Enterprise")
+        XCTAssertEqual(registry.all().last?.label, "Claude Enterprise 2")
+
+        registry.rename(service: .claude, id: second.id, label: "Work")
+        registry.applySuggestedPlan(service: .claude, id: second.id, plan: "Pro")
+        XCTAssertEqual(registry.all().last?.label, "Work")
+
+        let reopened = AccountRegistry.Store(root: root, legacyServices: [])
+        XCTAssertEqual(reopened.all().map(\.label), ["Claude Enterprise", "Work"])
+    }
 }

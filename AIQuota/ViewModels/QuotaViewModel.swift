@@ -240,8 +240,32 @@ final class QuotaViewModel {
         SharedDefaults.saveSettings(settings)
     }
 
+    func suggestedAccountName(for provider: ServiceType) -> String {
+        let plan: String?
+        switch provider {
+        case .codex:
+            plan = codexUsage?.displayPlan ?? additionalAccounts.first(where: { $0.provider == .codex })?.codexUsage?.displayPlan
+        case .claude:
+            plan = claudeUsage?.planDisplayName ?? additionalAccounts.first(where: { $0.provider == .claude })?.claudeUsage?.planDisplayName
+        }
+        return AccountNameSuggestion.make(
+            service: provider == .codex ? "Codex" : "Claude",
+            plan: plan,
+            existingLabels: AccountRegistry.accounts(for: provider).map(\.displayLabel)
+        )
+    }
+
+    private func nameFromConnectedPlan(for provider: ServiceType, accountID: String, plan: String?) -> String? {
+        guard let plan, plan.caseInsensitiveCompare("Unknown") != .orderedSame else { return nil }
+        return AccountNameSuggestion.make(
+            service: provider == .codex ? "Codex" : "Claude",
+            plan: plan,
+            existingLabels: AccountRegistry.accounts(for: provider).filter { $0.id != accountID }.map(\.displayLabel)
+        )
+    }
+
     /// Shared entry point for onboarding and Settings.
-    func connectAccount(for provider: ServiceType, named name: String, showInMenuBar: Bool?) async {
+    func connectAccount(for provider: ServiceType, named name: String, showInMenuBar: Bool?, usesSuggestedName: Bool = false) async {
         guard !isReadOnlyPreview, !Self.isDemoBuild else { return }
         if primaryAccount(for: provider) == nil {
             if provider == .codex { await signIn() } else { await signInClaude() }
@@ -250,6 +274,12 @@ final class QuotaViewModel {
             ensurePrimaryAccount(for: provider)
             if let account = primaryAccount(for: provider) {
                 renameAccount(id: account.id, to: name)
+                if usesSuggestedName {
+                    let plan = provider == .codex ? codexUsage?.displayPlan : claudeUsage?.planDisplayName
+                    if let suggested = nameFromConnectedPlan(for: provider, accountID: account.id, plan: plan) {
+                        renameAccount(id: account.id, to: suggested)
+                    }
+                }
                 if let showInMenuBar {
                     var ids = settings.menuBarAccountIDs ?? []
                     ids.removeAll { $0 == account.id }
@@ -259,11 +289,12 @@ final class QuotaViewModel {
                 }
             }
         } else {
-            await addAccount(for: provider, named: name, showInMenuBar: showInMenuBar)
+            await addAccount(for: provider, named: name, showInMenuBar: showInMenuBar, usesSuggestedName: usesSuggestedName)
         }
     }
 
-    func addAccount(for provider: ServiceType, named rawName: String, showInMenuBar: Bool? = nil) async {
+    func addAccount(for provider: ServiceType, named rawName: String, showInMenuBar: Bool? = nil,
+                    usesSuggestedName: Bool = false) async {
         guard !isReadOnlyPreview, !Self.isDemoBuild else { return }
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
@@ -279,7 +310,15 @@ final class QuotaViewModel {
         let session = AdditionalAccountSession(account: account)
         additionalAccounts.append(session)
         await session.signIn()
-        if session.isAuthenticated { startAutoRefresh(immediateRefresh: false) }
+        if session.isAuthenticated {
+            if usesSuggestedName {
+                let plan = provider == .codex ? session.codexUsage?.displayPlan : session.claudeUsage?.planDisplayName
+                if let suggested = nameFromConnectedPlan(for: provider, accountID: account.id, plan: plan) {
+                    renameAccount(id: account.id, to: suggested)
+                }
+            }
+            startAutoRefresh(immediateRefresh: false)
+        }
     }
 
     private func bindPrimaryIdentity(for provider: ServiceType) async {
