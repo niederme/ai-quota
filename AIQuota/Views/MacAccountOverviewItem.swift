@@ -97,11 +97,10 @@ struct MacAccountCard: View {
                     MacAccountDial(icon: icon, primaryPercent: primaryPercent,
                                    primaryLabel: primaryLabel, secondaryPercent: secondaryPercent,
                                    loading: loading, connected: connected, hasIssue: issue != nil)
-                        .frame(width: 120, height: 120)
                     details
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxWidth: .infinity, minHeight: 120, alignment: .topLeading)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
 
                 if connected, account.provider == .codex, let tokenHistory,
                    CodexTokenHistoryView.hasVisibleData(tokenHistory) {
@@ -110,7 +109,7 @@ struct MacAccountCard: View {
                 }
             }
             .padding(16)
-            .frame(maxWidth: .infinity, minHeight: 156, alignment: .topLeading)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
             .contentShape(RoundedRectangle(cornerRadius: 24))
             .background {
                 RoundedRectangle(cornerRadius: 24)
@@ -137,29 +136,23 @@ struct MacAccountCard: View {
 
     private var details: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(serviceName)
                     .font(.system(size: 20, weight: .semibold))
                     .tracking(-0.25)
                     .foregroundStyle(Color.overviewPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.85)
-                Spacer(minLength: 0)
-                if connected || hasReading {
-                    Image(systemName: "chevron.right.circle.fill")
-                        .foregroundStyle(Color.overviewTertiary)
-                        .accessibilityHidden(true)
+                if let plan {
+                    Text("\(plan) plan" + (accountLabel.map { " · \($0)" } ?? ""))
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.overviewPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else if let accountLabel {
+                    Text(accountLabel)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.overviewPrimary)
                 }
-            }
-            if let plan {
-                Text("\(plan) plan" + (accountLabel.map { " · \($0)" } ?? ""))
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.overviewPrimary)
-                    .fixedSize(horizontal: false, vertical: true)
-            } else if let accountLabel {
-                Text(accountLabel)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.overviewPrimary)
             }
             if let budget {
                 Text(budgetSummary(budget))

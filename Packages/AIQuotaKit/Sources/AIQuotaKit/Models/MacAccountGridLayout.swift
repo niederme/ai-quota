@@ -13,9 +13,10 @@ public enum MacAccountGridLayout {
 
     public static func viewportHeight(accountCount: Int, width: Double, availableHeight: Double) -> Double {
         let count = max(1, rows(accountCount: accountCount, width: width))
-        // Match the card's 156-point minimum, 16-point inter-card spacing and
+        // Match the 114-point visible dial plus 32 points of card padding,
+        // 16-point inter-card spacing and
         // the ScrollView's 8-point top/bottom padding. Measured content takes
         // over once the cards have rendered, including any token history.
-        return min(availableHeight, Double(count * 156 + (count - 1) * 16 + 16))
+        return min(availableHeight, Double(count * 146 + (count - 1) * 16 + 16))
     }
 }
