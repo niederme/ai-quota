@@ -151,11 +151,19 @@ private final class DemoSession {
 private struct MenuBarStatusLabel: View {
     let viewModel: QuotaViewModel
     let updaterViewModel: UpdaterViewModel
+    @State private var orderedAccounts = AccountRegistry.orderedAccounts()
+
+    var body: some View {
+        content
+            .onAppear { orderedAccounts = AccountRegistry.orderedAccounts() }
+            .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
+                orderedAccounts = AccountRegistry.orderedAccounts()
+            }
+    }
 
     @ViewBuilder
-    var body: some View {
-        if let selectedIDs = viewModel.settings.menuBarAccountIDs {
-            let selected = selectedIDs.compactMap(AccountRegistry.account(id:))
+    private var content: some View {
+        if let selected = viewModel.settings.menuBarAccounts(in: orderedAccounts) {
             if selected.isEmpty {
                 Image("AppBrandIcon").resizable().frame(width: 20, height: 20)
                     .help("AIQuota")

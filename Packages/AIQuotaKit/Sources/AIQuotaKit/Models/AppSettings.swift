@@ -199,6 +199,7 @@ public struct AppSettings: Codable, Sendable, Equatable {
     public var menuBarDisplayMode: MenuBarDisplayMode
     /// Nil means an older install has not yet received its initial account choice.
     /// An empty array is an explicit app-icon-only choice.
+    /// Membership controls visibility; the account list controls display order.
     public var menuBarAccountIDs: [String]?
     /// Whether the user opted into anonymous usage analytics.
     public var analyticsEnabled: Bool
@@ -226,6 +227,14 @@ public struct AppSettings: Codable, Sendable, Equatable {
         self.menuBarDisplayMode = menuBarDisplayMode
         self.menuBarAccountIDs = menuBarAccountIDs
         self.analyticsEnabled = analyticsEnabled
+    }
+
+    /// Filters the display-ordered account list without changing its order.
+    /// Nil retains the legacy service-based display until account choices are initialized.
+    public func menuBarAccounts(in orderedAccounts: [ConnectedAccount]) -> [ConnectedAccount]? {
+        guard let menuBarAccountIDs else { return nil }
+        let selected = Set(menuBarAccountIDs)
+        return orderedAccounts.filter { selected.contains($0.id) }
     }
 
     /// Defaults only apply when adding a new account; existing visibility choices are preserved.
