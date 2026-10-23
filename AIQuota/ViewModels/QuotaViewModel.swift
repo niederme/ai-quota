@@ -240,84 +240,68 @@ final class QuotaViewModel {
         SharedDefaults.saveSettings(settings)
     }
 
-    func suggestedAccountName(for provider: ServiceType) -> String {
-        let plan: String?
-        switch provider {
-        case .codex:
-            plan = codexUsage?.displayPlan ?? additionalAccounts.first(where: { $0.provider == .codex })?.codexUsage?.displayPlan
-        case .claude:
-            plan = claudeUsage?.planDisplayName ?? additionalAccounts.first(where: { $0.provider == .claude })?.claudeUsage?.planDisplayName
-        }
-        return AccountNameSuggestion.make(
-            service: provider == .codex ? "Codex" : "Claude",
-            plan: plan,
-            existingLabels: AccountRegistry.accounts(for: provider).map(\.displayLabel)
-        )
-    }
-
-    private func nameFromConnectedPlan(for provider: ServiceType, accountID: String, plan: String?) -> String? {
-        guard let plan, plan.caseInsensitiveCompare("Unknown") != .orderedSame else { return nil }
-        return AccountNameSuggestion.make(
+    private func nameFromConnectedPlan(for provider: ServiceType, accountID: String, plan: String?) -> String {
+        AccountNameSuggestion.make(
             service: provider == .codex ? "Codex" : "Claude",
             plan: plan,
             existingLabels: AccountRegistry.accounts(for: provider).filter { $0.id != accountID }.map(\.displayLabel)
         )
     }
 
-    /// Shared entry point for onboarding and Settings.
-    func connectAccount(for provider: ServiceType, named name: String, showInMenuBar: Bool?, usesSuggestedName: Bool = false) async {
-        guard !isReadOnlyPreview, !Self.isDemoBuild else { return }
+    /// Connect and fetch this account's plan before offering its name in onboarding or Settings.
+    func connectAccount(for provider: ServiceType) async -> ConnectedAccount? {
+        guard !isReadOnlyPreview, !Self.isDemoBuild else { return nil }
         if primaryAccount(for: provider) == nil {
             if provider == .codex { await signIn() } else { await signInClaude() }
-            let authenticated = provider == .codex ? isCodexAuthenticated : isClaudeAuthenticated
-            guard authenticated else { return }
-            ensurePrimaryAccount(for: provider)
-            if let account = primaryAccount(for: provider) {
-                renameAccount(id: account.id, to: name)
-                if usesSuggestedName {
-                    let plan = provider == .codex ? codexUsage?.displayPlan : claudeUsage?.planDisplayName
-                    if let suggested = nameFromConnectedPlan(for: provider, accountID: account.id, plan: plan) {
-                        renameAccount(id: account.id, to: suggested)
-                    }
-                }
-                if let showInMenuBar {
-                    var ids = settings.menuBarAccountIDs ?? []
-                    ids.removeAll { $0 == account.id }
-                    if showInMenuBar { ids.append(account.id) }
-                    settings.menuBarAccountIDs = ids
-                    saveSettings()
-                }
+            // The auth-state observer can start the first refresh before signIn's
+            // refresh call. Wait for that request too, so naming sees its plan.
+            while provider == .codex ? isCodexLoading : isClaudeLoading {
+                do { try await Task.sleep(for: .milliseconds(100)) }
+                catch { return nil }
             }
+            let authenticated = provider == .codex ? isCodexAuthenticated : isClaudeAuthenticated
+            guard authenticated, !Task.isCancelled else { return nil }
+            ensurePrimaryAccount(for: provider)
+            guard let account = primaryAccount(for: provider) else { return nil }
+            let plan = provider == .codex ? codexUsage?.displayPlan : claudeUsage?.planDisplayName
+            renameAccount(id: account.id, to: nameFromConnectedPlan(for: provider, accountID: account.id, plan: plan))
+            return AccountRegistry.account(id: account.id)
         } else {
-            await addAccount(for: provider, named: name, showInMenuBar: showInMenuBar, usesSuggestedName: usesSuggestedName)
+            return await addAccount(for: provider)
         }
     }
 
-    func addAccount(for provider: ServiceType, named rawName: String, showInMenuBar: Bool? = nil,
-                    usesSuggestedName: Bool = false) async {
-        guard !isReadOnlyPreview, !Self.isDemoBuild else { return }
-        let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else { return }
+    private func addAccount(for provider: ServiceType) async -> ConnectedAccount? {
         await bindPrimaryIdentity(for: provider)
         let existingIDs = AccountRegistry.accounts().map(\.id)
         let account = AccountRegistry.upsert(
             provider: provider,
-            displayLabel: name,
+            displayLabel: AccountNameSuggestion.make(
+                service: provider == .codex ? "Codex" : "Claude", plan: nil,
+                existingLabels: AccountRegistry.accounts(for: provider).map(\.displayLabel)
+            ),
             authSource: .webSession
         )
-        settings.registerMenuBarAccount(id: account.id, existingAccountIDs: existingIDs, showInMenuBar: showInMenuBar)
+        settings.registerMenuBarAccount(id: account.id, existingAccountIDs: existingIDs)
         saveSettings()
         let session = AdditionalAccountSession(account: account)
         additionalAccounts.append(session)
         await session.signIn()
-        if session.isAuthenticated {
-            if usesSuggestedName {
-                let plan = provider == .codex ? session.codexUsage?.displayPlan : session.claudeUsage?.planDisplayName
-                if let suggested = nameFromConnectedPlan(for: provider, accountID: account.id, plan: plan) {
-                    renameAccount(id: account.id, to: suggested)
-                }
-            }
-            startAutoRefresh(immediateRefresh: false)
+        guard session.isAuthenticated, session.account.workspaceID != nil, !Task.isCancelled else { return nil }
+        let plan = provider == .codex ? session.codexUsage?.displayPlan : session.claudeUsage?.planDisplayName
+        renameAccount(id: account.id, to: nameFromConnectedPlan(for: provider, accountID: account.id, plan: plan))
+        startAutoRefresh(immediateRefresh: false)
+        return AccountRegistry.account(id: account.id)
+    }
+
+    func saveConnectedAccount(id: String, name: String, showInMenuBar: Bool?) {
+        renameAccount(id: id, to: name)
+        if let showInMenuBar {
+            var ids = settings.menuBarAccountIDs ?? []
+            ids.removeAll { $0 == id }
+            if showInMenuBar { ids.append(id) }
+            settings.menuBarAccountIDs = ids
+            saveSettings()
         }
     }
 

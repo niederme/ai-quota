@@ -4,7 +4,7 @@ import AIQuotaKit
 struct ServicesStepView: View {
     @Environment(QuotaViewModel.self) private var viewModel
     @State private var accounts = AccountRegistry.orderedAccounts()
-    @State private var addingProvider: ServiceType?
+    @State private var connectedAccount: ConnectedAccount?
     @State private var connecting = false
 
     var body: some View {
@@ -44,20 +44,21 @@ struct ServicesStepView: View {
         .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in reload() }
         .onChange(of: viewModel.additionalAccounts.map(\.id)) { reload() }
         .onChange(of: viewModel.enrolledServices) { reload() }
-        .sheet(isPresented: Binding(get: { addingProvider != nil }, set: { if !$0 { addingProvider = nil } })) {
-            if let provider = addingProvider {
-                AddAccountNameSheet(provider: provider, suggestedName: viewModel.suggestedAccountName(for: provider),
-                                    cancel: { addingProvider = nil }) { name, showInMenuBar, usesSuggestedName in
-                    addingProvider = nil
-                    connecting = true
-                    Task {
-                        await viewModel.connectAccount(for: provider, named: name, showInMenuBar: showInMenuBar,
-                                                       usesSuggestedName: usesSuggestedName)
-                        connecting = false
-                        reload()
-                    }
-                }
+        .sheet(item: $connectedAccount) { account in
+            ConnectedAccountNameSheet(account: account, dismiss: { connectedAccount = nil }) { name, showInMenuBar in
+                viewModel.saveConnectedAccount(id: account.id, name: name, showInMenuBar: showInMenuBar)
+                connectedAccount = nil
+                reload()
             }
+        }
+    }
+
+    private func connect(_ provider: ServiceType) {
+        connecting = true
+        Task {
+            connectedAccount = await viewModel.connectAccount(for: provider)
+            connecting = false
+            reload()
         }
     }
 
@@ -102,7 +103,7 @@ struct ServicesStepView: View {
             }
             HStack {
                 Button {
-                    addingProvider = provider
+                    connect(provider)
                 } label: {
                     Label(providerAccounts.isEmpty ? "Add Account…" : "Add Another Account…", systemImage: "plus")
                 }
