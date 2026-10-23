@@ -67,6 +67,38 @@ struct AccountRegistryTests {
         #expect(AccountRegistry.selectedAccountID(for: .codex) == first.id)
     }
 
+    @Test("menu-bar gauges follow saved account order without changing visibility")
+    func menuBarFollowsAccountOrder() {
+        AccountRegistry.resetForTesting()
+        defer { AccountRegistry.resetForTesting() }
+        let personal = AccountRegistry.upsert(provider: .codex, displayLabel: "Personal", authSource: .oauth)
+        let hidden = AccountRegistry.upsert(provider: .claude, displayLabel: "Hidden", authSource: .webSession)
+        let work = AccountRegistry.upsert(provider: .codex, displayLabel: "Work", authSource: .oauth)
+        var settings = AppSettings.default
+        settings.menuBarAccountIDs = [personal.id, work.id]
+
+        AccountRegistry.setAccountOrder([work.id, hidden.id, personal.id])
+        #expect(settings.menuBarAccounts(in: AccountRegistry.orderedAccounts())?.map(\.id) == [work.id, personal.id])
+        AccountRegistry.setAccountOrder([personal.id, hidden.id, work.id])
+        #expect(settings.menuBarAccounts(in: AccountRegistry.orderedAccounts())?.map(\.id) == [personal.id, work.id])
+        #expect(settings.menuBarAccountIDs == [personal.id, work.id])
+
+        // Re-enabling a gauge must put it back in account-list order, not at the end.
+        settings.menuBarAccountIDs = [work.id, personal.id]
+        #expect(settings.menuBarAccounts(in: AccountRegistry.orderedAccounts())?.map(\.id) == [personal.id, work.id])
+    }
+
+    @Test("menu-bar ordering preserves legacy and empty choices and ignores stale IDs")
+    func menuBarOrderingEdgeCases() {
+        let account = ConnectedAccount(provider: .claude, displayLabel: "Work", authSource: .webSession)
+        var settings = AppSettings.default
+        #expect(settings.menuBarAccounts(in: [account]) == nil)
+        settings.menuBarAccountIDs = []
+        #expect(settings.menuBarAccounts(in: [account]) == [])
+        settings.menuBarAccountIDs = ["removed-account", account.id, account.id]
+        #expect(settings.menuBarAccounts(in: [account])?.map(\.id) == [account.id])
+    }
+
     @Test("upsert preserves UUID identity and selections are provider-scoped")
     func upsertAndSelection() {
         AccountRegistry.resetForTesting()

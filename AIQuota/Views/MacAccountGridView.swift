@@ -19,8 +19,8 @@ private struct AccountCardDropDelegate: DropDelegate {
     }
 }
 
-/// The open panel follows the iOS account list. Its order remains separate
-/// from menu-bar and widget choices, and the list scrolls only when needed.
+/// The open panel's order also controls the menu-bar gauges. Account visibility
+/// and widget choices remain independent, and the list scrolls only when needed.
 struct MacAccountGridView: View {
     @Environment(QuotaViewModel.self) private var viewModel
     let width: CGFloat
