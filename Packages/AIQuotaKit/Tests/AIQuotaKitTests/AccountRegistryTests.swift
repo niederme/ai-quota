@@ -11,13 +11,13 @@ struct AccountRegistryTests {
                 #expect(MacAccountGridLayout.columns(for: width) == 1)
                 #expect(MacAccountGridLayout.rows(accountCount: count, width: width) == count)
                 #expect(MacAccountGridLayout.viewportHeight(accountCount: count, width: width,
-                                                             availableHeight: 1200) == Double(count) * 172)
+                                                             availableHeight: 1200) == Double(count) * 162)
                 #expect(MacAccountGridLayout.viewportHeight(accountCount: count, width: width,
                                                              availableHeight: 300) <= 300)
             }
         }
         #expect(MacAccountGridLayout.viewportHeight(accountCount: 6, width: 480,
-                                                     availableHeight: 1200) == 1032)
+                                                     availableHeight: 1200) == 972)
         #expect(MacAccountGridLayout.viewportHeight(accountCount: 6, width: 480,
                                                      availableHeight: 300) == 300)
     }

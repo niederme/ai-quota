@@ -32,13 +32,14 @@ struct MacAccountDial: View {
                 } else if let primaryPercent {
                     VStack(spacing: 2) {
                         Text("\(primaryPercent)% \(primaryLabel)")
-                            .font(.system(size: 14, weight: .semibold).monospacedDigit())
+                            .font(.system(size: 16, weight: .semibold).monospacedDigit())
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
                         if let secondaryPercent {
                             Text("\(secondaryPercent)% 7d")
-                                .font(.system(size: 14, weight: .semibold).monospacedDigit())
+                                .font(.system(size: 16, weight: .semibold).monospacedDigit())
                                 .lineLimit(1)
+                                .minimumScaleFactor(0.85)
                                 .opacity(0.7)
                         }
                     }
@@ -49,6 +50,10 @@ struct MacAccountDial: View {
             .foregroundStyle(tint)
         }
         .frame(width: 120, height: 120)
+        // Include the outer stroke at the top, but don't reserve the circle's
+        // unused lower quarter below the open arc.
+        .padding(.top, 6)
+        .frame(height: 114, alignment: .top)
         .accessibilityHidden(true)
     }
 

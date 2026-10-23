@@ -15,6 +15,7 @@ struct PopoverView: View {
     @State private var hoveredService: ServiceType?
     @State private var focusedService: ServiceType?
     @State private var overviewHeight: CGFloat?
+    @State private var accountListScrolls = false
     @State private var navigationPhase: PopoverNavigationPhase = .overview
     @State private var presentationID = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -309,9 +310,13 @@ struct PopoverView: View {
             }
             if viewModel.isCodexAuthenticated { resetNoticeRow }
             MacAccountGridView(width: overviewWidth, maxHeight: overviewBodyMaxHeight,
-                               openAccount: openAccount, openSettings: openSettingsWindow)
+                               openAccount: openAccount, openSettings: openSettingsWindow,
+                               onScrollabilityChange: { accountListScrolls = $0 })
             updateAvailableRow
             footer
+                .overlay(alignment: .top) {
+                    if accountListScrolls { Divider() }
+                }
         }
     }
 

@@ -27,6 +27,7 @@ struct MacAccountGridView: View {
     let maxHeight: CGFloat
     let openAccount: (ConnectedAccount) -> Void
     let openSettings: () -> Void
+    let onScrollabilityChange: (Bool) -> Void
 
     @State private var orderIDs: [String] = []
     @State private var dragging: String?
@@ -49,7 +50,7 @@ struct MacAccountGridView: View {
 
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 16) {
                 ForEach(accounts) { account in
                     MacAccountCard(account: account, session: session(for: account),
                                    tokenHistory: tokenHistory(for: account),
@@ -86,6 +87,11 @@ struct MacAccountGridView: View {
             accountCount: accounts.count, width: Double(width), availableHeight: Double(maxHeight)
         ))))
         .scrollIndicators(.automatic)
+        .onScrollGeometryChange(for: Bool.self) { geometry in
+            geometry.contentSize.height > geometry.containerSize.height + 1
+        } action: { _, scrolls in
+            onScrollabilityChange(scrolls)
+        }
         .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
             orderIDs = AccountRegistry.orderedAccounts().map(\.id)
         }
