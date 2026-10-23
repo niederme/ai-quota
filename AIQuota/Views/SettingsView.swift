@@ -759,18 +759,21 @@ struct NotificationInlineControls: View {
 
     @ViewBuilder
     private var codexControls: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             usageThreshold
+            Divider()
             notificationOptionGroup("5-hour window") {
                 notificationCheckbox("Usage alerts", isOn: $preferences.codex5hThresholdAlerts)
                 resetAlertControls(enabled: $preferences.codex5hReset, minimum: $preferences.codex5hResetMinimum)
             }
 
+            Divider()
             notificationOptionGroup("7-day window") {
                 notificationCheckbox("Usage alerts", isOn: $preferences.codexWeeklyThresholdAlerts)
                 resetAlertControls(enabled: $preferences.codexReset, minimum: $preferences.codexResetMinimum)
             }
 
+            Divider()
             notificationOptionGroup("Credits") {
                 notificationCheckbox("Top-up events", isOn: $preferences.codexTopUp)
             }
@@ -779,13 +782,15 @@ struct NotificationInlineControls: View {
 
     @ViewBuilder
     private var claudeControls: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
             usageThreshold
+            Divider()
             notificationOptionGroup("5-hour window") {
                 notificationCheckbox("Usage alerts", isOn: $preferences.claude5hThresholdAlerts)
                 resetAlertControls(enabled: $preferences.claude5hReset, minimum: $preferences.claude5hResetMinimum)
             }
 
+            Divider()
             notificationOptionGroup("7-day window") {
                 notificationCheckbox("Usage alerts", isOn: $preferences.claude7dThresholdAlerts)
                 resetAlertControls(enabled: $preferences.claude7dReset, minimum: $preferences.claude7dResetMinimum)
@@ -794,29 +799,60 @@ struct NotificationInlineControls: View {
     }
 
     private var usageThreshold: some View {
-        SettingsUsageThresholdField(value: Binding(get: {
-            service == .codex ? preferences.codexUsageThreshold : preferences.claudeUsageThreshold
-        }, set: { value in
-            if service == .codex { preferences.codexUsageThreshold = value }
-            else { preferences.claudeUsageThreshold = value }
-        }))
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("Usage alert threshold")
+                Spacer(minLength: 12)
+                SettingsPercentageField(label: "Usage alert threshold", value: Binding(get: {
+                    service == .codex ? preferences.codexUsageThreshold : preferences.claudeUsageThreshold
+                }, set: { value in
+                    if service == .codex { preferences.codexUsageThreshold = value }
+                    else { preferences.claudeUsageThreshold = value }
+                }))
+                .help("One usage alert per window, at or above this threshold. Enter 5 to 100 percent.")
+            }
+            Text("Applies to usage alerts in both windows.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+        }
     }
 
     private func resetAlertControls(enabled: Binding<Bool>, minimum: Binding<Int>) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Picker("Reset alerts", selection: Binding<Int>(get: {
-                !enabled.wrappedValue ? 0 : minimum.wrappedValue == 0 ? 2 : 1
-            }, set: { mode in
-                enabled.wrappedValue = mode != 0
-                if mode == 2 { minimum.wrappedValue = 0 }
-                else if mode == 1 && minimum.wrappedValue == 0 { minimum.wrappedValue = 90 }
-            })) {
-                Text("Off").tag(0)
-                Text("Only near the limit").tag(1)
-                Text("Every reset").tag(2)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Reset alerts")
+                Spacer(minLength: 12)
+                Picker("Reset alerts", selection: Binding<Int>(get: {
+                    !enabled.wrappedValue ? 0 : minimum.wrappedValue == 0 ? 2 : 1
+                }, set: { mode in
+                    enabled.wrappedValue = mode != 0
+                    if mode == 2 { minimum.wrappedValue = 0 }
+                    else if mode == 1 && minimum.wrappedValue == 0 { minimum.wrappedValue = 90 }
+                })) {
+                    Text("Off").tag(0)
+                    Text("Only near the limit").tag(1)
+                    Text("Every reset").tag(2)
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .fixedSize()
             }
             if enabled.wrappedValue && minimum.wrappedValue > 0 {
-                Stepper("At least \(minimum.wrappedValue)% used", value: minimum, in: 5...100, step: 5)
+                HStack(spacing: 8) {
+                    Text("Minimum usage")
+                        .foregroundStyle(.secondary)
+                    SettingsPercentageField(label: "Minimum usage for reset alerts", value: Binding(get: {
+                        minimum.wrappedValue
+                    }, set: { value in
+                        // A field losing focus must not overwrite the Every reset sentinel.
+                        if enabled.wrappedValue && minimum.wrappedValue > 0 {
+                            minimum.wrappedValue = value
+                        }
+                    }))
+                    .help("Send a reset reminder only if usage reached this percentage before the reset.")
+                }
+                .padding(.leading, 16)
+                .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
     }
@@ -825,11 +861,13 @@ struct NotificationInlineControls: View {
         _ title: String,
         @ViewBuilder content: @escaping () -> Content
     ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
-            content()
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.body.weight(.semibold))
+                .accessibilityAddTraits(.isHeader)
+            VStack(alignment: .leading, spacing: 10, content: content)
+                .padding(.leading, 12)
         }
-        .padding(.top, 4)
     }
 
     private func notificationCheckbox(_ title: String, isOn: Binding<Bool>) -> some View {
@@ -855,26 +893,22 @@ struct LaunchAtLoginToggle: View {
 }
 
 
-private struct SettingsUsageThresholdField: View {
+private struct SettingsPercentageField: View {
+    let label: String
     @Binding var value: Int
     @State private var draft = ""
     @FocusState private var focused: Bool
     var body: some View {
-        HStack {
-            Text("Usage threshold")
-            Spacer()
-            HStack(spacing: 5) {
-                TextField("Percent used", text: $draft)
-                    .labelsHidden().textFieldStyle(.roundedBorder)
-                    .multilineTextAlignment(.trailing).frame(width: 42)
-                    .focused($focused).onSubmit(commit)
-                    .accessibilityLabel("Usage threshold, percent used")
-                Text("%")
-                Stepper("Usage threshold", value: $value, in: 5...100, step: 5).labelsHidden()
-            }
-            .fixedSize()
+        HStack(spacing: 5) {
+            TextField("Percent used", text: $draft)
+                .labelsHidden().textFieldStyle(.roundedBorder)
+                .multilineTextAlignment(.trailing).frame(width: 42)
+                .focused($focused).onSubmit(commit)
+                .accessibilityLabel("\(label), percent used")
+            Text("%")
+            Stepper(label, value: $value, in: 5...100, step: 5).labelsHidden()
         }
-        .help("One usage alert per window, at or above this threshold. Enter 5 to 100 percent.")
+        .fixedSize()
         .onAppear { draft = String(value) }
         .onChange(of: focused) { _, focused in if !focused { commit() } }
         .onChange(of: value) { _, value in draft = String(value) }
