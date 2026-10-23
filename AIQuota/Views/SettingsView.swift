@@ -19,50 +19,29 @@ private enum SettingsPage: String, CaseIterable, Identifiable {
 
 struct SettingsView: View {
     @Environment(QuotaViewModel.self) private var viewModel
-    @State private var page: SettingsPage? = .general
+    @State private var page: SettingsPage = .general
 
     var body: some View {
-        NavigationSplitView(columnVisibility: .constant(.all)) {
-            List(selection: $page) {
-                ForEach([SettingsPage.general, .accounts, .notifications]) { item in
-                    sidebarLabel(item).tag(item)
+        TabView(selection: $page) {
+            ForEach(SettingsPage.allCases) { item in
+                Group {
+                    switch item {
+                    case .general: GeneralSettingsPane()
+                    case .accounts: AccountsSettingsPane()
+                    case .notifications: NotificationsSettingsPane()
+                    case .about: AboutSettingsPane()
+                    }
                 }
+                .tabItem { Label(item.rawValue, systemImage: item.icon) }
+                .tag(item)
             }
-            .listStyle(.sidebar)
-            .safeAreaInset(edge: .bottom) {
-                List(selection: $page) {
-                    sidebarLabel(.about).tag(SettingsPage.about)
-                }
-                .listStyle(.sidebar)
-                .frame(height: 64)
-            }
-            .navigationSplitViewColumnWidth(min: 190, ideal: 200, max: 230)
-            .toolbar(removing: .sidebarToggle)
-        } detail: {
-            Group {
-                switch page ?? .general {
-                case .general: GeneralSettingsPane()
-                case .accounts: AccountsSettingsPane()
-                case .notifications: NotificationsSettingsPane()
-                case .about: AboutSettingsPane()
-                }
-            }
-            .navigationTitle((page ?? .general).rawValue)
         }
-        .navigationSplitViewStyle(.balanced)
         .background(SettingsWindowPresentation())
-        .frame(minWidth: 740, idealWidth: 800, minHeight: 560, idealHeight: 650)
+        .frame(minWidth: 540, idealWidth: 600, minHeight: 560, idealHeight: 650)
         .tint(Color.brand)
         .onChange(of: viewModel.settings) {
             if !viewModel.isReadOnlyPreview { viewModel.saveSettings() }
         }
-    }
-
-    private func sidebarLabel(_ item: SettingsPage) -> some View {
-        Label(item.rawValue, systemImage: item.icon)
-            .font(.body.weight(.medium))
-            .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
-            .contentShape(Rectangle())
     }
 }
 
@@ -193,7 +172,7 @@ private struct AccountsSettingsPane: View {
     @Environment(QuotaViewModel.self) private var viewModel
     @State private var accounts = AccountRegistry.orderedAccounts()
     @State private var selected: String?
-    @State private var addingProvider: ServiceType?
+    @State private var connectedAccount: ConnectedAccount?
     @State private var connecting = false
     @State private var hoveredAddProvider: ServiceType?
 
@@ -209,7 +188,7 @@ private struct AccountsSettingsPane: View {
                         ForEach(serviceAccounts) { account in
                             accountRow(account)
                         }
-                        Button { addingProvider = provider } label: {
+                        Button { connect(provider) } label: {
                             HStack {
                                 Label("Add \(provider.displayName) Account…", systemImage: "plus")
                                 Spacer(minLength: 0)
@@ -247,20 +226,21 @@ private struct AccountsSettingsPane: View {
         .onChange(of: viewModel.enrolledServices) { reloadAccounts() }
         .onChange(of: selected) { _, id in if id == nil { reloadAccounts() } }
         .onAppear(perform: reloadAccounts)
-        .sheet(isPresented: Binding(get: { addingProvider != nil }, set: { if !$0 { addingProvider = nil } })) {
-            if let provider = addingProvider {
-                AddAccountNameSheet(provider: provider, suggestedName: viewModel.suggestedAccountName(for: provider),
-                                    cancel: { addingProvider = nil }) { name, showInMenuBar, usesSuggestedName in
-                    addingProvider = nil
-                    connecting = true
-                    Task {
-                        await viewModel.connectAccount(for: provider, named: name, showInMenuBar: showInMenuBar,
-                                                       usesSuggestedName: usesSuggestedName)
-                        connecting = false
-                        reloadAccounts()
-                    }
-                }
+        .sheet(item: $connectedAccount) { account in
+            ConnectedAccountNameSheet(account: account, dismiss: { connectedAccount = nil }) { name, showInMenuBar in
+                viewModel.saveConnectedAccount(id: account.id, name: name, showInMenuBar: showInMenuBar)
+                connectedAccount = nil
+                reloadAccounts()
             }
+        }
+    }
+
+    private func connect(_ provider: ServiceType) {
+        connecting = true
+        Task {
+            connectedAccount = await viewModel.connectAccount(for: provider)
+            connecting = false
+            reloadAccounts()
         }
     }
 
@@ -709,26 +689,25 @@ private struct SettingsDiagnostics: View {
     private static let timestampFormatter = ISO8601DateFormatter()
 }
 
-struct AddAccountNameSheet: View {
-    let provider: ServiceType
-    let suggestedName: String
-    let cancel: () -> Void
-    let connect: (String, Bool?, Bool) -> Void
+struct ConnectedAccountNameSheet: View {
+    @Environment(QuotaViewModel.self) private var viewModel
+    let account: ConnectedAccount
+    let dismiss: () -> Void
+    let save: (String, Bool?) -> Void
     @State private var showInMenuBar = false
-    private var asksMenuBarChoice: Bool { AccountRegistry.accounts().count >= 2 }
+    private var asksMenuBarChoice: Bool { AccountRegistry.accounts().count > 2 }
 
     @State private var name = ""
-    @State private var originalSuggestion = ""
     @FocusState private var nameFocused: Bool
 
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
-    private var serviceName: String { provider == .codex ? "Codex" : "Claude Code" }
+    private var serviceName: String { account.provider == .codex ? "Codex" : "Claude Code" }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Add \(serviceName) account")
+            Text("Name your \(serviceName) account")
                 .font(.headline)
-            Text("Edit the suggested name now or change it later in Settings.")
+            Text("Your account is connected. Save the suggested name or choose your own. You can change it later in Settings.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -743,21 +722,25 @@ struct AddAccountNameSheet: View {
             }
             HStack {
                 Spacer()
-                Button("Cancel", action: cancel)
+                Button("Not Now", action: dismiss)
                     .keyboardShortcut(.cancelAction)
-                Button("Connect", action: submit)
+                Button("Save", action: submit)
                     .keyboardShortcut(.defaultAction)
                     .disabled(trimmedName.isEmpty)
             }
         }
         .padding(20)
         .frame(width: 360)
-        .onAppear { originalSuggestion = suggestedName; name = suggestedName; nameFocused = true }
+        .onAppear {
+            name = account.displayLabel
+            showInMenuBar = viewModel.settings.menuBarAccountIDs?.contains(account.id) == true
+            nameFocused = true
+        }
     }
 
     private func submit() {
         guard !trimmedName.isEmpty else { return }
-        connect(trimmedName, asksMenuBarChoice ? showInMenuBar : nil, trimmedName == originalSuggestion)
+        save(trimmedName, asksMenuBarChoice ? showInMenuBar : nil)
     }
 }
 

@@ -120,7 +120,7 @@ struct AIQuotaApp: App {
                 .environment(viewModel)
                 .environment(updaterViewModel)
         }
-        .defaultSize(width: 800, height: 650)
+        .defaultSize(width: 600, height: 650)
         .windowResizability(.contentMinSize)
     }
 
