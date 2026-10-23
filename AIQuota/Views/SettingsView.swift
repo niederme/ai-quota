@@ -2,6 +2,7 @@ import SwiftUI
 import ServiceManagement
 import UserNotifications
 import AIQuotaKit
+import MobileAccessCore
 
 private enum SettingsPage: String, CaseIterable, Identifiable {
     case general = "General", accounts = "Accounts", notifications = "Notifications", about = "About"
@@ -194,6 +195,7 @@ private struct AccountsSettingsPane: View {
     @State private var selected: String?
     @State private var addingProvider: ServiceType?
     @State private var connecting = false
+    @State private var hoveredAddProvider: ServiceType?
 
     var body: some View {
         NavigationStack {
@@ -208,10 +210,19 @@ private struct AccountsSettingsPane: View {
                             accountRow(account)
                         }
                         Button { addingProvider = provider } label: {
-                            Label("Add \(provider.displayName) Account…", systemImage: "plus")
+                            HStack {
+                                Label("Add \(provider.displayName) Account…", systemImage: "plus")
+                                Spacer(minLength: 0)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
+                            .background(hoveredAddProvider == provider ? Color.brand.opacity(0.08) : .clear,
+                                        in: RoundedRectangle(cornerRadius: 7))
+                            .contentShape(Rectangle())
                         }
-                        .buttonStyle(.borderless)
+                        .buttonStyle(.plain)
+                        .foregroundColor(.brand)
                         .disabled(connecting || viewModel.isReadOnlyPreview)
+                        .onHover { hoveredAddProvider = $0 ? provider : nil }
                     } header: {
                         Text(provider.displayName)
                     } footer: {
@@ -238,11 +249,13 @@ private struct AccountsSettingsPane: View {
         .onAppear(perform: reloadAccounts)
         .sheet(isPresented: Binding(get: { addingProvider != nil }, set: { if !$0 { addingProvider = nil } })) {
             if let provider = addingProvider {
-                AddAccountNameSheet(provider: provider, cancel: { addingProvider = nil }) { name, showInMenuBar in
+                AddAccountNameSheet(provider: provider, suggestedName: viewModel.suggestedAccountName(for: provider),
+                                    cancel: { addingProvider = nil }) { name, showInMenuBar, usesSuggestedName in
                     addingProvider = nil
                     connecting = true
                     Task {
-                        await viewModel.connectAccount(for: provider, named: name, showInMenuBar: showInMenuBar)
+                        await viewModel.connectAccount(for: provider, named: name, showInMenuBar: showInMenuBar,
+                                                       usesSuggestedName: usesSuggestedName)
                         connecting = false
                         reloadAccounts()
                     }
@@ -698,12 +711,14 @@ private struct SettingsDiagnostics: View {
 
 struct AddAccountNameSheet: View {
     let provider: ServiceType
+    let suggestedName: String
     let cancel: () -> Void
-    let connect: (String, Bool?) -> Void
+    let connect: (String, Bool?, Bool) -> Void
     @State private var showInMenuBar = false
     private var asksMenuBarChoice: Bool { AccountRegistry.accounts().count >= 2 }
 
     @State private var name = ""
+    @State private var originalSuggestion = ""
     @FocusState private var nameFocused: Bool
 
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -713,7 +728,7 @@ struct AddAccountNameSheet: View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Add \(serviceName) account")
                 .font(.headline)
-            Text("Choose a name such as Personal or Work. You can change it later.")
+            Text("Edit the suggested name now or change it later in Settings.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -737,12 +752,12 @@ struct AddAccountNameSheet: View {
         }
         .padding(20)
         .frame(width: 360)
-        .onAppear { nameFocused = true }
+        .onAppear { originalSuggestion = suggestedName; name = suggestedName; nameFocused = true }
     }
 
     private func submit() {
         guard !trimmedName.isEmpty else { return }
-        connect(trimmedName, asksMenuBarChoice ? showInMenuBar : nil)
+        connect(trimmedName, asksMenuBarChoice ? showInMenuBar : nil, trimmedName == originalSuggestion)
     }
 }
 

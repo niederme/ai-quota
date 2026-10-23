@@ -46,11 +46,13 @@ struct ServicesStepView: View {
         .onChange(of: viewModel.enrolledServices) { reload() }
         .sheet(isPresented: Binding(get: { addingProvider != nil }, set: { if !$0 { addingProvider = nil } })) {
             if let provider = addingProvider {
-                AddAccountNameSheet(provider: provider, cancel: { addingProvider = nil }) { name, showInMenuBar in
+                AddAccountNameSheet(provider: provider, suggestedName: viewModel.suggestedAccountName(for: provider),
+                                    cancel: { addingProvider = nil }) { name, showInMenuBar, usesSuggestedName in
                     addingProvider = nil
                     connecting = true
                     Task {
-                        await viewModel.connectAccount(for: provider, named: name, showInMenuBar: showInMenuBar)
+                        await viewModel.connectAccount(for: provider, named: name, showInMenuBar: showInMenuBar,
+                                                       usesSuggestedName: usesSuggestedName)
                         connecting = false
                         reload()
                     }

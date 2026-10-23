@@ -8,6 +8,8 @@ struct MultiAccountSettingsView: View {
     let onboarding: OnboardingProgress
     @State private var connectionProfile: AccountProfile?
     @State private var pendingAdd: AccountProfile?
+    @State private var namingService: QuotaService?
+    @State private var nameDraft = ""
     @State private var accountToRename: AccountProfile?
     @State private var labelDraft = ""
     @State private var accountToRemove: AccountProfile?
@@ -57,7 +59,7 @@ struct MultiAccountSettingsView: View {
                                 Button("Remove", role: .destructive) { accountToRemove = profile }
                             }
                     }
-                    Button("Add \(service.name) account", systemImage: "plus") { add(service) }
+                    Button("Add \(service.name) account", systemImage: "plus") { prepareName(for: service) }
                 } header: { Text(service.name) }
             }
             Section {
@@ -89,6 +91,19 @@ struct MultiAccountSettingsView: View {
         .tint(OverviewStyle.accent)
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
+        .alert("Add account", isPresented: Binding(
+            get: { namingService != nil }, set: { if !$0 { namingService = nil } }
+        )) {
+            TextField("Account name", text: $nameDraft)
+            Button("Connect") {
+                if let namingService { add(namingService, named: nameDraft) }
+                namingService = nil
+            }
+            .disabled(nameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            Button("Cancel", role: .cancel) { namingService = nil }
+        } message: {
+            Text("Edit the suggested name now or rename the account later.")
+        }
         .alert("Rename account", isPresented: Binding(
             get: { accountToRename != nil },
             set: { if !$0 { accountToRename = nil } }
@@ -139,7 +154,10 @@ struct MultiAccountSettingsView: View {
                            progress: onboarding, accounts: accounts, onFinish: { accounts.reload() })
         }
         .sheet(item: $connectionProfile, onDismiss: {
-            if let pendingAdd { accounts.discardIfUnconnected(pendingAdd) }
+            if let pendingAdd {
+                accounts.updateSuggestedNameIfReady(pendingAdd)
+                accounts.discardIfUnconnected(pendingAdd)
+            }
             pendingAdd = nil
             accounts.reload()
         }) { profile in
@@ -188,8 +206,13 @@ struct MultiAccountSettingsView: View {
         accountToRename = profile
     }
 
-    private func add(_ service: QuotaService) {
-        let profile = accounts.add(service)
+    private func prepareName(for service: QuotaService) {
+        nameDraft = accounts.suggestedName(for: service)
+        namingService = service
+    }
+
+    private func add(_ service: QuotaService, named name: String) {
+        let profile = accounts.add(service, named: name)
         pendingAdd = profile
         connectionProfile = profile
     }

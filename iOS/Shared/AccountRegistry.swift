@@ -9,13 +9,16 @@ struct AccountProfile: Codable, Equatable, Identifiable, Sendable {
     var label: String
     var providerIdentity: String?
     let isLegacy: Bool
+    var suggestedNamePending: Bool?
 
-    init(id: String, service: QuotaService, label: String, providerIdentity: String? = nil, isLegacy: Bool) {
+    init(id: String, service: QuotaService, label: String, providerIdentity: String? = nil,
+         isLegacy: Bool, suggestedNamePending: Bool? = nil) {
         self.id = id
         self.service = service
         self.label = label
         self.providerIdentity = providerIdentity
         self.isLegacy = isLegacy
+        self.suggestedNamePending = suggestedNamePending
     }
 
     /// Stable identity used when ordering profiles across services. Profile IDs
@@ -106,17 +109,18 @@ enum AccountRegistry {
                 return values.first(where: { $0.id == id }) ?? values.first
             }
         }
-        func add(service: QuotaService) -> AccountProfile {
+        func add(service: QuotaService, label requestedLabel: String? = nil, suggestedNamePending: Bool = true) -> AccountProfile {
             transaction { state in
                 let count = state.profiles.lazy.filter { $0.service == service }.count
-                let usedLabels = Set(state.profiles.filter { $0.service == service }.map(\.label))
-                var nextNumber = 1
-                while usedLabels.contains("Account \(nextNumber)") { nextNumber += 1 }
+                let suggested = AccountNameSuggestion.make(service: service.name, plan: nil,
+                    existingLabels: state.profiles.filter { $0.service == service }.map(\.label))
+                let label = requestedLabel?.trimmingCharacters(in: .whitespacesAndNewlines)
                 let profile = AccountProfile(
                     id: count == 0 ? "live" : UUID().uuidString,
                     service: service,
-                    label: "Account \(nextNumber)",
-                    isLegacy: count == 0
+                    label: label.flatMap { $0.isEmpty ? nil : $0 } ?? suggested,
+                    isLegacy: count == 0,
+                    suggestedNamePending: suggestedNamePending
                 )
                 state.profiles.append(profile)
                 if state.defaults[service.rawValue] == nil { state.defaults[service.rawValue] = profile.id }
@@ -129,6 +133,7 @@ enum AccountRegistry {
                 guard !label.isEmpty else { return }
                 for index in state.profiles.indices where state.profiles[index].id == id {
                     state.profiles[index].label = label
+                    state.profiles[index].suggestedNamePending = false
                 }
             }
         }
@@ -138,6 +143,19 @@ enum AccountRegistry {
                 guard !label.isEmpty,
                       let index = state.profiles.firstIndex(where: { $0.service == service && $0.id == id }) else { return }
                 state.profiles[index].label = label
+                state.profiles[index].suggestedNamePending = false
+            }
+        }
+        func applySuggestedPlan(service: QuotaService, id: String, plan: String) {
+            transaction { state in
+                let plan = plan.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !plan.isEmpty, plan.caseInsensitiveCompare("Unknown") != .orderedSame else { return }
+                guard let index = state.profiles.firstIndex(where: { $0.service == service && $0.id == id }),
+                      state.profiles[index].suggestedNamePending == true else { return }
+                let existing = state.profiles.filter { $0.service == service && $0.id != id }.map(\.label)
+                state.profiles[index].label = AccountNameSuggestion.make(
+                    service: service.name, plan: plan, existingLabels: existing)
+                state.profiles[index].suggestedNamePending = false
             }
         }
         func remove(id: String) {
@@ -240,7 +258,12 @@ enum AccountRegistry {
     static func all() -> [AccountProfile] { store.all() }
     static func profiles(for service: QuotaService) -> [AccountProfile] { store.profiles(for: service) }
     static func defaultProfile(for service: QuotaService) -> AccountProfile? { store.defaultProfile(for: service) }
-    static func add(service: QuotaService) -> AccountProfile { store.add(service: service) }
+    static func add(service: QuotaService, label: String? = nil, suggestedNamePending: Bool = true) -> AccountProfile {
+        store.add(service: service, label: label, suggestedNamePending: suggestedNamePending)
+    }
+    static func applySuggestedPlan(service: QuotaService, id: String, plan: String) {
+        store.applySuggestedPlan(service: service, id: id, plan: plan)
+    }
     static func rename(id: String, label: String) { store.rename(id: id, label: label) }
     static func rename(service: QuotaService, id: String, label: String) { store.rename(service: service, id: id, label: label) }
     static func remove(id: String) { store.remove(id: id) }
