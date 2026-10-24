@@ -3,6 +3,51 @@ import Testing
 @testable import AIQuotaKit
 
 struct CodexTokenHistoryTests {
+    @Test func workspaceProfileUsesOnlyAccountUsageSchema() throws {
+        let data = Data(#"{"profile":{"display_name":"Same name across workspaces"},"metadata":{"stats_error":null,"stats_as_of":"2026-10-08"},"stats":{"daily_usage_buckets":[{"start_date":"2026-10-08","tokens":500},{"start_date":"2026-10-09","tokens":0}]}}"#.utf8)
+        let personal = try #require(try CodexTokenHistory.decodeWorkspaceProfile(data, workspaceID: "personal", scopeID: "request-a"))
+        let work = try #require(try CodexTokenHistory.decodeWorkspaceProfile(data, workspaceID: "work", scopeID: "request-b"))
+        #expect(personal.tokensByDate["2026-10-08"] == 500)
+        #expect(personal.tokensByDate["2026-10-09"] == 0)
+        #expect(personal.tokensByDate["2026-10-10"] == nil)
+        #expect(personal.isAttributed(toWorkspaceID: "personal"))
+        #expect(!personal.isAttributed(toWorkspaceID: "work"))
+        #expect(work.isAttributed(toWorkspaceID: "work"))
+        #expect(!work.isAttributed(toWorkspaceID: "personal"))
+        // Identical names/counts are not used to infer or merge identities.
+        #expect(personal.tokensByDate == work.tokensByDate)
+        #expect(personal.scopeID != work.scopeID)
+        #expect(try CodexTokenHistory.decodeWorkspaceProfile(response("[{\"start_date\":\"2026-10-08\",\"tokens\":500}]"), workspaceID: "personal", scopeID: "request-a") == nil)
+    }
+
+    @Test func unavailableWorkspaceStatsNeverBecomeZeroHistory() throws {
+        for payload in [#"{}"#, #"{"stats":{}}"#, #"{"stats":{"daily_usage_buckets":null}}"#,
+                        #"{"metadata":{"stats_error":"unavailable"},"stats":{"daily_usage_buckets":[{"start_date":"2026-10-08","tokens":500}]}}"#] {
+            #expect(try CodexTokenHistory.decodeWorkspaceProfile(Data(payload.utf8), workspaceID: "work", scopeID: "request-b") == nil)
+        }
+        let empty = try #require(try CodexTokenHistory.decodeWorkspaceProfile(Data(#"{"stats":{"daily_usage_buckets":[]}}"#.utf8), workspaceID: "work", scopeID: "request-b"))
+        #expect(empty.tokensByDate.isEmpty)
+        #expect(empty.isAttributed(toWorkspaceID: "work"))
+    }
+
+    @Test func workspaceProfileRequiresBoundScopeAndValidIntegerBuckets() {
+        let empty = Data(#"{"stats":{"daily_usage_buckets":[]}}"#.utf8)
+        for (workspace, scope) in [("", "request"), ("work", "")] {
+            #expect(throws: (any Error).self) {
+                try CodexTokenHistory.decodeWorkspaceProfile(empty, workspaceID: workspace, scopeID: scope)
+            }
+        }
+        for buckets in [#"[{"start_date":"2026-02-30","tokens":1}]"#,
+                        #"[{"start_date":"2026-10-08","tokens":-1}]"#,
+                        #"[{"start_date":"2026-10-08","tokens":1.5}]"#,
+                        #"[{"start_date":"2026-10-08","tokens":1},{"start_date":"2026-10-08","tokens":2}]"#] {
+            let data = Data("{\"stats\":{\"daily_usage_buckets\":\(buckets)}}".utf8)
+            #expect(throws: (any Error).self) {
+                try CodexTokenHistory.decodeWorkspaceProfile(data, workspaceID: "work", scopeID: "request-b")
+            }
+        }
+    }
+
     private func response(_ buckets: String) -> Data {
         Data("{\"page\":{\"activity_graph\":{\"daily_usage_buckets\":\(buckets)}}}".utf8)
     }
@@ -24,6 +69,30 @@ struct CodexTokenHistoryTests {
     @Test func absentGraphAndEmptyHistory() throws {
         #expect(try CodexTokenHistory.decode(Data("{\"page\":{\"activity_graph\":null}}".utf8)) == nil)
         #expect(try CodexTokenHistory.decode(response("[]"))?.tokensByDate.isEmpty == true)
+    }
+
+    @Test func profileHistoryNeverClaimsWorkspaceAttribution() throws {
+        for tokens in [0, 500] {
+            let data = response("[{\"start_date\":\"2026-10-08\",\"tokens\":\(tokens)}]")
+            for credentialScope in ["hash-personal", "hash-work"] {
+                let history = try #require(try CodexTokenHistory.decode(data, scopeID: credentialScope))
+                #expect(history.attribution == .unverifiedProfile)
+                for workspace in [nil, "", "personal", "work"] as [String?] {
+                    #expect(!history.isAttributed(toWorkspaceID: workspace))
+                }
+            }
+        }
+        let empty = try #require(try CodexTokenHistory.decode(response("[]"), scopeID: "hash-work"))
+        #expect(!empty.isAttributed(toWorkspaceID: "work"))
+    }
+
+    @Test func explicitProviderAttributionMustMatchExpectedWorkspace() {
+        let history = CodexTokenHistory(tokensByDate: ["2026-10-08": 0], fetchedAt: .now,
+                                        scopeID: "credential-hash", attribution: .verifiedWorkspace("work"))
+        #expect(history.isAttributed(toWorkspaceID: "work"))
+        for workspace in [nil, "", "personal"] as [String?] {
+            #expect(!history.isAttributed(toWorkspaceID: workspace))
+        }
     }
 
     @Test func rejectsInvalidBuckets() {

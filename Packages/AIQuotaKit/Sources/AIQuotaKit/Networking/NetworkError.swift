@@ -9,12 +9,19 @@ public enum NetworkError: Error, Sendable, LocalizedError {
     case decodingError(underlying: any Error)
     case networkUnavailable
     case unknownEndpoint
+    case accountIdentityMismatch
 
     public var isAuthError: Bool {
         switch self {
         case .notAuthenticated, .tokenExpired, .refreshFailed: true
         default: false
         }
+    }
+
+    /// UI recovery is separate from automatic authentication-error retries.
+    public var needsReconnect: Bool {
+        if case .accountIdentityMismatch = self { return true }
+        return isAuthError
     }
 
     public var errorDescription: String? {
@@ -27,6 +34,7 @@ public enum NetworkError: Error, Sendable, LocalizedError {
         case .decodingError: "Unexpected response format from server."
         case .networkUnavailable: "No network connection."
         case .unknownEndpoint: "API endpoint not configured."
+        case .accountIdentityMismatch: "Could not verify this Codex session for the saved account. Its connection has been preserved."
         }
     }
 }

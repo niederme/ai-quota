@@ -16,6 +16,7 @@ struct PopoverView: View {
     @State private var focusedService: ServiceType?
     @State private var overviewHeight: CGFloat?
     @State private var accountListScrolls = false
+    @State private var quotaInsightHeight: CGFloat = 0
     @State private var navigationPhase: PopoverNavigationPhase = .overview
     @State private var presentationID = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -43,7 +44,7 @@ struct PopoverView: View {
         let visible = screen?.visibleFrame ?? CGRect(x: 0, y: 0, width: 800, height: 800)
         let top = menuBarWindow?.frame.maxY ?? visible.maxY
         let available = min(visible.height * 0.88, top - visible.minY - 16)
-        let chrome: CGFloat = 125 + (resetAnnouncement == nil ? 0 : 85)
+        let chrome: CGFloat = 125 + quotaInsightHeight + (resetAnnouncement == nil ? 0 : 85)
             + CGFloat(errorBanners.count) * 60
             + (updater.availableUpdateVersion == nil ? 0 : 40)
         return max(120, available - chrome)
@@ -309,6 +310,7 @@ struct PopoverView: View {
                 errorBanner(banner)
             }
             if viewModel.isCodexAuthenticated { resetNoticeRow }
+            MacQuotaInsightRow(onHeightChange: { quotaInsightHeight = $0 })
             MacAccountGridView(width: overviewWidth, maxHeight: overviewBodyMaxHeight,
                                openAccount: openAccount, openSettings: openSettingsWindow,
                                onScrollabilityChange: { accountListScrolls = $0 })
@@ -393,6 +395,7 @@ struct PopoverView: View {
             if viewModel.isCodexAuthenticated {
                 resetNoticeRow
             }
+            MacQuotaInsightRow(onHeightChange: { quotaInsightHeight = $0 })
 
             serviceArea
 
@@ -433,6 +436,7 @@ struct PopoverView: View {
                         unitLabel: budget.unit?.lowercased() == "credit" ? "credits this month"
                             : (budget.unit?.lowercased() == "usd" ? "monthly spend" : "monthly allowance"),
                         icon: "logo-openai", label: "Codex", resetAt: budget.resetAt,
+                        readingAt: u.fetchedAt,
                         isRefreshing: viewModel.isCodexLoading,
                         onRefresh: { viewModel.manualRefresh() }
                     )
@@ -499,6 +503,7 @@ struct PopoverView: View {
                         limitText: budgetValue(spend.limit, unit: spend.currencyCode),
                         unitLabel: spend.currencyCode?.uppercased() == "USD" ? "monthly spend" : "monthly allowance",
                         icon: "logo-claude", label: "Claude Code", resetAt: nil,
+                        readingAt: u.fetchedAt,
                         isRefreshing: viewModel.isClaudeLoading,
                         onRefresh: { viewModel.manualRefresh() }
                     )
@@ -549,6 +554,7 @@ struct PopoverView: View {
             codexGaugeSlot
             if viewModel.isCodexAuthenticated,
                let history = viewModel.codexTokenHistory,
+               history.isAttributed(toWorkspaceID: viewModel.primaryAccount(for: .codex)?.workspaceID),
                CodexTokenHistoryView.hasVisibleData(history) {
                 CodexTokenHistoryView(history: history, availableWidth: max(1, overviewWidth / CGFloat(visibleServices.count) - 28))
                     .padding(.horizontal, 14)
@@ -1034,7 +1040,7 @@ struct PopoverView: View {
                 message: error.localizedDescription,
                 dismiss: { viewModel.codexError = nil },
                 retry: { viewModel.manualRefresh() },
-                signIn: error.isAuthError ? { Task { await viewModel.signIn() } } : nil
+                signIn: error.needsReconnect ? { Task { await viewModel.signIn() } } : nil
             ))
         }
 

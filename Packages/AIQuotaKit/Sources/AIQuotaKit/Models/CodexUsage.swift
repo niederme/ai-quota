@@ -165,6 +165,10 @@ public struct CodexUsage: Codable, Sendable, Equatable {
     public let approxLocalMessages: [Int]?  // [used, limit]
     public let approxCloudMessages: [Int]?  // [used, limit]
 
+    /// Provider workspace verified when fetched; older caches remain unverified.
+    public internal(set) var accountID: String?
+    /// Authentication source of a newly verified fetch; absent on old caches.
+    public internal(set) var quotaSource: CodexAuthSource?
     public let fetchedAt: Date
 
     /// Confirmed shape of the reported allowance, not a permanent plan capability.
@@ -263,6 +267,8 @@ public struct CodexUsage: Codable, Sendable, Equatable {
             monthlyBudget = nil
         }
 
+        self.accountID = response.accountId
+        self.quotaSource = nil
         self.fetchedAt = fetchedAt
     }
 
@@ -307,8 +313,11 @@ public struct CodexUsage: Codable, Sendable, Equatable {
         approxLocalMessages: [Int]?, approxCloudMessages: [Int]?,
         fetchedAt: Date, hourlyWindowReported: Bool? = nil,
         monthlyBudget: MonthlyBudget? = nil,
-        reportedWindowShape: ReportedWindowShape? = nil
+        reportedWindowShape: ReportedWindowShape? = nil, accountID: String? = nil,
+        quotaSource: CodexAuthSource? = nil
     ) {
+        self.accountID = accountID
+        self.quotaSource = quotaSource
         self.reportedWindowShape = reportedWindowShape
         self.hourlyWindowReported = hourlyWindowReported
         self.weeklyUsedPercent = weeklyUsedPercent
@@ -347,7 +356,7 @@ public struct CodexUsage: Codable, Sendable, Equatable {
             approxCloudMessages: approxCloudMessages,
             fetchedAt: fetchedAt, hourlyWindowReported: hourlyWindowReported,
             monthlyBudget: monthlyBudget,
-            reportedWindowShape: reportedWindowShape
+            reportedWindowShape: reportedWindowShape, accountID: accountID, quotaSource: quotaSource
         )
     }
 
@@ -370,7 +379,7 @@ public struct CodexUsage: Codable, Sendable, Equatable {
             fetchedAt: fetchedAt,
             hourlyWindowReported: hourlyWindowReported,
             monthlyBudget: budget,
-            reportedWindowShape: reportedWindowShape
+            reportedWindowShape: reportedWindowShape, accountID: accountID, quotaSource: quotaSource
         )
     }
 }

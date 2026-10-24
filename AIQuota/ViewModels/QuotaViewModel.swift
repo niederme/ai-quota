@@ -315,6 +315,12 @@ final class QuotaViewModel {
             identity = try? await claudeCoordinator.requestContext().orgId
         }
         guard let identity, !identity.isEmpty else { return }
+        if provider == .codex {
+            guard account.workspaceID == nil,
+                  !AccountRegistry.accounts(for: provider).contains(where: {
+                      $0.id != account.id && $0.workspaceID == identity
+                  }) else { return }
+        }
         account.workspaceID = identity
         account.updatedAt = .now
         AccountRegistry.save(account)
@@ -339,6 +345,7 @@ final class QuotaViewModel {
         guard let session = additionalAccounts.first(where: { $0.id == id }) else { return }
         await session.signOut()
         AccountRegistry.remove(id: id)
+        await QuotaInsightStore.shared.remove(accountID: id)
         additionalAccounts.removeAll { $0.id == id }
         if var selected = settings.menuBarAccountIDs, selected.contains(id) {
             selected.removeAll { $0 == id }
@@ -372,7 +379,7 @@ final class QuotaViewModel {
 
     var isClaudeAuthenticated: Bool { claudeState == .authenticated }
     var isCodexAuthenticated:  Bool { codexState  == .authenticated }
-    var isCodexRecovering: Bool { isCodexRecoveryPending || codexState == .unknown || codexState == .restoringSession }
+    var isCodexRecovering: Bool { isCodexRecoveryPending || codexState == .unknown || codexState == .restoringSession || codexState == .signingIn }
     var isClaudeRecovering: Bool { isClaudeRecoveryPending || claudeState == .unknown || claudeState == .restoringSession }
     var isRestoringSession: Bool {
         isCodexRecovering || isClaudeRecovering
@@ -500,6 +507,7 @@ final class QuotaViewModel {
         }
 
         // Step 3: product state reset (only after auth reset completes)
+        await QuotaInsightStore.shared.clear()
         claudeUsage     = nil
         codexUsage      = nil
         codexAutoReload = nil
@@ -589,7 +597,10 @@ final class QuotaViewModel {
 
         #if !DEMO_MODE
         // Load cached data immediately
-        codexUsage  = SharedDefaults.loadCachedUsage()
+        if let account = primaryAccount(for: .codex), let identity = account.workspaceID,
+           let cached = SharedDefaults.loadCachedUsage(forAccountID: account.id), cached.accountID == identity {
+            codexUsage = cached
+        }
         claudeUsage = SharedDefaults.loadCachedClaudeUsage()
 
         // Normalise any mixed per-threshold notification state from pre-consolidation builds.
@@ -645,7 +656,7 @@ final class QuotaViewModel {
                     }
                     if state == .signedOutByUser ||
                         (state == .unauthenticated && !self.isCodexRecoveryPending) {
-                        self.clearCodexUsageSnapshot()
+                        self.clearCodexUsageSnapshot(clearPersistedUsage: state == .signedOutByUser)
                     }
                 }
             }
@@ -694,7 +705,7 @@ final class QuotaViewModel {
         }
         guard await codexCoordinator.restoreWithoutPromptIfPossible(allowSignedOutByUser: true) else {
             logger.notice("[CodexRecovery] viewModel restore failed")
-            clearCodexUsageSnapshot()
+            clearCodexUsageSnapshot(clearPersistedUsage: false)
             return
         }
 
@@ -730,14 +741,16 @@ final class QuotaViewModel {
         if refreshTask == nil { startAutoRefresh() }
     }
 
-    private func clearCodexUsageSnapshot() {
+    private func clearCodexUsageSnapshot(clearPersistedUsage: Bool = true) {
         clearTokenHistory()
         clearUsageHistory()
         codexUsage = nil
         codexAutoReload = nil
-        SharedDefaults.clearUsage()
-        if let account = primaryAccount(for: .codex) {
-            SharedDefaults.clearUsage(forAccountID: account.id)
+        if clearPersistedUsage {
+            SharedDefaults.clearUsage()
+            if let account = primaryAccount(for: .codex) {
+                SharedDefaults.clearUsage(forAccountID: account.id)
+            }
         }
         WidgetCenter.shared.reloadAllTimelines()
         // Discarding the snapshot means any in-flight refresh is doomed — kill its
@@ -923,9 +936,11 @@ final class QuotaViewModel {
                 result = result.withMonthlyBudget(budget)
             }
 
+            guard gen == codexRefreshGeneration, isCodexAuthenticated else { return }
             // Auto-reload fetch: fail-open — errors leave codexAutoReload at its previous value
             // so the credit-warning treatment never regresses due to an auxiliary endpoint hiccup.
             if let reloadData = try? await autoReloadResult {
+                guard gen == codexRefreshGeneration, isCodexAuthenticated else { return }
                 codexAutoReload = reloadData
             } else {
                 logger.info("[CodexRefresh] auto-reload fetch failed — leaving codexAutoReload unchanged")
@@ -937,6 +952,7 @@ final class QuotaViewModel {
                 logger.info("[CodexRefresh] bonus spend fetch failed — leaving monthly spend hidden")
             }
 
+            guard gen == codexRefreshGeneration, isCodexAuthenticated else { return }
             // A partial response may return the last confirmed cached snapshot.
             // Do not relabel its freshness or emit new activity for retained data.
             guard result.fetchedAt > (codexUsage?.fetchedAt ?? .distantPast) else { return }
@@ -958,9 +974,17 @@ final class QuotaViewModel {
                 )
             }
         } catch let e as NetworkError {
+            if case .accountIdentityMismatch = e {
+                guard gen == codexRefreshGeneration else { return }
+                codexUsage = nil
+                codexAutoReload = nil
+                clearTokenHistory()
+                clearUsageHistory()
+                codexError = e
+                return
+            }
             if e.isAuthError {
                 codexUsage = nil
-                SharedDefaults.clearUsage()
                 // Session may have expired — try a forced revalidation before clearing
                 // auth state. Avoids a brief "Connect" flash when cookies are still valid.
                 guard await codexCoordinator.revalidateSessionAfterAuthFailure() else { return }
@@ -976,6 +1000,7 @@ final class QuotaViewModel {
                     if let spent = try? await bonusSpendResult {
                         result = result.withBonusCreditsSpentThisMonth(spent)
                     }
+                    guard gen == codexRefreshGeneration, isCodexAuthenticated else { return }
                     // Retained cached data is not a completed fresh allowance reading.
                     guard result.fetchedAt > (codexUsage?.fetchedAt ?? .distantPast) else { return }
                     recordServiceActivityIfNeeded(from: codexUsage, to: result)
@@ -995,6 +1020,13 @@ final class QuotaViewModel {
                             prefs: settings.notifications
                         )
                     }
+                } catch NetworkError.accountIdentityMismatch {
+                    guard gen == codexRefreshGeneration else { return }
+                    codexUsage = nil
+                    codexAutoReload = nil
+                    clearTokenHistory()
+                    clearUsageHistory()
+                    codexError = .accountIdentityMismatch
                 } catch {
                     // Retry also failed — coordinator already transitioned to unauthenticated
                 }
@@ -1498,13 +1530,29 @@ final class QuotaViewModel {
     // MARK: - Sign In / Out
 
     func signIn() async {
+        let previousError = codexError
+        if await codexCoordinator.state == .unknown { await codexCoordinator.bootstrap() }
+        let state = await codexCoordinator.state
+        guard state != .signingIn, state != .restoringSession, state != .signingOut, state != .resetting else { return }
         do {
-            try await codexCoordinator.signIn()
+            if primaryAccount(for: .codex) != nil {
+                try await codexCoordinator.reconnect()
+            } else {
+                try await codexCoordinator.signIn()
+            }
             codexState = .authenticated
+            codexError = nil
             ensurePrimaryAccount(for: .codex)
             await refreshCodex()
             if refreshTask == nil { startAutoRefresh() }
+        } catch is CancellationError {
+            codexState = await codexCoordinator.state
+            codexError = previousError
+        } catch let error as NetworkError {
+            codexState = await codexCoordinator.state
+            codexError = error
         } catch {
+            codexState = await codexCoordinator.state
             codexError = .notAuthenticated
         }
     }
@@ -1535,7 +1583,13 @@ final class QuotaViewModel {
         stopAutoRefresh()
         let primaryID = primaryAccount(for: .codex)?.id
         Task {
-            try? await codexCoordinator.signOut()
+            do {
+                try await codexCoordinator.signOut()
+            } catch {
+                self.codexError = (error as? NetworkError) ?? .notAuthenticated
+                return
+            }
+            guard await codexCoordinator.state == .signedOutByUser else { return }
             if let primaryID { AccountRegistry.remove(id: primaryID) }
             await NotificationManager.shared.clearResetHistory(for: .codex)
             self.enrolledServices.remove(.codex)
@@ -1683,7 +1737,10 @@ final class AdditionalAccountSession: Identifiable {
             codexClient = OpenAIClient(coordinator: coordinator, accountStorageID: storageID)
             claudeCoordinator = nil
             claudeClient = nil
-            codexUsage = SharedDefaults.loadCachedUsage(forAccountID: account.id)
+            if let identity = account.workspaceID,
+               let cached = SharedDefaults.loadCachedUsage(forAccountID: account.id), cached.accountID == identity {
+                codexUsage = cached
+            }
         case .claude:
             let coordinator = ClaudeAuthCoordinator(accountStorageID: storageID)
             claudeCoordinator = coordinator
@@ -1717,14 +1774,19 @@ final class AdditionalAccountSession: Identifiable {
     }
 
     func signIn() async {
+        let previousIssue = issue
         issue = nil
         if state == .unknown { await bootstrap() }
-        if state == .authenticated { await signOut() }
+        if provider == .claude, state == .authenticated { await signOut() }
         do {
             switch provider {
             case .codex:
                 guard let codexCoordinator else { return }
-                try await codexCoordinator.signIn()
+                if account.workspaceID != nil || state == .authenticated {
+                    try await codexCoordinator.reconnect()
+                } else {
+                    try await codexCoordinator.signIn()
+                }
                 adoptState(.authenticated)
             case .claude:
                 guard let claudeCoordinator else { return }
@@ -1733,7 +1795,11 @@ final class AdditionalAccountSession: Identifiable {
             }
             guard await bindIdentity() else { return }
             await refresh()
+        } catch is CancellationError {
+            if let codexCoordinator { adoptState(await codexCoordinator.state) }
+            issue = previousIssue
         } catch {
+            if let codexCoordinator { adoptState(await codexCoordinator.state) }
             issue = error.localizedDescription
         }
     }
@@ -1785,6 +1851,11 @@ final class AdditionalAccountSession: Identifiable {
                 claudeUsage = result
                 SharedDefaults.saveClaudeUsage(result, forAccountID: id)
             }
+        } catch NetworkError.accountIdentityMismatch {
+            guard generation == refreshGeneration else { return }
+            codexUsage = nil
+            clearTokenHistory()
+            issue = NetworkError.accountIdentityMismatch.localizedDescription
         } catch let error as NetworkError where error.isAuthError {
             switch provider {
             case .codex:
@@ -1879,15 +1950,13 @@ final class AdditionalAccountSession: Identifiable {
                 return false
             }
             if let expected = account.workspaceID, expected != identity {
-                await signOut()
-                issue = "This session belongs to a different account. Reconnect the intended account."
+                issue = "This session belongs to a different account. Its connection has been preserved."
                 return false
             }
             if AccountRegistry.accounts(for: provider).contains(where: {
                 $0.id != id && $0.workspaceID == identity
             }) {
-                await signOut()
-                issue = "This account is already connected."
+                issue = "This identity is already connected to another account. Both connections have been preserved."
                 return false
             }
             account.workspaceID = identity

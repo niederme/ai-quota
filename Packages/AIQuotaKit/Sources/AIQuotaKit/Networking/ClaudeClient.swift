@@ -46,6 +46,7 @@ public actor ClaudeClient {
     // MARK: - Public API
 
     public func fetchUsage() async throws -> ClaudeUsage {
+        let captureGeneration = await QuotaInsightStore.shared.captureGeneration()
         if !isScoped && !oauthDisabledForSession {
             do {
                 let oauth = try await coordinator.loadOAuthCredentials(allowKeychain: false)
@@ -99,8 +100,33 @@ public actor ClaudeClient {
 
         let ctx = try await coordinator.requestContext()
         do {
-            let usage = try await fetchUsageData(path: "/api/organizations/\(ctx.orgId)/usage",
+            var usage = try await fetchUsageData(path: "/api/organizations/\(ctx.orgId)/usage",
                                                   cookies: ctx.cookies)
+            // Bind to the actual request identity, never a label or OAuth/web guess.
+            usage.quotaScopeID = ctx.orgId
+            let accounts = AccountRegistry.accounts(for: .claude)
+            let account: ConnectedAccount?
+            if let accountStorageID {
+                account = accounts.first { $0.id == accountStorageID }
+            } else {
+                account = accounts.first { $0.connectionKind == .legacyPrimary }
+            }
+            // Optional insight capture never changes a working usage connection.
+            // Recheck after the network await and bind only previously unknown metadata.
+            if await coordinator.state == .authenticated,
+               let current = try? await coordinator.requestContext(), current.orgId == ctx.orgId,
+               let capturedAccount = account,
+               var account = AccountRegistry.account(id: capturedAccount.id),
+               account.workspaceID == nil || account.workspaceID == ctx.orgId,
+               !AccountRegistry.accounts(for: .claude).contains(where: { $0.id != account.id && $0.workspaceID == ctx.orgId }) {
+                if account.workspaceID == nil {
+                    account.workspaceID = ctx.orgId
+                    account.updatedAt = .now
+                    AccountRegistry.save(account)
+                }
+                await QuotaInsightStore.shared.recordClaude(usage, account: account, identity: ctx.orgId,
+                                                            captureGeneration: captureGeneration)
+            }
             recordAttempt(source: .web, httpStatus: 200, category: .success)
             return usage
         } catch let error as NetworkError {
@@ -744,7 +770,7 @@ public actor ClaudeClient {
             .network
         case .httpError(let statusCode):
             (500...599).contains(statusCode) ? .serverError : .invalidResponse
-        case .unknownEndpoint:
+        case .unknownEndpoint, .accountIdentityMismatch:
             .invalidResponse
         }
     }

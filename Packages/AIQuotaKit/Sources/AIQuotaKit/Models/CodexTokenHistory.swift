@@ -5,6 +5,18 @@ public struct CodexTokenHistory: Sendable {
     public let tokensByDate: [String: Double]
     public let fetchedAt: Date
     public let scopeID: String?
+    public enum Attribution: Sendable, Equatable {
+        case unverifiedProfile
+        case verifiedWorkspace(String)
+    }
+    public let attribution: Attribution
+
+    /// Request headers and credential hashes do not prove response attribution.
+    public func isAttributed(toWorkspaceID expected: String?) -> Bool {
+        guard let expected, !expected.isEmpty,
+              case .verifiedWorkspace(let actual) = attribution else { return false }
+        return !actual.isEmpty && actual == expected
+    }
 
     public struct Day: Identifiable, Sendable {
         public let date: Date
@@ -22,6 +34,39 @@ public struct CodexTokenHistory: Sendable {
         struct Bucket: Decodable { let start_date: String; let tokens: Double }
     }
 
+    private struct WorkspaceProfileResponse: Decodable {
+        let stats: Stats?
+        let metadata: Metadata?
+        struct Stats: Decodable { let daily_usage_buckets: [Bucket]? }
+        struct Bucket: Decodable { let start_date: String; let tokens: Int64 }
+        struct Metadata: Decodable { let stats_error: String? }
+    }
+
+    /// Only for the account-scoped WHAM route used by OpenAI's Codex client.
+    /// The caller must validate the request's bound workspace before and after
+    /// the response. The old shareable-profile page cannot use this attribution.
+    static func decodeWorkspaceProfile(_ data: Data, workspaceID: String, scopeID: String,
+                                       fetchedAt: Date = .now) throws -> Self? {
+        guard !workspaceID.isEmpty, !scopeID.isEmpty else {
+            throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "Missing token history request scope"))
+        }
+        let response = try JSONDecoder().decode(WorkspaceProfileResponse.self, from: data)
+        guard response.metadata?.stats_error == nil,
+              let buckets = response.stats?.daily_usage_buckets else { return nil }
+        var values: [String: Double] = [:]
+        let formatter = dateFormatter()
+        for bucket in buckets {
+            guard let date = formatter.date(from: bucket.start_date),
+                  formatter.string(from: date) == bucket.start_date,
+                  bucket.tokens >= 0, values[bucket.start_date] == nil else {
+                throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "Invalid workspace token history bucket"))
+            }
+            values[bucket.start_date] = Double(bucket.tokens)
+        }
+        return Self(tokensByDate: values, fetchedAt: fetchedAt, scopeID: scopeID,
+                    attribution: .verifiedWorkspace(workspaceID))
+    }
+
     public static func decode(_ data: Data, fetchedAt: Date = .now, scopeID: String? = nil) throws -> Self? {
         let response = try JSONDecoder().decode(Response.self, from: data)
         guard let buckets = response.page?.activity_graph?.daily_usage_buckets else { return nil }
@@ -36,7 +81,7 @@ public struct CodexTokenHistory: Sendable {
             }
             values[bucket.start_date] = bucket.tokens
         }
-        return Self(tokensByDate: values, fetchedAt: fetchedAt, scopeID: scopeID)
+        return Self(tokensByDate: values, fetchedAt: fetchedAt, scopeID: scopeID, attribution: .unverifiedProfile)
     }
 
     public static var calendar: Calendar {

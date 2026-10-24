@@ -144,6 +144,12 @@ public enum CodexOAuthCredentialsStore {
             ?? (auth["account_id"] as? String)
     }
 
+    static func jwtUserID(_ token: String) -> String? {
+        guard let json = jwtPayload(token) else { return nil }
+        let auth = json["https://api.openai.com/auth"] as? [String: Any]
+        return (auth?["chatgpt_user_id"] as? String) ?? (json["sub"] as? String)
+    }
+
     private static func jwtPayload(_ token: String) -> [String: Any]? {
         let parts = token.split(separator: ".")
         guard parts.count >= 2 else { return nil }

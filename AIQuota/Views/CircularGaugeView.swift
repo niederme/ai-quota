@@ -221,6 +221,7 @@ struct BudgetGaugeView: View {
     let icon: String
     let label: String
     let resetAt: Date?
+    let readingAt: Date
     let isRefreshing: Bool
     let onRefresh: () -> Void
 
@@ -262,11 +263,12 @@ struct BudgetGaugeView: View {
                         .contentTransition(.numericText())
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
-                    Text("Monthly")
+                    Text(CalendarMonthLabel.compact(containing: readingAt))
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
+                        .help("\(CalendarMonthLabel.spoken(containing: readingAt)). Reset uses the provider's date.")
                 }
                 .frame(width: 88)
 
@@ -297,7 +299,7 @@ struct BudgetGaugeView: View {
                 .font(.caption2)
                 .foregroundStyle(.secondary)
             if let resetAt, resetAt > .now {
-                Text(ResetTimeTextFormatter.compactWindowCaption("Monthly", resetAt: resetAt))
+                Text(ResetTimeTextFormatter.compactWindowCaption("", resetAt: resetAt).trimmingCharacters(in: .whitespaces))
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -306,7 +308,7 @@ struct BudgetGaugeView: View {
         }
         .multilineTextAlignment(.center)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(label), \(Int((fraction * 100).rounded())) percent monthly, \(usedText) of \(limitText) \(unitLabel)")
+        .accessibilityLabel("\(label), \(Int((fraction * 100).rounded())) percent, \(CalendarMonthLabel.spoken(containing: readingAt)), \(usedText) of \(limitText) \(unitLabel)")
     }
 }
 
