@@ -248,6 +248,9 @@ final class QuotaViewModel {
         )
     }
 
+    /// Explains why an add-account attempt ended without a new account.
+    var connectAccountNotice: String?
+
     /// Connect and fetch this account's plan before offering its name in onboarding or Settings.
     func connectAccount(for provider: ServiceType) async -> ConnectedAccount? {
         guard !isReadOnlyPreview, !Self.isDemoBuild else { return nil }
@@ -287,7 +290,15 @@ final class QuotaViewModel {
         let session = AdditionalAccountSession(account: account)
         additionalAccounts.append(session)
         await session.signIn()
-        guard session.isAuthenticated, session.account.workspaceID != nil, !Task.isCancelled else { return nil }
+        guard session.isAuthenticated, session.account.workspaceID != nil, !Task.isCancelled else {
+            // Never keep a card that did not finish connecting. A duplicate
+            // would otherwise sit beside the original as "Couldn't load allowance".
+            if session.isDuplicateIdentity {
+                connectAccountNotice = "That \(provider == .codex ? "Codex" : "Claude") account is already connected."
+            }
+            await removeAccount(id: account.id)
+            return nil
+        }
         let plan = provider == .codex ? session.codexUsage?.displayPlan : session.claudeUsage?.planDisplayName
         renameAccount(id: account.id, to: nameFromConnectedPlan(for: provider, accountID: account.id, plan: plan))
         startAutoRefresh(immediateRefresh: false)
@@ -1705,9 +1716,14 @@ final class AdditionalAccountSession: Identifiable {
     var state: AuthState = .unknown
     var codexUsage: CodexUsage?
     var codexTokenHistory: AIQuotaKit.CodexTokenHistory?
+    var codexUsageHistory: CodexUsageHistory?
+    var isUsageHistoryLoading = false
+    var usageHistoryFailed = false
     var claudeUsage: ClaudeUsage?
     var isLoading = false
     var issue: String?
+    /// Sign-in landed on an identity another account already holds.
+    private(set) var isDuplicateIdentity = false
 
     private let codexCoordinator: CodexAuthCoordinator?
     private let claudeCoordinator: ClaudeAuthCoordinator?
@@ -1718,6 +1734,10 @@ final class AdditionalAccountSession: Identifiable {
     private var tokenHistoryAttempt: Date?
     private var tokenHistoryGeneration = 0
     private var tokenHistoryScope = AIQuotaKit.CodexTokenHistoryScope()
+    private var usageHistoryTask: Task<Void, Never>?
+    private var usageHistoryAttempt: Date?
+    private var usageHistoryGeneration = 0
+    private var usageHistoryScope = AIQuotaKit.CodexTokenHistoryScope()
 
     init(account: ConnectedAccount) {
         self.id = account.id
@@ -1855,6 +1875,7 @@ final class AdditionalAccountSession: Identifiable {
             guard generation == refreshGeneration else { return }
             codexUsage = nil
             clearTokenHistory()
+            clearUsageHistory()
             issue = NetworkError.accountIdentityMismatch.localizedDescription
         } catch let error as NetworkError where error.isAuthError {
             switch provider {
@@ -1920,6 +1941,70 @@ final class AdditionalAccountSession: Identifiable {
         }
     }
 
+    /// The daily credit feed behind the analytics cards, scoped to this
+    /// account's workspace. Failures never change quota auth state.
+    func refreshUsageHistory(force: Bool = false) {
+        guard provider == .codex, isAuthenticated, let codexClient else { return }
+        guard usageHistoryTask == nil else { return }
+        if codexUsageHistory == nil { isUsageHistoryLoading = true }
+        let generation = usageHistoryGeneration
+        usageHistoryTask = Task {
+            defer {
+                if generation == usageHistoryGeneration {
+                    isUsageHistoryLoading = false
+                    usageHistoryTask = nil
+                }
+            }
+            var verifiedAccount = false
+            var requestScopeID: String?
+            do {
+                let scopeID = try await codexClient.tokenHistoryScopeID()
+                guard !Task.isCancelled, generation == usageHistoryGeneration, isAuthenticated else { return }
+                if usageHistoryScope.update(scopeID: scopeID) {
+                    codexUsageHistory = nil
+                    usageHistoryAttempt = nil
+                    usageHistoryFailed = false
+                }
+                verifiedAccount = true
+                requestScopeID = scopeID
+                if !force, let attempt = usageHistoryAttempt, Date.now.timeIntervalSince(attempt) < 900 { return }
+                usageHistoryAttempt = .now
+                isUsageHistoryLoading = true
+                let history = try await codexClient.fetchUsageHistory()
+                let currentScopeID = try await codexClient.tokenHistoryScopeID()
+                guard !Task.isCancelled, generation == usageHistoryGeneration, isAuthenticated else { return }
+                guard currentScopeID == scopeID else {
+                    codexUsageHistory = nil
+                    usageHistoryAttempt = nil
+                    _ = usageHistoryScope.update(scopeID: currentScopeID)
+                    return
+                }
+                codexUsageHistory = history
+                usageHistoryFailed = false
+            } catch {
+                let currentScopeID = try? await codexClient.tokenHistoryScopeID()
+                guard !Task.isCancelled, generation == usageHistoryGeneration else { return }
+                if !verifiedAccount || requestScopeID == nil || currentScopeID != requestScopeID {
+                    codexUsageHistory = nil
+                    usageHistoryAttempt = nil
+                } else {
+                    usageHistoryFailed = true
+                }
+            }
+        }
+    }
+
+    private func clearUsageHistory() {
+        usageHistoryGeneration += 1
+        usageHistoryScope = AIQuotaKit.CodexTokenHistoryScope()
+        usageHistoryTask?.cancel()
+        usageHistoryTask = nil
+        codexUsageHistory = nil
+        usageHistoryAttempt = nil
+        usageHistoryFailed = false
+        isUsageHistoryLoading = false
+    }
+
     private func clearTokenHistory() {
         tokenHistoryGeneration += 1
         tokenHistoryScope = AIQuotaKit.CodexTokenHistoryScope()
@@ -1933,6 +2018,7 @@ final class AdditionalAccountSession: Identifiable {
         state = newState
         if provider == .codex, newState != .authenticated {
             clearTokenHistory()
+            clearUsageHistory()
         }
     }
 
@@ -1956,6 +2042,7 @@ final class AdditionalAccountSession: Identifiable {
             if AccountRegistry.accounts(for: provider).contains(where: {
                 $0.id != id && $0.workspaceID == identity
             }) {
+                isDuplicateIdentity = true
                 issue = "This identity is already connected to another account. Both connections have been preserved."
                 return false
             }

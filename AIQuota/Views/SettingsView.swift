@@ -249,6 +249,14 @@ private struct AccountsSettingsPane: View {
                 reloadAccounts()
             }
         }
+        .alert(viewModel.connectAccountNotice ?? "", isPresented: Binding(
+            get: { viewModel.connectAccountNotice != nil },
+            set: { if !$0 { viewModel.connectAccountNotice = nil } }
+        )) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Nothing new was added. Sign in with a different account to connect another one.")
+        }
     }
 
     private func connect(_ provider: ServiceType) {
