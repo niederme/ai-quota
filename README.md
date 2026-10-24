@@ -110,6 +110,7 @@ The apps share an Xcode project with separate Mac and iOS schemes.
 - [Website previews and deployment](docs/website-development.md)
 - [Roadmap and validation priorities](docs/roadmap.md)
 - [Design references and HTML prototypes](prototypes/README.md)
+- Design systems for the [apps](https://github.com/niederme/design-systems/tree/main/aiquota-app-design-system) and the [website](https://github.com/niederme/design-systems/tree/main/aiquota-website-design-system), kept in the design-systems repo and used in Claude Design
 
 ## Anonymous usage analytics
 
