@@ -8,8 +8,9 @@ AIQuota requires macOS 15 or later. It is available as a direct download from Gi
 
 ## Key Pages
 
-- [Homepage](https://aiquota.app/): Product overview, features, download, and FAQ
+- [Homepage](https://aiquota.app/): Product overview, features, and download
 - [Releases](https://aiquota.app/releases/): Current and recent release information
+- [FAQ](https://aiquota.app/faq/): Tracking, sign-in, privacy, widgets, and requirements
 - [Privacy Policy](https://aiquota.app/privacy/): Data access, storage, analytics, and privacy details
 - [Terms of Service](https://aiquota.app/terms/): Terms for using AIQuota
 - [Accessibility](https://aiquota.app/accessibility/): Website and app accessibility statement

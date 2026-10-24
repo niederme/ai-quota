@@ -58,6 +58,7 @@ done
 
 PUBLIC_DIRS=(
   accessibility
+  faq
   privacy
   releases
   terms

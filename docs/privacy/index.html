@@ -9,7 +9,7 @@
       content="Privacy Policy for AIQuota, the macOS app for tracking Codex and Claude Code quota."
     />
     <meta name="color-scheme" content="dark light" />
-    <meta name="theme-color" content="#0b1730" />
+    <meta name="theme-color" content="#0b060f" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
@@ -54,7 +54,12 @@
     <meta name="twitter:image:alt" content="AIQuota app icon." />
     <script>
       (() => {
-        const storedTheme = window.localStorage.getItem("aiquota-docs-theme");
+        let storedTheme = null;
+        try {
+          storedTheme =
+            window.localStorage.getItem("aiquota-theme") ??
+            window.localStorage.getItem("aiquota-docs-theme");
+        } catch (error) {}
         const resolvedTheme =
           storedTheme === "light" || storedTheme === "dark"
             ? storedTheme
@@ -62,38 +67,53 @@
               ? "light"
               : "dark";
         document.documentElement.dataset.theme = resolvedTheme;
-        document.documentElement.style.colorScheme = resolvedTheme;
+        document.documentElement.classList.add("js");
       })();
     </script>
     <link rel="stylesheet" href="../site.css" />
     <script src="../site.js" defer></script>
   </head>
   <body>
-    <div class="page-shell">
-      <header class="site-header">
-        <div class="container">
-          <a class="brand" href="../">
-            <img
-              class="brand-icon"
-              src="../assets/aiquota-app-icon.png"
-              alt=""
-              width="1024"
-              height="1024"
-              aria-hidden="true"
-            />
-            <span>AIQuota</span>
-          </a>
-          <nav class="site-nav" aria-label="Primary">
-            <a href="../">Home</a>
-            <a href="../releases/">Releases</a>
-            <a href="https://github.com/niederme/ai-quota">GitHub</a>
-            <button class="button theme-toggle" type="button" data-theme-toggle></button>
-          </nav>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-nav">
+      <div class="site-nav__inner">
+        <nav class="aq-nav aq-glass" aria-label="Main" data-nav>
+          <a class="aq-nav__brand" href="../"><img src="../assets/aiquota-app-icon.png" alt="" width="28" height="28" />AIQuota</a>
+          <div class="aq-nav__links">
+            <a class="aq-nav__link" href="../">Overview</a>
+            <a class="aq-nav__link" href="../releases/">Releases</a>
+            <a class="aq-nav__link" href="../faq/">FAQ</a>
+            <a class="aq-nav__link" href="https://github.com/niederme/ai-quota">GitHub <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="aq-theme aq-glass aq-theme--compact" role="group" aria-label="Appearance" data-theme-picker>
+            <button type="button" aria-pressed="false" data-theme-choice="system"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5"></rect><path d="M5.5 14h5M8 11.5V14"></path></svg><span>System</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"></circle><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"></path></svg><span>Light</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"></path></svg><span>Dark</span></button>
+          </div>
+          <a class="aq-btn aq-btn--primary" href="https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip">Download</a>
+          <button class="site-nav__menu" type="button" aria-label="Menu" aria-expanded="false" aria-controls="site-menu" data-menu-toggle>
+            <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 6h12M3 12h12"></path></svg>
+          </button>
+        </nav>
+        <div class="site-menu aq-glass" id="site-menu" hidden>
+          <a href="../">Overview</a>
+          <a href="../releases/">Releases</a>
+          <a href="../faq/">FAQ</a>
+          <a href="https://github.com/niederme/ai-quota">GitHub <span aria-hidden="true">↗</span></a>
+          <div class="site-menu__appearance">
+            <span>Appearance</span>
+            <div class="aq-theme aq-glass" role="group" aria-label="Appearance" data-theme-picker>
+              <button type="button" aria-pressed="false" data-theme-choice="system"><span>System</span></button>
+              <button type="button" aria-pressed="false" data-theme-choice="light"><span>Light</span></button>
+              <button type="button" aria-pressed="false" data-theme-choice="dark"><span>Dark</span></button>
+            </div>
+          </div>
         </div>
-      </header>
+      </div>
+    </header>
 
-      <main class="policy-main">
-        <section class="policy-hero">
+    <main id="main" class="policy-main aq-wash">
+        <section class="policy-hero page-hero">
           <div class="container policy-container">
             <h1 class="policy-title">Privacy Policy</h1>
             <p class="policy-date">Last updated: April 17, 2026</p>
@@ -172,25 +192,28 @@
             </article>
           </div>
         </section>
-      </main>
+    </main>
 
-      <footer class="site-footer">
-        <div class="container">
-          <div class="footer-meta">
-            <p>
-              <a href="https://nieder.me/">&copy; John Niedermeyer</a>
-              <span aria-hidden="true"> | </span>
-              Need help? Email
-              <a href="mailto:help@aiquota.app">help@aiquota.app</a>
-            </p>
-          </div>
-          <div class="footer-links">
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <div class="site-footer__meta">
+          <a class="site-footer__owner" href="https://nieder.me/">&copy; John Niedermeyer</a>
+          <p>Need help? Email <a href="mailto:help@aiquota.app?subject=AIQuota%20Issue%20Report">help@aiquota.app</a></p>
+        </div>
+        <div class="site-footer__end">
+          <nav class="site-footer__links" aria-label="Legal">
             <a href="../privacy/">Privacy Policy</a>
             <a href="../terms/">Terms of Service</a>
             <a href="../accessibility/">Accessibility</a>
+            <a href="https://github.com/niederme/ai-quota">GitHub</a>
+          </nav>
+          <div class="aq-theme aq-glass" role="group" aria-label="Appearance" data-theme-picker>
+            <button type="button" aria-pressed="false" data-theme-choice="system"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5"></rect><path d="M5.5 14h5M8 11.5V14"></path></svg><span>System</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"></circle><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"></path></svg><span>Light</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"></path></svg><span>Dark</span></button>
           </div>
         </div>
-      </footer>
-    </div>
+      </div>
+    </footer>
   </body>
 </html>
