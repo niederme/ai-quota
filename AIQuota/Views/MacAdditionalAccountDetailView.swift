@@ -1,5 +1,6 @@
 import SwiftUI
 import AIQuotaKit
+import MobileAccessCore
 
 /// Account-scoped detail for connections that do not use the legacy singleton.
 struct MacAdditionalAccountDetailView: View {
@@ -17,11 +18,15 @@ struct MacAdditionalAccountDetailView: View {
                 Button(action: close) {
                     Label("Back", systemImage: "chevron.left")
                 }
+                .foregroundStyle(Color.gaugeAccent)
                 .keyboardShortcut(.escape, modifiers: [])
                 Spacer()
                 Text(serviceName).font(.headline)
                 Spacer()
+                // Explicit colour: the menu-bar panel is rarely key, and AppKit
+                // greys tinted borderless buttons in an inactive window.
                 Button("Manage", action: openSettings)
+                    .foregroundStyle(Color.gaugeAccent)
             }
             .buttonStyle(.borderless)
             .padding(16)
@@ -43,6 +48,13 @@ struct MacAdditionalAccountDetailView: View {
                     }
                     if let usage = session.codexUsage {
                         codex(usage)
+                        if session.isAuthenticated {
+                            CodexAnalyticsView(reading: reading(usage), history: session.codexUsageHistory,
+                                historyUnavailable: session.usageHistoryFailed,
+                                busy: session.isUsageHistoryLoading
+                                    || (session.codexUsageHistory == nil && !session.usageHistoryFailed),
+                                refresh: refreshCodexHistory)
+                        }
                     } else if let usage = session.claudeUsage {
                         claude(usage)
                     } else {
@@ -52,15 +64,39 @@ struct MacAdditionalAccountDetailView: View {
                             description: Text(session.isAuthenticated ? "Refresh this account to try again." : "Reconnect this account in Settings.")
                         )
                     }
-                    Button("Refresh this account") { Task { await session.refresh() } }
+                    Button("Refresh this account") {
+                        if session.provider == .codex { session.refreshUsageHistory(force: true) }
+                        Task { await session.refresh() }
+                    }
                         .disabled(!session.isAuthenticated || session.isLoading)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(20)
             }
+            .defaultScrollAnchor(.top, for: .sizeChanges)
         }
+        .tint(Color.gaugeAccent)
         .frame(height: height, alignment: .top)
+        .task(id: session.isAuthenticated) {
+            if session.provider == .codex, session.isAuthenticated { session.refreshUsageHistory() }
+        }
         .accessibilityIdentifier("additionalAccountDetail")
+    }
+
+    private func refreshCodexHistory() {
+        session.refreshUsageHistory(force: true)
+    }
+
+    /// Same reading the primary Codex detail builds, so the cards match.
+    private func reading(_ usage: CodexUsage) -> QuotaReading {
+        let monthlyBudget = (usage.reportedWindowShape == nil ? usage.displayableMonthlyBudget : nil).flatMap {
+            MobileAccessCore.MonthlyBudget(used: $0.used, limit: $0.limit,
+                unit: $0.unit, resetsAt: $0.resetAt)
+        }
+        return QuotaReading(fetchedAt: usage.fetchedAt, shortTerm: nil, weekly: nil,
+            metadata: AccountMetadata(plan: usage.planType, balanceUSD: usage.creditBalance,
+                usageSpent: usage.bonusCreditsSpentThisMonth.map { $0 / 25 }, usageCurrency: "USD"),
+            monthlyBudget: monthlyBudget)
     }
 
     private func metric(_ name: String, _ value: String, reset: Date? = nil) -> some View {

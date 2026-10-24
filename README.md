@@ -17,6 +17,7 @@ include multiple accounts or the redesigned Settings.
 
 - See Codex and Claude usage together, or connect just the service you use.
 - Connect more than one account per service, rename them, and reorder their cards.
+  Signing in to an account that is already connected adds nothing.
 - Follow six months of Codex activity in a daily heatmap on each Codex account.
 - Get a dismissible notice when Codex announces or hints at a usage reset.
 - Check reset times, plan information, and available spending or credit details.
@@ -47,7 +48,8 @@ on it are near-white in dark and deep plum in light so they stay readable over
 any desktop; purple stays on the rings. The menu
 bar itself shows gauges for the first two accounts by default; open an account
 in Settings to choose whether its gauge appears there. Drag accounts in
-**Settings → Accounts** to reorder their cards.
+**Settings → Accounts** to reorder their cards. Opening a Codex card shows its
+daily, by-model and by-app usage charts, for every connected Codex account.
 
 Settings has four panes: **General** (launch at login, refresh interval, updates,
 privacy, troubleshooting, and reset), **Accounts**, **Notifications**, and
