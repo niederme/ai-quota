@@ -12,97 +12,106 @@ public struct WidgetRefreshSnapshot: Sendable {
 
 public actor WidgetRefreshService {
     private let session: URLSession
+    private let store: Store
+
+    /// Tests replace every persistence boundary with an in-memory store. Commit
+    /// closures compare and mutate atomically; live commits hold the app/widget lease.
+    struct Store: Sendable {
+        var codexContext: @Sendable () -> SharedCodexAuthContext?
+        var claudeContext: @Sendable () -> SharedClaudeAuthContext?
+        var codexUsage: @Sendable () -> CodexUsage?
+        var claudeUsage: @Sendable () -> ClaudeUsage?
+        var commitCodex: @Sendable (SharedCodexAuthContext, SharedCodexAuthContext?, CodexUsage?) -> Bool
+        var commitClaude: @Sendable (SharedClaudeAuthContext, ClaudeUsage) -> Bool
+        var clearCodex: @Sendable (SharedCodexAuthContext) -> Void
+        var clearClaude: @Sendable (SharedClaudeAuthContext) -> Void
+
+        static let live = Store(
+            codexContext: { SharedAuthContextStore.loadCodex() },
+            claudeContext: { SharedAuthContextStore.loadClaude() },
+            codexUsage: { SharedDefaults.loadCachedUsage() },
+            claudeUsage: { SharedDefaults.loadCachedClaudeUsage() },
+            commitCodex: { SharedAuthContextStore.commitCodexRefresh(expected: $0, renewed: $1, usage: $2) },
+            commitClaude: { SharedAuthContextStore.commitClaudeRefresh(expected: $0, usage: $1) },
+            clearCodex: { SharedAuthContextStore.clearCodex(ifCurrent: $0) },
+            clearClaude: { SharedAuthContextStore.clearClaude(ifCurrent: $0) }
+        )
+    }
 
     public init() {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = 15
+        configuration.httpCookieStorage = nil
         configuration.httpShouldSetCookies = false
+        configuration.urlCache = nil
         self.session = URLSession(configuration: configuration)
+        self.store = .live
+    }
+
+    init(session: URLSession, store: Store) {
+        self.session = session
+        self.store = store
     }
 
     public func currentSnapshot() -> WidgetRefreshSnapshot {
-        WidgetRefreshSnapshot(
-            codexUsage: SharedDefaults.loadCachedUsage(),
-            claudeUsage: SharedDefaults.loadCachedClaudeUsage()
+        let codexContext = store.codexContext()
+        let claudeContext = store.claudeContext()
+        let codex = store.codexUsage()
+        let claude = store.claudeUsage()
+        return WidgetRefreshSnapshot(
+            codexUsage: codexContext?.accountID != nil && codex?.accountID == codexContext?.accountID ? codex : nil,
+            claudeUsage: claudeContext != nil && claude?.quotaScopeID == claudeContext?.orgId ? claude : nil
         )
     }
 
     public func refreshAvailableServices(force: Bool = false, now: Date = .now) async -> WidgetRefreshSnapshot {
-        var snapshot = currentSnapshot()
+        let snapshot = currentSnapshot()
         guard force || WidgetRefreshPolicy.shouldFetchFromNetwork(
-            codex: snapshot.codexUsage,
-            claude: snapshot.claudeUsage,
-            now: now
-        ) else {
-            return snapshot
-        }
+            codex: snapshot.codexUsage, claude: snapshot.claudeUsage, now: now
+        ) else { return snapshot }
 
-        async let codex = refreshCodexIfPossible(now: now)
-        async let claude = refreshClaudeIfPossible(now: now)
-
-        if let codexUsage = await codex {
-            snapshot = WidgetRefreshSnapshot(codexUsage: codexUsage, claudeUsage: snapshot.claudeUsage)
-        } else if SharedAuthContextStore.loadCodex() == nil {
-            snapshot = WidgetRefreshSnapshot(codexUsage: SharedDefaults.loadCachedUsage(), claudeUsage: snapshot.claudeUsage)
-        }
-
-        if let claudeUsage = await claude {
-            snapshot = WidgetRefreshSnapshot(codexUsage: snapshot.codexUsage, claudeUsage: claudeUsage)
-        } else if SharedAuthContextStore.loadClaude() == nil {
-            snapshot = WidgetRefreshSnapshot(codexUsage: snapshot.codexUsage, claudeUsage: SharedDefaults.loadCachedClaudeUsage())
-        }
-
-        return snapshot
+        async let codex: Void = refreshCodexIfPossible(now: now)
+        async let claude: Void = refreshClaudeIfPossible(now: now)
+        _ = await (codex, claude)
+        // Never return the snapshot captured before the requests: it may belong
+        // to a connection replaced/removed while either request was suspended.
+        return currentSnapshot()
     }
 
-    private func refreshCodexIfPossible(now: Date) async -> CodexUsage? {
-        guard var context = SharedAuthContextStore.loadCodex() else { return nil }
-
+    private func refreshCodexIfPossible(now: Date) async {
+        guard var context = store.codexContext() else { return }
         do {
             let accessToken: String
             if context.hasUsableAccessToken(at: now), let cachedToken = context.accessToken {
                 accessToken = cachedToken
             } else {
                 accessToken = try await refreshCodexAccessToken(using: context.sessionToken)
-                context = SharedCodexAuthContext(
-                    sessionToken: context.sessionToken,
-                    accessToken: accessToken,
-                    accessTokenExpiresAt: now.addingTimeInterval(3600),
-                    accountID: context.accountID
+                try Task.checkCancellation()
+                let renewed = SharedCodexAuthContext(
+                    sessionToken: context.sessionToken, accessToken: accessToken,
+                    accessTokenExpiresAt: now.addingTimeInterval(3600), accountID: context.accountID
                 )
-                SharedAuthContextStore.saveCodex(context)
+                guard store.commitCodex(context, renewed, nil) else { return }
+                context = renewed
             }
-
             let usage = try await fetchCodexUsage(accessToken: accessToken, accountID: context.accountID)
-            SharedDefaults.saveUsage(usage)
-            return usage
+            try Task.checkCancellation()
+            _ = store.commitCodex(context, nil, usage)
         } catch let error as NetworkError {
-            if error.isAuthError {
-                SharedAuthContextStore.clearCodex()
-                SharedDefaults.clearUsage()
-            }
-            return nil
-        } catch {
-            return nil
-        }
+            if !Task.isCancelled, error.isAuthError { store.clearCodex(context) }
+        } catch { }
     }
 
-    private func refreshClaudeIfPossible(now: Date) async -> ClaudeUsage? {
-        guard let context = SharedAuthContextStore.loadClaude() else { return nil }
-
+    private func refreshClaudeIfPossible(now: Date) async {
+        guard let context = store.claudeContext() else { return }
         do {
-            let usage = try await fetchClaudeUsage(orgId: context.orgId, cookies: context.httpCookies, now: now)
-            SharedDefaults.saveClaudeUsage(usage)
-            return usage
+            var usage = try await fetchClaudeUsage(orgId: context.orgId, cookies: context.httpCookies, now: now)
+            try Task.checkCancellation()
+            usage.quotaScopeID = context.orgId
+            _ = store.commitClaude(context, usage)
         } catch let error as NetworkError {
-            if error.isAuthError {
-                SharedAuthContextStore.clearClaude()
-                SharedDefaults.clearClaudeUsage()
-            }
-            return nil
-        } catch {
-            return nil
-        }
+            if !Task.isCancelled, error.isAuthError { store.clearClaude(context) }
+        } catch { }
     }
 
     private func refreshCodexAccessToken(using sessionToken: String) async throws -> String {
@@ -162,13 +171,18 @@ public actor WidgetRefreshService {
             let decoder = JSONDecoder()
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             let raw = try decoder.decode(WhamUsageResponse.self, from: data)
+            guard let accountID, !accountID.isEmpty,
+                  raw.accountId == nil || raw.accountId == accountID else {
+                throw NetworkError.accountIdentityMismatch
+            }
             var usage = CodexUsage(from: raw)
+            usage.accountID = accountID
             if usage.displayableMonthlyBudget == nil, usage.reportedWindowShape == nil,
-               let accountID, !accountID.isEmpty,
                let budget = try? await fetchCodexMonthlyBudget(accessToken: accessToken, accountID: accountID) {
                 usage = usage.withMonthlyBudget(budget)
             }
-            return usage.retainingLastConfirmedWindows(from: SharedDefaults.loadCachedUsage())
+            let previous = store.codexUsage()
+            return usage.retainingLastConfirmedWindows(from: previous?.accountID == accountID ? previous : nil)
         } catch {
             throw NetworkError.decodingError(underlying: error)
         }
