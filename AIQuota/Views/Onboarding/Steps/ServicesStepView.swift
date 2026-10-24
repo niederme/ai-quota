@@ -41,7 +41,7 @@ struct ServicesStepView: View {
         }
         .tint(Color.brand)
         .onAppear(perform: reload)
-        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in reload() }
+        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification).receive(on: RunLoop.main)) { _ in reload() }
         .onChange(of: viewModel.additionalAccounts.map(\.id)) { reload() }
         .onChange(of: viewModel.enrolledServices) { reload() }
         .sheet(item: $connectedAccount) { account in

@@ -156,7 +156,7 @@ private struct MenuBarStatusLabel: View {
     var body: some View {
         content
             .onAppear { orderedAccounts = AccountRegistry.orderedAccounts() }
-            .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification).receive(on: RunLoop.main)) { _ in
                 orderedAccounts = AccountRegistry.orderedAccounts()
             }
     }

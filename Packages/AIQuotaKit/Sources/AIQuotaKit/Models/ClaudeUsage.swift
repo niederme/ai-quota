@@ -13,6 +13,8 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
     public let planLabel: PlanLabel
     public let primaryMetric: Metric
     public let source: Source
+    /// Verified web organization of this fetch; absent for OAuth and old caches.
+    public internal(set) var quotaScopeID: String?
     public let fetchedAt: Date
     public let weeklyBreakdown: ClaudeWeeklyBreakdown?
 
@@ -231,7 +233,8 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
         planLabel: PlanLabel? = nil,
         source: Source = .unknown,
         fetchedAt: Date,
-        weeklyBreakdown: ClaudeWeeklyBreakdown? = nil
+        weeklyBreakdown: ClaudeWeeklyBreakdown? = nil,
+        quotaScopeID: String? = nil
     ) {
         self.fiveHourUtilization = fiveHourUtilization
         self.fiveHourResetsAt = fiveHourResetsAt
@@ -270,6 +273,7 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
             spendLimit: spendLimit
         )
         self.source = source
+        self.quotaScopeID = quotaScopeID
         self.fetchedAt = fetchedAt
         self.weeklyBreakdown = weeklyBreakdown
     }
@@ -342,6 +346,7 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
         case source
         case fetchedAt
         case weeklyBreakdown
+        case quotaScopeID
     }
 
     public init(from decoder: Decoder) throws {
@@ -369,7 +374,8 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
             planLabel: planLabel,
             source: source,
             fetchedAt: fetchedAt,
-            weeklyBreakdown: try? container.decodeIfPresent(ClaudeWeeklyBreakdown.self, forKey: .weeklyBreakdown)
+            weeklyBreakdown: try? container.decodeIfPresent(ClaudeWeeklyBreakdown.self, forKey: .weeklyBreakdown),
+            quotaScopeID: try container.decodeIfPresent(String.self, forKey: .quotaScopeID)
         )
     }
 }

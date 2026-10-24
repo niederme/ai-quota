@@ -26,6 +26,7 @@ struct MacAdditionalAccountDetailView: View {
             .buttonStyle(.borderless)
             .padding(16)
             Divider()
+            MacQuotaInsightRow(accountID: session.id)
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     Text(session.account.displayLabel)

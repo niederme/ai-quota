@@ -15,7 +15,7 @@ struct ServiceDetailView: View {
     private var name: String { isCodex ? "Codex" : "Claude" }
     private var busy: Bool {
         isCodex
-            ? viewModel.isCodexLoading || viewModel.isUsageHistoryLoading
+            ? viewModel.isCodexLoading || viewModel.isUsageHistoryLoading || viewModel.isCodexRecovering
             : viewModel.isClaudeLoading || viewModel.isClaudeSpendLoading
                 || viewModel.isClaudeSkillsLoading || viewModel.isClaudeEnterpriseReconnectLoading
     }
@@ -89,6 +89,9 @@ struct ServiceDetailView: View {
                     .accessibilityLabel("Refresh \(name) details").help(refreshHelp)
             }.padding(.horizontal, 16).padding(.vertical, 10)
             Divider()
+            if let account = viewModel.primaryAccount(for: isCodex ? .codex : .claude) {
+                MacQuotaInsightRow(accountID: account.id)
+            }
             NavigationStack {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
@@ -127,10 +130,11 @@ struct ServiceDetailView: View {
                                 .font(.callout).foregroundStyle(Color.warningAmber)
                         }
                         if !connected || isCodex { Divider() }
-                        if !connected {
+                        if !connected || (isCodex && error?.needsReconnect == true) {
                             Button(action: reconnect) {
                                 Label("Reconnect \(name)", systemImage: "person.crop.circle")
                             }
+                            .disabled(busy)
                         }
                         if isCodex {
                             Button { NSWorkspace.shared.open(CodexResetNotice.website) } label: {

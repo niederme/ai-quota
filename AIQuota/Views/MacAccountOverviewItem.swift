@@ -29,13 +29,16 @@ struct MacAccountCard: View {
     private var hasReading: Bool { codexUsage != nil || claudeUsage != nil }
     private var awaitingConnection: Bool { loading && !connected && !hasReading }
     private var loading: Bool {
-        session?.isLoading ?? (account.provider == .codex ? viewModel.isCodexLoading : viewModel.isClaudeLoading)
+        if account.connectionKind == .isolated { return session?.isLoading == true }
+        return account.provider == .codex ? viewModel.isCodexLoading : viewModel.isClaudeLoading
     }
     private var connected: Bool {
-        session?.isAuthenticated ?? (account.provider == .codex ? viewModel.isCodexAuthenticated : viewModel.isClaudeAuthenticated)
+        if account.connectionKind == .isolated { return session?.isAuthenticated == true }
+        return account.provider == .codex ? viewModel.isCodexAuthenticated : viewModel.isClaudeAuthenticated
     }
     private var issue: String? {
-        session?.issue ?? (account.provider == .codex ? viewModel.codexError?.localizedDescription : viewModel.claudeError?.localizedDescription)
+        if account.connectionKind == .isolated { return session?.issue }
+        return account.provider == .codex ? viewModel.codexError?.localizedDescription : viewModel.claudeError?.localizedDescription
     }
     private var serviceName: String { account.provider == .codex ? "Codex" : "Claude" }
     private var icon: String { account.provider == .codex ? "logo-openai" : "logo-claude" }
@@ -85,9 +88,13 @@ struct MacAccountCard: View {
         return nil
     }
     private var primaryLabel: String {
-        if budget != nil { return "Monthly" }
+        if budget != nil { return CalendarMonthLabel.compact(containing: readingAt) }
         if account.provider == .codex { return codexUsage?.reportedWindowShape == .dual ? "5h" : "7d" }
         return claudeUsage?.primaryMetricLabel ?? "5h"
+    }
+
+    private var readingAt: Date {
+        codexUsage?.fetchedAt ?? claudeUsage?.fetchedAt ?? .now
     }
 
     var body: some View {
@@ -97,15 +104,23 @@ struct MacAccountCard: View {
                     MacAccountDial(icon: icon, primaryPercent: primaryPercent,
                                    primaryLabel: primaryLabel, secondaryPercent: secondaryPercent,
                                    loading: loading, connected: connected, hasIssue: issue != nil)
+                        .help(budget == nil ? primaryLabel : "\(CalendarMonthLabel.spoken(containing: readingAt)). Reset uses the provider's date.")
                     details
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .frame(maxWidth: .infinity, alignment: .topLeading)
 
                 if connected, account.provider == .codex, let tokenHistory,
+                   tokenHistory.isAttributed(toWorkspaceID: account.workspaceID),
                    CodexTokenHistoryView.hasVisibleData(tokenHistory) {
-                    CodexTokenHistoryView(history: tokenHistory, availableWidth: availableWidth)
-                        .padding(.top, 8)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Token activity")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .help("Workspace token activity is separate from monthly credit usage.")
+                        CodexTokenHistoryView(history: tokenHistory, availableWidth: availableWidth)
+                    }
+                    .padding(.top, 8)
                 }
             }
             .padding(16)
@@ -219,7 +234,8 @@ struct MacAccountCard: View {
 
     private var accessibilitySummary: String {
         let identity = accountLabel.map { " · \($0)" } ?? ""
-        let percentage = primaryPercent.map { ", \($0) percent used in \(primaryLabel)" } ?? ""
+        let period = budget == nil ? primaryLabel : CalendarMonthLabel.spoken(containing: readingAt)
+        let percentage = primaryPercent.map { ", \($0) percent used, \(period)" } ?? ""
         let secondary = secondaryPercent.map { ", \($0) percent used in 7d" } ?? ""
         return "\(serviceName)\(identity)\(plan.map { ", \($0) plan" } ?? "")\(percentage)\(secondary)\(status.map { ", \($0)" } ?? "")"
     }

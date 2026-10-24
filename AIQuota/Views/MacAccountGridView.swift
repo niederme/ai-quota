@@ -92,7 +92,7 @@ struct MacAccountGridView: View {
         } action: { _, scrolls in
             onScrollabilityChange(scrolls)
         }
-        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in
+        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification).receive(on: RunLoop.main)) { _ in
             orderIDs = AccountRegistry.orderedAccounts().map(\.id)
         }
         .onAppear { orderIDs = AccountRegistry.orderedAccounts().map(\.id) }

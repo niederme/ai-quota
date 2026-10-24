@@ -177,51 +177,67 @@ private struct AccountsSettingsPane: View {
     @State private var hoveredAddProvider: ServiceType?
 
     var body: some View {
-        NavigationStack {
-            Form {
-                ForEach(ServiceType.allCases, id: \.self) { provider in
-                    Section {
-                        let serviceAccounts = accounts.filter { $0.provider == provider }
-                        if serviceAccounts.isEmpty {
-                            Text("No accounts yet").foregroundStyle(.secondary)
-                        }
-                        ForEach(serviceAccounts) { account in
-                            accountRow(account)
-                        }
-                        Button { connect(provider) } label: {
-                            HStack {
-                                Label("Add \(provider.displayName) Account…", systemImage: "plus")
-                                Spacer(minLength: 0)
+        VStack(spacing: 0) {
+            if let selected, let account = AccountRegistry.account(id: selected) {
+                HStack(spacing: 12) {
+                    Button { self.selected = nil } label: {
+                        Label("Accounts", systemImage: "chevron.left")
+                    }
+                    .buttonStyle(.bordered)
+                    .keyboardShortcut("[", modifiers: .command)
+                    .help("Back to Accounts")
+                    .accessibilityLabel("Back to Accounts")
+                    .accessibilityIdentifier("settingsAccountsBack")
+                    Text(account.displayLabel).font(.headline)
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                Divider()
+                SettingsAccountDetail(account: account, back: {
+                    if self.selected == account.id { self.selected = nil }
+                })
+                    .disabled(viewModel.isReadOnlyPreview)
+            } else {
+                Form {
+                    ForEach(ServiceType.allCases, id: \.self) { provider in
+                        Section {
+                            let serviceAccounts = accounts.filter { $0.provider == provider }
+                            if serviceAccounts.isEmpty {
+                                Text("No accounts yet").foregroundStyle(.secondary)
                             }
-                            .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
-                            .background(hoveredAddProvider == provider ? Color.brand.opacity(0.08) : .clear,
-                                        in: RoundedRectangle(cornerRadius: 7))
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundColor(.brand)
-                        .disabled(connecting || viewModel.isReadOnlyPreview)
-                        .onHover { hoveredAddProvider = $0 ? provider : nil }
-                    } header: {
-                        Text(provider.displayName)
-                    } footer: {
-                        if provider == .claude, !accounts.isEmpty {
-                            Text("Drag account cards in the menu bar popover to change their order. Open an account to manage its connection and menu bar gauge.")
+                            ForEach(serviceAccounts) { account in
+                                accountRow(account)
+                            }
+                            Button { connect(provider) } label: {
+                                HStack {
+                                    Label("Add \(provider.displayName) Account…", systemImage: "plus")
+                                    Spacer(minLength: 0)
+                                }
+                                .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
+                                .background(hoveredAddProvider == provider ? Color.brand.opacity(0.08) : .clear,
+                                            in: RoundedRectangle(cornerRadius: 7))
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundColor(.brand)
+                            .disabled(connecting || viewModel.isReadOnlyPreview)
+                            .onHover { hoveredAddProvider = $0 ? provider : nil }
+                        } header: {
+                            Text(provider.displayName)
+                        } footer: {
+                            if provider == .claude, !accounts.isEmpty {
+                                Text("Drag account cards in the menu bar popover to change their order. Open an account to manage its connection and menu bar gauge.")
+                            }
                         }
                     }
                 }
-            }
-            .formStyle(.grouped)
-            .frame(maxWidth: 680)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
-            .navigationDestination(item: $selected) { id in
-                if let account = AccountRegistry.account(id: id) {
-                    SettingsAccountDetail(account: account).navigationTitle(account.displayLabel)
-                        .disabled(viewModel.isReadOnlyPreview)
-                }
+                .formStyle(.grouped)
+                .frame(maxWidth: 680)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification)) { _ in reloadAccounts() }
+        .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification).receive(on: RunLoop.main)) { _ in reloadAccounts() }
         .onChange(of: viewModel.additionalAccounts.map(\.id)) { reloadAccounts() }
         .onChange(of: viewModel.enrolledServices) { reloadAccounts() }
         .onChange(of: selected) { _, id in if id == nil { reloadAccounts() } }
@@ -311,8 +327,8 @@ struct AccountConnectionStatus {
 
 private struct SettingsAccountDetail: View {
     @Environment(QuotaViewModel.self) private var viewModel
-    @Environment(\.dismiss) private var dismiss
     let account: ConnectedAccount
+    let back: () -> Void
     @State private var name = ""
     @State private var pendingAction: String?
     @State private var busy = false
@@ -353,18 +369,14 @@ private struct SettingsAccountDetail: View {
                         else { viewModel.manualRefresh() }
                     }
                     .settingsAction()
+                    if account.provider == .codex,
+                       (account.connectionKind == .isolated ? status.session?.issue != nil : viewModel.codexError?.needsReconnect == true) {
+                        Button("Reconnect…", action: reconnect).settingsAction()
+                    }
                     Button("Sign Out…", role: .destructive) { pendingAction = "Sign Out" }
                         .settingsAction()
                 } else {
-                    Button("Sign In…") {
-                        busy = true
-                        Task {
-                            if account.connectionKind == .isolated { await viewModel.reconnectAccount(id: account.id) }
-                            else if account.provider == .codex { await viewModel.signIn() }
-                            else { await viewModel.signInClaude() }
-                            busy = false
-                        }
-                    }
+                    Button("Sign In…", action: reconnect)
                     .settingsAction()
                 }
                 if account.provider == .claude, account.connectionKind == .legacyPrimary,
@@ -401,11 +413,20 @@ private struct SettingsAccountDetail: View {
                         else { viewModel.signOutClaude() }
                     } else if action == "Remove Account" { await viewModel.removeAccount(id: account.id) }
                     else { await viewModel.signOutAccount(id: account.id) }
-                    dismiss()
+                    back()
                 }
             }
         } message: {
             Text(pendingAction == "Remove Account" ? "Removes this account’s local connection and cached usage." : "You can reconnect this account at any time.")
+        }
+    }
+    private func reconnect() {
+        busy = true
+        Task {
+            if account.connectionKind == .isolated { await viewModel.reconnectAccount(id: account.id) }
+            else if account.provider == .codex { await viewModel.signIn() }
+            else { await viewModel.signInClaude() }
+            busy = false
         }
     }
     private func saveName() {
