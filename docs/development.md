@@ -32,6 +32,28 @@ If you are iterating on widgets, launching the built app once after install help
 
 ---
 
+## Dummy account lifecycle regressions
+
+Run `python3 scripts/test-claude-account-lifecycle.py` for the bounded Mac Claude
+reconnect and stale-response checks. The runner compiles the two local packages
+with the installed Xcode toolchain, without dependency resolution or signing.
+Coordinator persistence is injected in memory; widget HTTP uses an intercept-all
+in-process `URLProtocol`. The primary refresh and additional-card sign-in methods
+are copied verbatim into memory-only app adapters. The app is never launched.
+
+`--app-source-ref HEAD` runs those app-method checks against the committed source
+and intentionally fails when reproducing the old regressions. `--skip-build` reuses
+libraries already compiled from the working tree. Logs, exact commands and evidence
+are written under `output/claude-lifecycle-verification/`.
+
+This is a reviewed dummy-only runner, **not an OS-enforced sandbox**. It does not
+exercise live accounts, Keychain, WebKit, app-group locks, signed entitlements or
+rendered UI, and does not run the older credential-writing test suites. Do not use
+it to run unreviewed code or real credentials. Full app build/manual verification
+is a separate step.
+
+---
+
 ## Manual Test Handoffs
 
 - [Settings and onboarding UI handoff](settings-onboarding-ui-handoff.md) — current hierarchy, menu bar display rules, popover material/color choices, and verification commands.

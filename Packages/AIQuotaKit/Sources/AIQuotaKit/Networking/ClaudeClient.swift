@@ -52,10 +52,13 @@ public actor ClaudeClient {
                 let oauth = try await coordinator.loadOAuthCredentials(allowKeychain: false)
                 do {
                     let usage = try await fetchOAuthUsage(credentials: oauth)
+                    try await verifyOAuthContext(oauth)
                     oauthPolicyFailures = 0
                     recordAttempt(source: .oauth, httpStatus: 200, category: .success)
                     return usage
                 } catch let error as ClaudeOAuthFetchError {
+                    // An old failure must not invalidate a replacement credential.
+                    try await verifyOAuthContext(oauth)
                     switch error {
                     case .unauthorized(let status, let policyBlocked):
                         await coordinator.invalidateCachedOAuthCredentials()
@@ -91,6 +94,8 @@ public actor ClaudeClient {
                         throw underlying
                     }
                 }
+            } catch is CancellationError {
+                throw CancellationError()
             } catch let error as ClaudeOAuthCredentialsError {
                 recordAttempt(source: .oauth, httpStatus: nil, category: Self.errorCategory(for: error))
             } catch {
@@ -99,11 +104,13 @@ public actor ClaudeClient {
         }
 
         let ctx = try await coordinator.requestContext()
+        try verifyAccountBinding(ctx)
         do {
             var usage = try await fetchUsageData(path: "/api/organizations/\(ctx.orgId)/usage",
                                                   cookies: ctx.cookies)
             // Bind to the actual request identity, never a label or OAuth/web guess.
             usage.quotaScopeID = ctx.orgId
+            try await verifyCurrentContext(ctx)
             let accounts = AccountRegistry.accounts(for: .claude)
             let account: ConnectedAccount?
             if let accountStorageID {
@@ -127,15 +134,49 @@ public actor ClaudeClient {
                 await QuotaInsightStore.shared.recordClaude(usage, account: account, identity: ctx.orgId,
                                                             captureGeneration: captureGeneration)
             }
+            try await verifyCurrentContext(ctx)
             recordAttempt(source: .web, httpStatus: 200, category: .success)
             return usage
         } catch let error as NetworkError {
+            // A stale 401 is as unsafe to adopt as a stale successful reading.
+            try await verifyCurrentContext(ctx)
             recordAttempt(source: .web, httpStatus: error.httpStatus, category: Self.errorCategory(for: error))
             throw error
         } catch {
             recordAttempt(source: .web, httpStatus: nil, category: .network)
             throw error
         }
+    }
+
+    private func verifyOAuthContext(_ requested: ClaudeOAuthCredentials) async throws {
+        try Task.checkCancellation()
+        guard await coordinator.state == .authenticated,
+              let current = try? await coordinator.loadOAuthCredentials(allowKeychain: false),
+              current.accessToken == requested.accessToken else { throw CancellationError() }
+    }
+
+    private func verifyAccountBinding(_ context: ClaudeRequestContext) throws {
+        let accounts = AccountRegistry.accounts(for: .claude)
+        let account: ConnectedAccount?
+        if let accountStorageID { account = accounts.first { $0.id == accountStorageID } }
+        else { account = accounts.first { $0.connectionKind == .legacyPrimary } }
+        if let account {
+            guard account.workspaceID == nil || account.workspaceID == context.orgId else {
+                throw NetworkError.accountIdentityMismatch
+            }
+        } else if isScoped {
+            throw CancellationError() // A removed connection must not recreate data.
+        }
+    }
+
+    private func verifyCurrentContext(_ requested: ClaudeRequestContext) async throws {
+        try Task.checkCancellation()
+        guard let current = try? await coordinator.requestContext(),
+              current.orgId == requested.orgId,
+              current.cookies.map(PersistedCookie.init) == requested.cookies.map(PersistedCookie.init) else {
+            throw CancellationError()
+        }
+        try verifyAccountBinding(current)
     }
 
     /// Returns the organization that would be used for cookie-authenticated

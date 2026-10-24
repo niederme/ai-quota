@@ -627,6 +627,10 @@ final class QuotaViewModel {
             for await state in claudeCoordinator.stateStream {
                 await MainActor.run {
                     self.claudeState = state
+                    if state == .signingIn || state == .signingOut || state == .resetting {
+                        self.claudeRefreshGeneration += 1
+                        self.isClaudeLoading = false
+                    }
                     // Auto-enroll on first successful auth (handles migration from pre-enrollment builds)
                     if state == .authenticated && !self.enrolledServices.contains(.claude) {
                         self.enrolledServices.insert(.claude)
@@ -1087,6 +1091,7 @@ final class QuotaViewModel {
 
         do {
             let result = try await claudeClient.fetchUsage()
+            guard gen == claudeRefreshGeneration, isClaudeAuthenticated, !Task.isCancelled else { return }
             if shouldPreserveClaudeLastGood(result) { return }
             recordServiceActivityIfNeeded(from: claudeUsage, to: result)
             claudeUsage = result
@@ -1096,18 +1101,22 @@ final class QuotaViewModel {
                 SharedDefaults.saveClaudeUsage(result, forAccountID: account.id)
             }
             await NotificationManager.shared.evaluate(claude: result, prefs: settings.notifications)
+            guard gen == claudeRefreshGeneration, isClaudeAuthenticated, !Task.isCancelled else { return }
             await NotificationManager.shared.notifyPlanChange(service: "Claude", previous: previousPlan, current: result.planDisplayName,
                 enabled: settings.notifications.enabled && settings.notifications.claudeEnabled)
         } catch let e as NetworkError {
+            guard gen == claudeRefreshGeneration, isClaudeAuthenticated, !Task.isCancelled else { return }
             if e.isAuthError {
                 claudeUsage = nil
                 SharedDefaults.clearClaudeUsage()
                 // Session may have expired — sync fresh cookies and retry the fetch
                 // once. Using a direct retry (not recursion) avoids an infinite loop
                 // if the session is genuinely invalid.
-                guard await claudeCoordinator.revalidateSessionAfterAuthFailure() else { return }
+                guard await claudeCoordinator.revalidateSessionAfterAuthFailure(),
+                      gen == claudeRefreshGeneration, isClaudeAuthenticated, !Task.isCancelled else { return }
                 do {
                     let result = try await claudeClient.fetchUsage()
+                    guard gen == claudeRefreshGeneration, isClaudeAuthenticated, !Task.isCancelled else { return }
                     if self.shouldPreserveClaudeLastGood(result) { return }
                     recordServiceActivityIfNeeded(from: claudeUsage, to: result)
                     claudeUsage = result
@@ -1117,6 +1126,7 @@ final class QuotaViewModel {
                         SharedDefaults.saveClaudeUsage(result, forAccountID: account.id)
                     }
                     await NotificationManager.shared.evaluate(claude: result, prefs: settings.notifications)
+                    guard gen == claudeRefreshGeneration, isClaudeAuthenticated, !Task.isCancelled else { return }
                     await NotificationManager.shared.notifyPlanChange(service: "Claude", previous: previousPlan, current: result.planDisplayName,
                         enabled: settings.notifications.enabled && settings.notifications.claudeEnabled)
                 } catch {
@@ -1142,6 +1152,7 @@ final class QuotaViewModel {
         } catch is CancellationError {
             // Task was cancelled (e.g. a new refresh cycle started) — ignore silently
         } catch {
+            guard gen == claudeRefreshGeneration, isClaudeAuthenticated, !Task.isCancelled else { return }
             // URLError.cancelled means the surrounding Task was cancelled — ignore silently
             if let urlError = error as? URLError, urlError.code == .cancelled { return }
             let pathStatus = pathMonitor.currentPath.status
@@ -1767,7 +1778,10 @@ final class AdditionalAccountSession: Identifiable {
             claudeClient = ClaudeClient(coordinator: coordinator, accountStorageID: account.id)
             codexCoordinator = nil
             codexClient = nil
-            claudeUsage = SharedDefaults.loadCachedClaudeUsage(forAccountID: account.id)
+            if let identity = account.workspaceID,
+               let cached = SharedDefaults.loadCachedClaudeUsage(forAccountID: account.id), cached.quotaScopeID == identity {
+                claudeUsage = cached
+            }
         }
     }
 
@@ -1797,7 +1811,6 @@ final class AdditionalAccountSession: Identifiable {
         let previousIssue = issue
         issue = nil
         if state == .unknown { await bootstrap() }
-        if provider == .claude, state == .authenticated { await signOut() }
         do {
             switch provider {
             case .codex:
@@ -1810,16 +1823,22 @@ final class AdditionalAccountSession: Identifiable {
                 adoptState(.authenticated)
             case .claude:
                 guard let claudeCoordinator else { return }
-                try await claudeCoordinator.signIn()
+                if account.workspaceID != nil || state == .authenticated {
+                    try await claudeCoordinator.reconnectWithWebAuthentication(expectedOrganizationID: account.workspaceID)
+                } else {
+                    try await claudeCoordinator.signIn()
+                }
                 adoptState(.authenticated)
             }
             guard await bindIdentity() else { return }
             await refresh()
         } catch is CancellationError {
             if let codexCoordinator { adoptState(await codexCoordinator.state) }
+            if let claudeCoordinator { adoptState(await claudeCoordinator.state) }
             issue = previousIssue
         } catch {
             if let codexCoordinator { adoptState(await codexCoordinator.state) }
+            if let claudeCoordinator { adoptState(await claudeCoordinator.state) }
             issue = error.localizedDescription
         }
     }
@@ -1867,17 +1886,22 @@ final class AdditionalAccountSession: Identifiable {
             case .claude:
                 guard let claudeClient else { return }
                 let result = try await claudeClient.fetchUsage()
-                guard generation == refreshGeneration, isAuthenticated else { return }
+                guard generation == refreshGeneration, isAuthenticated, !Task.isCancelled else { return }
+                guard result.quotaScopeID == account.workspaceID else { throw NetworkError.accountIdentityMismatch }
                 claudeUsage = result
                 SharedDefaults.saveClaudeUsage(result, forAccountID: id)
             }
+        } catch is CancellationError {
+            return
         } catch NetworkError.accountIdentityMismatch {
             guard generation == refreshGeneration else { return }
+            if provider == .claude { claudeUsage = nil; SharedDefaults.clearClaudeUsage(forAccountID: id) }
             codexUsage = nil
             clearTokenHistory()
             clearUsageHistory()
             issue = NetworkError.accountIdentityMismatch.localizedDescription
         } catch let error as NetworkError where error.isAuthError {
+            guard generation == refreshGeneration, isAuthenticated, !Task.isCancelled else { return }
             switch provider {
             case .codex:
                 if let codexCoordinator {

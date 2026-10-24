@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 public struct PersistedCookie: Codable, Sendable, Equatable {
     public let name: String
@@ -81,11 +82,11 @@ public enum SharedAuthContextStore {
     }
 
     public static func saveCodex(_ context: SharedCodexAuthContext) {
-        KeychainStore.save(context, forKey: codexKey, encoder: encoder)
+        withSingletonLock { KeychainStore.save(context, forKey: codexKey, encoder: encoder) }
     }
 
     public static func clearCodex() {
-        KeychainStore.delete(forKey: codexKey)
+        withSingletonLock { KeychainStore.delete(forKey: codexKey) }
     }
 
     public static func loadCodex(forAccountID accountID: String) -> SharedCodexAuthContext? {
@@ -106,11 +107,11 @@ public enum SharedAuthContextStore {
 
     public static func saveClaude(orgId: String, cookies: [HTTPCookie]) {
         let context = SharedClaudeAuthContext(orgId: orgId, cookies: cookies.map(PersistedCookie.init))
-        KeychainStore.save(context, forKey: claudeKey, encoder: encoder)
+        withSingletonLock { KeychainStore.save(context, forKey: claudeKey, encoder: encoder) }
     }
 
     public static func clearClaude() {
-        KeychainStore.delete(forKey: claudeKey)
+        withSingletonLock { KeychainStore.delete(forKey: claudeKey) }
     }
 
     public static func loadClaude(forAccountID accountID: String) -> SharedClaudeAuthContext? {
@@ -128,6 +129,69 @@ public enum SharedAuthContextStore {
 
     public static func clearClaude(forAccountID accountID: String) {
         KeychainStore.delete(forKey: accountKey(claudeKey, accountID: accountID))
+    }
+
+    // The app and widget are different processes. Compare-and-write must hold
+    // the same short lease as singleton credential replacement/removal, with no
+    // network await inside it. A process-local actor/lock cannot enforce this.
+    @discardableResult
+    private static func withSingletonLock<T>(_ body: () -> T) -> T? {
+        let container: URL
+        if Bundle.allBundles.contains(where: { $0.bundlePath.hasSuffix(".xctest") }) {
+            // Existing package tests use a process-specific Keychain service and
+            // defaults suite. Their lock must not require a signed app-group host.
+            container = FileManager.default.temporaryDirectory
+                .appendingPathComponent("aiquota-auth-lock.tests.\(ProcessInfo.processInfo.processIdentifier)")
+            guard (try? FileManager.default.createDirectory(at: container, withIntermediateDirectories: true)) != nil else { return nil }
+        } else {
+            guard let group = FileManager.default.containerURL(
+                forSecurityApplicationGroupIdentifier: "group.com.niederme.AIQuota"
+            ) else { return nil }
+            container = group
+        }
+        let fd = open(container.appendingPathComponent("auth-context.lock").path,
+                      O_CREAT | O_RDWR | O_NOFOLLOW | O_CLOEXEC, S_IRUSR | S_IWUSR)
+        guard fd >= 0 else { return nil }
+        defer { close(fd) }
+        while flock(fd, LOCK_EX) != 0 {
+            if errno != EINTR { return nil }
+        }
+        defer { flock(fd, LOCK_UN) }
+        return body()
+    }
+
+    static func commitCodexRefresh(expected: SharedCodexAuthContext,
+                                   renewed: SharedCodexAuthContext?, usage: CodexUsage?) -> Bool {
+        withSingletonLock {
+            guard loadCodex() == expected else { return false }
+            if let renewed { KeychainStore.save(renewed, forKey: codexKey, encoder: encoder) }
+            if let usage { SharedDefaults.saveUsage(usage) }
+            return true
+        } ?? false
+    }
+
+    static func clearCodex(ifCurrent expected: SharedCodexAuthContext) {
+        withSingletonLock {
+            guard loadCodex() == expected else { return }
+            KeychainStore.delete(forKey: codexKey)
+            SharedDefaults.clearUsage()
+        }
+    }
+
+    static func commitClaudeRefresh(expected: SharedClaudeAuthContext, usage: ClaudeUsage) -> Bool {
+        withSingletonLock {
+            guard loadClaude() == expected else { return false }
+            SharedDefaults.saveClaudeUsage(usage)
+            return true
+        } ?? false
+    }
+
+    static func clearClaude(ifCurrent expected: SharedClaudeAuthContext) {
+        withSingletonLock {
+            guard loadClaude() == expected else { return }
+            KeychainStore.delete(forKey: claudeKey)
+            SharedDefaults.clearClaudeUsage()
+        }
     }
 
     private static func accountKey(_ base: String, accountID: String) -> String {

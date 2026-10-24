@@ -34,7 +34,7 @@ public enum NetworkError: Error, Sendable, LocalizedError {
         case .decodingError: "Unexpected response format from server."
         case .networkUnavailable: "No network connection."
         case .unknownEndpoint: "API endpoint not configured."
-        case .accountIdentityMismatch: "Could not verify this Codex session for the saved account. Its connection has been preserved."
+        case .accountIdentityMismatch: "Could not verify this session for the saved account. Its connection has been preserved."
         }
     }
 }

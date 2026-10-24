@@ -61,6 +61,7 @@ public actor ClaudeAuthCoordinator {
     private var capturedCookies: [HTTPCookie] = []
     private var cachedOAuthCredentials: ClaudeOAuthCredentials?
     private var oauthDisabledForSession = false
+    private var authGeneration = 0
 
     // MARK: Logger
 
@@ -88,6 +89,11 @@ public actor ClaudeAuthCoordinator {
     private let webSessionClearer: WebSessionClearer
     private let webSessionRestorer: WebSessionRestorer
     private let loginWindowRunner: LoginWindowRunner
+    private let contextWriter: (@Sendable (SharedClaudeAuthContext?) -> Void)?
+    private let signedOutReader: (@Sendable () -> Bool)?
+    private let signedOutWriter: (@Sendable (Bool) -> Void)?
+    private let webSessionResetter: WebSessionClearer?
+    private let webSessionVerifier: (@Sendable () async -> Bool)?
 
     public init(
         accountStorageID: UUID? = nil,
@@ -98,8 +104,18 @@ public actor ClaudeAuthCoordinator {
         sessionValidator: SessionValidator? = nil,
         webSessionClearer: WebSessionClearer? = nil,
         webSessionRestorer: WebSessionRestorer? = nil,
-        loginWindowRunner: LoginWindowRunner? = nil
+        loginWindowRunner: LoginWindowRunner? = nil,
+        contextWriter: (@Sendable (SharedClaudeAuthContext?) -> Void)? = nil,
+        signedOutReader: (@Sendable () -> Bool)? = nil,
+        signedOutWriter: (@Sendable (Bool) -> Void)? = nil,
+        webSessionResetter: WebSessionClearer? = nil,
+        webSessionVerifier: (@Sendable () async -> Bool)? = nil
     ) {
+        self.webSessionResetter = webSessionResetter
+        self.webSessionVerifier = webSessionVerifier
+        self.contextWriter = contextWriter
+        self.signedOutReader = signedOutReader
+        self.signedOutWriter = signedOutWriter
         self.accountStorageID = accountStorageID
         self.probe = probe ?? ClaudeAuthCoordinator.wkProbe(for: accountStorageID)
         self.headlessSessionReviver = headlessSessionReviver ?? ClaudeAuthCoordinator.headlessWebSessionReviver(for: accountStorageID)
@@ -160,7 +176,7 @@ public actor ClaudeAuthCoordinator {
 
         await clearStateIfFreshInstall()
 
-        if UserDefaults.standard.bool(forKey: signedOutDefaultsKey) {
+        if (signedOutReader?() ?? UserDefaults.standard.bool(forKey: signedOutDefaultsKey)) {
             transition(to: .signedOutByUser)
             return
         }
@@ -211,44 +227,44 @@ public actor ClaudeAuthCoordinator {
         case .unauthenticated, .signedOutByUser: break
         default: throw AuthCoordinatorError.invalidTransition(from: state)
         }
-
+        let previousState = state
+        authGeneration += 1
+        let generation = authGeneration
         transition(to: .signingIn)
-
-        if restoreFromOAuthCredentials(allowKeychain: true) {
-            UserDefaults.standard.removeObject(forKey: signedOutDefaultsKey)
-            transition(to: .authenticated)
-            return
-        }
-
-        if case .found(let orgId, let cookies) = await withProbeTimeout(probe) {
-            cachedOAuthCredentials = nil
-            capturedOrgId = orgId
-            capturedCookies = cookies
-            injectCookies(cookies)
-            persistSharedAuthContext()
-            UserDefaults.standard.removeObject(forKey: signedOutDefaultsKey)
-            transition(to: .authenticated)
-            return
-        }
-
-        // The explicit Sign In path has already failed to validate the existing
-        // WebKit session. Clear it before opening Claude so an expired session
-        // cannot redirect to an apparently signed-in homepage that AIQuota must
-        // still reject. The user should see a real authentication screen instead.
-        await webSessionClearer()
-
         do {
+            try Task.checkCancellation()
+            if restoreFromOAuthCredentials(allowKeychain: true) {
+                setSignedOut(false)
+                transition(to: .authenticated)
+                return
+            }
+            let result = await withProbeTimeout(probe)
+            try checkSignInIsCurrent(generation)
+            if case .found(let orgId, let cookies) = result {
+                cachedOAuthCredentials = nil
+                capturedOrgId = orgId
+                capturedCookies = cookies
+                injectCookies(cookies)
+                persistSharedAuthContext()
+                setSignedOut(false)
+                transition(to: .authenticated)
+                return
+            }
+            await webSessionClearer()
+            try checkSignInIsCurrent(generation)
             let (orgId, cookies) = try await loginWindowRunner()
+            try checkSignInIsCurrent(generation)
             cachedOAuthCredentials = nil
             capturedOrgId = orgId
             capturedCookies = cookies
             injectCookies(cookies)
             persistSharedAuthContext()
-            UserDefaults.standard.removeObject(forKey: signedOutDefaultsKey)
+            setSignedOut(false)
             transition(to: .authenticated)
         } catch {
+            guard generation == authGeneration, state == .signingIn else { throw error }
             clearPersistedSharedAuthContext()
-            transition(to: .unauthenticated)
+            transition(to: previousState)
             throw error
         }
     }
@@ -259,31 +275,35 @@ public actor ClaudeAuthCoordinator {
     public func reconnectWithWebAuthentication(
         expectedOrganizationID: String?
     ) async throws {
-        guard state == .authenticated else {
-            throw AuthCoordinatorError.invalidTransition(from: state)
+        switch state {
+        case .authenticated, .unauthenticated, .signedOutByUser: break
+        default: throw AuthCoordinatorError.invalidTransition(from: state)
         }
-
+        // Validate before opening a browser or changing any existing session.
+        let expected = try expectedOrganizationID.map(Self.normalizedOrganizationID)
+        let previousState = state
         let previousOrgID = capturedOrgId
         let previousCookies = capturedCookies
         let previousOAuthCredentials = cachedOAuthCredentials
         let previousOAuthDisabledForSession = oauthDisabledForSession
+        authGeneration += 1
+        let generation = authGeneration
         transition(to: .signingIn)
-        await webSessionClearer()
 
         do {
+            await webSessionClearer()
+            try checkSignInIsCurrent(generation)
             let (orgId, cookies) = try await loginWindowRunner()
+            try checkSignInIsCurrent(generation)
             let normalizedOrganizationID = try Self.normalizedOrganizationID(orgId)
-            if let expectedOrganizationID {
-                let normalizedExpectedID = try Self.normalizedOrganizationID(expectedOrganizationID)
-                guard normalizedOrganizationID == normalizedExpectedID else {
-                    throw ClaudeWebReconnectError.organizationMismatch
-                }
+            if let expected, normalizedOrganizationID != expected {
+                throw ClaudeWebReconnectError.organizationMismatch
             }
 
             capturedOrgId = normalizedOrganizationID
             capturedCookies = cookies
             injectCookies(cookies)
-            if expectedOrganizationID == nil {
+            if expected == nil {
                 cachedOAuthCredentials = nil
                 oauthDisabledForSession = true
             } else {
@@ -291,23 +311,37 @@ public actor ClaudeAuthCoordinator {
                 oauthDisabledForSession = previousOAuthDisabledForSession
             }
             persistSharedAuthContext()
-            UserDefaults.standard.removeObject(forKey: Self.signedOutKey)
+            setSignedOut(false)
             transition(to: .authenticated)
         } catch {
+            // Reset invalidates this transaction. Neither a late success nor a
+            // cancellation/mismatch rollback may resurrect its old connection.
+            guard generation == authGeneration, state == .signingIn else { throw error }
             await webSessionClearer()
+            guard generation == authGeneration, state == .signingIn else { throw error }
+            if previousOrgID != nil {
+                await webSessionRestorer(previousCookies)
+                guard generation == authGeneration, state == .signingIn else { throw error }
+            }
             capturedOrgId = previousOrgID
             capturedCookies = previousCookies
             cachedOAuthCredentials = previousOAuthCredentials
             oauthDisabledForSession = previousOAuthDisabledForSession
             if previousOrgID == nil {
-                SharedAuthContextStore.clearClaude()
+                clearPersistedSharedAuthContext()
             } else {
-                await webSessionRestorer(previousCookies)
                 injectCookies(previousCookies)
                 persistSharedAuthContext()
             }
-            transition(to: .authenticated)
+            transition(to: previousState)
             throw error
+        }
+    }
+
+    private func checkSignInIsCurrent(_ generation: Int) throws {
+        try Task.checkCancellation()
+        guard generation == authGeneration, state == .signingIn else {
+            throw CancellationError()
         }
     }
 
@@ -331,7 +365,7 @@ public actor ClaudeAuthCoordinator {
         }
 
         if restoreFromOAuthCredentialsForRecovery() {
-            UserDefaults.standard.removeObject(forKey: signedOutDefaultsKey)
+            setSignedOut(false)
             transition(to: .authenticated)
             return true
         }
@@ -345,7 +379,7 @@ public actor ClaudeAuthCoordinator {
             capturedCookies = cookies
             injectCookies(cookies)
             persistSharedAuthContext()
-            UserDefaults.standard.removeObject(forKey: signedOutDefaultsKey)
+            setSignedOut(false)
             transition(to: .authenticated)
             return true
         }
@@ -368,7 +402,7 @@ public actor ClaudeAuthCoordinator {
             capturedCookies = cookies
             injectCookies(cookies)
             persistSharedAuthContext()
-            UserDefaults.standard.removeObject(forKey: signedOutDefaultsKey)
+            setSignedOut(false)
             transition(to: .authenticated)
             return true
         }
@@ -400,7 +434,7 @@ public actor ClaudeAuthCoordinator {
         }
 
         transition(to: .signingOut)
-        UserDefaults.standard.set(true, forKey: signedOutDefaultsKey)
+        setSignedOut(true)
         clearAuthContext()
         await clearWKCookies()
         await verifyWKCookiesEmpty()
@@ -465,6 +499,10 @@ public actor ClaudeAuthCoordinator {
     /// Legal from: authenticated, unauthenticated, signedOutByUser.
     /// If signingIn or signingOut is in progress, waits for it to settle first.
     public func reset() async {
+        authGeneration += 1
+        // The invalidated login no longer owns this state. Waiting for it would
+        // strand reset until timeout because its stale completion cannot transition.
+        if state == .signingIn { transition(to: .unauthenticated) }
         // Wait up to 30 seconds for any in-flight transient transition to settle.
         let deadline = Date.now.addingTimeInterval(30)
         while (state == .signingIn || state == .signingOut || state == .resetting),
@@ -474,14 +512,14 @@ public actor ClaudeAuthCoordinator {
 
         guard state == .authenticated || state == .unauthenticated || state == .signedOutByUser else {
             logger.warning("[ClaudeCoord] reset: timed out waiting for in-flight transition to settle; forcing signedOutByUser")
-            UserDefaults.standard.set(true, forKey: signedOutDefaultsKey)
+            setSignedOut(true)
             clearAuthContext()
             transition(to: .signedOutByUser)
             return
         }
 
         transition(to: .resetting)
-        UserDefaults.standard.set(true, forKey: signedOutDefaultsKey)
+        setSignedOut(true)
         clearAuthContext()
         await clearWKCookies()
         let verified = await verifyWKCookiesEmpty()
@@ -568,8 +606,18 @@ public actor ClaudeAuthCoordinator {
         }
     }
 
+    private func setSignedOut(_ value: Bool) {
+        if let signedOutWriter { signedOutWriter(value) }
+        else if value { UserDefaults.standard.set(true, forKey: signedOutDefaultsKey) }
+        else { UserDefaults.standard.removeObject(forKey: signedOutDefaultsKey) }
+    }
+
     private func persistSharedAuthContext() {
         guard let capturedOrgId else { return }
+        if let contextWriter {
+            contextWriter(SharedClaudeAuthContext(orgId: capturedOrgId, cookies: capturedCookies.map(PersistedCookie.init)))
+            return
+        }
         if let accountStorageID {
             SharedAuthContextStore.saveClaude(
                 orgId: capturedOrgId,
@@ -582,6 +630,7 @@ public actor ClaudeAuthCoordinator {
     }
 
     private func clearPersistedSharedAuthContext() {
+        if let contextWriter { contextWriter(nil); return }
         if let accountStorageID {
             SharedAuthContextStore.clearClaude(forAccountID: accountStorageID.uuidString)
         } else {
@@ -646,6 +695,7 @@ public actor ClaudeAuthCoordinator {
     }
 
     private func clearWKCookies() async {
+        if let webSessionResetter { await webSessionResetter(); return }
         await Self.clearWebSession(for: accountStorageID)
     }
 
@@ -737,6 +787,7 @@ public actor ClaudeAuthCoordinator {
 
     @discardableResult
     private func verifyWKCookiesEmpty() async -> Bool {
+        if let webSessionVerifier { return await webSessionVerifier() }
         let accountStorageID = self.accountStorageID
         return await withCheckedContinuation { (cont: CheckedContinuation<Bool, Never>) in
             Task { @MainActor in
