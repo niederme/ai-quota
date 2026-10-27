@@ -1222,6 +1222,9 @@ private final class CodexLoginWindowController: NSObject {
     /// Verify a matching result before completion; otherwise retain the browser.
     private func tryFetchSession(webView: WKWebView, manualCheck: Bool = false) {
         guard !hasCompleted else { return }
+        // A closed OAuth popup can still deliver a queued navigation callback
+        // after Retry has replaced its temporary browser session.
+        guard webView.configuration.websiteDataStore === self.webView?.configuration.websiteDataStore else { return }
         guard webView.url?.host?.contains("chatgpt.com") == true else { return }
         guard let generation = attempt.beginFetch() else { return }
         logger.info("[CodexLogin] tryFetchSession from \(webView.url?.path ?? "?")")
