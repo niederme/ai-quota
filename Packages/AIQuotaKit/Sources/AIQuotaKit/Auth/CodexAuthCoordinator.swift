@@ -1162,14 +1162,18 @@ private final class CodexLoginWindowController: NSObject {
     private var popupWindows: [NSWindow] = []
     private var cookieObserver: CodexCookieObserver?
     private var hasCompleted = false
-    private var isFetchingSession = false
+    private var attempt = CodexLoginAttempt()
+    private var browserStack: NSStackView?
+    private let feedbackView = CodexLoginFeedbackView()
+    private var lastFeedback: CodexLoginFeedback?
+    private var retryButton: NSButton?
     private let completionGate = CodexLoginCompletionGate()
     private let stagedSessionVerifier: CodexAuthCoordinator.StagedSessionVerifier
     private var selfRetain: CodexLoginWindowController?
     private let onComplete: (Result<CodexLoginResult, Error>) -> Void
     private let accountStorageID: UUID?
     private let expectedAccountID: String?
-    private let preserveExistingSession: Bool
+    private var stagesCookies: Bool
     private let logger = Logger(subsystem: "ai.quota", category: "codex-login")
 
     init(accountStorageID: UUID?, expectedAccountID: String?, preserveExistingSession: Bool,
@@ -1177,52 +1181,61 @@ private final class CodexLoginWindowController: NSObject {
          onComplete: @escaping (Result<CodexLoginResult, Error>) -> Void) {
         self.accountStorageID = accountStorageID
         self.expectedAccountID = expectedAccountID
-        self.preserveExistingSession = preserveExistingSession
+        self.stagesCookies = preserveExistingSession
         self.stagedSessionVerifier = stagedSessionVerifier
         self.onComplete = onComplete
     }
 
     func show() {
         selfRetain = self
+        let browser = makeBrowser()
+        webView = browser
+        showLoginWindow()
+        browser.load(URLRequest(url: CodexAuthCoordinator.loginURL))
+    }
+
+    private func makeBrowser() -> WKWebView {
         let config = WKWebViewConfiguration()
-        config.websiteDataStore = preserveExistingSession ? .nonPersistent()
+        config.websiteDataStore = stagesCookies ? .nonPersistent()
             : accountStorageID.map(WKWebsiteDataStore.init(forIdentifier:)) ?? .default()
-
-        let wv = WKWebView(frame: .init(x: 0, y: 0, width: 520, height: 680), configuration: config)
-        wv.navigationDelegate = self
-        wv.uiDelegate = self
-        self.webView = wv
-
+        let browser = WKWebView(frame: .init(x: 0, y: 0, width: 520, height: 680), configuration: config)
+        browser.navigationDelegate = self
+        browser.uiDelegate = self
         let observer = CodexCookieObserver { [weak self] in
-            Task { @MainActor [weak self] in
-                guard let self, let wv = self.webView else { return }
-                self.tryFetchSession(webView: wv)
-            }
+            guard let self, let browser = self.webView else { return }
+            self.tryFetchSession(webView: browser)
         }
         config.websiteDataStore.httpCookieStore.add(observer)
-        self.cookieObserver = observer
+        cookieObserver = observer
+        return browser
+    }
 
-        // Show the window immediately so the user gets visual feedback right away.
-        // didFinish handles the two cases: login page (window already visible, user signs in)
-        // or authenticated page (tryFetchSession completes and closes the window).
-        showLoginWindow()
-        wv.load(URLRequest(url: CodexAuthCoordinator.loginURL))
+    private func showFeedback(_ feedback: CodexLoginFeedback) {
+        window?.title = feedback.title
+        retryButton?.isHidden = false
+        guard lastFeedback != feedback else { return }
+        lastFeedback = feedback
+        feedbackView.show(feedback)
     }
 
     /// Fetches /api/auth/session via JS fetch from the current page context.
     /// Verify a matching result before completion; otherwise retain the browser.
-    private func tryFetchSession(webView: WKWebView) {
-        guard !hasCompleted, !isFetchingSession else { return }
+    private func tryFetchSession(webView: WKWebView, manualCheck: Bool = false) {
+        guard !hasCompleted else { return }
+        // A closed OAuth popup can still deliver a queued navigation callback
+        // after Retry has replaced its temporary browser session.
+        guard webView.configuration.websiteDataStore === self.webView?.configuration.websiteDataStore else { return }
         guard webView.url?.host?.contains("chatgpt.com") == true else { return }
-        isFetchingSession = true
+        guard let generation = attempt.beginFetch() else { return }
         logger.info("[CodexLogin] tryFetchSession from \(webView.url?.path ?? "?")")
 
-        CodexAuthCoordinator.fetchSessionInPage(webView: webView, includeCookies: preserveExistingSession) { [weak self] session in
+        CodexAuthCoordinator.fetchSessionInPage(webView: webView, includeCookies: stagesCookies) { [weak self] session in
             Task { @MainActor [weak self] in
-                guard let self, !self.hasCompleted else { return }
-                defer { self.isFetchingSession = false }
+                guard let self, !self.hasCompleted, self.attempt.accepts(generation) else { return }
+                defer { self.attempt.finishFetch(generation) }
                 guard let session else {
                     self.logger.info("[CodexLogin] session fetch: no accessToken yet")
+                    if manualCheck { self.showFeedback(.noSession) }
                     return
                 }
 
@@ -1234,17 +1247,21 @@ private final class CodexLoginWindowController: NSObject {
                         self.logger.notice("[CodexLogin] candidate workspace accepted cookieCount=\(count, privacy: .public) recognizedSessionCookie=\(recognized, privacy: .public)")
                         self.window?.title = "Checking ChatGPT sign-in…"
                         let verified = session.cookiesToCommit == nil ? session : try await self.stagedSessionVerifier(session)
-                        guard !self.hasCompleted else { return }
+                        guard !self.hasCompleted, self.attempt.accepts(generation) else { return }
                         guard CodexAuthCoordinator.acceptsInteractiveSession(verified, expectedAccountID: self.expectedAccountID) else {
-                            self.window?.title = "Choose the saved ChatGPT account"
+                            self.showFeedback(.differentAccount)
                             self.logger.notice("[CodexLogin] snapshot verification rejected workspace")
                             return
                         }
                         self.logger.notice("[CodexLogin] session verified; completing sign-in")
                         self.complete(CodexLoginResult(verified))
                     } catch {
-                        guard !self.hasCompleted else { return }
-                        self.window?.title = "Couldn't verify sign-in — click Check sign-in to retry"
+                        guard !self.hasCompleted, self.attempt.accepts(generation) else { return }
+                        if case NetworkError.accountIdentityMismatch = error {
+                            self.showFeedback(.differentAccount)
+                        } else {
+                            self.showFeedback(.verificationFailed)
+                        }
                         if case NetworkError.httpError(let status) = error {
                             self.logger.notice("[CodexLogin] snapshot verification failed reason=http status=\(status, privacy: .public); existing session preserved")
                         } else if case NetworkError.accountIdentityMismatch = error {
@@ -1254,10 +1271,10 @@ private final class CodexLoginWindowController: NSObject {
                         }
                     }
                 case .waitForAccount:
-                    self.window?.title = "Choose the saved ChatGPT account"
+                    self.showFeedback(.differentAccount)
                     self.logger.notice("[CodexLogin] waiting for the saved workspace")
                 case .invalidSnapshot:
-                    self.window?.title = "Couldn't read sign-in — click Check sign-in to retry"
+                    self.showFeedback(.inconsistentSession)
                     self.logger.notice("[CodexLogin] snapshot token mismatch; existing session preserved")
                 }
             }
@@ -1270,23 +1287,44 @@ private final class CodexLoginWindowController: NSObject {
                            styleMask: [.titled, .closable], backing: .buffered, defer: false)
         win.title = "Sign in to ChatGPT"
         let content = NSView()
-        webView.translatesAutoresizingMaskIntoConstraints = false
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.alignment = .width
+        stack.spacing = 0
+        stack.detachesHiddenViews = true
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        feedbackView.isHidden = true
+        stack.addArrangedSubview(feedbackView)
+        stack.addArrangedSubview(webView)
+        let footer = NSView()
+        stack.addArrangedSubview(footer)
+        browserStack = stack
+        content.addSubview(stack)
+
         let check = NSButton(title: "Check sign-in", target: self, action: #selector(checkSignIn))
-        check.toolTip = "Finish connecting after signing in, without starting another login."
+        check.toolTip = "Check again after signing in or choosing the saved workspace."
         let cancel = NSButton(title: "Cancel", target: self, action: #selector(cancelSignIn))
-        for view in [webView, check, cancel] as [NSView] {
+        let retry = NSButton(title: "Try another account", target: self, action: #selector(tryAnotherAccount))
+        retry.toolTip = "Start a fresh sign-in without changing your saved connection."
+        retry.isHidden = true
+        retryButton = retry
+        for view in [check, cancel, retry] {
             view.translatesAutoresizingMaskIntoConstraints = false
-            content.addSubview(view)
+            footer.addSubview(view)
         }
         NSLayoutConstraint.activate([
-            webView.topAnchor.constraint(equalTo: content.topAnchor),
-            webView.leadingAnchor.constraint(equalTo: content.leadingAnchor),
-            webView.trailingAnchor.constraint(equalTo: content.trailingAnchor),
-            webView.bottomAnchor.constraint(equalTo: check.topAnchor, constant: -12),
-            check.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -12),
-            check.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -12),
-            cancel.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 12),
-            cancel.centerYAnchor.constraint(equalTo: check.centerYAnchor)
+            stack.topAnchor.constraint(equalTo: content.topAnchor),
+            stack.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+            stack.bottomAnchor.constraint(equalTo: content.bottomAnchor),
+            footer.heightAnchor.constraint(equalToConstant: 44),
+            check.trailingAnchor.constraint(equalTo: footer.trailingAnchor, constant: -12),
+            check.centerYAnchor.constraint(equalTo: footer.centerYAnchor),
+            cancel.leadingAnchor.constraint(equalTo: footer.leadingAnchor, constant: 12),
+            cancel.centerYAnchor.constraint(equalTo: footer.centerYAnchor),
+            retry.leadingAnchor.constraint(equalTo: cancel.trailingAnchor, constant: 8),
+            retry.centerYAnchor.constraint(equalTo: footer.centerYAnchor),
+            retry.trailingAnchor.constraint(lessThanOrEqualTo: check.leadingAnchor, constant: -8)
         ])
         win.contentView = content
         win.center()
@@ -1300,7 +1338,30 @@ private final class CodexLoginWindowController: NSObject {
 
     @objc private func checkSignIn() {
         guard let webView else { return }
-        tryFetchSession(webView: webView)
+        tryFetchSession(webView: webView, manualCheck: true)
+    }
+
+    @objc private func tryAnotherAccount() {
+        guard !hasCompleted, let oldBrowser = webView, let browserStack else { return }
+        attempt.restart()
+        closePopupWindows()
+        if let cookieObserver { oldBrowser.configuration.websiteDataStore.httpCookieStore.remove(cookieObserver) }
+        oldBrowser.stopLoading()
+        oldBrowser.navigationDelegate = nil
+        oldBrowser.uiDelegate = nil
+        browserStack.removeArrangedSubview(oldBrowser)
+        oldBrowser.removeFromSuperview()
+        // A fresh temporary store cannot log out or overwrite a saved account.
+        // Its cookies still pass the normal independent verification and commit.
+        stagesCookies = true
+        let browser = makeBrowser()
+        webView = browser
+        browserStack.insertArrangedSubview(browser, at: 1)
+        feedbackView.isHidden = true
+        lastFeedback = nil
+        retryButton?.isHidden = true
+        window?.title = "Sign in to ChatGPT"
+        browser.load(URLRequest(url: CodexAuthCoordinator.loginURL))
     }
 
     @objc private func cancelSignIn() { fail(with: CancellationError()) }
@@ -1309,8 +1370,14 @@ private final class CodexLoginWindowController: NSObject {
         guard !hasCompleted else { return }
         hasCompleted = true
         closePopupWindows()
+        if let webView, let cookieObserver {
+            webView.configuration.websiteDataStore.httpCookieStore.remove(cookieObserver)
+        }
+        webView?.stopLoading()
+        webView?.navigationDelegate = nil
+        webView?.uiDelegate = nil
         window?.close()
-        window = nil; webView = nil; cookieObserver = nil
+        window = nil; webView = nil; cookieObserver = nil; browserStack = nil
         let callback = onComplete
         selfRetain = nil
         callback(.success(result))
@@ -1320,8 +1387,14 @@ private final class CodexLoginWindowController: NSObject {
         guard !hasCompleted else { return }
         hasCompleted = true
         closePopupWindows()
+        if let webView, let cookieObserver {
+            webView.configuration.websiteDataStore.httpCookieStore.remove(cookieObserver)
+        }
+        webView?.stopLoading()
+        webView?.navigationDelegate = nil
+        webView?.uiDelegate = nil
         window?.close()
-        window = nil; webView = nil; cookieObserver = nil
+        window = nil; webView = nil; cookieObserver = nil; browserStack = nil
         let callback = onComplete
         selfRetain = nil
         callback(.failure(error))

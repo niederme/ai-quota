@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/aiquota-app-design-system-2deee27f-2073-4d6d-9c88-a9a6ea8b7585/styles.css">
+<script src="_ds/aiquota-app-design-system-2deee27f-2073-4d6d-9c88-a9a6ea8b7585/_ds_bundle.js"></script>
+<style>@keyframes aqspin{to{transform:rotate(360deg);}} @media (prefers-reduced-motion: reduce){.aq-spin{animation-duration:2.4s !important;}} body{margin:0;background:var(--base);} a{color:var(--accent);} a:hover{color:var(--reset-accent);}</style>
+</helmet>
+<section class="aq" style="display:flex;flex-direction:column;gap:var(--space-24);padding:48px 48px 0;background:var(--base);color:var(--primary);font-family:var(--font-sans);">
+<div style="display:flex;flex-direction:column;gap:var(--space-4);">
+<h1 style="margin:0;font:600 20px/24px var(--font-sans);letter-spacing:-0.25px;">No accounts: placeholder rows</h1>
+<p style="margin:0;font:400 13px/18px var(--font-sans);color:var(--secondary);max-width:640px;text-wrap:pretty;">The 2-account sheet from <a href="#3c">3c</a> with nothing connected. Same sheet width, row padding, dial, text slots and heatmap; readings become dashes and bars, and Connect sits where status lines would. Hover a row.</p>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:48px;align-items:flex-start;">
+<div id="4a" style="display:flex;flex-direction:column;gap:var(--space-12);width:480px;">
+<div style="display:flex;align-items:center;gap:var(--space-8);"><span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--control-mac);font:600 12px/16px var(--font-sans);">4a</span><span style="font:400 13px/16px var(--font-sans);color:var(--secondary);">Active layout, placeholder state</span></div>
+<div class="aq-macsheet" style="width:480px;">
+<div class="aq-macsheet__head"><h2>AIQuota</h2><button class="aq-iconbtn aq-iconbtn--mac" type="button" aria-label="Refresh usage"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6"></path><path d="M15.2 2.6v3.6h-3.6"></path></svg></button></div>
+<div class="aq-macsheet__body" style="gap:0;padding-top:var(--space-8);padding-bottom:var(--space-16);">
+<button class="aq-macrow" type="button" aria-label="Connect Codex" onMouseEnter="{{ h.a0.enter }}" onMouseLeave="{{ h.a0.leave }}" onFocus="{{ h.a0.enter }}" onBlur="{{ h.a0.leave }}" style="padding:calc(var(--space-16) + 5px) var(--space-16);background:{{ h.a0.bg }};box-shadow:{{ h.a0.sh }};"><div class="aq-macrow__top"><div class="aq-dial-frame-mac"><div class="aq-dial aq-dial--mac aq-dial--off" role="img" aria-label="No reading"><svg viewBox="0 0 120 120" aria-hidden="true"><path class="aq-dial__track" style="stroke-width:8;" d="M17.57 102.43A60 60 0 1 1 102.43 102.43"></path><path class="aq-dial__track" style="stroke-width:8;" d="M24.64 95.36A50 50 0 1 1 95.36 95.36"></path></svg><div class="aq-dial__body" aria-hidden="true"><i class="aq-glyph aq-glyph--openai"></i><div class="aq-dial__values" style="color:var(--tertiary);"><span>— 5h</span><span class="aq-dial__v--2">— 7d</span></div></div></div></div><div class="aq-macrow__details"><div><p class="aq-macrow__name">Codex</p><p class="aq-macrow__plan">Not connected</p></div><span aria-hidden="true" style="display:block;width:136px;height:8px;margin:4px 0;border-radius:4px;background:var(--track-mac);"></span><span aria-hidden="true" style="display:block;width:172px;height:8px;margin:4px 0;border-radius:4px;background:var(--track-mac);"></span><span class="aq-btn aq-btn--prominent aq-btn--small" style="align-self:flex-start;margin-top:var(--space-4);min-height:22px;padding:0 10px;border-radius:6px;font:500 13px/16px var(--font-sans);letter-spacing:0;">Connect</span></div></div><div style="margin-top:8px;opacity:0.6;"><div class="aq-heat" role="img" aria-label="Token activity, no data yet"><span class="aq-heat__title">Token activity</span><div class="aq-heat__grid"><sc-for list="{{ heatEmpty }}" as="c" hint-placeholder-count="294"><i class="{{ c }}"></i></sc-for></div><div class="aq-heat__months" aria-hidden="true"><span style="left:0%;">Jan</span><span style="left:9.55%;">Feb</span><span style="left:19.09%;">Mar</span><span style="left:28.64%;">Apr</span><span style="left:38.19%;">May</span><span style="left:50.12%;">Jun</span><span style="left:59.67%;">Jul</span><span style="left:69.21%;">Aug</span><span style="left:81.15%;">Sep</span><span style="left:90.69%;">Oct</span></div></div></div></button>
+<button class="aq-macrow" type="button" aria-label="Connect Claude" onMouseEnter="{{ h.a1.enter }}" onMouseLeave="{{ h.a1.leave }}" onFocus="{{ h.a1.enter }}" onBlur="{{ h.a1.leave }}" style="padding:calc(var(--space-16) + 5px) var(--space-16);background:{{ h.a1.bg }};box-shadow:{{ h.a1.sh }};"><div class="aq-macrow__top"><div class="aq-dial-frame-mac"><div class="aq-dial aq-dial--mac aq-dial--off" role="img" aria-label="No reading"><svg viewBox="0 0 120 120" aria-hidden="true"><path class="aq-dial__track" style="stroke-width:8;" d="M17.57 102.43A60 60 0 1 1 102.43 102.43"></path><path class="aq-dial__track" style="stroke-width:8;" d="M24.64 95.36A50 50 0 1 1 95.36 95.36"></path></svg><div class="aq-dial__body" aria-hidden="true"><i class="aq-glyph aq-glyph--claude"></i><div class="aq-dial__values" style="color:var(--tertiary);"><span>— 5h</span><span class="aq-dial__v--2">— 7d</span></div></div></div></div><div class="aq-macrow__details"><div><p class="aq-macrow__name">Claude</p><p class="aq-macrow__plan">Not connected</p></div><span aria-hidden="true" style="display:block;width:136px;height:8px;margin:4px 0;border-radius:4px;background:var(--track-mac);"></span><span aria-hidden="true" style="display:block;width:172px;height:8px;margin:4px 0;border-radius:4px;background:var(--track-mac);"></span><span class="aq-btn aq-btn--prominent aq-btn--small" style="align-self:flex-start;margin-top:var(--space-4);min-height:22px;padding:0 10px;border-radius:6px;font:500 13px/16px var(--font-sans);letter-spacing:0;">Connect</span></div></div></button>
+</div>
+<div class="aq-macsheet__foot" style="flex:none;padding:var(--space-8) var(--space-8) 10px;"><button type="button" style="display:flex;align-items:center;min-height:32px;padding:0 10px;border:0;border-radius:var(--radius-row);background:transparent;color:inherit;font:inherit;cursor:default;" style-hover="background:var(--hover-mac);" style-active="background:var(--hover-mac);opacity:0.7;">Settings</button><span></span><button type="button" style="display:flex;align-items:center;min-height:32px;padding:0 10px;border:0;border-radius:var(--radius-row);background:transparent;color:inherit;font:inherit;cursor:default;" style-hover="background:var(--hover-mac);" style-active="background:var(--hover-mac);opacity:0.7;">Quit</button></div>
+</div>
+</div>
+</div>
+</section>
+<section class="aq" style="display:flex;flex-direction:column;gap:40px;padding:48px 48px 0;background:var(--base);color:var(--primary);font-family:var(--font-sans);">
+<div style="display:flex;flex-direction:column;gap:var(--space-4);">
+<h1 style="margin:0;font:600 20px/24px var(--font-sans);letter-spacing:-0.25px;">Account counts and states</h1>
+<p style="margin:0;font:400 13px/18px var(--font-sans);color:var(--secondary);max-width:640px;text-wrap:pretty;">No card at rest, rows touch, glass on hover, one row at a time. Hover, press and scroll any sheet.</p>
+</div>
+<sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+<div style="display:flex;flex-direction:column;gap:var(--space-16);">
+<div style="display:flex;flex-direction:column;gap:var(--space-4);"><h2 style="margin:0;font:600 15px/20px var(--font-sans);">{{ g.title }}</h2><p style="margin:0;font:400 13px/18px var(--font-sans);color:var(--secondary);max-width:640px;text-wrap:pretty;">{{ g.note }}</p></div>
+<div style="display:flex;flex-wrap:wrap;gap:48px;align-items:flex-start;">
+<sc-for list="{{ g.sheets }}" as="s" hint-placeholder-count="3">
+<div id="{{ s.id }}" style="display:flex;flex-direction:column;gap:var(--space-12);width:{{ s.w }}px;">
+<div style="display:flex;align-items:center;gap:var(--space-8);"><span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--control-mac);font:600 12px/16px var(--font-sans);">{{ s.id }}</span><span style="font:400 13px/16px var(--font-sans);color:var(--secondary);">{{ s.label }}</span></div>
+<div class="aq-macsheet" style="display:flex;flex-direction:column;width:{{ s.w }}px;max-height:{{ s.maxH }};">
+<sc-if value="{{ s.full }}" hint-placeholder-val="{{ true }}"><div class="aq-macsheet__head" style="flex:none;"><h2>AIQuota</h2><button class="aq-iconbtn aq-iconbtn--mac" type="button" aria-label="Refresh usage"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6"></path><path d="M15.2 2.6v3.6h-3.6"></path></svg></button></div></sc-if>
+<div style="position:relative;flex:1 1 auto;min-height:0;display:flex;flex-direction:column;">
+<div class="aq-macsheet__body" ref="{{ s.ref }}" onScroll="{{ s.onScroll }}" style="gap:0;padding-top:{{ s.padTop }};padding-bottom:var(--space-16);flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-width:none;mask-image:{{ s.mask }};">
+<sc-if value="{{ s.notice }}" hint-placeholder-val="{{ false }}"><div style="padding-bottom:var(--space-16);"><div class="aq-notice aq-notice--mac"><div class="aq-notice__text"><p class="aq-notice__title">Codex usage reset announced</p><a class="aq-notice__link" href="#">Read more on Codex Resets <span aria-hidden="true">↗</span></a></div><button class="aq-notice__close" type="button" aria-label="Dismiss reset announcement"><svg viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="11" fill="currentColor" opacity="0.9"></circle><path d="M7.5 7.5l7 7M14.5 7.5l-7 7" stroke="var(--base)" style="stroke-width:2;stroke-linecap:round;"></path></svg></button></div></div></sc-if>
+<sc-if value="{{ s.empty }}" hint-placeholder-val="{{ false }}"><div style="display:flex;flex-direction:column;align-items:center;gap:var(--space-16);padding:var(--space-24) var(--space-16) var(--space-8);text-align:center;"><div style="display:flex;flex-direction:column;gap:var(--space-4);"><p style="margin:0;font:600 17px/22px var(--font-sans);">No accounts yet</p><p style="margin:0;font:400 13px/16px var(--font-sans);color:var(--secondary);text-wrap:pretty;">Sign in to Codex or Claude to see your usage here.</p></div><button class="aq-btn aq-btn--prominent aq-btn--small" type="button">Open Settings</button></div></sc-if>
+<sc-for list="{{ s.rows }}" as="r" hint-placeholder-count="2">
+<button class="aq-macrow" type="button" aria-label="{{ r.name }}" onMouseEnter="{{ r.enter }}" onMouseLeave="{{ r.leave }}" onMouseDown="{{ r.down }}" onMouseUp="{{ r.up }}" onFocus="{{ r.enter }}" onBlur="{{ r.leave }}" aria-busy="{{ r.loading }}" style="position:relative;padding:calc(var(--space-16) + 5px) var(--space-16);background:{{ r.bg }};box-shadow:{{ r.sh }};"><div class="aq-macrow__top" style="opacity:{{ r.dim }};transition:opacity .2s ease-out;"><div class="aq-dial-frame-mac"><div class="aq-dial aq-dial--mac {{ r.tone }}" role="img" aria-label="{{ r.aria }}"><svg viewBox="0 0 120 120" aria-hidden="true"><path class="aq-dial__track" style="stroke-width:8;" d="M17.57 102.43A60 60 0 1 1 102.43 102.43"></path><path class="aq-dial__track" style="stroke-width:8;" d="M24.64 95.36A50 50 0 1 1 95.36 95.36"></path><path class="aq-dial__fill" style="stroke-width:8;" d="{{ r.d1 }}"></path><path class="aq-dial__fill aq-dial__fill--2" style="stroke-width:8;" d="{{ r.d2 }}"></path></svg><div class="aq-dial__body" aria-hidden="true"><i class="aq-glyph {{ r.glyph }}"></i><div class="aq-dial__values"><span>{{ r.v1 }}</span><span class="aq-dial__v--2">{{ r.v2 }}</span></div></div></div></div><div class="aq-macrow__details"><div><p class="aq-macrow__name">{{ r.name }}</p><p class="aq-macrow__plan">{{ r.plan }}</p></div><sc-for list="{{ r.caps }}" as="cap" hint-placeholder-count="2"><p class="aq-macrow__cap">{{ cap }}</p></sc-for><sc-if value="{{ r.warn }}" hint-placeholder-val="{{ false }}"><p class="aq-macrow__warn">{{ r.warn }}</p></sc-if><sc-if value="{{ r.meta }}" hint-placeholder-val="{{ false }}"><p class="aq-macrow__meta">{{ r.meta }}</p></sc-if></div></div><sc-if value="{{ r.hasHeat }}" hint-placeholder-val="{{ false }}"><div style="margin-top:8px;opacity:{{ r.dim }};transition:opacity .2s ease-out;"><div class="aq-heat" role="img" aria-label="Token activity, past 42 weeks"><span class="aq-heat__title">Token activity</span><div class="aq-heat__grid"><sc-for list="{{ r.heat }}" as="c" hint-placeholder-count="294"><i class="{{ c }}"></i></sc-for></div><div class="aq-heat__months" aria-hidden="true"><span style="left:0%;">Jan</span><span style="left:9.55%;">Feb</span><span style="left:19.09%;">Mar</span><span style="left:28.64%;">Apr</span><span style="left:38.19%;">May</span><span style="left:50.12%;">Jun</span><span style="left:59.67%;">Jul</span><span style="left:69.21%;">Aug</span><span style="left:81.15%;">Sep</span><span style="left:90.69%;">Oct</span></div></div></div></sc-if><sc-if value="{{ r.loading }}" hint-placeholder-val="{{ false }}"><span aria-hidden="true" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;">{{ r.spinner }}</span></sc-if></button>
+</sc-for>
+</div>
+<div aria-hidden="true" style="position:absolute;right:3px;top:{{ s.thumbTop }}px;width:6px;height:{{ s.thumbH }}px;border-radius:3px;background:var(--secondary);opacity:{{ s.thumbO }};transition:opacity .3s ease-out;pointer-events:none;"></div>
+</div>
+<sc-if value="{{ s.full }}" hint-placeholder-val="{{ true }}"><div class="aq-macsheet__foot" style="flex:none;padding:var(--space-8) var(--space-8) 10px;"><button type="button" style="display:flex;align-items:center;min-height:32px;padding:0 10px;border:0;border-radius:var(--radius-row);background:transparent;color:inherit;font:inherit;cursor:default;" style-hover="background:var(--hover-mac);" style-active="background:var(--hover-mac);opacity:0.7;">Settings</button><span>{{ s.footMid }}</span><button type="button" style="display:flex;align-items:center;min-height:32px;padding:0 10px;border:0;border-radius:var(--radius-row);background:transparent;color:inherit;font:inherit;cursor:default;" style-hover="background:var(--hover-mac);" style-active="background:var(--hover-mac);opacity:0.7;">Quit</button></div></sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;dark&quot;, &quot;light&quot;], &quot;default&quot;: &quot;dark&quot;, &quot;tsType&quot;: &quot;'dark' | 'light'&quot;}, &quot;loading&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;}, &quot;maxHeight&quot;: {&quot;editor&quot;: &quot;range&quot;, &quot;min&quot;: 480, &quot;max&quot;: 1000, &quot;step&quot;: 20, &quot;unit&quot;: &quot;pt&quot;, &quot;default&quot;: 720, &quot;tsType&quot;: &quot;number&quot;}, &quot;pinHover&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;}, &quot;showNotice&quot;: {&quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;}}">
+const HEAT = '------------------------------210300231230132034022430330301001040241004113100423033011011000131203200110220432022444110014440013431321242300414210244113004244210113231133432223434100131341141213020313100124131020311204110100322012040343404311200422224221321001023430441441243420000333032120442';
+const HEAT_CLS = HEAT.split('').map(ch => ch === '-' ? '' : ch === '0' ? 'z' : 'l' + ch);
+const SCROLL_PINS = { '3f': 'mid', '3g': 'end' };
+function arc(f, r) {
+  if (!(f > 0)) return '';
+  f = Math.min(f, 1);
+  const p = d => { const a = d * Math.PI / 180; return (60 + r * Math.cos(a)).toFixed(2) + ' ' + (60 + r * Math.sin(a)).toFixed(2); };
+  return `M${p(135)}A${r} ${r} 0 ${270 * f > 180 ? 1 : 0} 1 ${p(135 + 270 * f)}`;
+}
+const ACC = {
+  codex: { name: 'Codex', plan: 'Pro plan', glyph: 'aq-glyph--openai', p5: .62, p7: .41, caps: ['Resets Fri at 3:40 PM', '7d Resets Tue at 10:07 PM'], heat: true },
+  claude: { name: 'Claude', plan: 'Max plan', glyph: 'aq-glyph--claude', p5: 1, p7: .13, tone: 'aq-dial--critical', caps: ['Resets Fri at 12:00 PM', '7d Resets Wed at 2:00 PM'], warn: 'Couldn’t update · Saved reading' },
+  claudePro: { name: 'Claude', plan: 'Pro plan', glyph: 'aq-glyph--claude', p5: .84, p7: .52, tone: 'aq-dial--warning', caps: ['Resets Fri at 1:15 PM', '7d Resets Mon at 9:00 AM'] },
+  claudeUpd: { name: 'Claude', plan: 'Team plan', glyph: 'aq-glyph--claude', p5: .23, p7: .09, caps: ['Resets Fri at 4:30 PM', '7d Resets Thu at 8:00 AM'], meta: 'Updating…' },
+  codexOff: { name: 'Codex', plan: 'Plus plan', glyph: 'aq-glyph--openai', off: true, tone: 'aq-dial--off', caps: [], meta: 'Signed out · Sign in from Settings' },
+};
+class Component extends DCLogic {
+  state = { hov: null, press: null, sc: {}, act: {} };
+  els = {}; _refs = {}; _scroll = {}; timers = {};
+  componentDidMount() {
+    this.applyTheme();
+    this._m = () => this.measureAll();
+    window.addEventListener('resize', this._m);
+    setTimeout(this._m, 60); setTimeout(this._m, 600);
+    if (document.fonts) document.fonts.ready.then(this._m);
+  }
+  componentWillUnmount() { window.removeEventListener('resize', this._m); }
+  componentDidUpdate(pp) {
+    this.applyTheme();
+    if (pp.maxHeight !== this.props.maxHeight || pp.showNotice !== this.props.showNotice) setTimeout(this._m, 40);
+  }
+  refFor(id) { return this._refs[id] || (this._refs[id] = el => { this.els[id] = el; }); }
+  measure(el) { return { t: el.scrollTop, ch: el.clientHeight, sh: el.scrollHeight }; }
+  measureAll() {
+    const sc = {};
+    for (const id in this.els) {
+      const el = this.els[id]; if (!el) continue;
+      const pin = SCROLL_PINS[id], m = el.scrollHeight - el.clientHeight;
+      if (pin) el.scrollTop = pin === 'mid' ? m / 2 : m;
+      sc[id] = this.measure(el);
+    }
+    this.setState({ sc });
+  }
+  onScrollFor(id) {
+    return this._scroll[id] || (this._scroll[id] = () => {
+      const el = this.els[id]; if (!el) return;
+      clearTimeout(this.timers[id]);
+      this.timers[id] = setTimeout(() => this.setState(s => ({ act: { ...s.act, [id]: false } })), 900);
+      this.setState(s => ({ sc: { ...s.sc, [id]: this.measure(el) }, act: { ...s.act, [id]: true } }));
+    });
+  }
+  row(k, key, pin) {
+    const a = ACC[k], { hov, press } = this.state;
+    const pinned = (this.props.pinHover ?? false) && hov === null && key.endsWith(':0');
+    const st = press === key || pin === 'pressed' ? 'pressed' : hov === key || pin === 'hover' || pinned ? 'hover' : 'rest';
+    const pct = p => Math.round(p * 100) + '%';
+    const loading = !!(pin === 'loading' || (this.props.loading ?? false));
+    return {
+      loading, dim: loading ? 0.4 : 1,
+      spinner: loading ? React.createElement('span', { className: 'aq-spin', style: { display: 'block', width: 24, height: 24, borderRadius: '50%', border: '2.5px solid var(--track-mac)', borderTopColor: 'var(--primary)', animation: 'aqspin 0.8s linear infinite' } }) : null,
+      name: a.name, plan: a.plan, glyph: a.glyph, tone: a.tone || '', caps: a.caps, warn: a.warn || '', meta: a.meta || '',
+      hasHeat: !!a.heat, heat: HEAT_CLS,
+      d1: a.off ? '' : arc(a.p5, 60), d2: a.off ? '' : arc(a.p7, 50),
+      v1: a.off ? '— 5h' : pct(a.p5) + ' 5h', v2: a.off ? '— 7d' : pct(a.p7) + ' 7d',
+      aria: a.off ? 'No reading' : `${pct(a.p5)} of 5h used, ${pct(a.p7)} of 7d used`,
+      bg: st === 'rest' ? 'transparent' : st === 'hover' ? 'var(--glass)' : 'linear-gradient(var(--hover-mac), var(--hover-mac)), var(--glass)',
+      sh: st === 'rest' ? 'none' : 'inset 0 1px 0 var(--glass-highlight)',
+      enter: () => this.setState({ hov: key }),
+      leave: () => this.setState(s => (s.hov === key || s.press === key ? { hov: s.hov === key ? null : s.hov, press: null } : null)),
+      down: () => this.setState({ press: key }),
+      up: () => this.setState({ press: null }),
+    };
+  }
+  buildBoard() {
+    const maxH = this.props.maxHeight ?? 720, notice = this.props.showNotice ?? true;
+    const L = [[], ['codex'], ['codex', 'claude'], ['codex', 'claude', 'claudePro'], ['codex', 'claude', 'claudePro', 'codexOff']];
+    const defs = [
+      { title: 'Account counts', note: `Sheet capped at ${maxH}pt, standing in for 88% of the screen. 420 wide for 1 account, 480 for more. Past the cap the list scrolls. No accounts is covered by 4a.`,
+        sheets: L.slice(1).map((keys, j) => ({ id: '3' + 'bcde'[j], label: j === 0 ? '1 account' : `${j + 1} accounts`, keys, full: true, capped: true })) },
+      { title: 'Scroll clipping', note: 'Header and footer stay fixed. The list fades over 24pt at whichever edge has more content; the overlay scroller shows while scrolling.',
+        sheets: [{ id: '3f', label: '4 accounts · scrolled midway', keys: L[4], full: true, capped: true }, { id: '3g', label: '4 accounts · scrolled to the end', keys: L[4], full: true, capped: true }] },
+      { title: 'Row interaction', note: 'Rest has no fill or edge. Hover and keyboard focus share the glass fill and top highlight. Pressed adds the hover tint over the glass.',
+        sheets: [{ id: '3h', label: 'Rest', keys: ['codex'] }, { id: '3i', label: 'Hover · focus', keys: ['codex'], pin: 'hover' }, { id: '3j', label: 'Pressed', keys: ['codex'], pin: 'pressed' }] },
+      { title: 'Row status', note: 'Normal, warning, critical with a failed update, updating, and signed out, stacked as they would sit in the list.',
+        sheets: [{ id: '3k', label: 'All statuses together', keys: ['codex', 'claudePro', 'claude', 'claudeUpd', 'codexOff'] }] },
+      { title: 'Loading', note: 'While refreshing, the last reading stays in place at 40% opacity with a spinner centred on the row. Rows stay clickable.',
+        sheets: [{ id: '3l', label: '2 accounts · refreshing over stale readings', keys: ['codex', 'claude'], full: true, pin: 'loading' }] },
+    ];
+    const groups = defs.map(g => ({ title: g.title, note: g.note, sheets: g.sheets.map(s => {
+      const sc = this.state.sc[s.id];
+      const over = !!(s.capped && sc && sc.sh > sc.ch + 1);
+      const up = over && sc.t > 1, down = over && sc.t < sc.sh - sc.ch - 1;
+      const th = over ? Math.max(28, sc.ch * sc.ch / sc.sh - 8) : 0;
+      return {
+        id: s.id, label: s.label, full: !!s.full, w: s.full && s.keys.length < 2 ? 420 : 480,
+        maxH: s.capped ? maxH + 'px' : 'none', padTop: s.full ? 'var(--space-8)' : 'var(--space-16)',
+        empty: s.keys.length === 0, notice: !!(s.full && notice && s.keys.length),
+        footMid: s.keys.length ? '10s ago' : '',
+        rows: s.keys.map((k, i) => this.row(k, s.id + ':' + i, s.pin)),
+        ref: this.refFor(s.id), onScroll: this.onScrollFor(s.id),
+        mask: over ? `linear-gradient(to bottom, ${up ? 'transparent' : '#000'} 0, #000 ${up ? 24 : 0}px, #000 calc(100% - ${down ? 24 : 0}px), ${down ? 'transparent' : '#000'} 100%)` : 'none',
+        thumbH: th, thumbTop: over ? 4 + (sc.t / (sc.sh - sc.ch)) * (sc.ch - 8 - th) : 0,
+        thumbO: over && (SCROLL_PINS[s.id] || this.state.act[s.id]) ? 1 : 0,
+      };
+    }) }));
+    return { groups };
+  }
+  applyTheme() {
+    const el = document.documentElement;
+    if ((this.props.theme ?? 'dark') === 'light') el.setAttribute('data-theme', 'light');
+    else el.removeAttribute('data-theme');
+  }
+  renderVals() {
+    const pin = this.props.pinHover ?? false;
+    const hov = this.state.hov;
+    const on = k => hov === k || (pin && hov === null && k.endsWith('0'));
+    const v = { heat: HEAT_CLS, showNotice: this.props.showNotice ?? true };
+    for (const o of ['b', 'c', 'd']) for (const r of [0, 1]) {
+      const k = o + r;
+      v['bg_' + k] = on(k) ? 'var(--hover-mac)' : 'transparent';
+      v['enter_' + k] = () => this.setState({ hov: k });
+      v['leave_' + k] = () => this.setState(s => (s.hov === k ? { hov: null } : null));
+    }
+    for (const r of [0, 1]) {
+      const k = 'e' + r;
+      v['bg_' + k] = on(k) ? 'var(--glass)' : 'transparent';
+      v['sh_' + k] = on(k) ? 'inset 0 1px 0 var(--glass-highlight)' : 'none';
+      v['enter_' + k] = () => this.setState({ hov: k });
+      v['leave_' + k] = () => this.setState(s => (s.hov === k ? { hov: null } : null));
+    }
+    Object.assign(v, this.buildBoard());
+    v.heatEmpty = HEAT_CLS.map(c => (c ? 'z' : ''));
+    v.h = {};
+    for (const k of ['a0', 'a1', 'b0', 'b1', 'c0', 'c1']) {
+      const key = 'g' + k, on = this.state.hov === key || (pin && this.state.hov === null && k.endsWith('0'));
+      v.h[k] = { bg: on ? 'var(--glass)' : 'transparent', sh: on ? 'inset 0 1px 0 var(--glass-highlight)' : 'none',
+        enter: () => this.setState({ hov: key }), leave: () => this.setState(s => (s.hov === key ? { hov: null } : null)) };
+    }
+    v.divD = on('d0') || on('d1') ? 0 : 1;
+    return v;
+  }
+}
+</script>
+</body>
+</html>

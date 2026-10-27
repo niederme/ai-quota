@@ -66,7 +66,7 @@ struct MacAdditionalAccountDetailView: View {
                     }
                     Button("Refresh this account") {
                         if session.provider == .codex { session.refreshUsageHistory(force: true) }
-                        Task { await session.refresh() }
+                        Task { await session.refresh(userInitiated: true) }
                     }
                         .disabled(!session.isAuthenticated || session.isLoading)
                 }

@@ -4,6 +4,7 @@ import SwiftUI
 struct MacResetNoticeBanner: View {
     @Environment(\.colorScheme) private var colorScheme
     let title: String
+    var inset = true
     let onReadMore: () -> Void
     let onDismiss: () -> Void
 
@@ -62,7 +63,7 @@ struct MacResetNoticeBanner: View {
                         .strokeBorder(primary.opacity(0.16), lineWidth: 1)
                 }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 8)
+        .padding(.horizontal, inset ? 16 : 0)
+        .padding(.vertical, inset ? 8 : 0)
     }
 }

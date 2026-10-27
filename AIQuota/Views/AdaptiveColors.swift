@@ -22,6 +22,12 @@ extension Color {
     static let overviewWarning = Color(light: (0xff, 0x95, 0x00, 1), dark: (0xff, 0x9f, 0x0a, 1))
     static let overviewCritical = Color(light: (0xff, 0x3b, 0x30, 1), dark: (0xff, 0x45, 0x3a, 1))
 
+    // Keep the underlying sheet visible without washing its purple toward gray.
+    static let overviewGlass = overviewAccent.opacity(0.06)
+    static let overviewGlassHighlight = overviewAccent.opacity(0.10)
+    static let overviewHover = Color(light: (11, 6, 15, 0.07), dark: (255, 255, 255, 0.07))
+    static let overviewTrack = Color(light: (0, 0, 0, 0.10), dark: (255, 255, 255, 0.10))
+
     // Tinted glass sheet (see prototypes/sheet-material)
     static let sheetTint = Color(light: (246, 241, 251, 0.66), dark: (26, 21, 36, 0.53))
     static let sheetGlow = Color(light: (191, 120, 242, 0.34), dark: (150, 86, 214, 0.40))

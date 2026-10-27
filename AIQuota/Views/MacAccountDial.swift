@@ -9,19 +9,22 @@ struct MacAccountDial: View {
     let loading: Bool
     let connected: Bool
     let hasIssue: Bool
+    var showsSecondaryPlaceholder = true
 
     private var tint: Color {
-        guard connected, !hasIssue else { return .secondary }
+        guard connected else { return .overviewTertiary }
         let worst = max(primaryPercent ?? 0, secondaryPercent ?? 0)
         if worst >= 95 { return .overviewCritical }
         if worst >= 85 { return .overviewWarning }
         return .overviewAccent
     }
 
+    private var showsSecondary: Bool { secondaryPercent != nil || (primaryPercent == nil && showsSecondaryPlaceholder) }
+
     var body: some View {
         ZStack {
-            arc(percent: primaryPercent, lineWidth: secondaryPercent == nil ? 12 : 8, opacity: 1)
-            if secondaryPercent != nil {
+            arc(percent: primaryPercent, lineWidth: showsSecondary ? 8 : 12, opacity: 1)
+            if showsSecondary {
                 arc(percent: secondaryPercent, lineWidth: 8, opacity: 0.7)
                     .padding(10)
             }
@@ -42,7 +45,11 @@ struct MacAccountDial: View {
                         }
                     }
                 } else {
-                    Text("—").font(.subheadline)
+                    VStack(spacing: 2) {
+                        Text("— \(primaryLabel)")
+                        if showsSecondary { Text("— 7d").opacity(0.7) }
+                    }
+                    .font(.system(size: 16, weight: .semibold).monospacedDigit())
                 }
             }
             .foregroundStyle(tint)
@@ -58,8 +65,8 @@ struct MacAccountDial: View {
     private func arc(percent: Int?, lineWidth: CGFloat, opacity: Double) -> some View {
         ZStack {
             Circle().trim(from: 0, to: 0.75)
-                .stroke(Color(nsColor: .quaternaryLabelColor), style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt,
-                                                           dash: percent == nil && !loading ? [3, 4] : []))
+                .stroke(Color.overviewTrack, style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt,
+                                                           dash: []))
             if connected, let percent {
                 Circle().trim(from: 0, to: 0.75 * Double(max(0, min(100, percent))) / 100)
                     .stroke(tint.opacity(opacity), style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt))
