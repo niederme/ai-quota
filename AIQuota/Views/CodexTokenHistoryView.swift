@@ -141,3 +141,37 @@ struct CodexTokenHistoryView: View {
         return formatter.string(from: day.date)
     }
 }
+
+/// No fabricated readings: empty cells keep the connected heatmap's geometry.
+struct CodexEmptyTokenHistoryView: View {
+    let availableWidth: CGFloat
+
+    var body: some View {
+        let side = CodexTokenHistoryView.cellSide(for: availableWidth)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .top, spacing: CodexTokenHistoryView.cellGap) {
+                ForEach(0..<42, id: \.self) { _ in
+                    VStack(spacing: CodexTokenHistoryView.cellGap) {
+                        ForEach(0..<7, id: \.self) { _ in
+                            RoundedRectangle(cornerRadius: 1)
+                                .fill(Color.overviewTrack)
+                                .frame(width: side, height: side)
+                        }
+                    }
+                }
+            }
+            HStack {
+                ForEach(0..<10, id: \.self) { index in
+                    let date = Calendar.current.date(byAdding: .month, value: index - 9, to: .now) ?? .now
+                    Text(date, format: .dateTime.month(.abbreviated))
+                        .font(.system(size: 8)).foregroundStyle(.secondary)
+                    if index < 9 { Spacer(minLength: 0) }
+                }
+            }
+            .frame(height: 12, alignment: .top)
+        }
+        .frame(width: availableWidth, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Token activity, no data yet")
+    }
+}

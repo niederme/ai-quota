@@ -27,11 +27,26 @@ struct MacAccountGridView: View {
     let maxHeight: CGFloat
     let openAccount: (ConnectedAccount) -> Void
     let openSettings: () -> Void
-    let onScrollabilityChange: (Bool) -> Void
+    let leadingContent: AnyView
+    let connect: (ServiceType) -> Void
 
     @State private var orderIDs: [String] = []
     @State private var dragging: String?
     @State private var contentHeight: CGFloat?
+    @State private var hoveredRowID: String?
+    @FocusState private var focusedRowID: String?
+    @State private var scrollEdges = ScrollEdges()
+
+    private struct ScrollEdges: Equatable {
+        var top = false
+        var bottom = false
+    }
+
+    private func highlight(_ id: String) -> Bool { (hoveredRowID ?? focusedRowID) == id }
+    private func hover(_ id: String, _ inside: Bool) {
+        if inside { hoveredRowID = id }
+        else if hoveredRowID == id { hoveredRowID = nil }
+    }
 
     private var accounts: [ConnectedAccount] {
         let visible = AccountRegistry.orderedAccounts().filter { account in
@@ -50,13 +65,26 @@ struct MacAccountGridView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 0) {
+                leadingContent
+                if accounts.isEmpty {
+                    ForEach([ServiceType.codex, .claude], id: \.self) { service in
+                        MacAccountPlaceholderRow(service: service, availableWidth: cardContentWidth,
+                                                 highlighted: highlight(service.rawValue),
+                                                 connect: { connect(service) })
+                            .focused($focusedRowID, equals: service.rawValue)
+                            .onHover { hover(service.rawValue, $0) }
+                    }
+                }
                 ForEach(accounts) { account in
                     MacAccountCard(account: account, session: session(for: account),
                                    tokenHistory: tokenHistory(for: account),
                                    availableWidth: cardContentWidth,
                                    showsAccountLabel: accounts.filter { $0.provider == account.provider }.count > 1,
-                                   open: { openAccount(account) }, reconnect: { reconnect(account) })
+                                   open: { openAccount(account) }, reconnect: { reconnect(account) },
+                                   highlighted: highlight(account.id))
+                        .focused($focusedRowID, equals: account.id)
+                        .onHover { hover(account.id, $0) }
                         .onDrag {
                             dragging = account.id
                             return NSItemProvider(object: account.id as NSString)
@@ -78,7 +106,8 @@ struct MacAccountGridView: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.top, 8)
+            .padding(.bottom, 16)
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
                 if height > 0, contentHeight != height { contentHeight = height }
             }
@@ -87,14 +116,29 @@ struct MacAccountGridView: View {
             accountCount: accounts.count, width: Double(width), availableHeight: Double(maxHeight)
         ))))
         .scrollIndicators(.automatic)
-        .onScrollGeometryChange(for: Bool.self) { geometry in
-            geometry.contentSize.height > geometry.containerSize.height + 1
-        } action: { _, scrolls in
-            onScrollabilityChange(scrolls)
+        .onScrollGeometryChange(for: ScrollEdges.self) { geometry in
+            let overflow = geometry.contentSize.height > geometry.containerSize.height + 1
+            return ScrollEdges(top: overflow && geometry.contentOffset.y > 1,
+                               bottom: overflow && geometry.contentOffset.y + geometry.containerSize.height
+                                   < geometry.contentSize.height - 1)
+        } action: { _, edges in
+            scrollEdges = edges
+        }
+        .mask {
+            GeometryReader { geometry in
+                let fade = min(0.5, 24 / max(1, geometry.size.height))
+                LinearGradient(stops: [
+                    .init(color: scrollEdges.top ? .clear : .black, location: 0),
+                    .init(color: .black, location: scrollEdges.top ? fade : 0),
+                    .init(color: .black, location: scrollEdges.bottom ? 1 - fade : 1),
+                    .init(color: scrollEdges.bottom ? .clear : .black, location: 1)
+                ], startPoint: .top, endPoint: .bottom)
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification).receive(on: RunLoop.main)) { _ in
             orderIDs = AccountRegistry.orderedAccounts().map(\.id)
         }
+        .onDisappear { hoveredRowID = nil; focusedRowID = nil }
         .onAppear { orderIDs = AccountRegistry.orderedAccounts().map(\.id) }
         .onChange(of: viewModel.additionalAccounts.map(\.id)) { _, _ in
             orderIDs = AccountRegistry.orderedAccounts().map(\.id)
@@ -128,7 +172,7 @@ struct MacAccountGridView: View {
     private func refresh(_ account: ConnectedAccount) {
         if let session = session(for: account) {
             session.refreshTokenHistory(force: true)
-            Task { await session.refresh() }
+            Task { await session.refresh(userInitiated: true) }
         }
         else { viewModel.manualRefresh() }
     }

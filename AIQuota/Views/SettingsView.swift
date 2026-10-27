@@ -373,7 +373,7 @@ private struct SettingsAccountDetail: View {
                 if busy { ProgressView().controlSize(.small) }
                 else if status.connected {
                     Button("Refresh Usage") {
-                        if let session = status.session { Task { await session.refresh() } }
+                        if let session = status.session { Task { await session.refresh(userInitiated: true) } }
                         else { viewModel.manualRefresh() }
                     }
                     .settingsAction()

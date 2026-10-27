@@ -16,6 +16,10 @@ final class QuotaViewModel {
     // MARK: - Codex (OpenAI)
 
     var isReadOnlyPreview = false
+    private(set) var isManualRefreshing = false
+    var showsManualRefreshProgress: Bool {
+        isManualRefreshing || additionalAccounts.contains { $0.isManualRefreshing }
+    }
     var codexTokenHistory: AIQuotaKit.CodexTokenHistory?
     var isTokenHistoryLoading = false
     var tokenHistoryUnavailable = false
@@ -1391,15 +1395,18 @@ final class QuotaViewModel {
 
     // MARK: - Auto-refresh
 
-    func startAutoRefresh(immediateRefresh: Bool = true) {
+    func startAutoRefresh(immediateRefresh: Bool = true, userInitiated: Bool = false) {
         if settings.notifications.enabled {
             Task { await NotificationManager.shared.requestPermission() }
         }
         refreshTask?.cancel()
+        isManualRefreshing = userInitiated && immediateRefresh
         refreshTask = Task { [weak self] in
             guard let self else { return }
             if immediateRefresh {
                 await refresh()
+                // A cancelled older task must not clear a newer manual request.
+                if !Task.isCancelled { self.isManualRefreshing = false }
             }
             while !Task.isCancelled {
                 let sleepInterval = self.nextRefreshInterval()
@@ -1413,6 +1420,7 @@ final class QuotaViewModel {
     func stopAutoRefresh() {
         refreshTask?.cancel()
         refreshTask = nil
+        isManualRefreshing = false
     }
 
     private func restartAutoRefresh(immediateRefresh: Bool) {
@@ -1492,13 +1500,14 @@ final class QuotaViewModel {
     /// User-initiated refresh. Cancels any in-flight auto-refresh and restarts
     /// immediately, bypassing the `isLoading` guard that blocks concurrent calls.
     func manualRefresh() {
+        guard !isManualRefreshing else { return }
         refreshTokenHistory(force: true)
         refreshUsageHistory(force: true)
         codexRefreshGeneration += 1
         claudeRefreshGeneration += 1
         isCodexLoading = false
         isClaudeLoading = false
-        startAutoRefresh()
+        startAutoRefresh(userInitiated: true)
         trackAnalytics("manual_refresh")
     }
 
@@ -1732,6 +1741,7 @@ final class AdditionalAccountSession: Identifiable {
     var usageHistoryFailed = false
     var claudeUsage: ClaudeUsage?
     var isLoading = false
+    private(set) var isManualRefreshing = false
     var issue: String?
     /// Sign-in landed on an identity another account already holds.
     private(set) var isDuplicateIdentity = false
@@ -1858,17 +1868,28 @@ final class AdditionalAccountSession: Identifiable {
         }
         adoptState(.signedOutByUser)
         isLoading = false
+        isManualRefreshing = false
         issue = nil
     }
 
-    func refresh() async {
+    func refresh(userInitiated: Bool = false) async {
         guard isAuthenticated else { return }
         if provider == .codex { refreshTokenHistory() }
-        guard !isLoading else { return }
+        guard !isLoading else {
+            // A manual request can join an automatic refresh already underway.
+            if userInitiated { isManualRefreshing = true }
+            return
+        }
         let generation = refreshGeneration
         isLoading = true
+        isManualRefreshing = userInitiated
         issue = nil
-        defer { if generation == refreshGeneration { isLoading = false } }
+        defer {
+            if generation == refreshGeneration {
+                isLoading = false
+                isManualRefreshing = false
+            }
+        }
 
         do {
             switch provider {

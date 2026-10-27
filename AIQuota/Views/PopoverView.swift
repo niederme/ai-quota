@@ -15,7 +15,9 @@ struct PopoverView: View {
     @State private var hoveredService: ServiceType?
     @State private var focusedService: ServiceType?
     @State private var overviewHeight: CGFloat?
-    @State private var accountListScrolls = false
+    @State private var headerHeight: CGFloat = 64
+    @State private var footerHeight: CGFloat = 50
+    @State private var updateHeight: CGFloat = 0
     @State private var quotaInsightHeight: CGFloat = 0
     @State private var navigationPhase: PopoverNavigationPhase = .overview
     @State private var presentationID = 0
@@ -36,7 +38,7 @@ struct PopoverView: View {
     private var overviewWidth: CGFloat {
         let visibleWidth = (menuBarWindow?.screen ?? NSScreen.main)?.visibleFrame.width ?? 800
         let accountCount = viewModel.enrolledServices.count + viewModel.additionalAccounts.count
-        let ideal: CGFloat = accountCount > 1 ? 480 : 420
+        let ideal: CGFloat = accountCount == 1 ? 420 : 480
         return min(ideal, max(280, visibleWidth - 16))
     }
     private var overviewBodyMaxHeight: CGFloat {
@@ -44,10 +46,7 @@ struct PopoverView: View {
         let visible = screen?.visibleFrame ?? CGRect(x: 0, y: 0, width: 800, height: 800)
         let top = menuBarWindow?.frame.maxY ?? visible.maxY
         let available = min(visible.height * 0.88, top - visible.minY - 16)
-        let chrome: CGFloat = 125 + quotaInsightHeight + (resetAnnouncement == nil ? 0 : 85)
-            + CGFloat(errorBanners.count) * 60
-            + (updater.availableUpdateVersion == nil ? 0 : 40)
-        return max(120, available - chrome)
+        return max(1, available - headerHeight - footerHeight - updateHeight)
     }
     private var overviewSize: CGSize {
         CGSize(width: overviewWidth, height: overviewHeight ?? 400)
@@ -106,13 +105,7 @@ struct PopoverView: View {
 
     private var pageContent: some View {
         ZStack(alignment: .topLeading) {
-            Group {
-                    if !viewModel.enrolledServices.isEmpty || viewModel.hasAdditionalAccounts {
-                        gridAuthenticatedContent
-                } else {
-                    signInContent
-                }
-            }
+            gridAuthenticatedContent
             .frame(width: overviewWidth)
             .fixedSize(horizontal: false, vertical: true)
             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
@@ -306,19 +299,35 @@ struct PopoverView: View {
     private var gridAuthenticatedContent: some View {
         VStack(spacing: 0) {
             header
-            ForEach(errorBanners) { banner in
-                errorBanner(banner)
-            }
-            if viewModel.isCodexAuthenticated { resetNoticeRow }
-            MacQuotaInsightRow(onHeightChange: { quotaInsightHeight = $0 })
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { headerHeight = $0 }
             MacAccountGridView(width: overviewWidth, maxHeight: overviewBodyMaxHeight,
                                openAccount: openAccount, openSettings: openSettingsWindow,
-                               onScrollabilityChange: { accountListScrolls = $0 })
+                               leadingContent: AnyView(overviewNotices), connect: connectService)
             updateAvailableRow
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { updateHeight = $0 }
             footer
-                .overlay(alignment: .top) {
-                    if accountListScrolls { Divider() }
-                }
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { footerHeight = $0 }
+        }
+    }
+
+    private var overviewNotices: some View {
+        VStack(spacing: 0) {
+            ForEach(errorBanners) { banner in
+                errorBanner(banner).padding(.bottom, 16)
+            }
+            if viewModel.isCodexAuthenticated, resetAnnouncement != nil {
+                resetNoticeRow.padding(.bottom, 16)
+            }
+            MacQuotaInsightRow(onHeightChange: { quotaInsightHeight = $0 })
+                .padding(.horizontal, -16)
+                .padding(.bottom, quotaInsightHeight > 0 ? 16 : 0)
+        }
+    }
+
+    private func connectService(_ service: ServiceType) {
+        Task {
+            if service == .codex { await viewModel.signIn() }
+            else { await viewModel.signInClaude() }
         }
     }
 
@@ -407,7 +416,7 @@ struct PopoverView: View {
     @ViewBuilder
     private var resetNoticeRow: some View {
         if let announcement = resetAnnouncement {
-            MacResetNoticeBanner(title: announcement.title) {
+            MacResetNoticeBanner(title: announcement.title, inset: false) {
                 NSWorkspace.shared.open(CodexResetNotice.website)
             } onDismiss: {
                     #if DEMO_MODE
@@ -882,11 +891,19 @@ struct PopoverView: View {
                 .foregroundStyle(Color.overviewPrimary)
             Spacer()
             Button { viewModel.manualRefresh() } label: {
-                Image(systemName: "arrow.clockwise")
-                    .frame(width: 30, height: 30)
+                ZStack {
+                    Image(systemName: "arrow.clockwise")
+                        .opacity(viewModel.showsManualRefreshProgress ? 0 : 1)
+                    if viewModel.showsManualRefreshProgress {
+                        ProgressView().controlSize(.small)
+                            .accessibilityHidden(true)
+                    }
+                }
+                .frame(width: 30, height: 30)
             }
-            .help("Refresh usage")
-            .accessibilityLabel("Refresh usage")
+            .disabled(viewModel.showsManualRefreshProgress)
+            .help(viewModel.showsManualRefreshProgress ? "Refreshing usage" : "Refresh usage")
+            .accessibilityLabel(viewModel.showsManualRefreshProgress ? "Refreshing usage" : "Refresh usage")
             .buttonStyle(.plain)
             .foregroundStyle(Color.overviewPrimary)
             .padding(3)
@@ -910,91 +927,24 @@ struct PopoverView: View {
                     footerActionLabel("Quit")
                 }
             }
-            if let date = viewModel.lastRefreshedAt {
+            if !viewModel.enrolledServices.isEmpty || viewModel.hasAdditionalAccounts,
+               let date = viewModel.lastRefreshedAt {
                 TimelineView(.periodic(from: date, by: 60)) { _ in
                     Text(date.relativeFormatted)
                         .foregroundStyle(.tertiary)
                 }
+                .allowsHitTesting(false)
             }
         }
-        .buttonStyle(.borderless)
+        .buttonStyle(MacFooterButtonStyle())
         .font(.system(size: 13, weight: .medium))
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-    }
-
-    // MARK: - Sign-In landing (both unauthenticated)
-
-    private var signInContent: some View {
-        VStack(spacing: 0) {
-            VStack(spacing: 24) {
-                Image("AppBrandIcon")
-                    .resizable()
-                    .frame(width: 60, height: 60)
-                VStack(spacing: 5) {
-                    Text("AIQuota").font(.title3.bold())
-                    Text("Monitor your AI quota at a glance.")
-                        .font(.subheadline).foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                VStack(spacing: 8) {
-                    signInButton(
-                        logo: "logo-openai",
-                        label: "Sign in with ChatGPT",
-                        action: { Task { await viewModel.signIn() } }
-                    )
-                    signInButton(
-                        logo: "logo-claude",
-                        label: "Sign in with Claude",
-                        action: { Task { await viewModel.signInClaude() } }
-                    )
-                }
-            }
-            .padding(24)
-            updateAvailableRow
-            HStack {
-                Button { openSettingsWindow() } label: {
-                    footerActionLabel("Settings")
-                }
-                Spacer()
-                Button(role: .destructive) { NSApp.terminate(nil) } label: {
-                    footerActionLabel("Quit")
-                }
-            }
-            .buttonStyle(.borderless)
-            .font(.system(size: 13, weight: .medium))
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-        }
-    }
-
-    private func signInButton(logo: String, label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            HStack(spacing: 0) {
-                Image(logo)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 16, height: 16)
-                Text(label)
-                    .fontWeight(.medium)
-                    .frame(maxWidth: .infinity)
-                // Invisible spacer to balance the logo and keep text visually centred
-                Color.clear.frame(width: 16, height: 16)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .frame(maxWidth: .infinity)
-            .background(.fill.quaternary, in: RoundedRectangle(cornerRadius: 8))
-        }
-        .buttonStyle(.plain)
-        .contentShape(RoundedRectangle(cornerRadius: 8))
+        .padding(.horizontal, 8)
+        .padding(.top, 8)
+        .padding(.bottom, 10)
     }
 
     private func footerActionLabel(_ title: String) -> some View {
         Text(title)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .contentShape(Rectangle())
     }
 
     @ViewBuilder
