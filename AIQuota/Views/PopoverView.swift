@@ -907,7 +907,7 @@ struct PopoverView: View {
             .buttonStyle(.plain)
             .foregroundStyle(Color.overviewPrimary)
             .padding(3)
-            .background(Color.overviewPrimary.opacity(0.08), in: Circle())
+            .background(Color.overviewGlass, in: Circle())
         }
         .padding(.horizontal, 16)
         .padding(.top, 16)
