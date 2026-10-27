@@ -25,7 +25,6 @@ extension Color {
     // Keep the underlying sheet visible without washing its purple toward gray.
     static let overviewGlass = overviewAccent.opacity(0.06)
     static let overviewGlassHighlight = overviewAccent.opacity(0.10)
-    static let overviewHover = Color(light: (11, 6, 15, 0.07), dark: (255, 255, 255, 0.07))
     static let overviewTrack = Color(light: (0, 0, 0, 0.10), dark: (255, 255, 255, 0.10))
 
     // Tinted glass sheet (see prototypes/sheet-material)

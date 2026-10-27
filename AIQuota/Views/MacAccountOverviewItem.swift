@@ -398,7 +398,8 @@ struct MacFooterButtonStyle: ButtonStyle {
             .padding(.horizontal, 10)
             .frame(minHeight: 32)
             .contentShape(RoundedRectangle(cornerRadius: 8))
-            .background(Color.overviewHover.opacity(configuration.isPressed ? 0.7 : (hovered || focused ? 1 : 0)),
+            .background((configuration.isPressed ? Color.overviewGlassHighlight : Color.overviewGlass)
+                            .opacity(hovered || focused || configuration.isPressed ? 1 : 0),
                         in: RoundedRectangle(cornerRadius: 8))
             .focused($focused)
             .focusEffectDisabled()
