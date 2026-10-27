@@ -134,9 +134,11 @@ struct MacAccountCard: View {
                 if connected || loading, account.provider == .codex, let tokenHistory,
                    tokenHistory.isAttributed(toWorkspaceID: account.workspaceID),
                    CodexTokenHistoryView.hasVisibleData(tokenHistory) {
-                    CodexTokenHistoryView(history: tokenHistory, availableWidth: availableWidth)
+                    CodexTokenHistoryView(history: tokenHistory,
+                                          availableWidth: availableWidth + 2 * MacAccountDial.strokeOutset)
                         .help("Workspace token activity is separate from monthly credit usage.")
-                        .padding(.top, 8)
+                        .padding(.horizontal, -MacAccountDial.strokeOutset)
+                        .padding(.top, 16)
                 }
             }
             .padding(.horizontal, 16)
@@ -353,7 +355,9 @@ struct MacAccountPlaceholderRow: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             if service == .codex {
-                CodexEmptyTokenHistoryView(availableWidth: availableWidth)
+                CodexEmptyTokenHistoryView(availableWidth: availableWidth + 2 * MacAccountDial.strokeOutset)
+                    .padding(.horizontal, -MacAccountDial.strokeOutset)
+                    .padding(.top, 8)
                     .opacity(0.6)
             }
         }
