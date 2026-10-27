@@ -2,6 +2,9 @@ import SwiftUI
 
 /// The iOS overview's account dial, sized for a Mac account row.
 struct MacAccountDial: View {
+    /// The 12pt outer stroke extends beyond the dial's nominal layout frame.
+    static let strokeOutset: CGFloat = 6
+
     let icon: String
     let primaryPercent: Int?
     let primaryLabel: String
