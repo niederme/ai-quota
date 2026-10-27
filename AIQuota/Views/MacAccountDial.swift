@@ -27,9 +27,7 @@ struct MacAccountDial: View {
             }
             VStack(spacing: 5) {
                 Image(icon).resizable().scaledToFit().frame(width: 18, height: 18)
-                if loading && primaryPercent == nil {
-                    ProgressView().controlSize(.mini)
-                } else if let primaryPercent {
+                if let primaryPercent {
                     VStack(spacing: 2) {
                         Text("\(primaryPercent)% \(primaryLabel)")
                             .font(.system(size: 16, weight: .semibold).monospacedDigit())

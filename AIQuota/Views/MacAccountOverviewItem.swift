@@ -29,8 +29,14 @@ struct MacAccountCard: View {
     private var hasReading: Bool { codexUsage != nil || claudeUsage != nil }
     private var awaitingConnection: Bool { loading && !connected && !hasReading }
     private var loading: Bool {
-        if account.connectionKind == .isolated { return session?.isLoading == true }
-        return account.provider == .codex ? viewModel.isCodexLoading : viewModel.isClaudeLoading
+        if account.connectionKind == .isolated {
+            guard let session else { return false }
+            return session.isLoading || session.state == .unknown ||
+                session.state == .restoringSession || session.state == .signingIn
+        }
+        return account.provider == .codex
+            ? viewModel.isCodexLoading || viewModel.isCodexRecovering
+            : viewModel.isClaudeLoading || viewModel.isClaudeRecovering
     }
     private var connected: Bool {
         if account.connectionKind == .isolated { return session?.isAuthenticated == true }
@@ -103,14 +109,15 @@ struct MacAccountCard: View {
                 HStack(alignment: .top, spacing: 20) {
                     MacAccountDial(icon: icon, primaryPercent: primaryPercent,
                                    primaryLabel: primaryLabel, secondaryPercent: secondaryPercent,
-                                   loading: loading, connected: connected, hasIssue: issue != nil)
+                                   loading: loading, connected: connected || (loading && hasReading),
+                                   hasIssue: !loading && issue != nil)
                         .help(budget == nil ? primaryLabel : "\(CalendarMonthLabel.spoken(containing: readingAt)). Reset uses the provider's date.")
                     details
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .frame(maxWidth: .infinity, alignment: .topLeading)
 
-                if connected, account.provider == .codex, let tokenHistory,
+                if connected || loading, account.provider == .codex, let tokenHistory,
                    tokenHistory.isAttributed(toWorkspaceID: account.workspaceID),
                    CodexTokenHistoryView.hasVisibleData(tokenHistory) {
                     VStack(alignment: .leading, spacing: 4) {
@@ -125,6 +132,7 @@ struct MacAccountCard: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .topLeading)
+            .opacity(loading ? 0.45 : 1)
             .contentShape(RoundedRectangle(cornerRadius: 24))
             .background {
                 RoundedRectangle(cornerRadius: 24)
@@ -137,6 +145,15 @@ struct MacAccountCard: View {
                         RoundedRectangle(cornerRadius: 24)
                             .strokeBorder(Color.overviewPrimary.opacity(0.16), lineWidth: 1)
                     }
+            }
+            .overlay {
+                if loading {
+                    ProgressView()
+                        .controlSize(.regular)
+                        .tint(Color.overviewPrimary)
+                        .accessibilityHidden(true)
+                        .allowsHitTesting(false)
+                }
             }
         }
         .buttonStyle(.plain)
@@ -195,10 +212,13 @@ struct MacAccountCard: View {
     }
 
     private var status: String? {
+        // Progress is overlaid so a refresh never inserts an extra layout row.
+        // Recovery also counts as loading: the saved reading remains visible
+        // until authentication has a verdict.
+        if loading { return nil }
         if issue != nil { return hasReading ? "Couldn’t update · Saved reading" : "Couldn’t load allowance" }
-        if !connected { return loading ? "Connecting…" : (hasReading ? "Reconnect to update" : "Not connected") }
-        if !hasReading { return loading ? "Loading allowance…" : "No reading yet" }
-        if loading { return "Refreshing…" }
+        if !connected { return hasReading ? "Reconnect to update" : "Not connected" }
+        if !hasReading { return "No reading yet" }
         return nil
     }
 
@@ -237,6 +257,7 @@ struct MacAccountCard: View {
         let period = budget == nil ? primaryLabel : CalendarMonthLabel.spoken(containing: readingAt)
         let percentage = primaryPercent.map { ", \($0) percent used, \(period)" } ?? ""
         let secondary = secondaryPercent.map { ", \($0) percent used in 7d" } ?? ""
-        return "\(serviceName)\(identity)\(plan.map { ", \($0) plan" } ?? "")\(percentage)\(secondary)\(status.map { ", \($0)" } ?? "")"
+        let activity = loading ? (hasReading ? "Refreshing saved reading" : "Connecting") : status
+        return "\(serviceName)\(identity)\(plan.map { ", \($0) plan" } ?? "")\(percentage)\(secondary)\(activity.map { ", \($0)" } ?? "")"
     }
 }
