@@ -149,7 +149,6 @@ struct MacAccountCard: View {
                 if showsTokenHistory, let tokenHistory {
                     CodexTokenHistoryView(history: tokenHistory,
                                           availableWidth: availableWidth + 2 * MacAccountDial.strokeOutset)
-                        .help("Workspace token activity is separate from monthly credit usage.")
                         .padding(.horizontal, -MacAccountDial.strokeOutset)
                         .padding(.top, 8)
                 }
