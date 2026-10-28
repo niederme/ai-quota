@@ -1,0 +1,741 @@
+{
+ "name": "AIQuota App \u00b7 Round 2",
+ "version": 1,
+ "color": {
+  "themes": [
+   {
+    "id": "dark",
+    "name": "Dark"
+   },
+   {
+    "id": "light",
+    "name": "Light"
+   }
+  ],
+  "tokens": [
+   {
+    "name": "brand",
+    "value": {
+     "dark": "#983eff",
+     "light": "#983eff"
+    },
+    "usage": "Shared with the site. The app icon's outer arc (AppIcon.icon). The apps use it only inside the icon; it is not a UI colour."
+   },
+   {
+    "name": "brand-2",
+    "value": {
+     "dark": "#c04dff",
+     "light": "#c04dff"
+    },
+    "usage": "Shared with the site. The icon's inner arc. Illustration only, beside brand."
+   },
+   {
+    "name": "spark",
+    "value": {
+     "dark": "#f7f2ff",
+     "light": "#f7f2ff"
+    },
+    "usage": "Shared with the site. The icon's four-point spark. Illustration only."
+   },
+   {
+    "name": "icon-ground",
+    "value": {
+     "dark": "color(display-p3 0.065 0.05 0.13)",
+     "light": "color(display-p3 0.16 0.12 0.29)"
+    },
+    "usage": "Shared with the site. The app icon tile (AppIcon.icon fill, Display P3). Behind the icon in onboarding and About."
+   },
+   {
+    "name": "base",
+    "value": {
+     "dark": "#0b060f",
+     "light": "#f4f1f7"
+    },
+    "usage": "The app's canvas under every screen (OverviewBase). Plum-black in dark, lavender-white in light. SwiftUI: OverviewStyle.base."
+   },
+   {
+    "name": "wash",
+    "value": {
+     "dark": "rgba(102, 31, 143, 0.72)",
+     "light": "rgba(102, 31, 143, 0.18)"
+    },
+    "usage": "Top stop of the overview wash (OverviewBackground): a vertical gradient from this at 0%, through wash-mid at 40%, to clear at 70%, on base. Overview screen only. Never a fill or text colour."
+   },
+   {
+    "name": "wash-mid",
+    "value": {
+     "dark": "rgba(191, 90, 242, 0.12)",
+     "light": "rgba(175, 82, 222, 0.05)"
+    },
+    "usage": "Middle stop (40%) of the overview wash: accent at 12% dark, 5% light."
+   },
+   {
+    "name": "wash-glow",
+    "value": {
+     "dark": "rgba(191, 90, 242, 0.35)",
+     "light": "rgba(175, 82, 222, 0.12)"
+    },
+    "usage": "Radial glow over the wash, centred top-trailing, radius 85% of the screen width: accent at 35% dark, 12% light."
+   },
+   {
+    "name": "surface-glow",
+    "value": {
+     "dark": "rgba(191, 90, 242, 0.14)",
+     "light": "rgba(175, 82, 222, 0.08)"
+    },
+    "usage": "BrandSurfaceBackground, behind service sheets and analytics: one radial glow at (50%, 38%) of a 320pt band, radius 210pt, on base. Quieter than the overview wash so a sheet reads as a layer above it."
+   },
+   {
+    "name": "glass",
+    "value": {
+     "dark": "rgba(255, 255, 255, 0.07)",
+     "light": "rgba(255, 255, 255, 0.62)"
+    },
+    "usage": "Stand-in for .glassEffect(.regular) in HTML mockups: service cards, notice banners. Dark is the Figma variable glass/fill (#ffffff12). The light value is an approximation: system glass has no fixed colour."
+   },
+   {
+    "name": "glass-raised",
+    "value": {
+     "dark": "rgba(255, 255, 255, 0.11)",
+     "light": "rgba(255, 255, 255, 0.78)"
+    },
+    "usage": "Raised glass in mockups (Figma glass/fill-raised, #ffffff1c): toolbar capsules and controls on glass. Light is an approximation."
+   },
+   {
+    "name": "glass-edge",
+    "value": {
+     "dark": "rgba(255, 255, 255, 0.14)",
+     "light": "rgba(255, 255, 255, 0.85)"
+    },
+    "usage": "1px rim on glass in mockups (Figma glass/stroke, #ffffff24). Light is an approximation. Decorative."
+   },
+   {
+    "name": "glass-highlight",
+    "value": {
+     "dark": "rgba(255, 255, 255, 0.10)",
+     "light": "rgba(255, 255, 255, 1)"
+    },
+    "usage": "Approximation of the system glass highlight, a 1px top edge in mockups. Decorative."
+   },
+   {
+    "name": "primary",
+    "value": {
+     "dark": "#ffffff",
+     "light": "#0b060f"
+    },
+    "usage": "Service names, plan lines, titles, notice titles (OverviewPrimary). 14:1 or better on base and glass in both themes."
+   },
+   {
+    "name": "secondary",
+    "value": {
+     "dark": "rgba(235, 235, 245, 0.62)",
+     "light": "rgba(60, 60, 67, 0.62)"
+    },
+    "usage": "Footnotes, spend lines, status lines ('Couldn't update \u00b7 Saved reading'), freshness (OverviewSecondary). Dark: 6.4:1 on glass. Light: 3.6:1 on glass, kept exact from the app (it is Apple's secondaryLabel); use it only for 13pt+ text that is never the only carrier of meaning."
+   },
+   {
+    "name": "tertiary",
+    "value": {
+     "dark": "rgba(235, 235, 245, 0.32)",
+     "light": "rgba(60, 60, 67, 0.32)"
+    },
+    "usage": "Chevrons, dismiss glyphs, dashed 'not reported' tracks (OverviewTertiary). Fails 3:1 by design, as Apple's tertiaryLabel does; never for words that must be read."
+   },
+   {
+    "name": "accent",
+    "value": {
+     "dark": "#bf5af2",
+     "light": "#af52de"
+    },
+    "usage": "Rings and dial numbers on iOS and in the Mac account list (OverviewAccent; overviewAccent on the Mac). The iOS app tint: links, toggles, prominent buttons, the notice link. Light is 4.0:1 on light glass."
+   },
+   {
+    "name": "gauge-accent",
+    "value": {
+     "dark": "#c86cf5",
+     "light": "#8530bd"
+    },
+    "usage": "Mac only: gauges and numbers in the service detail view and the Mac analytics (gaugeAccent, PR #123). 6.4:1 on light glass, 5.8:1 on dark glass."
+   },
+   {
+    "name": "reset-accent",
+    "value": {
+     "dark": "#d77ef7",
+     "light": "#7a24a6"
+    },
+    "usage": "Reset captions on cards and Mac account rows ('5h resets 3:40 PM', 'Monthly resets Nov 1, 12:00 AM'). OverviewResetAccent. 6.9:1 on dark glass, 7.7:1 on light glass."
+   },
+   {
+    "name": "gauge-ink",
+    "value": {
+     "dark": "#ead2ff",
+     "light": "#5c1688"
+    },
+    "usage": "Mac only: reset captions in the service detail view, on the translucent sheet (gaugeAccentInk). 7:1 or better."
+   },
+   {
+    "name": "brand-accent",
+    "value": {
+     "dark": "#9e38ed",
+     "light": "#731fc2"
+    },
+    "usage": "Mac BrandAccent: the Mac app's accent colour (asset catalog AccentColor role). White on it is 5.0:1 dark, 7.8:1 light."
+   },
+   {
+    "name": "on-fill",
+    "value": {
+     "dark": "#ffffff",
+     "light": "#ffffff"
+    },
+    "usage": "The white label the system draws on prominent (glassProminent) buttons."
+   },
+   {
+    "name": "device",
+    "value": {
+     "dark": "#000000",
+     "light": "#000000"
+    },
+    "usage": "Device hardware in mockups only: the Dynamic Island, the phone bezel."
+   },
+   {
+    "name": "warning",
+    "value": {
+     "dark": "#ff9f0a",
+     "light": "#ff9500"
+    },
+    "usage": "The whole dial, rings and numbers, when the worst window reaches 85% (OverviewWarning). Also warning lines in service sheets and Mac rows. Light is 2.1:1 on light glass."
+   },
+   {
+    "name": "critical",
+    "value": {
+     "dark": "#ff453a",
+     "light": "#ff3b30"
+    },
+    "usage": "The whole dial at 95% or more (OverviewCritical). Also the Disconnect button. Light is 3.4:1 on light glass."
+   },
+   {
+    "name": "track",
+    "value": {
+     "dark": "rgba(118, 118, 128, 0.18)",
+     "light": "rgba(116, 116, 128, 0.08)"
+    },
+    "usage": "Unfilled and dashed rings on iOS (quaternarySystemFill), chart loading bars, form row backgrounds. Decorative."
+   },
+   {
+    "name": "track-mac",
+    "value": {
+     "dark": "rgba(255, 255, 255, 0.10)",
+     "light": "rgba(0, 0, 0, 0.10)"
+    },
+    "usage": "Unfilled and dashed rings on the Mac (quaternaryLabelColor). Decorative."
+   },
+   {
+    "name": "card-edge-mac",
+    "value": {
+     "dark": "rgba(255, 255, 255, 0.16)",
+     "light": "rgba(11, 6, 15, 0.16)"
+    },
+    "usage": "1px border on Mac account rows and the Mac notice banner: OverviewPrimary at 16%."
+   },
+   {
+    "name": "hover-mac",
+    "value": {
+     "dark": "rgba(255, 255, 255, 0.07)",
+     "light": "rgba(11, 6, 15, 0.07)"
+    },
+    "usage": "Hover and focus fill on a Mac account row: primary at 7%, eased in 0.12s."
+   },
+   {
+    "name": "control-mac",
+    "value": {
+     "dark": "rgba(255, 255, 255, 0.08)",
+     "light": "rgba(11, 6, 15, 0.08)"
+    },
+    "usage": "The circle behind the Mac refresh button: primary at 8%."
+   },
+   {
+    "name": "notice-tint",
+    "value": {
+     "dark": "rgba(191, 90, 242, 0.22)",
+     "light": "rgba(175, 82, 222, 0.22)"
+    },
+    "usage": "The Mac reset notice banner fill: accent at 22% over regularMaterial."
+   },
+   {
+    "name": "sheet-tint",
+    "value": {
+     "dark": "rgba(26, 21, 36, 0.53)",
+     "light": "rgba(246, 241, 251, 0.66)"
+    },
+    "usage": "The Mac menu-bar sheet's tint (sheetTint), over ultraThinMaterial at 70% opacity on macOS 26. Settled 2026-10-22 (PR #122)."
+   },
+   {
+    "name": "sheet-glow",
+    "value": {
+     "dark": "rgba(150, 86, 214, 0.40)",
+     "light": "rgba(191, 120, 242, 0.34)"
+    },
+    "usage": "Mac sheet glow from the top-leading corner, elliptical, to clear at 75% (sheetGlow)."
+   },
+   {
+    "name": "sheet-glow-trailing",
+    "value": {
+     "dark": "rgba(110, 60, 170, 0.18)",
+     "light": "rgba(175, 82, 222, 0.10)"
+    },
+    "usage": "Mac sheet counter-glow from the bottom-trailing corner, to clear at 60% (sheetGlowTrailing)."
+   },
+   {
+    "name": "sheet-rim",
+    "value": {
+     "dark": "rgba(255, 255, 255, 0.55)",
+     "light": "#ffffff"
+    },
+    "usage": "Mac sheet specular rim, a 1px gradient stroke: full at top-leading, 15% at 35%, clear at 60%, 35% at bottom-trailing (sheetRim)."
+   },
+   {
+    "name": "heat-none",
+    "value": {
+     "dark": "rgba(235, 235, 245, 0.18)",
+     "light": "rgba(60, 60, 67, 0.18)"
+    },
+    "usage": "Token heatmap day with no record (Color.secondary at 18%)."
+   },
+   {
+    "name": "heat-0",
+    "value": {
+     "dark": "#4d4757",
+     "light": "#ded9e6"
+    },
+    "usage": "Token heatmap day with a reported zero."
+   },
+   {
+    "name": "heat-1",
+    "value": {
+     "dark": "#52306b",
+     "light": "#d1abf0"
+    },
+    "usage": "Token heatmap, lowest quartile of active days."
+   },
+   {
+    "name": "heat-2",
+    "value": {
+     "dark": "#78459c",
+     "light": "#ad70db"
+    },
+    "usage": "Token heatmap, second quartile."
+   },
+   {
+    "name": "heat-3",
+    "value": {
+     "dark": "#a354cf",
+     "light": "#8740bd"
+    },
+    "usage": "Token heatmap, third quartile."
+   },
+   {
+    "name": "heat-4",
+    "value": {
+     "dark": "#c46bf0",
+     "light": "#5e1f91"
+    },
+    "usage": "Token heatmap, busiest quartile. Dark brightens toward use, light darkens."
+   }
+  ]
+ },
+ "type": {
+  "fonts": [],
+  "families": {
+   "sans": "-apple-system, BlinkMacSystemFont, \"SF Pro Text\", \"SF Pro Display\", \"Inter\", system-ui, sans-serif",
+   "rounded": "ui-rounded, \"SF Pro Rounded\", -apple-system, system-ui, sans-serif"
+  },
+  "groups": [
+   {
+    "name": "iOS",
+    "family": "sans",
+    "styles": [
+     {
+      "name": "large-title",
+      "fontSize": "34px",
+      "lineHeight": "41px",
+      "fontWeight": 700,
+      "letterSpacing": "0.4px",
+      "usage": "The 'AIQuota' navigation title (.toolbarTitleDisplayMode(.inlineLarge)). Text style .largeTitle.",
+      "sample": "AIQuota"
+     },
+     {
+      "name": "headline",
+      "fontSize": "17px",
+      "lineHeight": "22px",
+      "fontWeight": 600,
+      "letterSpacing": "-0.43px",
+      "usage": "Inline navigation titles in service sheets ('Codex'). Text style .headline.",
+      "sample": "Codex"
+     },
+     {
+      "name": "card-title",
+      "fontSize": "20px",
+      "lineHeight": "22px",
+      "fontWeight": 600,
+      "letterSpacing": "-0.25px",
+      "usage": "Service name on a card (OverviewDetailType title, scales with .title3).",
+      "sample": "Codex"
+     },
+     {
+      "name": "card-detail",
+      "fontSize": "13px",
+      "lineHeight": "15px",
+      "fontWeight": 600,
+      "letterSpacing": "-0.1px",
+      "usage": "Plan line under the service name (OverviewDetailType, semibold, scales with .footnote).",
+      "sample": "Pro plan \u00b7 Personal"
+     },
+     {
+      "name": "card-caption",
+      "fontSize": "13px",
+      "lineHeight": "15px",
+      "fontWeight": 400,
+      "letterSpacing": "-0.1px",
+      "usage": "Reset captions and spend lines on a card (OverviewDetailType regular). Reset captions in reset-accent, spend in secondary.",
+      "sample": "5h resets 3:40 PM"
+     },
+     {
+      "name": "body",
+      "fontSize": "17px",
+      "lineHeight": "22px",
+      "fontWeight": 400,
+      "letterSpacing": "-0.43px",
+      "usage": "Notice banner title (semibold) and link. Text style .body.",
+      "sample": "Codex usage reset announced"
+     },
+     {
+      "name": "callout",
+      "fontSize": "16px",
+      "lineHeight": "21px",
+      "fontWeight": 400,
+      "letterSpacing": "-0.31px",
+      "usage": "Warning lines in service sheets, in warning. Text style .callout.",
+      "sample": "Couldn\u2019t update details. Your last reading is retained."
+     },
+     {
+      "name": "subheadline",
+      "fontSize": "15px",
+      "lineHeight": "20px",
+      "fontWeight": 400,
+      "letterSpacing": "-0.23px",
+      "usage": "The plan line at the top of a service sheet, in secondary. Text style .subheadline.",
+      "sample": "Pro plan"
+     },
+     {
+      "name": "footnote",
+      "fontSize": "13px",
+      "lineHeight": "18px",
+      "fontWeight": 400,
+      "letterSpacing": "-0.08px",
+      "usage": "Freshness line under the cards, card status lines, 'Allowance \u00b7 Updated \u2026' in sheets, form footers. Text style .footnote, in secondary.",
+      "sample": "Updated 2 minutes ago"
+     },
+     {
+      "name": "caption2",
+      "fontSize": "11px",
+      "lineHeight": "13px",
+      "fontWeight": 400,
+      "letterSpacing": "0.06px",
+      "usage": "'Monthly' under a single-ring dial; small labels. Text style .caption2.",
+      "sample": "Monthly"
+     }
+    ]
+   },
+   {
+    "name": "Dial",
+    "family": "sans",
+    "styles": [
+     {
+      "name": "dial-value",
+      "fontSize": "15px",
+      "lineHeight": "20px",
+      "fontWeight": 500,
+      "letterSpacing": "-0.23px",
+      "usage": "Readings inside a 124pt card dial: subheadline, medium, monospaced digits, in the dial tint. Both readings the same size.",
+      "sample": "62% 5h"
+     },
+     {
+      "name": "dial-value-mac",
+      "fontSize": "16px",
+      "lineHeight": "20px",
+      "fontWeight": 600,
+      "letterSpacing": "0px",
+      "usage": "Readings inside the 120pt Mac account dial: 16pt semibold, monospaced digits, scales down to 85%.",
+      "sample": "100% 5h"
+     },
+     {
+      "name": "heat-label",
+      "fontSize": "8px",
+      "lineHeight": "10px",
+      "fontWeight": 400,
+      "letterSpacing": "0px",
+      "usage": "Month labels under the token heatmap, in secondary.",
+      "sample": "Oct"
+     }
+    ]
+   },
+   {
+    "name": "Mac",
+    "family": "sans",
+    "styles": [
+     {
+      "name": "mac-wordmark",
+      "fontSize": "26px",
+      "lineHeight": "31px",
+      "fontWeight": 600,
+      "letterSpacing": "-0.4px",
+      "usage": "'AIQuota' in the Mac sheet header.",
+      "sample": "AIQuota"
+     },
+     {
+      "name": "mac-service",
+      "fontSize": "20px",
+      "lineHeight": "24px",
+      "fontWeight": 600,
+      "letterSpacing": "-0.25px",
+      "usage": "Service name on a Mac account row.",
+      "sample": "Claude Code"
+     },
+     {
+      "name": "mac-detail",
+      "fontSize": "13px",
+      "lineHeight": "16px",
+      "fontWeight": 600,
+      "letterSpacing": "0px",
+      "usage": "Plan line on a Mac account row.",
+      "sample": "Max plan"
+     },
+     {
+      "name": "mac-caption",
+      "fontSize": "13px",
+      "lineHeight": "16px",
+      "fontWeight": 400,
+      "letterSpacing": "0px",
+      "usage": "Reset captions, budgets and status on a Mac row, monospaced digits.",
+      "sample": "7d Resets Wed at 2:00 PM"
+     },
+     {
+      "name": "mac-notice",
+      "fontSize": "15px",
+      "lineHeight": "20px",
+      "fontWeight": 600,
+      "letterSpacing": "0px",
+      "usage": "Mac reset notice title (semibold) and link (regular).",
+      "sample": "Codex usage reset announced"
+     },
+     {
+      "name": "mac-footer",
+      "fontSize": "13px",
+      "lineHeight": "16px",
+      "fontWeight": 500,
+      "letterSpacing": "0px",
+      "usage": "Settings, Quit and the timestamp in the Mac sheet footer.",
+      "sample": "Settings"
+     }
+    ]
+   }
+  ]
+ },
+ "spacing": {
+  "note": "The steps the SwiftUI views use. Cards pad 16, the dial sits 24 from its details, cards stack 24 apart.",
+  "tokens": [
+   {
+    "name": "space-2",
+    "value": "2px",
+    "usage": "Between the two dial readings; plan line under a Codex name."
+   },
+   {
+    "name": "space-4",
+    "value": "4px",
+    "usage": "Between stacked reset captions; heatmap grid to month labels."
+   },
+   {
+    "name": "space-6",
+    "value": "6px",
+    "usage": "Glyph to readings in a card dial; notice title to link."
+   },
+   {
+    "name": "space-8",
+    "value": "8px",
+    "usage": "Card text stack; dial content to heatmap; between banner and dismiss."
+   },
+   {
+    "name": "space-12",
+    "value": "12px",
+    "usage": "Notice vertical padding; dial above details in the stacked card layout; Mac header bottom."
+   },
+   {
+    "name": "space-16",
+    "value": "16px",
+    "usage": "Card padding, screen gutter, Mac sheet side padding, notice horizontal padding."
+   },
+   {
+    "name": "space-20",
+    "value": "20px",
+    "usage": "Overview top and bottom padding; Mac dial to details."
+   },
+   {
+    "name": "space-24",
+    "value": "24px",
+    "usage": "Between overview sections and cards; dial to details in the column layout."
+   }
+  ]
+ },
+ "radius": {
+  "note": "Liquid Glass shapes are concentric: an inner radius is the outer radius minus the padding between them.",
+  "tokens": [
+   {
+    "name": "radius-cell",
+    "value": "1px",
+    "usage": "Token heatmap cells."
+   },
+   {
+    "name": "radius-bar",
+    "value": "2px",
+    "usage": "Chart loading bars."
+   },
+   {
+    "name": "radius-chip",
+    "value": "4px",
+    "usage": "Chart placeholders and small fills."
+   },
+   {
+    "name": "radius-row",
+    "value": "8px",
+    "usage": "Mac hover buttons (AnalyticsHoverButtonStyle)."
+   },
+   {
+    "name": "radius-mac-card",
+    "value": "24px",
+    "usage": "Mac account rows and the Mac notice banner."
+   },
+   {
+    "name": "radius-card",
+    "value": "28px",
+    "usage": "iOS service cards and notice banners (OverviewStyle.radius)."
+   },
+   {
+    "name": "radius-pill",
+    "value": "999px",
+    "usage": "Glass buttons, toolbar buttons, the Mac refresh circle."
+   }
+  ]
+ },
+ "stroke": {
+  "tokens": [
+   {
+    "name": "ring",
+    "value": "8px",
+    "usage": "Each ring of a two-window dial (OverviewStyle.ringWidth; 8 on the Mac too)."
+   },
+   {
+    "name": "ring-single",
+    "value": "12px",
+    "usage": "The one ring of a single-window or monthly dial (singleRingWidth)."
+   },
+   {
+    "name": "ring-inset",
+    "value": "10px",
+    "usage": "How far the inner (7d) ring sits inside the outer."
+   },
+   {
+    "name": "hairline",
+    "value": "1px",
+    "usage": "Glass rims, Mac card borders, the sheet rim."
+   }
+  ]
+ },
+ "size": {
+  "tokens": [
+   {
+    "name": "dial",
+    "value": "124px",
+    "usage": "Card dial at default Dynamic Type (@ScaledMetric, capped at 200)."
+   },
+   {
+    "name": "dial-allowance",
+    "value": "96px",
+    "usage": "Allowance-only dial with no readings."
+   },
+   {
+    "name": "dial-mac",
+    "value": "120px",
+    "usage": "Mac account dial; its frame is trimmed to 114px tall below the open arc."
+   },
+   {
+    "name": "glyph",
+    "value": "18px",
+    "usage": "Service glyph inside a card or Mac dial."
+   },
+   {
+    "name": "tap",
+    "value": "44px",
+    "usage": "Minimum touch target (dismiss buttons, toolbar)."
+   },
+   {
+    "name": "content-max",
+    "value": "780px",
+    "usage": "Overview column width cap on iPad."
+   }
+  ]
+ },
+ "opacity": {
+  "tokens": [
+   {
+    "name": "ring-secondary",
+    "value": "0.7",
+    "usage": "The inner 7d ring and its reading. 0.9 with Increase Contrast on iOS."
+   }
+  ]
+ },
+ "blur": {
+  "note": "Approximations for HTML mockups only. The apps use .glassEffect(.regular) on iOS 26 (.regularMaterial before) and the Mac sheet recipe in PopoverView.swift.",
+  "tokens": [
+   {
+    "name": "glass-blur",
+    "value": "blur(30px) saturate(1.8)",
+    "usage": "Glass previews (Figma effect AIQuota/Glass Blur, radius 30)."
+   },
+   {
+    "name": "sheet-blur",
+    "value": "blur(20px) saturate(1.6)",
+    "usage": "Mac sheet previews: stands in for ultraThinMaterial at 70%."
+   }
+  ]
+ },
+ "meta": {
+  "source": "github",
+  "repo": "niederme/ai-quota",
+  "ref": "main@3d5aff4",
+  "paths": {
+   "tokens": [
+    "iOS/App/Assets.xcassets/Overview*.colorset",
+    "AIQuota/Resources/Assets.xcassets/BrandAccent.colorset",
+    "AIQuota/Views/AdaptiveColors.swift",
+    "iOS/App/OverviewView.swift",
+    "iOS/App/MobileTokenHistoryView.swift",
+    "iOS/App/CodexResetNotice.swift",
+    "iOS/App/OnboardingView.swift",
+    "AIQuota/Views/PopoverView.swift",
+    "AIQuota/Views/MacAccountDial.swift",
+    "AIQuota/Views/MacAccountOverviewItem.swift",
+    "AIQuota/Views/MacResetNoticeBanner.swift",
+    "AIQuota/AppIcon.icon/icon.json"
+   ],
+   "assets": [
+    "iOS/App/Assets.xcassets/onboarding-icon.imageset",
+    "iOS/App/Assets.xcassets/logo-openai.imageset",
+    "iOS/App/Assets.xcassets/logo-claude.imageset"
+   ],
+   "figma": [
+    "AIQuota (cja43k0cJmCFUnGctkDuJ2), AIQuota Tokens collection, dark mode"
+   ]
+  },
+  "synced": "2026-10-24"
+ }
+}

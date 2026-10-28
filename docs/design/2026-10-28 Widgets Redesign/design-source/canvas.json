@@ -1,0 +1,25 @@
+{
+  "v": 3,
+  "createdOnFiles": {"v": 1, "at": "2026-10-28T17:55:00Z"},
+  "title": "AIQuota iOS Widgets",
+  "launch": {"view": "canvas"},
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {"x": 0, "y": 0, "w": 1440, "h": 1040, "title": "01 Audit · What ships today"},
+    "Audit-Findings.dc.html": {"x": 1520, "y": 0, "w": 1440, "h": 1040, "title": "02 Audit · Where widgets drifted from the app"},
+    "Dial.dc.html": {"x": 3040, "y": 0, "w": 124, "h": 124, "title": "Component · Dial"},
+    "Next-Lineup.dc.html": {"x": 0, "y": 1400, "w": 1440, "h": 1000, "title": "03 Next · Principles and lineup"},
+    "Next-Lock.dc.html": {"x": 1520, "y": 1400, "w": 1440, "h": 1000, "title": "04 Next · Lock Screen"},
+    "Next-Home.dc.html": {"x": 0, "y": 2520, "w": 1640, "h": 1180, "title": "05 Next · Home Screen"},
+    "Next-States.dc.html": {"x": 1720, "y": 2520, "w": 1440, "h": 1000, "title": "06 Next · States and render modes"},
+    "Next-Config.dc.html": {"x": 3240, "y": 2520, "w": 520, "h": 980, "title": "07 Next · Edit widget"}
+  },
+  "order": ["Main.dc.html", "Audit-Findings.dc.html", "Dial.dc.html", "Next-Lineup.dc.html", "Next-Lock.dc.html", "Next-Home.dc.html", "Next-States.dc.html", "Next-Config.dc.html"],
+  "notes": {
+    "titleAudit": {"x": 0, "y": -300, "text": "Audit · iOS widgets as of main@eedcef4", "kind": "title1", "maxW": 3164},
+    "titleNext": {"x": 0, "y": 1100, "text": "Next iteration · accounts first, same dial, history that earns its space", "kind": "title1", "maxW": 3760}
+  },
+  "designSystems": [
+    {"title": "AIQuota App Design System", "namespace": "aiquota-app", "artifact": "https://claude.ai/code/artifact/925d1724-341a-4737-b0ae-6dcb024f47ee", "version": null, "copiedAt": "2026-10-28T17:55:00Z"}
+  ]
+}

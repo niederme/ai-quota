@@ -1,79 +1,6 @@
 import SwiftUI
 import MobileAccessCore
 
-/// Weather-inspired hierarchy for the alternate rectangular Lock Screen layout.
-struct CompactQuotaView: View {
-    let service: QuotaService
-    let reading: QuotaReading?
-    let needsApp: Bool
-    let date: Date
-    var compact = false
-    var updateFailed = false
-    private var stale: Bool { WidgetReadingStatus.isSaved(reading, needsApp: needsApp, updateFailed: updateFailed, at: date) }
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 2) {
-                miniGauge.opacity(stale ? 0.45 : 1).frame(width: 32, height: 32)
-                    .overlay(alignment: .bottomTrailing) {
-                        if stale && !needsApp { Image(systemName: "clock.fill").font(.system(size: 9)).accessibilityHidden(true) }
-                    }
-                Text(reading?.metadata?.plan == "Demo" ? "Demo" : service.name).font(.system(size: 11, weight: .medium))
-                    .lineLimit(1)
-            }
-            VStack(alignment: .leading, spacing: 0) {
-                if let budget = reading?.budgetOnly {
-                    Text("\(budget.amountText(budget.used)) / \(budget.amountText(budget.limit))")
-                        .font(.system(size: 11, weight: .medium)).lineLimit(1).minimumScaleFactor(0.75)
-                } else {
-                    percentage(reading?.primaryWindow, label: reading?.primaryWindow?.compactLabel ?? "")
-                        .foregroundStyle(.primary)
-                }
-                if let secondary = reading?.secondaryWindow {
-                    percentage(secondary, label: secondary.compactLabel).foregroundStyle(.secondary)
-                } else if !stale, let reset = LockScreenResetPresentation.make(reading: reading, needsApp: needsApp, at: date) {
-                    Text(reset.text).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary).lineLimit(1)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(service.name) \(reading?.metadata?.plan == "Demo" ? "sample" : "allowance") used")
-        .accessibilityValue("\(reading?.accessibilitySummary ?? "Allowance unavailable"). \(needsApp ? "Reconnect in AIQuota." : "") \(stale ? WidgetReadingStatus.savedLabel(reading, at: date) + ". Reading needs refreshing." : "") \(LockScreenResetPresentation.make(reading: reading, needsApp: needsApp || updateFailed, at: date)?.accessibilityText ?? "")")
-        .accessibilityHint("Opens AIQuota")
-    }
-    private func percentage(_ window: QuotaWindow?, label: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 3) {
-            Text(window.map { "\(Int($0.usedPercent.rounded()))%" } ?? "N/A")
-                .font(.system(size: 11, weight: .medium)).monospacedDigit()
-            Text(label).font(.system(size: 11, weight: .medium))
-        }.lineLimit(1)
-    }
-    private var miniGauge: some View {
-        ZStack {
-            ring(reading?.primaryDisplayWindow, width: (reading?.windows.count == 1 || reading?.budgetOnly != nil) ? 4.2 : 3.36, opacity: 1)
-                .padding((reading?.windows.count == 1 || reading?.budgetOnly != nil) ? 0.42 : 0)
-            if let secondary = reading?.secondaryWindow {
-                ring(secondary, width: 3.36, opacity: 0.6).padding(4.36)
-            }
-            Group {
-                if needsApp { Image(systemName: "exclamationmark").font(.system(size: 9, weight: .bold)) }
-                else { Circle().fill(.primary).frame(width: 3, height: 3) }
-            }
-        }.padding(2.52)
-    }
-    private func ring(_ window: QuotaWindow?, width: CGFloat, opacity: Double) -> some View {
-        ZStack {
-            Circle().trim(from: 0, to: 0.75)
-                .stroke(.primary.opacity(0.18), style: StrokeStyle(lineWidth: width, dash: window == nil ? [1, 2] : []))
-            if let window {
-                Circle().trim(from: 0, to: 0.75 * min(1, max(0, window.usedPercent / 100)))
-                    .stroke(.primary.opacity(opacity), style: StrokeStyle(lineWidth: width, dash: []))
-            }
-        }.rotationEffect(.degrees(135))
-    }
-
-}
-
 struct ProviderReading: Sendable {
     let service: QuotaService
     let reading: QuotaReading?
@@ -81,106 +8,90 @@ struct ProviderReading: Sendable {
     var updateFailed = false
 }
 
+struct AccountLockView: View {
+    let account: WidgetAccountContent
+    let date: Date
+    var circular = false
+    var body: some View {
+        Group {
+            if circular {
+                GeometryReader { geometry in
+                    let size = min(geometry.size.width, geometry.size.height)
+                    AccountWidgetDial(account: account, date: date, size: size, readings: false, vibrant: true, curvedCaption: true)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            } else {
+                HStack(spacing: 4) {
+                    AccountWidgetDial(account: account, date: date, size: 60, readings: false, vibrant: true)
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(account.name).fontWeight(.semibold).lineLimit(1)
+                        if account.value.needsApp || account.value.reading == nil || account.isSaved(at: date) {
+                            Text(account.status(at: date)).lineLimit(2).opacity(0.6)
+                        } else {
+                            let reading = account.value.reading
+                            Text(WidgetCopy.metric(reading?.primaryDisplayWindow)).lineLimit(1)
+                            if let secondary = reading?.secondaryWindow {
+                                Text(WidgetCopy.metric(secondary)).lineLimit(1).opacity(0.6)
+                            } else {
+                                Text(WidgetCopy.reset(reading?.primaryDisplayWindow?.resetsAt, at: date)).lineLimit(1).opacity(0.6)
+                            }
+                        }
+                    }
+                    .font(.system(size: 14, weight: .medium)).monospacedDigit()
+                    .frame(maxWidth: .infinity, alignment: .leading).offset(y: -5)
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(account.accessibility(at: date))
+        .accessibilityHint("Opens AIQuota")
+    }
+}
+
+struct AccountsLockView: View {
+    let accounts: [WidgetAccountContent]
+    let date: Date
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(accounts.prefix(2))) { account in
+                Link(destination: account.url) {
+                    VStack(spacing: 0) {
+                        AccountWidgetDial(account: account, date: date, size: 56, readings: false, compact: true, vibrant: true)
+                        HStack(spacing: 2) {
+                            if (account.worstPercent ?? 0) >= 85 { Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 8)) }
+                            Text(account.name).font(.system(size: 11, weight: .medium)).lineLimit(1)
+                        }
+                    }.frame(maxWidth: .infinity)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(account.accessibility(at: date))
+            }
+        }.buttonStyle(.plain)
+    }
+}
+
+// Compatibility entry points for app previews and existing review fixtures.
 struct CodexDial: View {
     let value: ProviderReading
     let date: Date
     var logoScale: CGFloat = 1
-    private var stale: Bool { WidgetReadingStatus.isSaved(value.reading, needsApp: value.needsApp, updateFailed: value.updateFailed, at: date) }
-    private var warning: Bool { WidgetFreshness.limitReached(value.reading) }
-    var body: some View {
-        GeometryReader { geometry in
-            let size = min(geometry.size.width, geometry.size.height)
-            ZStack {
-                ring(value.reading?.primaryDisplayWindow, width: (value.reading?.windows.count == 1 || value.reading?.budgetOnly != nil) ? size * 0.13 : size * 0.12, opacity: 1)
-                    .padding((value.reading?.windows.count == 1 || value.reading?.budgetOnly != nil) ? size * 0.095 : size * 0.09)
-                if let secondary = value.reading?.secondaryWindow {
-                    ring(secondary, width: size * 0.12, opacity: 0.6)
-                        .padding(size * 0.21 + 1)
-                }
-                if value.reading?.metadata?.plan == "Demo" {
-                    Text("Demo").font(.system(size: size * 0.16, weight: .semibold))
-                } else if value.needsApp {
-                    Image(systemName: "exclamationmark").font(.system(size: size * 0.3, weight: .bold))
-                } else {
-                Image(value.service.logo)
-                    .renderingMode(.template)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: size * 0.324 * logoScale, height: size * 0.324 * logoScale)
-                    .foregroundStyle(.primary)
-                }
-            }
-            .frame(width: size, height: size)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-        .padding(3)
-        .opacity(stale ? 0.45 : 1)
-        .overlay(alignment: .bottomTrailing) {
-            if stale && !value.needsApp { Image(systemName: "clock.fill").font(.system(size: 11)).accessibilityHidden(true) }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(value.service.name) \(value.reading?.metadata?.plan == "Demo" ? "sample" : "allowance") used")
-        .accessibilityValue("\(value.reading?.accessibilitySummary ?? "Allowance unavailable"). \(value.needsApp ? "Reconnect in AIQuota." : "") \(stale ? WidgetReadingStatus.savedLabel(value.reading, at: date) + ". Reading needs refreshing." : "") \(warning ? "An allowance limit is reached." : "")")
-        .accessibilityHint("Opens AIQuota")
-    }
-
-    private func ring(_ window: QuotaWindow?, width: CGFloat, opacity: Double) -> some View {
-        ZStack {
-            Circle().trim(from: 0, to: 0.75)
-                .stroke(.primary.opacity(0.18), style: StrokeStyle(lineWidth: width, dash: window == nil ? [2, 3] : []))
-            if let window {
-                Circle().trim(from: 0, to: 0.75 * min(1, max(0, window.usedPercent / 100)))
-                    .stroke(.primary.opacity(opacity),
-                            style: StrokeStyle(lineWidth: width, dash: []))
-            }
-        }.rotationEffect(.degrees(135))
-    }
+    var body: some View { AccountLockView(account: .init(id: value.service.rawValue, value: value), date: date, circular: true) }
 }
-
-
 struct ServiceDetailsView: View {
     let value: ProviderReading
     let date: Date
-    private var reset: LockScreenResetPresentation? {
-        value.updateFailed ? nil : .make(reading: value.reading, needsApp: value.needsApp, at: date)
-    }
-    private var accessibilityValue: String {
-        var parts = [value.reading?.accessibilitySummary ?? "Allowance unavailable"]
-        if let reset { parts.append(reset.accessibilityText) }
-        if value.needsApp { parts.append("Reconnect in AIQuota.") }
-        if WidgetReadingStatus.isSaved(value.reading, needsApp: value.needsApp, updateFailed: value.updateFailed, at: date) {
-            parts.append(WidgetReadingStatus.savedLabel(value.reading, at: date) + ". Reading needs refreshing.")
-        }
-        return parts.joined(separator: ". ")
-    }
+    var body: some View { AccountLockView(account: .init(id: value.service.rawValue, value: value), date: date) }
+}
+struct CompactQuotaView: View {
+    let service: QuotaService
+    let reading: QuotaReading?
+    let needsApp: Bool
+    let date: Date
+    var compact = false
+    var updateFailed = false
     var body: some View {
-        HStack(spacing: 2) {
-            CodexDial(value: value, date: date, logoScale: 0.8).frame(width: 60, height: 60)
-            VStack(alignment: .leading, spacing: 0) {
-                Text(value.service.name).font(.system(size: 14, weight: .regular)).lineLimit(1)
-                if let budget = value.reading?.budgetOnly {
-                    Text("\(budget.amountText(budget.used)) / \(budget.amountText(budget.limit))")
-                        .font(.system(size: 14, weight: .medium)).lineLimit(1).minimumScaleFactor(0.75)
-                } else {
-                    metric(value.reading?.primaryWindow).foregroundStyle(.primary)
-                }
-                if let secondary = value.reading?.secondaryWindow {
-                    metric(secondary).foregroundStyle(.secondary).offset(y: 1)
-                } else if let reset {
-                    Text(reset.text).font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.secondary).lineLimit(1).offset(y: 1)
-                }
-            }.frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(value.service.name) \(value.reading?.metadata?.plan == "Demo" ? "sample" : "allowance") used")
-        .accessibilityValue(accessibilityValue)
-        .accessibilityHint("Opens AIQuota")
-    }
-    private func metric(_ window: QuotaWindow?) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 3) {
-            Text(window.map { "\(Int($0.usedPercent.rounded()))%" } ?? "N/A").monospacedDigit()
-            Text(window?.compactLabel ?? "")
-        }.font(.system(size: 14, weight: .medium)).lineLimit(1)
+        let account = WidgetAccountContent(id: service.rawValue, value: .init(service: service, reading: reading, needsApp: needsApp, updateFailed: updateFailed))
+        if compact { AccountsLockView(accounts: [account], date: date) }
+        else { AccountLockView(account: account, date: date) }
     }
 }

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Next · Edit widget</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#d77ef7}a:hover{color:#ead2ff}
+</style>
+</helmet>
+<div style="width: 520px; height: 980px; box-sizing: border-box; padding: 28px 65px 24px; display: flex; flex-direction: column; gap: 14px; background: #0b060f; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter', system-ui, sans-serif">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div style="font-size: 13px; line-height: 18px; font-weight: 600; color: #d77ef7; letter-spacing: 0.2px">07 · Next</div>
+<h1 style="margin: 0; font-size: 22px; line-height: 28px; font-weight: 700">Edit widget · Accounts</h1>
+</div>
+
+<div style="width: 390px; height: 844px; border-radius: 55px; box-sizing: border-box; border: 10px solid #000000; overflow: hidden; background: linear-gradient(160deg, #24222b 0%, #15141a 100%); position: relative; display: flex; flex-direction: column; align-items: center">
+<div style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45)"></div>
+
+<div style="position: relative; margin-top: 56px; width: 338px; height: 158px; border-radius: 22px; overflow: hidden; background: radial-gradient(110% 80% at 100% 0%, rgba(191,90,242,0.14) 0%, rgba(191,90,242,0) 70%), linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 45%), #1e1223; box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 1px rgba(255,255,255,0.06); box-sizing: border-box; padding: 16px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 14px; align-content: center">
+<sc-for list="{{four}}" as="a" hint-placeholder-count="4">
+<div style="min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center">
+<dc-import name="Dial" size="60" thin="1" glyph="{{a.g}}" mode="{{a.mode}}" readings="none" p1="{{a.p1}}" p2="{{a.p2}}" hint-size="60px,60px"></dc-import>
+<span style="max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 11px; line-height: 13px; font-weight: 600; white-space: nowrap">{{a.svc}} {{a.label}}</span>
+<span style="font-size: 10px; line-height: 13px; color: #d77ef7; white-space: nowrap; font-variant-numeric: tabular-nums">{{a.reset}}</span>
+</div>
+</sc-for>
+</div>
+
+<div style="position: relative; margin-top: 22px; width: 358px; border-radius: 34px; background: rgba(44,44,48,0.94); box-sizing: border-box; padding: 18px 16px 16px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; gap: 10px; padding: 0 4px">
+<div style="width: 34px; height: 34px; border-radius: 9px; background: #1a0e2b; display: flex; align-items: center; justify-content: center; flex: none"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5.6 17.4A8 8 0 1 1 18.4 17.4" fill="none" stroke="#983eff" stroke-width="2.6" stroke-linecap="round"></path><path d="M8.3 15.2A4.6 4.6 0 1 1 15.7 15.2" fill="none" stroke="#c04dff" stroke-width="2.4" stroke-linecap="round"></path></svg></div>
+<div style="display: flex; flex-direction: column">
+<span style="font-size: 17px; line-height: 22px; font-weight: 600">Accounts</span>
+<span style="font-size: 13px; line-height: 18px; color: rgba(235,235,245,0.62)">Several accounts, at a glance.</span>
+</div>
+</div>
+
+<div style="border-radius: 12px; background: rgba(118,118,128,0.24); display: flex; flex-direction: column">
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 11px 14px; font-size: 17px; line-height: 22px">
+<span>Show</span>
+<span style="color: rgba(235,235,245,0.62)">Chosen accounts ›</span>
+</div>
+<div style="height: 1px; margin-left: 14px; background: rgba(84,84,88,0.6)"></div>
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 11px 14px; font-size: 17px; line-height: 22px">
+<span>Order</span>
+<span style="color: rgba(235,235,245,0.62)">Closest to a limit ›</span>
+</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="padding: 0 14px; font-size: 13px; line-height: 18px; color: rgba(235,235,245,0.62)">ACCOUNTS · UP TO 4 ON MEDIUM</span>
+<div style="border-radius: 12px; background: rgba(118,118,128,0.24); display: flex; flex-direction: column">
+<sc-for list="{{accounts}}" as="r" hint-placeholder-count="5">
+<div style="display: flex; align-items: center; gap: 12px; padding: 9px 14px; border-top: {{r.border}}">
+<span style="width: 22px; height: 22px; border-radius: 11px; background: {{r.dotBg}}; display: flex; align-items: center; justify-content: center; flex: none; font-size: 17px; line-height: 17px; font-weight: 700; color: #ffffff">{{r.sym}}</span>
+<div style="flex: 1; display: flex; flex-direction: column">
+<span style="font-size: 17px; line-height: 22px; color: {{r.color}}">{{r.label}}</span>
+<span style="font-size: 13px; line-height: 16px; color: rgba(235,235,245,0.62)">{{r.svc}}</span>
+</div>
+<span style="font-size: 17px; line-height: 17px; color: rgba(235,235,245,0.32)">{{r.handle}}</span>
+</div>
+</sc-for>
+</div>
+<span style="padding: 0 14px; font-size: 13px; line-height: 18px; color: rgba(235,235,245,0.62)">Choose “Closest to a limit” under Show to let AIQuota pick, and the widget follows whichever account needs you next.</span>
+</div>
+</div>
+
+<div style="margin-top: auto; margin-bottom: 8px; position: relative; width: 134px; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.8)"></div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":520,"height":980}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const four = [
+      { g: 'claude', mode: 'two', p1: '28', p2: '88', label: 'Personal', svc: 'Claude', reset: 'Wed 2:00 PM' },
+      { g: 'claude', mode: 'one', p1: '66', p2: '', label: 'Enterprise', svc: 'Claude', reset: 'Sun 12:00 AM' },
+      { g: 'codex', mode: 'two', p1: '62', p2: '41', label: 'Personal', svc: 'Codex', reset: '3:40 PM' },
+      { g: 'codex', mode: 'two', p1: '24', p2: '18', label: 'Work', svc: 'Codex', reset: '5:10 PM' }
+    ];
+    const rm = { sym: '−', dotBg: '#ff453a', color: '#ffffff', handle: '≡' };
+    const accounts = [
+      { ...rm, label: 'Personal', svc: 'Claude · Max' },
+      { ...rm, label: 'Enterprise', svc: 'Claude · Enterprise' },
+      { ...rm, label: 'Personal', svc: 'Codex · Pro' },
+      { ...rm, label: 'Work', svc: 'Codex · Business' },
+      { sym: '+', dotBg: '#30d158', color: '#bf5af2', handle: '', label: 'Add account', svc: 'Side project · Claude' }
+    ].map((r, i) => ({ ...r, border: i === 0 ? '0' : '1px solid rgba(84,84,88,0.6)' }));
+    return { four, accounts };
+  }
+}
+</script>
+</body>
+</html>

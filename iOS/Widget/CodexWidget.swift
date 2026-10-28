@@ -117,24 +117,11 @@ struct WidgetAccountQuery: EntityQuery {
     }
 
     func suggestedEntities() async throws -> [WidgetAccount] { accounts }
+    func defaultResult() async -> WidgetAccount? { WidgetAccount.soleDefault(in: accounts) }
 
     private var accounts: [WidgetAccount] {
         let profiles = service.map(AccountRegistry.profiles(for:)) ?? AccountRegistry.all()
         return service.map { WidgetAccount.options(for: $0, profiles: profiles) } ?? WidgetAccount.make(profiles)
-    }
-}
-
-private struct WidgetAccountOptionsProvider: DynamicOptionsProvider {
-    @IntentParameterDependency<QuotaConfiguration>(\.$service) private var configuration
-
-    func results() async throws -> [WidgetAccount] {
-        let service = configuration?.service ?? .codex
-        return WidgetAccount.options(for: service, profiles: AccountRegistry.profiles(for: service))
-    }
-
-    func defaultResult() async -> WidgetAccount? {
-        let service = configuration?.service ?? .codex
-        return WidgetAccount.soleDefault(in: WidgetAccount.options(for: service, profiles: AccountRegistry.profiles(for: service)))
     }
 }
 
@@ -150,22 +137,45 @@ private struct ServiceWidgetAccountOptionsProvider: DynamicOptionsProvider {
     }
 }
 
+enum AccountWidgetShow: String, AppEnum {
+    case chosenAccount, closestToLimit
+    static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Show")
+    static let caseDisplayRepresentations: [Self: DisplayRepresentation] = [.chosenAccount: "Chosen account", .closestToLimit: "Closest to a limit"]
+}
+enum AccountsWidgetOrder: String, AppEnum {
+    case closestToLimit, asListed
+    static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Order")
+    static let caseDisplayRepresentations: [Self: DisplayRepresentation] = [.closestToLimit: "Closest to a limit", .asListed: "As listed"]
+}
+
 struct QuotaConfiguration: WidgetConfigurationIntent {
-    static let title: LocalizedStringResource = "AI allowance"
-    static let description = IntentDescription("Your available allowance windows.")
+    static let title: LocalizedStringResource = "Account"
+    static let description = IntentDescription("One chosen account, or the account closest to a limit.")
+    @Parameter(title: "Show", default: .chosenAccount) var show: AccountWidgetShow
     @Parameter(title: "Service", default: .codex) var service: QuotaService
-    @Parameter(title: "Account", optionsProvider: WidgetAccountOptionsProvider()) var account: WidgetAccount?
+    @Parameter(title: "Account") var account: WidgetAccount?
+    static var parameterSummary: some ParameterSummary {
+        When(\.$show, .equalTo, .chosenAccount) { Summary { \.$show; \.$account } }
+        otherwise: { Summary { \.$show } }
+    }
 }
 struct QuotaEntry: TimelineEntry {
     let date: Date
     let values: [ProviderReading]
     let accountLabels: [QuotaService: String]
+    var accountContents: [WidgetAccountContent]? = nil
+    var accounts: [WidgetAccountContent] {
+        accountContents ?? values.enumerated().map {
+            WidgetAccountContent(id: "\($0.offset)", value: $0.element, label: accountLabels[$0.element.service] ?? "")
+        }
+    }
 }
 
 private struct WidgetReading: Sendable {
     let value: ProviderReading
     let accountLabel: String?
     let namespace: String?
+    var content: WidgetAccountContent? = nil
 }
 
 enum WidgetProfileResolution: Equatable {
@@ -199,13 +209,74 @@ private func profile(_ selection: WidgetAccount?, for service: QuotaService) -> 
 }
 
 private func entry(_ readings: [WidgetReading], at date: Date = .now) -> QuotaEntry {
-    QuotaEntry(
-        date: date,
-        values: readings.map(\.value),
-        accountLabels: Dictionary(uniqueKeysWithValues: readings.compactMap { reading in
-            reading.accountLabel.map { (reading.value.service, $0) }
+    var labels: [QuotaService: String] = [:]
+    for reading in readings { if let label = reading.accountLabel { labels[reading.value.service] = label } }
+    return QuotaEntry(date: date, values: readings.map(\.value), accountLabels: labels,
+        accountContents: readings.enumerated().map { index, reading in
+            reading.content ?? WidgetAccountContent(id: "\(reading.value.service.rawValue):\(reading.namespace ?? String(index))", value: reading.value, label: reading.accountLabel ?? "")
         })
-    )
+}
+private func enriched(_ reading: WidgetReading, selection: WidgetAccount?) -> WidgetReading {
+    let store = reading.namespace.map { SharedQuotaStore(reading.value.service, namespace: $0) }
+    let profile = AccountRegistry.profiles(for: reading.value.service).first { $0.id == reading.namespace }
+    let history = store?.widgetHistory()
+    let demo = DemoQuotaData.isEnabled
+    return WidgetReading(value: reading.value, accountLabel: reading.accountLabel, namespace: reading.namespace,
+        content: WidgetAccountContent(id: selection?.id ?? "\(reading.value.service.rawValue):\(reading.namespace ?? "empty")", value: reading.value,
+            label: profile?.label ?? reading.accountLabel ?? "",
+            tokenHistory: demo && reading.value.service == .codex ? DemoQuotaData.tokenHistory() : history?.tokens,
+            usageHistory: demo && reading.value.service == .codex ? DemoQuotaData.history() : history?.usage))
+}
+private func ranked(_ readings: [WidgetReading]) -> [WidgetReading] {
+    let order = WidgetAccountOrdering.closestFirst(readings.compactMap(\.content)).map(\.id)
+    return order.compactMap { id in readings.first { $0.content?.id == id } }
+}
+private func accountReadings(_ selections: [WidgetAccount], fetch: Bool) async -> [WidgetReading] {
+    if !fetch { return selections.map { enriched(snapshotReading($0.service, account: $0), selection: $0) } }
+    return await withTaskGroup(of: (Int, WidgetReading).self) { group in
+        for (index, account) in selections.enumerated() {
+            group.addTask { (index, enriched(await loadReading(account.service, account: account), selection: account)) }
+        }
+        var result: [(Int, WidgetReading)] = []
+        for await value in group { result.append(value) }
+        return result.sorted { $0.0 < $1.0 }.map(\.1)
+    }
+}
+private func singleReadings(_ configuration: QuotaConfiguration, fetch: Bool) async -> [WidgetReading] {
+    if configuration.show == .closestToLimit {
+        let selections = WidgetAccount.make(AccountRegistry.all())
+        let readings = await accountReadings(selections, fetch: fetch)
+        if let first = ranked(readings).first { return [first] }
+    }
+    let service = configuration.account?.service ?? configuration.service
+    if DemoQuotaData.isEnabled, configuration.account == nil {
+        return [enriched(WidgetReading(value: .init(service: service, reading: DemoQuotaData.reading(service), needsApp: false), accountLabel: nil, namespace: nil), selection: nil)]
+    }
+    let reading = fetch ? await loadReading(service, account: configuration.account) : snapshotReading(service, account: configuration.account)
+    return [enriched(reading, selection: configuration.account)]
+}
+private func multipleReadings(_ configuration: BothConfiguration, fetch: Bool) async -> [WidgetReading] {
+    let selections: [WidgetAccount]
+    if let accounts = configuration.accounts {
+        var seen = Set<String>()
+        selections = accounts.filter { seen.insert($0.id).inserted }
+    } else if configuration.codexAccount != nil || configuration.claudeAccount != nil {
+        // The old two-service parameters remain decodable for placed widgets.
+        selections = [configuration.codexAccount ?? AccountRegistry.defaultProfile(for: .codex).map { WidgetAccount($0, identityHint: nil) },
+                      configuration.claudeAccount ?? AccountRegistry.defaultProfile(for: .claude).map { WidgetAccount($0, identityHint: nil) }].compactMap { $0 }
+    } else {
+        selections = WidgetAccount.make(AccountRegistry.all())
+    }
+    if selections.isEmpty {
+        return QuotaService.allCases.map { service in
+            if DemoQuotaData.isEnabled {
+                return enriched(WidgetReading(value: .init(service: service, reading: DemoQuotaData.reading(service), needsApp: false), accountLabel: nil, namespace: nil), selection: nil)
+            }
+            return enriched(snapshotReading(service), selection: nil)
+        }
+    }
+    let readings = await accountReadings(selections, fetch: fetch)
+    return configuration.order == .closestToLimit ? ranked(readings) : readings
 }
 private func hasSavedCredentials(_ store: SharedQuotaStore) -> Bool {
     switch store.service {
@@ -298,71 +369,55 @@ private func timeline(_ readings: [WidgetReading]) -> Timeline<QuotaEntry> {
     return Timeline(entries: dates.map { entry(readings, at: $0) }, policy: .after(now.addingTimeInterval(5 * 60)))
 }
 struct CodexProvider: AppIntentTimelineProvider {
-    func placeholder(in context: Context) -> QuotaEntry { QuotaEntry(date: .now, values: [ProviderReading(service: .codex, reading: nil, needsApp: false)], accountLabels: [:]) }
+    func placeholder(in context: Context) -> QuotaEntry { entry([enriched(snapshotReading(.codex), selection: nil)]) }
     func snapshot(for configuration: QuotaConfiguration, in context: Context) async -> QuotaEntry {
-        entry([snapshotReading(configuration.service, account: configuration.account)])
+        entry(await singleReadings(configuration, fetch: false))
     }
     func timeline(for configuration: QuotaConfiguration, in context: Context) async -> Timeline<QuotaEntry> {
-        await makeTimeline(configuration.service, account: configuration.account)
-    }
-    private func makeTimeline(_ service: QuotaService, account: WidgetAccount?) async -> Timeline<QuotaEntry> {
-        let value = await loadReading(service, account: account)
-        return WidgetTimeline.make([value])
+        WidgetTimeline.make(await singleReadings(configuration, fetch: true))
     }
 }
-// A namespace avoids colliding with TimelineProvider's required timeline method.
 private enum WidgetTimeline {
     static func make(_ values: [WidgetReading]) -> Timeline<QuotaEntry> { timeline(values) }
 }
 struct BothConfiguration: WidgetConfigurationIntent {
-    static let title: LocalizedStringResource = "Codex and Claude"
+    static let title: LocalizedStringResource = "Accounts"
+    @Parameter(title: "Accounts") var accounts: [WidgetAccount]?
+    @Parameter(title: "Order", default: .closestToLimit) var order: AccountsWidgetOrder
+    static var parameterSummary: some ParameterSummary { Summary { \.$accounts; \.$order } }
     @Parameter(title: "Codex account", optionsProvider: ServiceWidgetAccountOptionsProvider(service: .codex)) var codexAccount: WidgetAccount?
     @Parameter(title: "Claude account", optionsProvider: ServiceWidgetAccountOptionsProvider(service: .claude)) var claudeAccount: WidgetAccount?
 }
 struct BothProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> QuotaEntry { QuotaEntry(date: .now, values: QuotaService.allCases.map { ProviderReading(service: $0, reading: nil, needsApp: false) }, accountLabels: [:]) }
     func snapshot(for configuration: BothConfiguration, in context: Context) async -> QuotaEntry {
-        entry([snapshotReading(.codex, account: configuration.codexAccount), snapshotReading(.claude, account: configuration.claudeAccount)])
+        entry(await multipleReadings(configuration, fetch: false))
     }
     func timeline(for configuration: BothConfiguration, in context: Context) async -> Timeline<QuotaEntry> {
-        async let codex = loadReading(.codex, account: configuration.codexAccount)
-        async let claude = loadReading(.claude, account: configuration.claudeAccount)
-        return WidgetTimeline.make(await [codex, claude])
+        WidgetTimeline.make(await multipleReadings(configuration, fetch: true))
     }
 }
 struct SingleLockScreenWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "CodexLockScreen", intent: QuotaConfiguration.self, provider: CodexProvider()) { entry in
-            if let value = entry.values.first {
-                CodexDial(value: value, date: entry.date, logoScale: 0.8)
-                    .widgetURL(URL(string: "aiquota-probe://overview"))
-                    .containerBackground(for: .widget) { Color.clear }
+            if let account = entry.accounts.first {
+                AccountLockView(account: account, date: entry.date, circular: true)
+                    .widgetURL(account.url).containerBackground(for: .widget) { Color.clear }
             }
         }
-        .configurationDisplayName("AI allowance")
-        .description("Choose Codex or Claude. Shows the allowance windows reported by your account.")
-        .supportedFamilies([.accessoryCircular])
+        .configurationDisplayName("Account")
+        .description("One account's allowance. Existing Lock Screen widget.")
+        .supportedFamilies([.accessoryCircular]).contentMarginsDisabled()
     }
 }
 struct BothLockScreenWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "BothLockScreen", intent: BothConfiguration.self, provider: BothProvider()) { entry in
-            GeometryReader { geometry in
-                let gap: CGFloat = 4
-                let diameter = min(geometry.size.height, max(0, (geometry.size.width - gap) / 2))
-                HStack(spacing: gap) {
-                    ForEach(entry.values, id: \.service) { value in
-                        Link(destination: URL(string: "aiquota-probe://overview")!) { CodexDial(value: value, date: entry.date, logoScale: 0.8) }
-                            .frame(width: diameter, height: diameter)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .containerBackground(for: .widget) { Color.clear }
+            AccountsLockView(accounts: entry.accounts, date: entry.date).containerBackground(for: .widget) { Color.clear }
         }
-        .configurationDisplayName("Codex and Claude")
-        .description("Both services, with the allowance windows reported by each account.")
-        .supportedFamilies([.accessoryRectangular])
+        .configurationDisplayName("Accounts")
+        .description("Several accounts at a glance. Existing Lock Screen widget.")
+        .supportedFamilies([.accessoryRectangular]).contentMarginsDisabled()
     }
 }
 enum CompactServices: String, AppEnum {
@@ -383,62 +438,50 @@ struct CompactProvider: AppIntentTimelineProvider {
     }
     func snapshot(for configuration: CompactConfiguration, in context: Context) async -> QuotaEntry {
         entry(configuration.services.services.map { service in
-            snapshotReading(service, account: service == .codex ? configuration.codexAccount : configuration.claudeAccount)
+            enriched(snapshotReading(service, account: service == .codex ? configuration.codexAccount : configuration.claudeAccount), selection: service == .codex ? configuration.codexAccount : configuration.claudeAccount)
         })
     }
     func timeline(for configuration: CompactConfiguration, in context: Context) async -> Timeline<QuotaEntry> {
         if configuration.services == .both {
             async let codex = loadReading(.codex, account: configuration.codexAccount)
             async let claude = loadReading(.claude, account: configuration.claudeAccount)
-            return WidgetTimeline.make(await [codex, claude])
+            return WidgetTimeline.make(await [enriched(codex, selection: configuration.codexAccount), enriched(claude, selection: configuration.claudeAccount)])
         }
         let service = configuration.services.services[0]
-        return WidgetTimeline.make([await loadReading(service, account: service == .codex ? configuration.codexAccount : configuration.claudeAccount)])
+        return WidgetTimeline.make([enriched(await loadReading(service, account: service == .codex ? configuration.codexAccount : configuration.claudeAccount), selection: service == .codex ? configuration.codexAccount : configuration.claudeAccount)])
     }
 }
 struct CompactLockScreenWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "CompactLockScreen", intent: CompactConfiguration.self, provider: CompactProvider()) { entry in
-            HStack(alignment: .center, spacing: 2) {
-                ForEach(entry.values, id: \.service) { value in
-                    if entry.values.count == 1 {
-                        ServiceDetailsView(value: value, date: entry.date)
-                    } else {
-                        CompactQuotaView(service: value.service, reading: value.reading, needsApp: value.needsApp, date: entry.date, compact: true, updateFailed: value.updateFailed)
-                    }
-                }
-            }
-            .widgetURL(URL(string: "aiquota-probe://overview"))
-            .containerBackground(for: .widget) { Color.clear }
+            AccountsLockView(accounts: entry.accounts, date: entry.date).containerBackground(for: .widget) { Color.clear }
         }
-        .configurationDisplayName("Allowance details")
-        .description("Gauges and percentages for Codex, Claude, or both, including monthly allowances.")
-        .supportedFamilies([.accessoryRectangular])
+        .configurationDisplayName("Accounts")
+        .description("Existing two-service configuration.")
+        .supportedFamilies([.accessoryRectangular]).contentMarginsDisabled()
     }
 }
 #if !WIDGET_UNIT_TESTS
 @main
 #endif
 struct QuotaWidgets: WidgetBundle {
-    var body: some Widget { SingleLockScreenWidget(); BothLockScreenWidget(); CompactLockScreenWidget(); ServiceDetailsWidget(); SingleHomeScreenWidget(); BothHomeScreenWidget() }
+    // Lead with the two complete designs; retain all old kind/intent identities
+    // until on-device migration has been validated.
+    var body: some Widget { SingleHomeScreenWidget(); BothHomeScreenWidget(); SingleLockScreenWidget(); BothLockScreenWidget(); CompactLockScreenWidget(); ServiceDetailsWidget() }
 }
-
 struct ServiceDetailsWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "ServiceDetails", intent: QuotaConfiguration.self, provider: CodexProvider()) { entry in
-            if let value = entry.values.first {
-                ServiceDetailsView(value: value, date: entry.date)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .widgetURL(URL(string: "aiquota-probe://overview"))
-                .containerBackground(for: .widget) { Color.clear }
+            if let account = entry.accounts.first {
+                AccountLockView(account: account, date: entry.date).widgetURL(account.url)
+                    .containerBackground(for: .widget) { Color.clear }
             }
         }
-        .configurationDisplayName("Service details")
-        .description("One service with a gauge and both percentages. Choose Codex or Claude.")
-        .supportedFamilies([.accessoryRectangular])
+        .configurationDisplayName("Account")
+        .description("One account in depth. Existing Lock Screen widget.")
+        .supportedFamilies([.accessoryRectangular]).contentMarginsDisabled()
     }
 }
-
 struct HomeEntryView: View {
     let entry: QuotaEntry
     let both: Bool
@@ -446,38 +489,37 @@ struct HomeEntryView: View {
     @Environment(\.widgetFamily) private var family
     var body: some View {
         let displayFamily = previewFamily ?? family
-        VStack(spacing: 0) {
-            if displayFamily != .systemSmall, !entry.accountLabels.isEmpty {
-                HStack(spacing: 8) {
-                    ForEach(entry.values, id: \.service) { value in
-                        if let label = entry.accountLabels[value.service] {
-                            Text("\(value.service.name) · \(label)")
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.75)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    }
-                }
-                .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 12)
-                .padding(.top, 7)
-            }
-            HomeQuotaView(values: entry.values, date: entry.date,
-                layout: both ? (displayFamily == .systemLarge ? .large : .dualMedium) : (displayFamily == .systemSmall ? .small : .singleMedium))
+        if displayFamily == .accessoryCircular, let account = entry.accounts.first {
+            AccountLockView(account: account, date: entry.date, circular: true)
+        } else if displayFamily == .accessoryRectangular {
+            if both { AccountsLockView(accounts: entry.accounts, date: entry.date) }
+            else if let account = entry.accounts.first { AccountLockView(account: account, date: entry.date) }
+        } else {
+            HomeQuotaView(values: entry.values, date: entry.date, layout: layout(displayFamily), accounts: entry.accounts)
         }
+    }
+    private func layout(_ family: WidgetFamily) -> HomeQuotaView.Layout {
+        if both { return family == .systemSmall ? .accountsSmall : family == .systemLarge ? .large : .dualMedium }
+        return family == .systemSmall ? .small : family == .systemLarge ? .accountLarge : .singleMedium
+    }
+}
+struct WidgetSurface: View {
+    @Environment(\.widgetFamily) private var family
+    var body: some View {
+        if family == .accessoryCircular || family == .accessoryRectangular { Color.clear }
+        else { HomeWidgetBackground() }
     }
 }
 struct SingleHomeScreenWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "AIQuotaHomeSingle", intent: QuotaConfiguration.self, provider: CodexProvider()) { entry in
             HomeEntryView(entry: entry, both: false)
-                .widgetURL(entry.values.first?.service.url)
-                .containerBackground(for: .widget) { HomeWidgetBackground() }
+                .widgetURL(entry.accounts.first?.url)
+                .containerBackground(for: .widget) { WidgetSurface() }
         }
-        .configurationDisplayName("AIQuota")
-        .description("Track your AI service usage quota. Choose Codex or Claude Code.")
-        .supportedFamilies([.systemSmall, .systemMedium])
+        .configurationDisplayName("Account")
+        .description("One account in depth, or the account closest to a limit.")
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryCircular, .accessoryRectangular])
         .contentMarginsDisabled()
     }
 }
@@ -486,11 +528,11 @@ struct BothHomeScreenWidget: Widget {
         AppIntentConfiguration(kind: "AIQuotaHomeBoth", intent: BothConfiguration.self, provider: BothProvider()) { entry in
             HomeEntryView(entry: entry, both: true)
                 .widgetURL(URL(string: "aiquota-probe://overview"))
-                .containerBackground(for: .widget) { HomeWidgetBackground() }
+                .containerBackground(for: .widget) { WidgetSurface() }
         }
-        .configurationDisplayName("AIQuota")
-        .description("Track both Codex and Claude Code with room for more detail.")
-        .supportedFamilies([.systemMedium, .systemLarge])
+        .configurationDisplayName("Accounts")
+        .description("Choose accounts from any service, ordered by usage or as listed.")
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular])
         .contentMarginsDisabled()
     }
 }

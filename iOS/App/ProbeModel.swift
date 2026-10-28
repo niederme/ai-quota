@@ -233,6 +233,8 @@ final class ProbeModel {
                 history = updated
                 historyUnavailable = false
                 defaults.set(try JSONEncoder().encode(updated), forKey: historyCacheKey)
+                try? await shared.publishWidgetHistory(usage: updated, matching: tokens)
+                WidgetCenter.shared.reloadAllTimelines()
             } catch is CancellationError { throw CancellationError() }
             catch { historyUnavailable = true }
         }
@@ -269,6 +271,8 @@ final class ProbeModel {
             if let updated {
                 tokenHistory = updated
                 tokenHistoryCache.save(updated)
+                try? await shared.publishWidgetHistory(tokens: updated, matching: credential)
+                WidgetCenter.shared.reloadAllTimelines()
             }
             tokenHistoryUnavailable = updated == nil
         } catch {
