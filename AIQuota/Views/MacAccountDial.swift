@@ -2,8 +2,8 @@ import SwiftUI
 
 /// The iOS overview's account dial, sized for a Mac account row.
 struct MacAccountDial: View {
-    /// The 12pt outer stroke extends beyond the dial's nominal layout frame.
-    static let strokeOutset: CGFloat = 6
+    /// The 10pt outer stroke extends beyond the dial's nominal layout frame.
+    static let strokeOutset: CGFloat = 5
 
     let icon: String
     let primaryPercent: Int?
@@ -26,10 +26,10 @@ struct MacAccountDial: View {
 
     var body: some View {
         ZStack {
-            arc(percent: primaryPercent, lineWidth: showsSecondary ? 8 : 12, opacity: 1)
+            arc(percent: primaryPercent, lineWidth: showsSecondary ? 7 : 10, opacity: 1)
             if showsSecondary {
-                arc(percent: secondaryPercent, lineWidth: 8, opacity: 0.7)
-                    .padding(10)
+                arc(percent: secondaryPercent, lineWidth: 7, opacity: 0.7)
+                    .padding(9)
             }
             VStack(spacing: 5) {
                 Image(icon).resizable().scaledToFit().frame(width: 18, height: 18)
@@ -55,13 +55,16 @@ struct MacAccountDial: View {
                     .font(.system(size: 16, weight: .semibold).monospacedDigit())
                 }
             }
+            .frame(width: 80)
+            // Lift the second readout clear of the inner arc's open ends.
+            .offset(y: showsSecondary ? -5 : 0)
             .foregroundStyle(tint)
         }
-        .frame(width: 120, height: 120)
+        .frame(width: 108, height: 108)
         // Include the outer stroke at the top, but don't reserve the circle's
         // unused lower quarter below the open arc.
-        .padding(.top, 6)
-        .frame(height: 114, alignment: .top)
+        .padding(.top, Self.strokeOutset)
+        .frame(height: 103, alignment: .top)
         .accessibilityHidden(true)
     }
 

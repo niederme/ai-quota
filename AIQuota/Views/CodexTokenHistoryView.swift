@@ -3,7 +3,7 @@ import AIQuotaKit
 
 /// Profile tokens, never the credit-spending history shown in service analytics.
 struct CodexTokenHistoryView: View {
-    private static let weeks = 42
+    static let weeks = 52
     static let cellGap: CGFloat = 1
     private static let monthLabelWidth: CGFloat = 20
     private static let monthLabelSpacing: CGFloat = 4
@@ -55,7 +55,7 @@ struct CodexTokenHistoryView: View {
         }
         .frame(width: availableWidth, height: Self.graphHeight(for: availableWidth), alignment: .topLeading)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Token activity, past 42 weeks")
+        .accessibilityLabel("Token activity, past 52 weeks")
         .accessibilityHint("Dim cells have no record. Dates are in UTC.")
         .accessibilityIdentifier("codexTokenActivity")
     }
@@ -150,7 +150,7 @@ struct CodexEmptyTokenHistoryView: View {
         let side = CodexTokenHistoryView.cellSide(for: availableWidth)
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .top, spacing: CodexTokenHistoryView.cellGap) {
-                ForEach(0..<42, id: \.self) { _ in
+                ForEach(0..<CodexTokenHistoryView.weeks, id: \.self) { _ in
                     VStack(spacing: CodexTokenHistoryView.cellGap) {
                         ForEach(0..<7, id: \.self) { _ in
                             RoundedRectangle(cornerRadius: 1)
@@ -161,11 +161,11 @@ struct CodexEmptyTokenHistoryView: View {
                 }
             }
             HStack {
-                ForEach(0..<10, id: \.self) { index in
-                    let date = Calendar.current.date(byAdding: .month, value: index - 9, to: .now) ?? .now
+                ForEach(0..<12, id: \.self) { index in
+                    let date = Calendar.current.date(byAdding: .month, value: index - 11, to: .now) ?? .now
                     Text(date, format: .dateTime.month(.abbreviated))
                         .font(.system(size: 8)).foregroundStyle(.secondary)
-                    if index < 9 { Spacer(minLength: 0) }
+                    if index < 11 { Spacer(minLength: 0) }
                 }
             }
             .frame(height: 12, alignment: .top)

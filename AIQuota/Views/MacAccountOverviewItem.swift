@@ -206,18 +206,24 @@ struct MacAccountCard: View {
                 }
             }
             if let budget {
-                Text(budgetSummary(budget))
-                    .font(.system(size: 13).monospacedDigit())
-                    .foregroundStyle(Color.overviewSecondary)
-                if let reset = budget.reset {
-                    resetCaption(at: reset)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(budgetSummary(budget))
+                        .font(.system(size: 13).monospacedDigit())
+                        .foregroundStyle(Color.overviewResetAccent)
+                    if let reset = budget.reset {
+                        resetCaption(at: reset)
+                    }
                 }
             } else if let usage = codexUsage, usage.reportedWindowShape != nil {
-                resetCaption(at: usage.reportedWindowShape == .dual ? usage.hourlyResetAt : usage.weeklyResetAt)
-                if usage.reportedWindowShape == .dual { resetCaption("7d", at: usage.weeklyResetAt) }
+                VStack(alignment: .leading, spacing: 0) {
+                    resetCaption(at: usage.reportedWindowShape == .dual ? usage.hourlyResetAt : usage.weeklyResetAt)
+                    if usage.reportedWindowShape == .dual { resetCaption("7d", at: usage.weeklyResetAt) }
+                }
             } else if let usage = claudeUsage {
-                resetCaption(at: usage.resetAt)
-                if secondaryPercent != nil { resetCaption("7d", at: usage.sevenDayResetsAt) }
+                VStack(alignment: .leading, spacing: 0) {
+                    resetCaption(at: usage.resetAt)
+                    if secondaryPercent != nil { resetCaption("7d", at: usage.sevenDayResetsAt) }
+                }
             }
             if let status {
                 Text(status)
@@ -233,7 +239,7 @@ struct MacAccountCard: View {
                     .anchorPreference(key: MacReconnectButtonAnchor.self, value: .bounds) { $0 }
             }
         }
-        .padding(.top, 2)
+        .padding(.top, 8)
     }
 
     private var status: String? {
@@ -351,7 +357,7 @@ struct MacAccountPlaceholderRow: View {
                         .padding(.top, 4)
                         .accessibilityLabel("Connect \(name)")
                 }
-                .padding(.top, 2)
+                .padding(.top, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             if service == .codex {
