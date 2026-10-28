@@ -116,6 +116,12 @@ struct MacAccountCard: View {
         codexUsage?.fetchedAt ?? claudeUsage?.fetchedAt ?? .now
     }
 
+    private var showsTokenHistory: Bool {
+        guard connected || loading, account.provider == .codex, let tokenHistory,
+              tokenHistory.isAttributed(toWorkspaceID: account.workspaceID) else { return false }
+        return CodexTokenHistoryView.hasVisibleData(tokenHistory)
+    }
+
     var body: some View {
         Button(action: connected || hasReading ? open : reconnect) {
             VStack(alignment: .leading, spacing: 0) {
@@ -131,9 +137,7 @@ struct MacAccountCard: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .topLeading)
 
-                if connected || loading, account.provider == .codex, let tokenHistory,
-                   tokenHistory.isAttributed(toWorkspaceID: account.workspaceID),
-                   CodexTokenHistoryView.hasVisibleData(tokenHistory) {
+                if showsTokenHistory, let tokenHistory {
                     CodexTokenHistoryView(history: tokenHistory,
                                           availableWidth: availableWidth + 2 * MacAccountDial.strokeOutset)
                         .help("Workspace token activity is separate from monthly credit usage.")
@@ -142,7 +146,8 @@ struct MacAccountCard: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 21)
+            .padding(.top, 21)
+            .padding(.bottom, showsTokenHistory ? 8 : 21)
             .frame(maxWidth: .infinity, alignment: .topLeading)
             .contentShape(RoundedRectangle(cornerRadius: 24))
             .overlay {
@@ -367,7 +372,8 @@ struct MacAccountPlaceholderRow: View {
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 21)
+        .padding(.top, 21)
+        .padding(.bottom, service == .codex ? 8 : 21)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(RoundedRectangle(cornerRadius: 24))
         .background { MacAccountRowSurface(highlighted: highlighted, pressed: pressed) }
