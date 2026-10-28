@@ -226,11 +226,13 @@ enum AccountRegistry {
                 state = .migrated(legacyServices: legacyServices)
             }
             state.normalize()
-            let before = try? JSONEncoder().encode(state)
+            // Dictionary encoding order is not a state change. In particular,
+            // an empty widget read must leave legacy migration for the app.
+            let before = state
             let result = body(&state)
             state.normalize()
             if let after = try? JSONEncoder().encode(state),
-               existed || persistEmptyMigration || !state.profiles.isEmpty || before != after {
+               existed || persistEmptyMigration || !state.profiles.isEmpty || before != state {
                 try? after.write(to: dataURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
             }
             return result
