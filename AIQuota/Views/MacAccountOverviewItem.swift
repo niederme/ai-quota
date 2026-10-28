@@ -68,6 +68,15 @@ struct MacAccountCard: View {
         let label = account.displayLabel.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !label.isEmpty else { return nil }
         if !showsAccountLabel && label.caseInsensitiveCompare("Personal") == .orderedSame { return nil }
+        if label.caseInsensitiveCompare(serviceName) == .orderedSame { return nil }
+        if let plan, plan.caseInsensitiveCompare("Unknown") != .orderedSame {
+            var defaultLabels = ["\(serviceName) \(plan)"]
+            // Codex reports business for workspaces previously named Enterprise.
+            if account.provider == .codex, ["business", "enterprise"].contains(plan.lowercased()) {
+                defaultLabels += ["Codex Business", "Codex Enterprise"]
+            }
+            if defaultLabels.contains(where: { label.caseInsensitiveCompare($0) == .orderedSame }) { return nil }
+        }
         let parts = label.split(whereSeparator: \.isWhitespace)
         if parts.count == 2,
            ["account", "service"].contains(parts[0].lowercased()),
@@ -116,6 +125,12 @@ struct MacAccountCard: View {
         codexUsage?.fetchedAt ?? claudeUsage?.fetchedAt ?? .now
     }
 
+    private var showsTokenHistory: Bool {
+        guard connected || loading, account.provider == .codex, let tokenHistory,
+              tokenHistory.isAttributed(toWorkspaceID: account.workspaceID) else { return false }
+        return CodexTokenHistoryView.hasVisibleData(tokenHistory)
+    }
+
     var body: some View {
         Button(action: connected || hasReading ? open : reconnect) {
             VStack(alignment: .leading, spacing: 0) {
@@ -131,18 +146,17 @@ struct MacAccountCard: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .topLeading)
 
-                if connected || loading, account.provider == .codex, let tokenHistory,
-                   tokenHistory.isAttributed(toWorkspaceID: account.workspaceID),
-                   CodexTokenHistoryView.hasVisibleData(tokenHistory) {
+                if showsTokenHistory, let tokenHistory {
                     CodexTokenHistoryView(history: tokenHistory,
                                           availableWidth: availableWidth + 2 * MacAccountDial.strokeOutset)
                         .help("Workspace token activity is separate from monthly credit usage.")
                         .padding(.horizontal, -MacAccountDial.strokeOutset)
-                        .padding(.top, 16)
+                        .padding(.top, 8)
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 21)
+            .padding(.top, 21)
+            .padding(.bottom, showsTokenHistory ? 8 : 21)
             .frame(maxWidth: .infinity, alignment: .topLeading)
             .contentShape(RoundedRectangle(cornerRadius: 24))
             .overlay {
@@ -206,18 +220,24 @@ struct MacAccountCard: View {
                 }
             }
             if let budget {
-                Text(budgetSummary(budget))
-                    .font(.system(size: 13).monospacedDigit())
-                    .foregroundStyle(Color.overviewSecondary)
-                if let reset = budget.reset {
-                    resetCaption(at: reset)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(budgetSummary(budget))
+                        .font(.system(size: 13).monospacedDigit())
+                        .foregroundStyle(Color.overviewResetAccent)
+                    if let reset = budget.reset {
+                        resetCaption(at: reset)
+                    }
                 }
             } else if let usage = codexUsage, usage.reportedWindowShape != nil {
-                resetCaption(at: usage.reportedWindowShape == .dual ? usage.hourlyResetAt : usage.weeklyResetAt)
-                if usage.reportedWindowShape == .dual { resetCaption("7d", at: usage.weeklyResetAt) }
+                VStack(alignment: .leading, spacing: 0) {
+                    resetCaption(at: usage.reportedWindowShape == .dual ? usage.hourlyResetAt : usage.weeklyResetAt)
+                    if usage.reportedWindowShape == .dual { resetCaption("7d", at: usage.weeklyResetAt) }
+                }
             } else if let usage = claudeUsage {
-                resetCaption(at: usage.resetAt)
-                if secondaryPercent != nil { resetCaption("7d", at: usage.sevenDayResetsAt) }
+                VStack(alignment: .leading, spacing: 0) {
+                    resetCaption(at: usage.resetAt)
+                    if secondaryPercent != nil { resetCaption("7d", at: usage.sevenDayResetsAt) }
+                }
             }
             if let status {
                 Text(status)
@@ -233,7 +253,7 @@ struct MacAccountCard: View {
                     .anchorPreference(key: MacReconnectButtonAnchor.self, value: .bounds) { $0 }
             }
         }
-        .padding(.top, 2)
+        .padding(.top, 8)
     }
 
     private var status: String? {
@@ -351,18 +371,18 @@ struct MacAccountPlaceholderRow: View {
                         .padding(.top, 4)
                         .accessibilityLabel("Connect \(name)")
                 }
-                .padding(.top, 2)
+                .padding(.top, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
             if service == .codex {
                 CodexEmptyTokenHistoryView(availableWidth: availableWidth + 2 * MacAccountDial.strokeOutset)
                     .padding(.horizontal, -MacAccountDial.strokeOutset)
-                    .padding(.top, 8)
                     .opacity(0.6)
             }
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 21)
+        .padding(.top, 21)
+        .padding(.bottom, service == .codex ? 8 : 21)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(RoundedRectangle(cornerRadius: 24))
         .background { MacAccountRowSurface(highlighted: highlighted, pressed: pressed) }
