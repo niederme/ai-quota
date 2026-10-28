@@ -68,6 +68,15 @@ struct MacAccountCard: View {
         let label = account.displayLabel.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !label.isEmpty else { return nil }
         if !showsAccountLabel && label.caseInsensitiveCompare("Personal") == .orderedSame { return nil }
+        if label.caseInsensitiveCompare(serviceName) == .orderedSame { return nil }
+        if let plan, plan.caseInsensitiveCompare("Unknown") != .orderedSame {
+            var defaultLabels = ["\(serviceName) \(plan)"]
+            // Codex reports business for workspaces previously named Enterprise.
+            if account.provider == .codex, ["business", "enterprise"].contains(plan.lowercased()) {
+                defaultLabels += ["Codex Business", "Codex Enterprise"]
+            }
+            if defaultLabels.contains(where: { label.caseInsensitiveCompare($0) == .orderedSame }) { return nil }
+        }
         let parts = label.split(whereSeparator: \.isWhitespace)
         if parts.count == 2,
            ["account", "service"].contains(parts[0].lowercased()),
