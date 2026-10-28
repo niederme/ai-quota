@@ -5,8 +5,6 @@ import AIQuotaKit
 struct CodexTokenHistoryView: View {
     static let weeks = 52
     static let cellGap: CGFloat = 1
-    private static let monthLabelWidth: CGFloat = 20
-    private static let monthLabelSpacing: CGFloat = 4
 
     let history: CodexTokenHistory
     let availableWidth: CGFloat
@@ -18,9 +16,8 @@ struct CodexTokenHistoryView: View {
         let positives = days.filter { !$0.isFuture }.compactMap(\.tokens).filter { $0 > 0 }.sorted()
         let side = Self.cellSide(for: availableWidth)
         let gridWidth = CGFloat(Self.weeks) * side + CGFloat(Self.weeks - 1) * Self.cellGap
-        let visibleMonthWeeks = Self.visibleMonthWeeks(days, width: availableWidth)
 
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top, spacing: Self.cellGap) {
                 ForEach(0..<Self.weeks, id: \.self) { week in
                     VStack(spacing: Self.cellGap) {
@@ -29,8 +26,8 @@ struct CodexTokenHistoryView: View {
                             RoundedRectangle(cornerRadius: 1)
                                 .fill(fill(day, sortedPositives: positives))
                                 .frame(width: side, height: side)
-                                .help(description(day))
-                                .accessibilityLabel(day.isToday ? "Today, \(description(day))" : description(day))
+                                .help(day.isFuture ? "" : description(day))
+                                .accessibilityLabel(description(day))
                                 .accessibilityHidden(day.isFuture)
                         }
                     }
@@ -39,24 +36,11 @@ struct CodexTokenHistoryView: View {
             .frame(width: gridWidth, height: 7 * side + 6 * Self.cellGap, alignment: .topLeading)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("tokenActivityGrid")
-
-            ZStack(alignment: .topLeading) {
-                ForEach(visibleMonthWeeks, id: \.self) { week in
-                    if let label = Self.monthLabel(days, week: week) {
-                        Text(label)
-                            .font(.system(size: 8))
-                            .foregroundStyle(.secondary)
-                            .frame(width: Self.monthLabelWidth, alignment: .leading)
-                            .offset(x: Self.monthLabelOffset(week: week, width: gridWidth))
-                    }
-                }
-            }
-            .frame(width: gridWidth, height: 12, alignment: .topLeading)
         }
         .frame(width: availableWidth, height: Self.graphHeight(for: availableWidth), alignment: .topLeading)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Token activity, past 52 weeks")
-        .accessibilityHint("Dim cells have no record. Dates are in UTC.")
+        .accessibilityHint("Dates are in UTC. Token counts are separate from monthly credit usage.")
         .accessibilityIdentifier("codexTokenActivity")
     }
 
@@ -65,30 +49,7 @@ struct CodexTokenHistoryView: View {
     }
 
     static func graphHeight(for width: CGFloat) -> CGFloat {
-        7 * cellSide(for: width) + 6 * cellGap + 16
-    }
-
-    static func monthLabelOffset(week: Int, width: CGFloat) -> CGFloat {
-        min(max(0, width - monthLabelWidth), CGFloat(week) * (cellSide(for: width) + cellGap))
-    }
-
-    static func visibleMonthWeeks(_ days: [CodexTokenHistory.Day], width: CGFloat) -> [Int] {
-        let candidates: [(week: Int, x: CGFloat)] = (0..<weeks).compactMap { week in
-            guard monthLabel(days, week: week) != nil else { return nil }
-            return (week, monthLabelOffset(week: week, width: width))
-        }
-        guard let first = candidates.first, let last = candidates.last else { return [] }
-        let minimumSpacing = monthLabelWidth + monthLabelSpacing
-        var visible = [first.week]
-        var lastX = first.x
-        for candidate in candidates.dropFirst().dropLast() {
-            guard candidate.x - lastX >= minimumSpacing,
-                  last.x - candidate.x >= minimumSpacing else { continue }
-            visible.append(candidate.week)
-            lastX = candidate.x
-        }
-        if last.week != first.week, last.x - lastX >= minimumSpacing { visible.append(last.week) }
-        return visible
+        7 * cellSide(for: width) + 6 * cellGap
     }
 
     static func hasVisibleData(_ history: CodexTokenHistory, now: Date = .now) -> Bool {
@@ -127,18 +88,11 @@ struct CodexTokenHistoryView: View {
     }
 
     private func description(_ day: CodexTokenHistory.Day) -> String {
-        guard let tokens = day.tokens else { return "\(day.key): no record reported" }
-        return "\(day.key): \(tokens.formatted(.number.precision(.fractionLength(0)))) tokens"
-    }
-
-    static func monthLabel(_ days: [CodexTokenHistory.Day], week: Int) -> String? {
-        let firstOfMonth = days[(week * 7)..<(week * 7 + 7)].first(where: {
-            !$0.isFuture && CodexTokenHistory.calendar.component(.day, from: $0.date) == 1
-        })
-        guard let day = firstOfMonth ?? (week == 0 ? days[0] : nil) else { return nil }
-        let formatter = CodexTokenHistory.dateFormatter()
-        formatter.dateFormat = "MMM"
-        return formatter.string(from: day.date)
+        let date = day.date.formatted(Date.FormatStyle(date: .complete, time: .omitted,
+                                                      timeZone: CodexTokenHistory.calendar.timeZone))
+        let heading = "\(day.isToday ? "Today · " : "")\(date) (UTC)"
+        guard let tokens = day.tokens else { return "\(heading)\nNo record reported" }
+        return "\(heading)\n\(tokens.formatted(.number.precision(.fractionLength(0)))) tokens"
     }
 }
 
@@ -148,7 +102,7 @@ struct CodexEmptyTokenHistoryView: View {
 
     var body: some View {
         let side = CodexTokenHistoryView.cellSide(for: availableWidth)
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .top, spacing: CodexTokenHistoryView.cellGap) {
                 ForEach(0..<CodexTokenHistoryView.weeks, id: \.self) { _ in
                     VStack(spacing: CodexTokenHistoryView.cellGap) {
@@ -160,17 +114,9 @@ struct CodexEmptyTokenHistoryView: View {
                     }
                 }
             }
-            HStack {
-                ForEach(0..<12, id: \.self) { index in
-                    let date = Calendar.current.date(byAdding: .month, value: index - 11, to: .now) ?? .now
-                    Text(date, format: .dateTime.month(.abbreviated))
-                        .font(.system(size: 8)).foregroundStyle(.secondary)
-                    if index < 11 { Spacer(minLength: 0) }
-                }
-            }
-            .frame(height: 12, alignment: .top)
         }
-        .frame(width: availableWidth, alignment: .leading)
+        .frame(width: availableWidth, height: CodexTokenHistoryView.graphHeight(for: availableWidth), alignment: .leading)
+        .help("Token activity · past 52 weeks\nNo data reported yet")
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Token activity, no data yet")
     }
