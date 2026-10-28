@@ -201,12 +201,15 @@ struct MacAccountCard: View {
     private var details: some View {
         VStack(alignment: .leading, spacing: 8) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(serviceName)
-                    .font(.system(size: 20, weight: .semibold))
-                    .tracking(-0.25)
-                    .foregroundStyle(Color.overviewPrimary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
+                HStack(spacing: 8) {
+                    Text(serviceName)
+                        .font(.system(size: 20, weight: .semibold))
+                        .tracking(-0.25)
+                        .foregroundStyle(Color.overviewPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                    statusIndicator
+                }
                 if let plan {
                     Text("\(plan) plan" + (accountLabel.map { " · \($0)" } ?? ""))
                         .font(.system(size: 13, weight: .semibold))
@@ -238,13 +241,6 @@ struct MacAccountCard: View {
                     if secondaryPercent != nil { resetCaption("7d", at: usage.sevenDayResetsAt) }
                 }
             }
-            if let status {
-                Text(status)
-                    .font(.system(size: 13))
-                    .foregroundStyle(issue == nil ? AnyShapeStyle(Color.overviewSecondary) : AnyShapeStyle(Color.overviewWarning))
-                    .fixedSize(horizontal: false, vertical: true)
-                    .help(issue ?? status)
-            }
             if !connected {
                 reconnectButton
                     .hidden()
@@ -253,6 +249,23 @@ struct MacAccountCard: View {
             }
         }
         .padding(.top, 8)
+    }
+
+    // Keep a constant slot in the title so state changes never add a detail
+    // line or reduce the width available to multiline usage/reset captions.
+    private var statusIndicator: some View {
+        Image(systemName: issue == nil ? "info.circle" : "exclamationmark.triangle.fill")
+            .font(.system(size: 13))
+            .foregroundStyle(issue == nil ? Color.overviewSecondary : Color.overviewWarning)
+            .frame(width: 16, height: 16)
+            .opacity(status == nil ? 0 : 1)
+            .help(statusExplanation ?? "")
+            .accessibilityHidden(true) // Included in the full-row label below.
+    }
+
+    private var statusExplanation: String? {
+        guard let status else { return nil }
+        return issue.map { "\(status). \($0)" } ?? status
     }
 
     private var status: String? {
@@ -300,7 +313,7 @@ struct MacAccountCard: View {
         let period = budget == nil ? primaryLabel : CalendarMonthLabel.spoken(containing: readingAt)
         let percentage = primaryPercent.map { ", \($0) percent used, \(period)" } ?? ""
         let secondary = secondaryPercent.map { ", \($0) percent used in 7d" } ?? ""
-        let activity = loading ? (hasReading ? "Refreshing saved reading" : "Connecting") : status
+        let activity = loading ? (hasReading ? "Refreshing saved reading" : "Connecting") : statusExplanation
         return "\(serviceName)\(identity)\(plan.map { ", \($0) plan" } ?? "")\(percentage)\(secondary)\(activity.map { ", \($0)" } ?? "")"
     }
 }
