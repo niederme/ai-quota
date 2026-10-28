@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Next · Principles and lineup</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#d77ef7}a:hover{color:#ead2ff}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1000px; box-sizing: border-box; padding: 48px 32px 32px; display: flex; flex-direction: column; gap: 28px; background: #0b060f; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter', system-ui, sans-serif">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 13px; line-height: 18px; font-weight: 600; color: #d77ef7; letter-spacing: 0.2px">03 · Next</div>
+<h1 style="margin: 0; font-size: 34px; line-height: 41px; font-weight: 700; letter-spacing: 0.4px">Two widgets, every size</h1>
+<p style="margin: 0; max-width: 900px; font-size: 15px; line-height: 20px; color: rgba(235,235,245,0.62)">Six kinds collapse to two: <b style="color: #ffffff; font-weight: 600">Account</b> for one account in depth, <b style="color: #ffffff; font-weight: 600">Accounts</b> for several at a glance. Either can pick accounts by hand or follow whichever is closest to its limit.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px">
+<sc-for list="{{principles}}" as="p" hint-placeholder-count="5">
+<div style="border-radius: 28px; padding: 20px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14); display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 13px; line-height: 18px; font-weight: 600; color: #d77ef7; font-variant-numeric: tabular-nums">{{p.n}}</div>
+<h2 style="margin: 0; font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -0.43px">{{p.t}}</h2>
+<p style="margin: 0; font-size: 13px; line-height: 18px; color: rgba(235,235,245,0.62)">{{p.b}}</p>
+</div>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 20px; line-height: 22px; font-weight: 600; letter-spacing: -0.25px">Lineup</h2>
+<div style="border-radius: 28px; border: 1px solid rgba(255,255,255,0.14); overflow: hidden">
+<div style="display: grid; grid-template-columns: 180px repeat(6, minmax(0, 1fr)); background: rgba(255,255,255,0.07); font-size: 12px; line-height: 16px; font-weight: 600; color: rgba(235,235,245,0.62)">
+<div style="padding: 12px 16px"></div>
+<div style="padding: 12px 16px">Lock · inline</div>
+<div style="padding: 12px 16px">Lock · circular</div>
+<div style="padding: 12px 16px">Lock · rectangular</div>
+<div style="padding: 12px 16px">Home · small</div>
+<div style="padding: 12px 16px">Home · medium</div>
+<div style="padding: 12px 16px">Home · large</div>
+</div>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+<div style="display: grid; grid-template-columns: 180px repeat(6, minmax(0, 1fr)); border-top: 1px solid rgba(255,255,255,0.10)">
+<div style="padding: 16px; display: flex; flex-direction: column; gap: 4px">
+<div style="font-size: 15px; line-height: 20px; font-weight: 600">{{r.name}}</div>
+<div style="font-size: 12px; line-height: 16px; color: rgba(235,235,245,0.62)">{{r.sub}}</div>
+</div>
+<sc-for list="{{r.cells}}" as="c" hint-placeholder-count="6">
+<div style="padding: 16px; font-size: 13px; line-height: 18px; color: {{c.color}}; border-left: 1px solid rgba(255,255,255,0.06)">{{c.t}}</div>
+</sc-for>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+<div style="border-radius: 28px; padding: 20px; border: 1px solid rgba(255,255,255,0.14); display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -0.43px">Migration</h2>
+<p style="margin: 0; font-size: 13px; line-height: 18px; color: rgba(235,235,245,0.62)">Reuse kind strings where the family matches so placed widgets survive: CodexLockScreen and ServiceDetails become Account, AIQuotaHomeSingle becomes Account, AIQuotaHomeBoth becomes Accounts. BothLockScreen and CompactLockScreen map to Accounts rectangular with their two accounts prefilled. Worth a device check before committing.</p>
+</div>
+<div style="border-radius: 28px; padding: 20px; border: 1px solid rgba(255,255,255,0.14); display: flex; flex-direction: column; gap: 8px">
+<h2 style="margin: 0; font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -0.43px">Open questions</h2>
+<p style="margin: 0; font-size: 13px; line-height: 18px; color: rgba(235,235,245,0.62)">Does history on Home come from the shared app-group cache, or does the widget fetch it? Should Automatic consider monthly budgets alongside 5h and 7d? Is a Control Center refresh control worth a third kind?</p>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const principles = [
+      { t: 'Accounts, not services', b: 'Every widget takes an ordered list of accounts from any service, or Automatic: the account closest to a limit.' },
+      { t: 'The app’s dial, unchanged', b: 'Glyph, both readings the same size, the worst window colours the whole dial. Tokens only, no hand-mixed purple.' },
+      { t: 'Used, everywhere', b: 'Percent used, the same as the app. Reset captions in reset-accent. No “left” rows.' },
+      { t: 'History earns its space', b: 'Medium and large add the token heatmap; large adds the weekly split. History never repeats a number the dial shows.' },
+      { t: 'Brand ground, accentable', b: 'Full colour sits on base and wash. Tinted and clear mark rings accentable and keep text primary.' }
+    ].map((p, i) => ({ ...p, n: String(i + 1).padStart(2, '0') }));
+    const W = '#ffffff', S = 'rgba(235,235,245,0.62)';
+    const rows = [
+      { name: 'Account', sub: 'One account, in depth', cells: [
+        'Not offered. Dropped after review.',
+        'Rings and logo, worst reading curved along the top',
+        'Dial, account label, both readings, next reset',
+        'Dial with readings, account label, next reset',
+        'Dial and details, 27-week token heatmap below',
+        'Dial and details, 36-week heatmap, weekly split by product (Claude) or app and model (Codex)'
+      ].map((t, i) => ({ t, color: i === 0 ? S : W })) },
+      { name: 'Accounts', sub: 'Several accounts, at a glance', cells: [
+        'Not offered. Account set to Automatic covers it.',
+        'Not offered. One ring cannot say which account.',
+        'Up to 2 dials, logo and label, no numbers',
+        'Up to 2 rows, worst first',
+        'Up to 4 dials in a row, labels below',
+        'Up to 4 dials, 2 by 2, both readings, name, reset'
+      ].map((t, i) => ({ t, color: i <= 1 ? S : W })) },
+      { name: 'Replaces', sub: 'Today’s kinds', cells: [
+        'New',
+        'AI allowance',
+        'Codex and Claude, Allowance details, Service details',
+        'AIQuota small',
+        'Both AIQuota mediums',
+        'AIQuota large'
+      ].map((t) => ({ t, color: S })) }
+    ];
+    return { principles, rows };
+  }
+}
+</script>
+</body>
+</html>

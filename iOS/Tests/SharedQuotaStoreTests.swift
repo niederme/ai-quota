@@ -558,3 +558,28 @@ final class ResetSchedulingTests: XCTestCase {
         XCTAssertTrue(empty)
     }
 }
+
+extension SharedQuotaStoreTests {
+    func testWidgetHistoryRemainsAccountScopedAndClearsOnDisconnect() async throws {
+        let first = store()
+        let second = SharedQuotaStore(.codex, root: first.root, namespace: "second-account")
+        let credential = CodexTokens(accessToken: "fixture-a", refreshToken: nil, accountID: "workspace-a", expiresAt: .distantFuture)
+        let other = CodexTokens(accessToken: "fixture-b", refreshToken: nil, accountID: "workspace-b", expiresAt: .distantFuture)
+        try await first.withLease { try first.saveCredentials(credential) }
+        try await second.withLease { try second.saveCredentials(other) }
+        let tokens = try XCTUnwrap(CodexTokenHistory.decode(Data(#"{"page":{"activity_graph":{"daily_usage_buckets":[{"start_date":"2026-10-28","tokens":1200}]}}}"#.utf8), scopeID: CodexAPI.tokenHistoryScope(credential)))
+        try await first.publishWidgetHistory(tokens: tokens, matching: credential)
+        XCTAssertEqual(first.widgetHistory()?.tokens?.tokensByDate["2026-10-28"], 1200)
+        XCTAssertNil(second.widgetHistory())
+        // A late completion for the old workspace cannot publish into the new one.
+        try await first.withLease { try first.saveCredentials(other) }
+        XCTAssertNil(first.widgetHistory())
+        try await first.publishWidgetHistory(tokens: tokens, matching: credential)
+        XCTAssertNil(first.widgetHistory())
+        try await first.withLease { try first.clear() }
+        try await first.withLease { try first.saveCredentials(credential) }
+        XCTAssertNil(first.widgetHistory())
+        try await clean(second)
+        try await clean(first)
+    }
+}

@@ -45,6 +45,36 @@ struct SharedQuotaStore: Sendable {
          kSecAttrAccessGroup as String: Bundle.main.object(forInfoDictionaryKey: "WidgetKeychainGroup") as? String ?? ""]
     }
     var readingURL: URL? { root?.appendingPathComponent(namespacedFile("\(service.rawValue)-v2.json")) }
+    private var widgetHistoryURL: URL? { root?.appendingPathComponent(namespacedFile("\(service.rawValue)-widget-history.json")) }
+
+    struct WidgetHistory: Codable, Sendable {
+        let scopeID: String
+        var tokens: CodexTokenHistory?
+        var usage: CodexUsageHistory?
+    }
+
+    /// Read-only in the extension. Scope is rechecked against the shared credential,
+    /// so a changed workspace never inherits another workspace's saved graph.
+    func widgetHistory() -> WidgetHistory? {
+        guard service == .codex, let credential = try? load(CodexTokens.self),
+              let url = widgetHistoryURL, let data = try? Data(contentsOf: url),
+              let history = try? JSONDecoder().decode(WidgetHistory.self, from: data),
+              history.scopeID == CodexAPI.tokenHistoryScope(credential) else { return nil }
+        return history
+    }
+
+    func publishWidgetHistory(tokens: CodexTokenHistory? = nil, usage: CodexUsageHistory? = nil,
+                              matching credential: CodexTokens) async throws {
+        try await withLease {
+            let scope = CodexAPI.tokenHistoryScope(credential)
+            guard let current = try load(CodexTokens.self), CodexAPI.tokenHistoryScope(current) == scope,
+                  let url = widgetHistoryURL else { return }
+            var history = widgetHistory() ?? WidgetHistory(scopeID: scope)
+            if let tokens, tokens.scopeID == scope { history.tokens = tokens }
+            if let usage { history.usage = usage }
+            try JSONEncoder().encode(history).write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        }
+    }
     func load<T: QuotaCredentials>(_ type: T.Type) throws -> T? {
         var q = query; q[kSecReturnData as String] = true; q[kSecMatchLimit as String] = kSecMatchLimitOne
         var item: CFTypeRef?
@@ -73,6 +103,7 @@ struct SharedQuotaStore: Sendable {
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else { throw AccessError.storage }
         if let url = readingURL, FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
+        if let url = widgetHistoryURL, FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
         saveFailure(nil)
         if let url = cooldownURL, FileManager.default.fileExists(atPath: url.path) {
             try FileManager.default.removeItem(at: url)

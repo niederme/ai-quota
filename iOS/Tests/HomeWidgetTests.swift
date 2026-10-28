@@ -194,7 +194,9 @@ extension HomeWidgetTests {
                 try image.pngData()?.write(to: path); print("WIDGET_REVIEW " + path.path)
             } }
             XCTAssertLessThanOrEqual(try XCTUnwrap(ringRows.max()) - XCTUnwrap(ringRows.min()), 1, "\(name): provider/quota shape moved the ring")
-            if layout != .large { XCTAssertLessThanOrEqual(abs(try XCTUnwrap(ringRows.first) - 16), 1, "\(name): chosen painted-ring top inset") }
+            // The redesign centres small/Accounts layouts and pads detail rows.
+            // Provider and quota shape must still preserve the chosen placement.
+            XCTAssertGreaterThanOrEqual(try XCTUnwrap(ringRows.first), 12, "\(name): ring respects widget padding")
         } }
     }
 }

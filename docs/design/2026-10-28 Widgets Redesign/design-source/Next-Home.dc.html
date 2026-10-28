@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Next · Home Screen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#d77ef7}a:hover{color:#ead2ff}
+</style>
+</helmet>
+<div style="width: 1640px; height: 1180px; box-sizing: border-box; padding: 48px 32px 32px; display: flex; flex-direction: column; gap: 24px; background: #0b060f; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter', system-ui, sans-serif">
+
+<div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 32px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 13px; line-height: 18px; font-weight: 600; color: #d77ef7; letter-spacing: 0.2px">05 · Next</div>
+<h1 style="margin: 0; font-size: 34px; line-height: 41px; font-weight: 700; letter-spacing: 0.4px">Home Screen</h1>
+<p style="margin: 0; max-width: 900px; font-size: 15px; line-height: 20px; color: #9a98a2">The overview card, shrunk to fit. Same dial, same colour rules, the wash as the ground. History shows up from medium, as the token heatmap the app already draws, plus the weekly split on large.</p>
+</div>
+<div style="font-size: 13px; line-height: 18px; color: #9a98a2; text-align: right; white-space: nowrap">Actual points, iPhone 6.3"<br>Full colour, dark</div>
+</div>
+
+<div style="flex: 1; border-radius: 28px; padding: 36px; background: linear-gradient(160deg, #24222b 0%, #15141a 100%); border: 1px solid rgba(255,255,255,0.10); display: flex; flex-direction: column; gap: 40px">
+
+<div style="display: flex; gap: 36px; align-items: flex-start">
+
+<div style="display: flex; flex-direction: column; gap: 12px; width: 158px">
+<div style="width: 158px; height: 158px; border-radius: 22px; overflow: hidden; background: radial-gradient(110% 80% at 100% 0%, rgba(191,90,242,0.14) 0%, rgba(191,90,242,0) 70%), linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 45%), #1e1223; box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 1px rgba(255,255,255,0.06); box-sizing: border-box; padding: 12px; display: flex; flex-direction: column; justify-content: center; gap: 2px; align-items: center">
+<dc-import name="Dial" size="100" glyph="codex" p1="62" p2="41" hint-size="100px,100px"></dc-import>
+<div style="margin-top: -6px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; line-height: 13px; font-weight: 600; letter-spacing: -0.1px">Codex Personal Workspace</div>
+<div style="font-size: 10px; line-height: 13px; color: #d77ef7; white-space: nowrap">5h resets 3:40 PM</div>
+</div>
+<div style="font-size: 13px; line-height: 16px; font-weight: 600">Account · small</div>
+<div style="font-size: 12px; line-height: 16px; color: #9a98a2">Dial, label, next reset. Glyph names the service.</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px; width: 158px">
+<div style="width: 158px; height: 158px; border-radius: 22px; overflow: hidden; background: radial-gradient(110% 80% at 100% 0%, rgba(191,90,242,0.14) 0%, rgba(191,90,242,0) 70%), linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 45%), #1e1223; box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 1px rgba(255,255,255,0.06); box-sizing: border-box; padding: 12px; display: flex; flex-direction: column; justify-content: center; gap: 2px; align-items: center">
+<dc-import name="Dial" size="100" mode="one" glyph="claude" p1="66" l1="31d" hint-size="100px,100px"></dc-import>
+<div style="margin-top: -6px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; line-height: 13px; font-weight: 600; letter-spacing: -0.1px">Claude Enterprise Team</div>
+<div style="font-size: 10px; line-height: 13px; color: #d77ef7; white-space: nowrap">Spent $660 of $1,000</div>
+</div>
+<div style="font-size: 13px; line-height: 16px; font-weight: 600">Account · small, budget</div>
+<div style="font-size: 12px; line-height: 16px; color: #9a98a2">Percent and window inside the ring, spend below in reset-accent, as the app does.</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px; width: 158px">
+<div style="width: 158px; height: 158px; border-radius: 22px; overflow: hidden; background: radial-gradient(110% 80% at 100% 0%, rgba(191,90,242,0.14) 0%, rgba(191,90,242,0) 70%), linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 45%), #1e1223; box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 1px rgba(255,255,255,0.06); box-sizing: border-box; padding: 12px; display: flex; flex-direction: column; justify-content: center; gap: 12px">
+<sc-for list="{{two}}" as="a" hint-placeholder-count="2">
+<div style="display: flex; align-items: center; gap: 8px; min-width: 0">
+<dc-import name="Dial" size="56" thin="1" glyph="{{a.g}}" mode="{{a.mode}}" readings="none" p1="{{a.p1}}" p2="{{a.p2}}" hint-size="56px,56px"></dc-import>
+<div style="min-width: 0; flex: 1; display: flex; flex-direction: column">
+<span style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 11px; line-height: 13px; font-weight: 600">{{a.svc}} {{a.label}}</span>
+<span style="font-size: 10px; line-height: 13px; color: #d77ef7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums">{{a.reset}}</span>
+</div>
+</div>
+</sc-for>
+</div>
+<div style="font-size: 13px; line-height: 16px; font-weight: 600">Accounts · small</div>
+<div style="font-size: 12px; line-height: 16px; color: #9a98a2">Up to 2 accounts as rows: dial, name, next reset. Same text styles as every other widget.</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px; width: 158px">
+<div style="width: 158px; height: 158px; border-radius: 22px; overflow: hidden; background: radial-gradient(110% 80% at 100% 0%, rgba(191,90,242,0.14) 0%, rgba(191,90,242,0) 70%), linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 45%), #1e1223; box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 1px rgba(255,255,255,0.06); box-sizing: border-box; padding: 10px 12px; display: flex; flex-direction: column; justify-content: center; gap: 6px">
+<sc-for list="{{three}}" as="a" hint-placeholder-count="3">
+<div style="display: flex; align-items: center; gap: 8px; min-width: 0">
+<dc-import name="Dial" size="40" thin="1" glyph="{{a.g}}" mode="{{a.mode}}" readings="none" p1="{{a.p1}}" p2="{{a.p2}}" hint-size="40px,40px"></dc-import>
+<div style="min-width: 0; flex: 1; display: flex; flex-direction: column">
+<span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; line-height: 13px; font-weight: 600">{{a.svc}} {{a.label}}</span>
+<span style="font-size: 10px; line-height: 13px; color: #d77ef7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums">{{a.reset}}</span>
+</div>
+</div>
+</sc-for>
+</div>
+<div style="font-size: 13px; line-height: 16px; font-weight: 600">Accounts · small, 3</div>
+<div style="font-size: 12px; line-height: 16px; color: #9a98a2">Explored, not recommended. Three rows at 40 pt; names drop to one line.</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px; width: 338px">
+<div style="width: 338px; height: 158px; border-radius: 22px; overflow: hidden; background: radial-gradient(110% 80% at 100% 0%, rgba(191,90,242,0.14) 0%, rgba(191,90,242,0) 70%), linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 45%), #1e1223; box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 1px rgba(255,255,255,0.06); box-sizing: border-box; padding: 16px; display: flex; gap: 16px; align-items: center">
+<dc-import name="Dial" size="124" glyph="codex" p1="62" p2="41" hint-size="124px,124px"></dc-import>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div style="font-size: 17px; line-height: 20px; font-weight: 600; letter-spacing: -0.25px">Codex</div>
+<div style="font-size: 12px; line-height: 14px; font-weight: 600; letter-spacing: -0.1px">Pro plan · Personal</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 0; font-size: 12px; line-height: 15px; color: #d77ef7; white-space: nowrap">
+<span>5h resets 3:40 PM</span>
+<span>7d resets Tue 10:07 PM</span>
+</div>
+<div role="img" aria-label="Token activity, past 27 weeks" style="display: flex; gap: 2px; margin-top: 2px">
+<sc-for list="{{recent}}" as="wk" hint-placeholder-count="27">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{wk.days}}" as="c" hint-placeholder-count="7"><div style="width: 4px; height: 4px; border-radius: 1px; background: {{c}}"></div></sc-for>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+<div style="font-size: 13px; line-height: 16px; font-weight: 600">Account · medium</div>
+<div style="font-size: 12px; line-height: 16px; color: #9a98a2">The overview card at 124 pt, plus a 27-week token heatmap on the heat ramp. No number repeats the dial.</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px; width: 338px">
+<div style="width: 338px; height: 158px; border-radius: 22px; overflow: hidden; background: radial-gradient(110% 80% at 100% 0%, rgba(191,90,242,0.14) 0%, rgba(191,90,242,0) 70%), linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 45%), #1e1223; box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 1px rgba(255,255,255,0.06); box-sizing: border-box; padding: 16px 16px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 14px; align-content: center">
+<sc-for list="{{four}}" as="a" hint-placeholder-count="4">
+<div style="min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center">
+<dc-import name="Dial" size="60" thin="1" glyph="{{a.g}}" mode="{{a.mode}}" readings="none" p1="{{a.p1}}" p2="{{a.p2}}" l1="{{a.l1}}" hint-size="60px,60px"></dc-import>
+<span style="max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 11px; line-height: 13px; font-weight: 600; white-space: nowrap">{{a.svc}} {{a.label}}</span>
+<span style="font-size: 10px; line-height: 13px; color: #d77ef7; white-space: nowrap; font-variant-numeric: tabular-nums">{{a.reset}}</span>
+</div>
+</sc-for>
+</div>
+<div style="font-size: 13px; line-height: 16px; font-weight: 600">Accounts · medium</div>
+<div style="font-size: 12px; line-height: 16px; color: #9a98a2">Up to 4 accounts, any service. Each dial shows its worst window.</div>
+</div>
+
+</div>
+
+<div style="display: flex; gap: 36px; align-items: flex-start">
+
+<div style="display: flex; flex-direction: column; gap: 12px; width: 338px">
+<div style="width: 338px; height: 354px; border-radius: 22px; overflow: hidden; background: radial-gradient(110% 80% at 100% 0%, rgba(191,90,242,0.14) 0%, rgba(191,90,242,0) 70%), linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 45%), #1e1223; box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 1px rgba(255,255,255,0.06); box-sizing: border-box; padding: 16px; display: flex; flex-direction: column; gap: 24px">
+<div style="display: flex; gap: 16px; align-items: center">
+<dc-import name="Dial" size="124" glyph="claude" p1="28" p2="88" hint-size="124px,124px"></dc-import>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div style="font-size: 17px; line-height: 20px; font-weight: 600; letter-spacing: -0.25px">Claude</div>
+<div style="font-size: 12px; line-height: 14px; font-weight: 600; letter-spacing: -0.1px">Max plan · Personal</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 0; font-size: 12px; line-height: 15px; color: #d77ef7; white-space: nowrap">
+<span>5h resets 3:40 PM</span>
+<span>7d resets Wed 2:00 PM</span>
+</div>
+<div style="font-size: 12px; line-height: 15px; color: #d77ef7">Credits used $12.40</div>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div role="img" aria-label="Token activity, past 36 weeks" style="display: flex; gap: 2px">
+<sc-for list="{{big}}" as="wk" hint-placeholder-count="36">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{wk.days}}" as="c" hint-placeholder-count="7"><div style="width: 6.5px; height: 6.5px; border-radius: 1px; background: {{c}}"></div></sc-for>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; justify-content: space-between; font-size: 12px; line-height: 16px"><span style="font-weight: 600">This week by product</span></div>
+<div style="display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 2px">
+<div style="width: 64%; background: #c46bf0"></div><div style="width: 22%; background: #a354cf"></div><div style="width: 14%; background: #78459c"></div>
+</div>
+<div style="display: flex; gap: 12px; font-size: 10px; line-height: 12px; color: #9a98a2; white-space: nowrap"><span><span style="display: inline-block; width: 6px; height: 6px; border-radius: 1px; margin-right: 4px; vertical-align: 1px; background: #c46bf0"></span>Claude Code 64%</span><span><span style="display: inline-block; width: 6px; height: 6px; border-radius: 1px; margin-right: 4px; vertical-align: 1px; background: #a354cf"></span>Claude.ai 22%</span><span><span style="display: inline-block; width: 6px; height: 6px; border-radius: 1px; margin-right: 4px; vertical-align: 1px; background: #78459c"></span>Desktop 14%</span></div>
+</div>
+</div>
+<div style="font-size: 13px; line-height: 16px; font-weight: 600">Account · large</div>
+<div style="font-size: 12px; line-height: 16px; color: #9a98a2">The service sheet in a frame: dial, resets, credits used, heatmap, weekly split. Enterprise swaps the split for spend by product.</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px; width: 338px">
+<div style="width: 338px; height: 354px; border-radius: 22px; overflow: hidden; background: radial-gradient(110% 80% at 100% 0%, rgba(191,90,242,0.14) 0%, rgba(191,90,242,0) 70%), linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 45%), #1e1223; box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 1px rgba(255,255,255,0.06); box-sizing: border-box; padding: 16px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; gap: 16px; align-items: center">
+<dc-import name="Dial" size="112" glyph="codex" p1="62" p2="41" hint-size="112px,112px"></dc-import>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div style="font-size: 17px; line-height: 20px; font-weight: 600; letter-spacing: -0.25px">Codex</div>
+<div style="font-size: 12px; line-height: 14px; font-weight: 600; letter-spacing: -0.1px">Pro plan · Personal</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 0; font-size: 12px; line-height: 15px; color: #d77ef7; white-space: nowrap">
+<span>5h resets 3:40 PM</span>
+<span>7d resets Tue 10:07 PM</span>
+</div>
+<div style="font-size: 12px; line-height: 15px; color: #d77ef7">Credits used $12.40</div>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div role="img" aria-label="Token activity, past 36 weeks" style="display: flex; gap: 2px">
+<sc-for list="{{big}}" as="wk" hint-placeholder-count="36">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<sc-for list="{{wk.days}}" as="c" hint-placeholder-count="7"><div style="width: 6.5px; height: 6.5px; border-radius: 1px; background: {{c}}"></div></sc-for>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; justify-content: space-between; font-size: 12px; line-height: 16px"><span style="font-weight: 600">This week by app</span></div>
+<div style="display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 2px">
+<div style="width: 58%; background: #c46bf0"></div><div style="width: 30%; background: #a354cf"></div><div style="width: 12%; background: #78459c"></div>
+</div>
+<div style="display: flex; gap: 12px; font-size: 10px; line-height: 12px; color: #9a98a2; white-space: nowrap"><span><span style="display: inline-block; width: 6px; height: 6px; border-radius: 1px; margin-right: 4px; vertical-align: 1px; background: #c46bf0"></span>CLI 58%</span><span><span style="display: inline-block; width: 6px; height: 6px; border-radius: 1px; margin-right: 4px; vertical-align: 1px; background: #a354cf"></span>IDE 30%</span><span><span style="display: inline-block; width: 6px; height: 6px; border-radius: 1px; margin-right: 4px; vertical-align: 1px; background: #78459c"></span>Cloud 12%</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<div style="display: flex; justify-content: space-between; font-size: 12px; line-height: 16px"><span style="font-weight: 600">This week by model</span></div>
+<div style="display: flex; height: 8px; border-radius: 4px; overflow: hidden; gap: 2px">
+<div style="width: 71%; background: #c46bf0"></div><div style="width: 22%; background: #a354cf"></div><div style="width: 7%; background: #78459c"></div>
+</div>
+<div style="display: flex; gap: 12px; font-size: 10px; line-height: 12px; color: #9a98a2; white-space: nowrap"><span><span style="display: inline-block; width: 6px; height: 6px; border-radius: 1px; margin-right: 4px; vertical-align: 1px; background: #c46bf0"></span>[Model A] 71%</span><span><span style="display: inline-block; width: 6px; height: 6px; border-radius: 1px; margin-right: 4px; vertical-align: 1px; background: #a354cf"></span>[Model B] 22%</span><span><span style="display: inline-block; width: 6px; height: 6px; border-radius: 1px; margin-right: 4px; vertical-align: 1px; background: #78459c"></span>Other 7%</span></div>
+</div>
+</div>
+<div style="font-size: 13px; line-height: 16px; font-weight: 600">Account · large, Codex</div>
+<div style="font-size: 12px; line-height: 16px; color: #9a98a2">Codex reports usage by model and by app, so both splits fit. Claude reports products only; model names here are placeholders.</div>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 12px; width: 338px">
+<div style="width: 338px; height: 354px; border-radius: 22px; overflow: hidden; background: radial-gradient(110% 80% at 100% 0%, rgba(191,90,242,0.14) 0%, rgba(191,90,242,0) 70%), linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 45%), #1e1223; box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 1px rgba(255,255,255,0.06); box-sizing: border-box; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+<div style="flex: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 10px; column-gap: 8px; align-content: center">
+<sc-for list="{{four}}" as="a" hint-placeholder-count="4">
+<div style="min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center">
+<dc-import name="Dial" size="116" glyph="{{a.g}}" mode="{{a.mode}}" p1="{{a.p1}}" p2="{{a.p2}}" l1="{{a.l1}}" hint-size="116px,116px"></dc-import>
+<span style="max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 11px; line-height: 13px; font-weight: 600; white-space: nowrap">{{a.svc}} {{a.label}}</span>
+<span style="font-size: 10px; line-height: 13px; color: #d77ef7; white-space: nowrap; font-variant-numeric: tabular-nums">{{a.reset}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="font-size: 13px; line-height: 16px; font-weight: 600">Accounts · large</div>
+<div style="font-size: 12px; line-height: 16px; color: #9a98a2">Up to 4 accounts as full dials, 2 by 2: both readings, name, next reset. Circular only, like the app.</div>
+</div>
+
+<div style="flex: 1; display: flex; flex-direction: column; gap: 14px; padding-top: 4px">
+<div style="font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -0.43px">What changed</div>
+<sc-for list="{{changes}}" as="c" hint-placeholder-count="6">
+<div style="display: flex; flex-direction: column; gap: 3px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.08)">
+<span style="font-size: 13px; line-height: 18px; font-weight: 600">{{c.t}}</span>
+<span style="font-size: 13px; line-height: 18px; color: #9a98a2">{{c.b}}</span>
+</div>
+</sc-for>
+</div>
+
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1640,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const C = { ok: '#bf5af2', warn: '#ff9f0a', crit: '#ff453a' };
+    const state = (p) => p >= 95 ? C.crit : p >= 85 ? C.warn : C.ok;
+    const heat = ['rgba(235,235,245,0.18)', '#4d4757', '#52306b', '#78459c', '#a354cf', '#c46bf0'];
+    const watch = [
+      { label: 'Personal', svc: 'Claude · 7d', pct: 88, text: '88% 7d' },
+      { label: 'Enterprise', svc: 'Claude · 31d', pct: 66, text: '66%' },
+      { label: 'Personal', svc: 'Codex · 5h', pct: 62, text: '62% 5h' }
+    ].map((w) => ({ ...w, color: state(w.pct) }));
+    const wl = [3, 4, 2, 5, 4, 1, 3];
+    const week = ['T', 'F', 'S', 'S', 'M', 'T', 'W'].map((l, i) => ({ l, c: heat[wl[i]] }));
+    const four = [
+      { g: 'claude', mode: 'two', p1: '28', p2: '88', l1: '5h', label: 'Personal', svc: 'Claude', reset: 'Wed 2:00 PM' },
+      { g: 'claude', mode: 'one', p1: '66', p2: '', l1: '31d', label: 'Enterprise', svc: 'Claude', reset: 'Sun 12:00 AM' },
+      { g: 'codex', mode: 'two', p1: '62', p2: '41', l1: '5h', label: 'Personal', svc: 'Codex', reset: '3:40 PM' },
+      { g: 'codex', mode: 'two', p1: '24', p2: '18', l1: '5h', label: 'Work', svc: 'Codex', reset: '5:10 PM' }
+    ];
+    let seed = 7;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    const weeks = Array.from({ length: 42 }, (_, w) => ({
+      days: Array.from({ length: 7 }, (_, d) => {
+        if (w === 41 && d > 3) return 'rgba(0,0,0,0)';
+        if (w < 6) return heat[0];
+        const r = rnd();
+        const weekend = d === 0 || d === 6;
+        const lvl = r < 0.08 ? 1 : weekend ? (r < 0.5 ? 1 : 2) : Math.min(5, 2 + Math.floor(r * 4));
+        return heat[lvl];
+      })
+    }));
+    const row = (g, mode, p1, p2, label, svc, bars) => {
+      const worst = Math.max(Number(p1) || 0, Number(p2) || 0);
+      return { g, mode, p1, p2, label, svc, color: state(worst), bars };
+    };
+    const list = [
+      row('claude', 'two', '28', '88', 'Personal', 'Claude · Max', [{ pct: 28, t: '28% 5h', op: 1 }, { pct: 88, t: '88% 7d', op: 0.7 }]),
+      row('claude', 'one', '66', '', 'Enterprise', 'Claude', [{ pct: 66, t: '$660 / $1k', op: 1 }]),
+      row('codex', 'two', '62', '41', 'Personal', 'Codex · Pro', [{ pct: 62, t: '62% 5h', op: 1 }, { pct: 41, t: '41% 7d', op: 0.7 }]),
+      row('codex', 'two', '24', '18', 'Work', 'Codex · Business', [{ pct: 24, t: '24% 5h', op: 1 }, { pct: 18, t: '18% 7d', op: 0.7 }]),
+      row('claude', 'two', '12', '30', 'Side project', 'Claude · Pro', [{ pct: 12, t: '12% 5h', op: 1 }, { pct: 30, t: '30% 7d', op: 0.7 }])
+    ];
+    const changes = [
+      { t: 'The app’s dial', b: 'Glyph plus both readings at one size. Worst window colours the whole dial. Token accent, not #9E38ED.' },
+      { t: 'Labels, not service names', b: 'The glyph already says Codex or Claude. The text says which account.' },
+      { t: 'Resets in reset-accent', b: 'The only coloured text besides the dial, as on the overview cards.' },
+      { t: 'History from medium up', b: '27-week heatmap on medium, 36-week heatmap and weekly split on large. Same heat ramp as the app.' },
+      { t: 'The Mac widget surface', b: 'A flat plum surface (#1E1223), as the Mac widgets use. Quieter than the overview wash. Tinted and clear: see 06.' },
+      { t: 'Freshness once', b: 'Only where there is room, top right. Stale readings switch the whole widget, see 06.' }
+    ];
+    const recent = weeks.slice(-27);
+    const big = weeks.slice(-36);
+    const two = four.slice(0, 2);
+    const three = four.slice(0, 3);
+    return { watch, week, four, two, three, weeks, big, recent, list, changes };
+  }
+}
+</script>
+</body>
+</html>

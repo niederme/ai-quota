@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Next · States and render modes</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#d77ef7}a:hover{color:#ead2ff}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1000px; box-sizing: border-box; padding: 48px 32px 32px; display: flex; flex-direction: column; gap: 28px; background: #0b060f; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter', system-ui, sans-serif">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 13px; line-height: 18px; font-weight: 600; color: #d77ef7; letter-spacing: 0.2px">06 · Next</div>
+<h1 style="margin: 0; font-size: 34px; line-height: 41px; font-weight: 700; letter-spacing: 0.4px">States and render modes</h1>
+<p style="margin: 0; max-width: 900px; font-size: 15px; line-height: 20px; color: rgba(235,235,245,0.62)">Account · small through every state the app already names, with the app’s own strings. Then the same widget in each Home Screen appearance.</p>
+</div>
+
+<section aria-label="States" style="display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 20px; line-height: 22px; font-weight: 600; letter-spacing: -0.25px">States</h2>
+<div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 16px">
+<sc-for list="{{states}}" as="s" hint-placeholder-count="8">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<div style="width: 158px; height: 158px; border-radius: 22px; overflow: hidden; background: radial-gradient(110% 80% at 100% 0%, rgba(191,90,242,0.14) 0%, rgba(191,90,242,0) 70%), linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 45%), #1e1223; box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 1px rgba(255,255,255,0.06); box-sizing: border-box; padding: 12px; display: flex; flex-direction: column; justify-content: center; gap: 2px; align-items: center; text-align: center">
+<dc-import name="Dial" size="100" glyph="{{s.g}}" state="{{s.st}}" badge="{{s.badge}}" p1="{{s.p1}}" p2="{{s.p2}}" hint-size="100px,100px"></dc-import>
+<div style="margin-top: -6px; font-size: 11px; line-height: 13px; font-weight: 600; letter-spacing: -0.1px">{{s.acct}}</div>
+<div style="font-size: 10px; line-height: 13px; color: {{s.lineColor}}; white-space: nowrap">{{s.line}}</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 13px; line-height: 16px; font-weight: 600">{{s.name}}</span>
+<span style="font-size: 12px; line-height: 16px; color: rgba(235,235,245,0.62)">{{s.note}}</span>
+</div>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section aria-label="Render modes" style="display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 20px; line-height: 22px; font-weight: 600; letter-spacing: -0.25px">Render modes</h2>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px">
+
+<div style="border-radius: 28px; padding: 24px; background: linear-gradient(160deg, #24222b 0%, #15141a 100%); border: 1px solid rgba(255,255,255,0.10); display: flex; flex-direction: column; gap: 16px">
+<div style="width: 158px; height: 158px; border-radius: 22px; overflow: hidden; background: radial-gradient(110% 80% at 100% 0%, rgba(191,90,242,0.14) 0%, rgba(191,90,242,0) 70%), linear-gradient(180deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 45%), #1e1223; box-shadow: inset 0 1px 0 rgba(255,255,255,0.10), inset 0 0 0 1px rgba(255,255,255,0.06); box-sizing: border-box; padding: 12px; display: flex; flex-direction: column; justify-content: center; gap: 2px; align-items: center">
+<dc-import name="Dial" size="100" glyph="claude" p1="28" p2="88" hint-size="100px,100px"></dc-import>
+<div style="margin-top: -6px; font-size: 11px; line-height: 13px; font-weight: 600; letter-spacing: -0.1px">Claude Personal</div>
+<div style="font-size: 10px; line-height: 13px; color: #d77ef7; white-space: nowrap">7d resets Wed 2:00 PM</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 15px; line-height: 20px; font-weight: 600">Full colour · dark</span>
+<span style="font-size: 13px; line-height: 18px; color: rgba(235,235,245,0.62)">Flat #1E1223, the Mac widget surface, with a calm accent glow and sheen. Warning colours the whole dial at 88%.</span>
+</div>
+</div>
+
+<div style="border-radius: 28px; padding: 24px; background: linear-gradient(160deg, #e9e6ee 0%, #d6d2de 100%); border: 1px solid rgba(255,255,255,0.10); display: flex; flex-direction: column; gap: 16px; color: #0b060f">
+<div style="width: 158px; height: 158px; border-radius: 22px; overflow: hidden; background: radial-gradient(85% 85% at 100% 0%, rgba(175,82,222,0.12) 0%, rgba(175,82,222,0) 100%), linear-gradient(180deg, rgba(102,31,143,0.18) 0%, rgba(175,82,222,0.05) 40%, rgba(244,241,247,0) 70%), #f4f1f7; box-sizing: border-box; padding: 12px; display: flex; flex-direction: column; justify-content: center; gap: 2px; align-items: center">
+<dc-import name="Dial" size="100" tone="light" glyph="claude" p1="28" p2="88" hint-size="100px,100px"></dc-import>
+<div style="margin-top: -6px; font-size: 11px; line-height: 13px; font-weight: 600; letter-spacing: -0.1px">Claude Personal</div>
+<div style="font-size: 10px; line-height: 13px; color: #7a24a6; white-space: nowrap">7d resets Wed 2:00 PM</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 15px; line-height: 20px; font-weight: 600">Full colour · light</span>
+<span style="font-size: 13px; line-height: 18px; color: rgba(60,60,67,0.8)">Light warning is 2.1:1, so the dial numbers need a darker warning ink before this ships.</span>
+</div>
+</div>
+
+<div style="border-radius: 28px; padding: 24px; background: linear-gradient(160deg, #1d2a44 0%, #0e1526 100%); border: 1px solid rgba(255,255,255,0.10); display: flex; flex-direction: column; gap: 16px">
+<div style="width: 158px; height: 158px; border-radius: 22px; overflow: hidden; background: rgba(120,150,210,0.22); border: 1px solid rgba(255,255,255,0.18); box-sizing: border-box; padding: 11px; display: flex; flex-direction: column; justify-content: center; gap: 2px; align-items: center">
+<dc-import name="Dial" size="100" tone="tinted" glyph="claude" p1="28" p2="88" hint-size="100px,100px"></dc-import>
+<div style="margin-top: -6px; font-size: 11px; line-height: 13px; font-weight: 600; letter-spacing: -0.1px; display: flex; align-items: center; gap: 3px"><svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true"><path d="M12 3.5 22 20.5H2Z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"></path><path d="M12 10v5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path></svg>Claude Personal</div>
+<div style="font-size: 10px; line-height: 13px; color: rgba(255,255,255,0.7); white-space: nowrap">7d resets Wed 2:00 PM</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 15px; line-height: 20px; font-weight: 600">Tinted</span>
+<span style="font-size: 13px; line-height: 18px; color: rgba(235,235,245,0.62)">The dial group is widgetAccentable. Colour can’t carry state here, so 85%+ adds the warning glyph by the label.</span>
+</div>
+</div>
+
+<div style="border-radius: 28px; padding: 24px; background: linear-gradient(200deg, #6b5a4a 0%, #2c3a3a 55%, #1a1f24 100%); border: 1px solid rgba(255,255,255,0.10); display: flex; flex-direction: column; gap: 16px">
+<div style="width: 158px; height: 158px; border-radius: 22px; overflow: hidden; background: rgba(255,255,255,0.10); border: 1px solid rgba(255,255,255,0.30); box-sizing: border-box; padding: 11px; display: flex; flex-direction: column; justify-content: center; gap: 2px; align-items: center">
+<dc-import name="Dial" size="100" tone="vibrant" glyph="claude" p1="28" p2="88" hint-size="100px,100px"></dc-import>
+<div style="margin-top: -6px; font-size: 11px; line-height: 13px; font-weight: 600; letter-spacing: -0.1px; display: flex; align-items: center; gap: 3px"><svg viewBox="0 0 24 24" width="10" height="10" aria-hidden="true"><path d="M12 3.5 22 20.5H2Z" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"></path><path d="M12 10v5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"></path></svg>Claude Personal</div>
+<div style="font-size: 10px; line-height: 13px; color: rgba(255,255,255,0.7); white-space: nowrap">7d resets Wed 2:00 PM</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 15px; line-height: 20px; font-weight: 600">Clear</span>
+<span style="font-size: 13px; line-height: 18px; color: rgba(235,235,245,0.62)">Same hierarchy as the Lock Screen: white, 7d at 60%. The wash lives in the removable container so the system can drop it.</span>
+</div>
+</div>
+
+</div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const R = '#d77ef7', S = 'rgba(235,235,245,0.62)', W = '#ff9f0a', X = '#ff453a';
+    const states = [
+      { name: 'Normal', note: 'Under 85%. Accent.', g: 'codex', st: 'auto', badge: 'none', p1: '62', p2: '41', line: '5h resets 3:40 PM', lineColor: R },
+      { name: 'Warning', note: 'Worst window at 85%+.', g: 'claude', st: 'auto', badge: 'none', p1: '28', p2: '88', line: '7d resets Wed 2:00 PM', lineColor: R },
+      { name: 'Limit reached', note: '95%+. Status replaces the reset.', g: 'codex', st: 'auto', badge: 'none', p1: '100', p2: '71', line: 'Limit reached', lineColor: X },
+      { name: 'Saved reading', note: 'Older than the freshness bound.', g: 'codex', st: 'stale', badge: 'clock', p1: '62', p2: '41', line: 'Older reading · 2 hours ago', lineColor: S },
+      { name: 'Reconnect', note: 'Credentials expired.', g: 'alert', st: 'off', badge: 'none', p1: 'na', p2: 'na', line: 'Reconnect to update', lineColor: S },
+      { name: 'Not connected', note: 'Account removed in the app.', g: 'codex', st: 'off', badge: 'none', p1: 'na', p2: 'na', line: 'Not connected', lineColor: S },
+      { name: 'Window missing', note: '7d not reported: dashed ring, N/A.', g: 'codex', st: 'auto', badge: 'none', p1: '62', p2: 'na', line: '5h resets 3:40 PM', lineColor: R },
+      { name: 'Demo', note: 'Sample data, labelled.', g: 'demo', st: 'auto', badge: 'none', p1: '62', p2: '41', line: 'Sample usage', lineColor: S }
+    ];
+    states.forEach((s) => { s.acct = s.g === 'claude' ? 'Claude Personal' : 'Codex Personal'; });
+    return { states };
+  }
+}
+</script>
+</body>
+</html>

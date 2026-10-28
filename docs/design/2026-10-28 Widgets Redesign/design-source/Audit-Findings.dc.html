@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Audit · Where widgets drifted</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+a{color:#d77ef7}a:hover{color:#ead2ff}
+</style>
+</helmet>
+<div style="width: 1440px; height: 1040px; box-sizing: border-box; padding: 48px 32px 32px; display: flex; flex-direction: column; gap: 24px; background: #0b060f; color: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter', system-ui, sans-serif">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<div style="font-size: 13px; line-height: 18px; font-weight: 600; color: #d77ef7; letter-spacing: 0.2px">02 · Audit</div>
+<h1 style="margin: 0; font-size: 34px; line-height: 41px; font-weight: 700; letter-spacing: 0.4px">Where the widgets drifted from the app</h1>
+<p style="margin: 0; max-width: 900px; font-size: 15px; line-height: 20px; color: rgba(235,235,245,0.62)">The app moved to N accounts, the design system and in-card history. The widgets still think in one Codex and one Claude, draw their own dial, and show no history.</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+<sc-for list="{{findings}}" as="f" hint-placeholder-count="9">
+<article style="border-radius: 28px; padding: 20px 20px 18px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.14); display: flex; flex-direction: column; gap: 10px; min-height: 196px; box-sizing: border-box">
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="font-size: 13px; line-height: 18px; font-weight: 600; color: {{f.tagColor}}; font-variant-numeric: tabular-nums">{{f.n}}</span>
+<span style="font-size: 12px; line-height: 16px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,0.11); color: rgba(235,235,245,0.8)">{{f.tag}}</span>
+</div>
+<h2 style="margin: 0; font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -0.43px">{{f.title}}</h2>
+<p style="margin: 0; font-size: 13px; line-height: 18px; color: rgba(235,235,245,0.62)">{{f.body}}</p>
+<p style="margin: auto 0 0; font-size: 12px; line-height: 16px; color: rgba(235,235,245,0.45); font-family: ui-monospace, 'SF Mono', Menlo, monospace">{{f.src}}</p>
+</article>
+</sc-for>
+</div>
+
+<div style="border-radius: 28px; padding: 18px 20px; border: 1px solid rgba(255,255,255,0.14); display: flex; gap: 24px; align-items: flex-start">
+<div style="font-size: 15px; line-height: 20px; font-weight: 600; white-space: nowrap; padding-top: 1px">Keep</div>
+<div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 20px; flex: 1">
+<sc-for list="{{keeps}}" as="k" hint-placeholder-count="5">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div style="font-size: 13px; line-height: 18px; font-weight: 600">{{k.t}}</div>
+<div style="font-size: 12px; line-height: 16px; color: rgba(235,235,245,0.62)">{{k.b}}</div>
+</div>
+</sc-for>
+</div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const sev = { Model: '#ff9f0a', Gallery: '#ff9f0a', Visual: '#d77ef7', Dial: '#d77ef7', Meaning: '#ff9f0a', Copy: '#d77ef7', History: '#ff9f0a', Ground: '#d77ef7', Budget: '#d77ef7' };
+    const findings = [
+      { tag: 'Model', title: 'Two slots, not accounts', body: 'Combined widgets take exactly one Codex account and one Claude account. Two Codex accounts, a third account, or Claude personal beside Claude Enterprise cannot share a widget.', src: 'BothConfiguration, CompactConfiguration' },
+      { tag: 'Gallery', title: 'Six kinds, three that overlap', body: 'Three rectangular Lock Screen kinds do close to the same job, and Allowance details with one service quietly renders Service details. Both Home kinds are titled "AIQuota".', src: 'QuotaWidgets bundle, configurationDisplayName' },
+      { tag: 'Visual', title: 'Colour comes from code, not tokens', body: 'Home dials use #9E38ED (the Mac brand-accent) instead of accent #BF5AF2, warning (1, 0.65, 0) instead of #FF9F0A, and .red instead of critical. Spend is hard orange.', src: 'HomeQuotaView.accent, tint(_:)' },
+      { tag: 'Dial', title: 'The dial breaks its own rules', body: 'Readings render at two sizes (17.5% and 12.5% of the dial) and the 7d ring sits at 50% instead of 70%. Lock Screen dials carry no number at all, only the glyph.', src: 'HomeQuotaView.gauge, CodexDial' },
+      { tag: 'Meaning', title: 'Used on the dial, left beside it', body: 'The dial reports used. The details column reports "7d left: 59%". Codex picks the last window and Claude the primary, so the same row means different windows.', src: 'HomeQuotaView.details' },
+      { tag: 'Copy', title: 'Strings outside the voice', body: '"Claude Code" next to "Claude". "Sign in to AIQuota", "Reconnect in app", "Reconnect in AIQuota", "Connection needs attention" where the app says "Not connected" and "Reconnect to update".', src: 'HomeQuotaView, HomeEntryView' },
+      { tag: 'History', title: 'No history at all', body: 'The app now carries the token heatmap in every service card, usage-credit lines, weekly product split and Enterprise spend by product. No widget shows a trend or a day.', src: 'MobileTokenHistoryView, ClaudeEnterpriseDetailView' },
+      { tag: 'Ground', title: 'Grey material, unplanned tints', body: 'Home widgets sit on regularMaterial with none of the overview wash. Nothing is marked widgetAccentable, so tinted and clear Home Screens get whatever the system guesses.', src: 'HomeWidgetBackground' },
+      { tag: 'Budget', title: 'Enterprise is a second-class reading', body: 'A monthly budget shows "$660 / $1,000" with no "Monthly" key, no reset and no 85% or 95% state on the Lock Screen, where the app treats it as a full dial.', src: 'ServiceDetailsView, budgetOnly' }
+    ].map((f, i) => ({ ...f, n: String(i + 1).padStart(2, '0'), tagColor: sev[f.tag] }));
+    const keeps = [
+      { t: 'Reset-aware timelines', b: 'Entries land on reset and freshness boundaries, so dials roll over without a fetch.' },
+      { t: 'Saved-reading handling', b: 'Stale readings dim and badge a clock instead of claiming a current limit.' },
+      { t: 'Service details layout', b: 'The 60 pt dial with 14 pt readings is the most legible Lock Screen widget.' },
+      { t: 'Account disambiguation', b: 'Picker hints split same-named accounts by provider identity or short ID.' },
+      { t: 'VoiceOver summaries', b: 'Full spoken dates, freshness and reconnect states on every widget.' }
+    ];
+    return { findings, keeps };
+  }
+}
+</script>
+</body>
+</html>
