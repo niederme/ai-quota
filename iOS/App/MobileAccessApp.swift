@@ -18,6 +18,7 @@ struct MobileAccessApp: App {
     }
     var body: some Scene {
         WindowGroup {
+            Group {
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("-claudeSSOUITest") {
                 ClaudeDetailSSOUITestHarness()
@@ -77,6 +78,10 @@ struct MobileAccessApp: App {
                     DemoQuotaData.setEnabled(enabled)
                 }
             #endif
+            }
+            // Keep the native Home indicator eligible to remain visible across
+            // live, demo, and setup screens. iOS still controls its final visibility.
+            .persistentSystemOverlays(.visible)
         }
     }
 }

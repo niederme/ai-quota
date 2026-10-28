@@ -75,6 +75,11 @@ corners, matching dial geometry, and an 8pt gap. The list fades only at edges
 where more content is hidden. Accessibility text sizes stack the dial above the
 details; accounts still open their service sheets when tapped.
 
+The app root requests visible native system overlays, including the Home
+indicator. iOS controls their final visibility: iOS 26 can still hide the Home
+indicator despite this preference. This is independent of the overview's scroll
+mask; the app does not render a replacement gesture pill.
+
 Each Codex card shows a full-width, 42-week activity heatmap built from Codex's
 server-side daily history, without a title or month labels. Its light, dark,
 zero, and missing states match the Mac palette. Claude does not report daily
