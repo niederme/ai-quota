@@ -6,59 +6,63 @@ import MobileAccessCore
 final class BaseScreenReviewTests: XCTestCase {
     @MainActor func testBaseScreenMaterialsAndAccessibility() async throws {
         let now = Date.now
-        func reading(short: Int, week: Int, spent: Double) throws -> QuotaReading {
-            try JSONDecoder().decode(QuotaReading.self, from: Data("""
-            {"fetchedAt":\(now.timeIntervalSinceReferenceDate),"shortTerm":{"usedPercent":\(short),"durationSeconds":18000,"resetsAt":\(now.addingTimeInterval(3600).timeIntervalSinceReferenceDate)},"weekly":{"usedPercent":\(week),"durationSeconds":604800,"resetsAt":\(now.addingTimeInterval(3 * 86400).timeIntervalSinceReferenceDate)},"metadata":{"plan":"Pro","usageSpent":\(spent),"usageCurrency":"USD"}}
-            """.utf8))
-        }
-        let codex = try reading(short: 78, week: 42, spent: 12.40)
-        let claude = try reading(short: 40, week: 5, spent: 154.15)
-        let values: [Double] = [2,15,2,0,2,7,5,3,23,3,2,9,4,15,6,30,2,12,1,31,31,15,53,71,56,100,69,27,8,0]
-        let rows = values.enumerated().map { i, value in
-            "{\"date\":\"\(CodexUsageHistory.dateString(now.addingTimeInterval(Double(i-29)*86400)))\",\"product_surface_usage_values\":{\"cli\":\(value)}}"
-        }.joined(separator: ",")
-        let history = try CodexUsageHistory.decode(Data("{\"data\":[\(rows)]}".utf8), now: now)
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
         let previous = scene.windows.first(where: \.isKeyWindow)
-        for (name, scheme, size) in [
-            ("dark", ColorScheme.dark, DynamicTypeSize.large),
-            ("light", .light, .large),
-            ("accessible", .dark, .accessibility3)
-        ] {
-            let content = NavigationStack {
-                ScrollView {
-                    VStack(spacing: 24) {
-                        ProviderDialCardContent(name: "Codex", icon: "logo-openai", availableWidth: 370,
-                            reading: codex, connected: true, busy: false, error: nil, history: history, tokenHistory: DemoQuotaData.tokenHistory(now: now))
-                        ProviderDialCardContent(name: "Claude", icon: "logo-claude", availableWidth: 370,
-                            reading: claude, connected: true, busy: false, error: nil)
-                        Text("Updated 2 minutes ago").font(.caption).foregroundStyle(OverviewStyle.secondary)
-                    }.padding(.horizontal, 16).padding(.vertical, 20)
+        for count in 1...4 {
+            let services: [QuotaService] = count == 1 ? [.codex] : count == 2 ? [.codex, .claude]
+                : count == 3 ? [.codex, .codex, .claude] : [.codex, .codex, .claude, .claude]
+            for (name, scheme, size) in [
+                ("dark", ColorScheme.dark, DynamicTypeSize.large),
+                ("light", .light, .large),
+                ("accessible", .dark, .accessibility3)
+            ] {
+                let content = NavigationStack {
+                    OverviewScrollView {
+                        VStack(spacing: 8) {
+                            if count == 2 {
+                                CodexResetNoticeBanner(announcement: CodexResetNotice.demoAnnouncement,
+                                                       openDetails: {}, dismiss: {})
+                            }
+                            ForEach(services.indices, id: \.self) { index in
+                                let service = services[index]
+                                ProviderDialCard(name: service == .codex ? "Codex" : "Claude", icon: service.logo,
+                                    availableWidth: 361, reading: DemoQuotaData.reading(service, now: now),
+                                    connected: true, busy: false, error: nil,
+                                    accountLabel: services.filter { $0 == service }.count > 1
+                                        ? (index == 0 ? "Personal" : "Work") : nil,
+                                    tokenHistory: service == .codex ? DemoQuotaData.tokenHistory(now: now) : nil) {}
+                            }
+                            Text("Refreshed 2 minutes ago").font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                                .frame(maxWidth: .infinity).padding(.top, 8)
+                        }.padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 16)
+                    }
+                    .background { OverviewBackground().ignoresSafeArea() }
+                    .navigationTitle("AIQuota").toolbarTitleDisplayMode(.inlineLarge)
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) { Button("Refresh", systemImage: "arrow.clockwise") {}.tint(OverviewStyle.primary) }
+                        ToolbarItem(placement: .topBarTrailing) { Button("Settings", systemImage: "gearshape") {}.tint(OverviewStyle.primary) }
+                    }
+                }.tint(Color("OverviewAccent"))
+                    .environment(\.colorScheme, scheme).environment(\.dynamicTypeSize, size)
+                let host = UIHostingController(rootView: content)
+                let window = UIWindow(windowScene: scene)
+                window.frame = CGRect(x: 0, y: 0, width: 393, height: 852)
+                window.rootViewController = host
+                window.makeKeyAndVisible()
+                defer { window.isHidden = true; previous?.makeKey() }
+                try await Task.sleep(for: .milliseconds(700))
+                let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+                    window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
                 }
-                .background { OverviewBackground().ignoresSafeArea() }
-                .navigationTitle("AIQuota").toolbarTitleDisplayMode(.inlineLarge)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) { Button("Refresh", systemImage: "arrow.clockwise") {}.tint(OverviewStyle.primary) }
-                    ToolbarItem(placement: .topBarTrailing) { Button("Settings", systemImage: "gearshape") {}.tint(OverviewStyle.primary) }
-                }
-            }.tint(Color("OverviewAccent"))
-                .environment(\.colorScheme, scheme).environment(\.dynamicTypeSize, size)
-            let host = UIHostingController(rootView: content)
-            let window = UIWindow(windowScene: scene)
-            window.rootViewController = host
-            window.makeKeyAndVisible()
-            defer { window.isHidden = true; previous?.makeKey() }
-            try await Task.sleep(for: .milliseconds(700))
-            let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
-                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+                let attachment = XCTAttachment(image: image)
+                attachment.name = "Base screen \(count) accounts \(name)"; attachment.lifetime = .keepAlways
+                add(attachment)
+                let path = FileManager.default.temporaryDirectory.appendingPathComponent("base-screen-\(count)-\(name).png")
+                try image.pngData()?.write(to: path)
+                print("BASE_SCREEN_REVIEW " + path.path)
+                XCTAssertEqual(image.size.width, 393)
+                XCTAssertEqual(image.size.height, 852)
             }
-            let attachment = XCTAttachment(image: image)
-            attachment.name = "Base screen \(name)"; attachment.lifetime = .keepAlways
-            add(attachment)
-            let path = FileManager.default.temporaryDirectory.appendingPathComponent("base-screen-\(name).png")
-            try image.pngData()?.write(to: path)
-            print("BASE_SCREEN_REVIEW " + path.path)
-            XCTAssertGreaterThan(image.size.height, 400)
         }
     }
     @MainActor func testCodexDetailReview() async throws {

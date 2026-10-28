@@ -1,0 +1,159 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap");
+/* AIQuota App components, round 2: HTML stand-ins for the SwiftUI views in niederme/ai-quota, matched to main@3d5aff4.
+   Dark is the first theme. Every colour comes from tokens.css. Glass and blur are approximations of system materials. */
+.aq, .aq * { box-sizing: border-box; }
+body { margin: 0; font-family: var(--font-sans); color: var(--primary); background: var(--base); -webkit-font-smoothing: antialiased; }
+.aq-num { font-variant-numeric: tabular-nums; }
+
+/* Theme switches tokens cannot carry. Dark glass darkens what is behind it, as iOS glass does over the wash. */
+:root { --aq-glass-filter: var(--glass-blur) brightness(0.75); --aq-glow-r: 334px; }
+[data-theme="light"] { --aq-glass-filter: var(--glass-blur); }
+
+/* ---------- Grounds: three depths only (ground, glass, raised glass) ---------- */
+.aq-wash { position: relative; isolation: isolate; background: var(--base); }
+.aq-wash::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background:
+  radial-gradient(circle var(--aq-glow-r) at 100% 0%, var(--wash-glow), transparent),
+  linear-gradient(180deg, var(--wash) 0%, var(--wash-mid) 40%, transparent 70%); }
+.aq-surface { position: relative; isolation: isolate; background: var(--base); }
+.aq-surface::before { content: ""; position: absolute; inset: 0 0 auto; height: 320px; z-index: -1; pointer-events: none;
+  background: radial-gradient(circle 210px at 50% 122px, var(--surface-glow), transparent); }
+@media (prefers-reduced-transparency: reduce) { .aq-wash::before, .aq-surface::before { display: none; } }
+
+.aq-glass { background: var(--glass); -webkit-backdrop-filter: var(--aq-glass-filter); backdrop-filter: var(--aq-glass-filter);
+  box-shadow: inset 0 0 0 1px var(--glass-edge), inset 0 1px 0 var(--glass-highlight); }
+.aq-glass--raised { background: var(--glass-raised); }
+@media (prefers-reduced-transparency: reduce) { .aq-glass { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--glass-raised); } }
+
+/* ---------- Service glyph: template image, tinted by the dial ---------- */
+.aq-glyph { display: block; width: var(--glyph); height: var(--glyph); background: currentColor;
+  -webkit-mask: var(--aq-glyph-src) center / contain no-repeat; mask: var(--aq-glyph-src) center / contain no-repeat; }
+.aq-glyph--openai { --aq-glyph-src: url("data:image/svg+xml,%3Csvg%20fill%3D%22none%22%20height%3D%22125%22%20viewBox%3D%220%200%20127%20125%22%20width%3D%22127%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22m48.3749%2045.4998v-11.8751c0-1.0001.3754-1.7504%201.2499-2.2498l23.8757-13.75c3.25-1.8749%207.1251-2.7495%2011.1246-2.7495%2014.9997%200%2024.4999%2011.6253%2024.4999%2023.9998%200%20.8748%200%201.8749-.125%202.875l-24.7501-14.5003c-1.4998-.8745-3.0003-.8745-4.5001%200zm55.7501%2046.2504v-28.3757c0-1.7504-.751-3.0003-2.25-3.8751l-31.3751-18.2499%2010.25-5.8754c.8748-.4994%201.6251-.4994%202.4999%200l23.8752%2013.75c6.876%204.0005%2011.5%2012.5%2011.5%2020.7495%200%209.4997-5.624%2018.2502-14.5%2021.8755zm-63.1251-24.9999-10.25-5.9997c-.8745-.4994-1.2499-1.2499-1.2499-2.25v-27.4998c0-13.3746%2010.25-23.5003%2024.1253-23.5003%205.2507%200%2010.1247%201.7504%2014.2507%204.8753l-24.625%2014.2504c-1.4995.8746-2.2498%202.1245-2.2498%203.8752v36.25zm22.0628%2012.7496-14.6878-8.2497v-17.4994l14.6878-8.2497%2014.6868%208.2497v17.4994zm9.4374%2038.0011c-5.2504%200-10.1244-1.751-14.2504-4.875l24.6247-14.2512c1.4998-.8745%202.2501-2.1245%202.2501-3.8752v-36.2499l10.3755%205.9997c.8746.4994%201.25%201.2497%201.25%202.25v27.4998c0%2013.3748-10.3756%2023.4998-24.2499%2023.4998zm-29.6252-27.8754-23.8758-13.7497c-6.8755-4.0007-11.4999-12.5-11.4999-20.7498%200-9.625%205.7501-18.2499%2014.6246-21.8752v28.4999c0%201.7504.7505%203.0003%202.25%203.8751l31.2507%2018.1243-10.25%205.8754c-.8746.4995-1.6251.4995-2.4996%200zm-1.3743%2020.5004c-14.1251%200-24.5004-10.6255-24.5004-23.7505%200-1.0002.1253-2.0003.2496-3.0004l24.6249%2014.2505c1.4996.8748%203.0004.8748%204.4999%200l31.3749-18.1244v11.8751c0%201.0001-.3751%201.7504-1.2499%202.2498l-23.8755%2013.7499c-3.2502%201.875-7.1253%202.75-11.1248%202.75zm30.9995%2014.874c15.1253%200%2027.7499-10.75%2030.6259-25.0001%2014-3.6253%2023-16.7504%2023-30.125%200-8.7504-3.75-17.2497-10.5-23.375.625-2.6252%201-5.2504%201-7.8743%200-17.8748-14.5-31.25067-31.2507-31.25067-3.3742%200-6.6243.49941-9.8745%201.6251-5.6259-5.50026-13.3759-9.00003-21.8755-9.00003-15.125%200-27.7493%2010.7494-30.6254%2024.9998-13.99987%203.6254-22.9999%2016.7504-22.9999%2030.125%200%208.7505%203.7496%2017.2498%2010.4998%2023.375-.62496%202.6252-1.0001%205.2504-1.0001%207.8746%200%2017.8746%2014.5003%2031.2506%2031.2504%2031.2506%203.3744%200%206.6246-.5%209.8748-1.625%205.6246%205.5%2013.3746%209%2021.8752%209z%22%20fill%3D%22%23000%22%2F%3E%3C%2Fsvg%3E"); }
+.aq-glyph--claude { --aq-glyph-src: url("data:image/svg+xml,%3Csvg%20fill%3D%22none%22%20height%3D%22125%22%20viewBox%3D%220%200%20125%20125%22%20width%3D%22125%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%3Cpath%20d%3D%22m54.375%20118.75%201.75-7.75%202-10%201.625-8%201.5-9.875.875-3.25-.125-.25-.625.125-7.5%2010.25-11.375%2015.375-9%209.5-2.125.875-3.75-1.875.375-3.5%202.125-3%2012.375-15.875%207.5-9.875%204.875-5.625-.125-.75h-.25l-33%2021.5-5.875.75-2.625-2.375.375-3.875%201.25-1.25%209.875-6.875%2024.625-13.75.375-1.25-.375-.625h-1.25l-4.125-.25-14-.375-12.125-.5-11.875-.625-3-.625-2.75-3.75.25-1.875%202.5-1.625%203.625.25%207.875.625%2011.875.75%208.625.5%2012.75%201.375h2l.25-.875-.625-.5-.5-.5-12.375-8.25-13.25-8.75-7-5.125-3.75-2.625-1.875-2.375-.75-5.25%203.375-3.75%204.625.375%201.125.25%204.625%203.625%209.875%207.625%2013%209.625%201.875%201.5.875-.5v-.375l-.875-1.375-7-12.75-7.5-13-3.375-5.375-.875-3.25c-.3333-1.125-.5-2.375-.5-3.75l3.875-5.249994%202.125-.750006%205.25.750006%202.125%201.874994%203.25%207.375%205.125%2011.625%208.125%2015.75%202.375%204.75%201.25%204.25.5%201.375h.875v-.75l.625-9%201.25-10.875%201.25-14%20.375-4%202-4.75%203.875-2.49999%203%201.37499%202.5%203.625-.375%202.25-1.375%209.625-3%2015.125-1.875%2010.25h1.125l1.25-1.375%205.125-6.75%208.625-10.75%203.75-4.25%204.5-4.75%202.875-2.25h5.375l3.875%205.875-1.75%206.125-5.5%207-4.625%205.875-6.625%208.875-4%207.125.375.5h.875l14.875-3.25%208.125-1.375%209.5-1.625%204.375%202%20.5%202-1.75%204.25-10.25%202.5-12%202.375-17.875%204.25-.25.125.25.375%208%20.75%203.5.25h8.5l15.75%201.125%204.125%202.75%202.375%203.25-.375%202.625-6.375%203.125-8.5-2-20-4.75-6.75-1.625h-1v.5l5.75%205.625%2010.375%209.375%2013.125%2012.125.625%203-1.625%202.5-1.75-.25-11.5-8.75-4.5-3.875-10-8.375h-.625v.875l2.25%203.375%2012.25%2018.375.625%205.625-.875%201.75-3.25%201.125-3.375-.625-7.25-10-7.375-11.375-6-10.125-.625.5-3.625%2037.75-1.625%201.875-3.75%201.5-3.125-2.375z%22%20fill%3D%22%23000%22%2F%3E%3C%2Fsvg%3E"); }
+
+/* ---------- QuotaDial: 270° arcs open at the bottom, butt caps, readings inside ---------- */
+.aq-dial { --tint: var(--accent); --dial-track: var(--track);
+  position: relative; width: var(--dial); height: var(--dial); flex: none; color: var(--tint); }
+.aq-dial--warning { --tint: var(--warning); }
+.aq-dial--critical { --tint: var(--critical); }
+.aq-dial--off { --tint: var(--secondary); }
+.aq-dial svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.aq-dial__track { fill: none; stroke: var(--dial-track); }
+.aq-dial__fill { fill: none; stroke: var(--tint); }
+.aq-dial__fill--2, .aq-dial__v--2 { opacity: var(--ring-secondary); }
+.aq-dial__body { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-6); }
+.aq-dial__values { display: flex; flex-direction: column; align-items: center; gap: var(--space-2);
+  font: 500 15px/20px var(--font-sans); letter-spacing: -0.23px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.aq-dial__label { font: 400 11px/13px var(--font-sans); letter-spacing: 0.06px; }
+.aq-dial__values strong { font-weight: 700; }
+.aq-dial--mac { --dial-track: var(--track-mac); width: var(--dial-mac); height: var(--dial-mac); }
+.aq-dial--mac .aq-dial__body { gap: 5px; }
+.aq-dial--mac .aq-dial__values { font: 600 16px/20px var(--font-sans); }
+.aq-dial-frame-mac { height: 114px; padding-top: 6px; overflow: visible; flex: none; }
+
+/* ---------- ServiceCard (iOS overview card) ---------- */
+.aq-card { display: flex; flex-direction: column; gap: var(--space-8); width: 100%; padding: var(--space-16); border: 0; border-radius: var(--radius-card);
+  color: var(--primary); text-align: left; font: inherit; cursor: pointer; }
+.aq-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.aq-card__summary { display: flex; gap: var(--space-24); align-items: flex-start; }
+.aq-card--stacked .aq-card__summary { flex-direction: column; gap: var(--space-12); }
+.aq-card__details { display: flex; flex-direction: column; gap: var(--space-8); flex: 1; min-width: 0; padding-top: var(--space-2); }
+.aq-card__head { display: flex; flex-direction: column; }
+.aq-card__name { display: flex; align-items: baseline; gap: var(--space-4); margin: 0; font: 600 20px/22px var(--font-sans); letter-spacing: -0.25px; }
+.aq-card__name span { flex: 1; }
+.aq-card__plan { margin: 0; font: 600 13px/15px var(--font-sans); letter-spacing: -0.1px; }
+.aq-card__captions { display: flex; flex-direction: column; gap: var(--space-4); }
+.aq-card__reset { margin: 0; font: 400 13px/15px var(--font-sans); letter-spacing: -0.1px; color: var(--reset-accent); font-variant-numeric: tabular-nums; }
+.aq-card__meta { margin: 0; font: 400 13px/15px var(--font-sans); letter-spacing: -0.1px; color: var(--secondary); }
+.aq-card__status { margin: 0; font: 400 13px/18px var(--font-sans); color: var(--secondary); }
+.aq-chev { width: 22px; height: 22px; flex: none; color: var(--tertiary); align-self: center; }
+
+/* ---------- TokenHeatmap: 42 weeks × 7 days, 1px gaps ---------- */
+.aq-heat { display: flex; flex-direction: column; gap: var(--space-4); }
+.aq-heat__grid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, auto); grid-auto-columns: 1fr; gap: 1px; }
+.aq-heat__grid i { aspect-ratio: 1; border-radius: var(--radius-cell); background: var(--heat-none); }
+.aq-heat__grid i.z { background: var(--heat-0); } .aq-heat__grid i.l1 { background: var(--heat-1); } .aq-heat__grid i.l2 { background: var(--heat-2); }
+.aq-heat__grid i.l3 { background: var(--heat-3); } .aq-heat__grid i.l4 { background: var(--heat-4); } .aq-heat__grid i.f { background: transparent; }
+.aq-heat__months { position: relative; height: 12px; font: 400 8px/10px var(--font-sans); color: var(--secondary); }
+.aq-heat__months span { position: absolute; top: 0; }
+.aq-heat__title { font: 400 11px/13px var(--font-sans); color: var(--secondary); }
+
+/* ---------- NoticeBanner ---------- */
+.aq-notice { display: flex; align-items: flex-start; gap: var(--space-8); padding: var(--space-12) var(--space-16); border-radius: var(--radius-card); }
+.aq-notice__text { display: flex; flex-direction: column; gap: var(--space-6); flex: 1; min-width: 0; font: 400 17px/22px var(--font-sans); letter-spacing: -0.43px; }
+.aq-notice__title { margin: 0; font-weight: 600; color: var(--primary); }
+.aq-notice__link { color: var(--accent); text-decoration: none; }
+.aq-notice__link:hover { text-decoration: underline; text-underline-offset: 3px; }
+.aq-notice__close { display: grid; place-items: start end; width: 44px; height: 44px; margin: -8px -4px -8px 0; padding: 8px 4px 0 0; border: 0; background: none; color: var(--tertiary); cursor: pointer; }
+.aq-notice__close svg { width: 22px; height: 22px; }
+.aq-notice--mac { position: relative; isolation: isolate; border-radius: var(--radius-mac-card); box-shadow: inset 0 0 0 1px var(--card-edge-mac);
+  background: var(--notice-tint); -webkit-backdrop-filter: var(--sheet-blur); backdrop-filter: var(--sheet-blur); }
+.aq-notice--mac .aq-notice__text { font: 400 15px/20px var(--font-sans); letter-spacing: 0; }
+.aq-notice--mac .aq-notice__close { width: 32px; height: 32px; margin: 0; padding: 0; color: var(--secondary); }
+.aq-notice--mac .aq-notice__close svg { width: 16px; height: 16px; }
+
+/* ---------- Buttons ---------- */
+.aq-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-8); min-height: 50px; padding: 0 var(--space-20);
+  border: 0; border-radius: var(--radius-pill); font: 600 17px/22px var(--font-sans); letter-spacing: -0.43px; cursor: pointer; text-decoration: none; }
+.aq-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.aq-btn--prominent { background: var(--accent); color: var(--on-fill); box-shadow: inset 0 1px 0 var(--glass-edge); }
+.aq-btn--glass { color: var(--primary); }
+.aq-btn--small { min-height: 36px; padding: 0 var(--space-16); font-size: 15px; letter-spacing: -0.23px; }
+.aq-btn[disabled] { opacity: .45; cursor: default; transform: none; }
+.aq-iconbtn { display: grid; place-items: center; width: var(--tap); height: var(--tap); border: 0; border-radius: 50%; background: transparent; color: var(--primary); cursor: pointer; padding: 0; }
+.aq-iconbtn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+.aq-iconbtn--mac { width: 36px; height: 36px; background: var(--control-mac); box-shadow: none; }
+.aq-iconbtn--mac svg { width: 16px; height: 16px; }
+.aq-toolbar { display: inline-flex; gap: 0; border-radius: var(--radius-pill); }
+
+/* ---------- iPhone frame for screen previews ---------- */
+.aq-phone { position: relative; width: 393px; min-height: 852px; border-radius: 55px; overflow: hidden; box-shadow: 0 0 0 10px var(--device); }
+.aq-status { display: flex; justify-content: space-between; align-items: center; height: 54px; padding: 18px 32px 0 44px; font: 600 17px/22px var(--font-sans); }
+.aq-status i { width: 76px; height: 13px; border-radius: 4px; background: var(--primary); opacity: .9; mask: linear-gradient(90deg, #000 0 24px, transparent 24px 30px, #000 30px 52px, transparent 52px 58px, #000 58px); }
+.aq-island { position: absolute; top: 11px; left: 50%; width: 124px; height: 36px; margin-left: -62px; border-radius: 20px; background: var(--device); }
+.aq-navbar { display: flex; align-items: center; justify-content: space-between; padding: var(--space-4) var(--space-16) 0; }
+.aq-navbar h1 { margin: 0; font: 700 34px/41px var(--font-sans); letter-spacing: 0.4px; }
+.aq-screen { display: flex; flex-direction: column; gap: var(--space-24); padding: var(--space-20) var(--space-16) var(--space-20); }
+.aq-fresh { margin: 0; text-align: center; font: 400 13px/18px var(--font-sans); color: var(--secondary); }
+.aq-home { position: absolute; bottom: 8px; left: 50%; width: 144px; height: 5px; margin-left: -72px; border-radius: 3px; background: var(--primary); }
+
+/* ---------- Full sheet stack (John's navigation rule) ---------- */
+.aq-stack { position: relative; width: 393px; height: 852px; border-radius: 55px; overflow: hidden; background: var(--icon-ground); box-shadow: 0 0 0 10px var(--device); }
+.aq-stack__band { position: absolute; left: 12px; right: 12px; top: 50px; height: 60px; border-radius: 38px 38px 0 0; opacity: .55; }
+.aq-stack__sheet { position: absolute; left: 0; right: 0; top: 62px; bottom: 0; border-radius: 38px 38px 0 0; overflow: hidden; }
+.aq-grabber { width: 36px; height: 5px; margin: 6px auto 0; border-radius: 3px; background: var(--tertiary); }
+.aq-sheettools { display: flex; gap: 8px; }
+.aq-sheetcontent { display: flex; flex-direction: column; gap: var(--space-16); padding: var(--space-8) var(--space-16) var(--space-24); }
+.aq-sub { margin: 0; font: 400 15px/20px var(--font-sans); letter-spacing: -0.23px; color: var(--secondary); }
+.aq-foot { margin: 0; font: 400 13px/18px var(--font-sans); color: var(--secondary); }
+.aq-seg { display: flex; padding: 2px; border-radius: 9px; background: var(--track); font: 500 13px/18px var(--font-sans); }
+.aq-seg span { flex: 1; padding: 6px 0; text-align: center; border-radius: 7px; }
+.aq-seg span[aria-selected="true"] { background: var(--glass-raised); font-weight: 600; }
+.aq-gap { display: grid; place-items: center; min-height: 200px; border-radius: var(--radius-card); border: 1px dashed var(--tertiary); font: 400 13px/18px var(--font-sans); color: var(--secondary); text-align: center; padding: 16px; }
+.aq-divider { height: 1px; background: var(--track); border: 0; margin: 0; }
+.aq-link { font: 400 17px/22px var(--font-sans); color: var(--accent); text-decoration: none; }
+.aq-sheetbar { display: flex; align-items: center; justify-content: space-between; padding: var(--space-8) var(--space-16); font: 600 17px/22px var(--font-sans); }
+
+/* ---------- Mac menu-bar sheet ---------- */
+.aq-macsheet { position: relative; isolation: isolate; width: 480px; max-width: 100%; border-radius: 18px; overflow: hidden; color: var(--primary); }
+.aq-macsheet::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; -webkit-backdrop-filter: var(--sheet-blur); backdrop-filter: var(--sheet-blur);
+  background: radial-gradient(75% 75% at 0% 0%, var(--sheet-glow), transparent), radial-gradient(60% 60% at 100% 100%, var(--sheet-glow-trailing), transparent), var(--sheet-tint); }
+.aq-macsheet::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: .45;
+  box-shadow: inset 0 0 0 1px var(--sheet-rim), inset 1px 1px 0 var(--sheet-rim); }
+.aq-macsheet__head { display: flex; align-items: center; gap: var(--space-8); padding: var(--space-16) var(--space-16) var(--space-12); }
+.aq-macsheet__head h2 { margin: 0; flex: 1; font: 600 26px/31px var(--font-sans); letter-spacing: -0.4px; }
+.aq-macsheet__body { display: flex; flex-direction: column; gap: var(--space-16); padding: var(--space-8) var(--space-16); }
+.aq-macsheet__foot { position: relative; display: flex; justify-content: space-between; align-items: center; padding: var(--space-8) 14px; font: 500 13px/16px var(--font-sans); color: var(--primary); }
+.aq-macsheet__foot span:nth-child(2) { position: absolute; left: 50%; transform: translateX(-50%); color: var(--tertiary); }
+
+/* ---------- MacAccountRow ---------- */
+.aq-macrow { display: flex; flex-direction: column; width: 100%; padding: var(--space-16); border: 0; border-radius: var(--radius-mac-card); color: var(--primary); text-align: left; font: inherit; cursor: pointer;
+  background: var(--glass); box-shadow: inset 0 0 0 1px var(--card-edge-mac); transition: background-color .12s ease-out; }
+.aq-macrow:hover, .aq-macrow:focus-visible { background-image: linear-gradient(var(--hover-mac), var(--hover-mac)); outline: none; }
+.aq-macrow__top { display: flex; gap: var(--space-20); align-items: flex-start; }
+.aq-macrow__details { display: flex; flex-direction: column; gap: var(--space-8); padding-top: var(--space-2); min-width: 0; }
+.aq-macrow__name { margin: 0; font: 600 20px/24px var(--font-sans); letter-spacing: -0.25px; }
+.aq-macrow__plan { margin: var(--space-4) 0 0; font: 600 13px/16px var(--font-sans); }
+.aq-macrow__cap { margin: 0; font: 400 13px/16px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--reset-accent); }
+.aq-macrow__meta { margin: 0; font: 400 13px/16px var(--font-sans); color: var(--secondary); }
+.aq-macrow__warn { margin: 0; font: 400 13px/16px var(--font-sans); color: var(--warning); }
+@media (prefers-reduced-motion: reduce) { .aq-macrow { transition: none; } }

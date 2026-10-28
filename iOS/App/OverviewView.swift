@@ -73,8 +73,8 @@ struct OverviewView: View {
     private var dashboard: some View {
         NavigationStack {
             GeometryReader { geometry in
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
+                OverviewScrollView {
+                    VStack(alignment: .leading, spacing: 8) {
                         if isDemo { DemoBanner() }
                         if codex.connected, let announcement = resetAnnouncement {
                             CodexResetNoticeBanner(announcement: announcement, openDetails: { showResetDetails = true }, dismiss: {
@@ -98,12 +98,12 @@ struct OverviewView: View {
                                 selectedService = .claude
                             }
                         }
-                        overviewFreshness.frame(maxWidth: .infinity)
+                        overviewFreshness.frame(maxWidth: .infinity).padding(.top, 8)
 
                     }
                     .padding(.horizontal, 16)
-                    .padding(.top, 20)
-                    .padding(.bottom, 20)
+                    .padding(.top, 8)
+                    .padding(.bottom, 16)
                     .frame(maxWidth: 780)
                     .frame(maxWidth: .infinity)
                 }
@@ -571,8 +571,7 @@ struct ProviderDialCard: View {
     }
 }
 
-/// Native materials and system typography deliberately replace the Figma blur/border layers.
-/// Shared by the overview and service sheets; settings retain their existing UI.
+/// Shared semantic colors; overview cards mirror the Mac highlighted row surface.
 enum OverviewStyle {
     static let accent = Color("OverviewAccent")
     static let resetAccent = Color("OverviewResetAccent")
@@ -584,8 +583,12 @@ enum OverviewStyle {
     static let track = Color(uiColor: .quaternarySystemFill)
     static let base = Color("OverviewBase")
     static let radius: CGFloat = 28
-    static let ringWidth: CGFloat = 8
-    static let singleRingWidth: CGFloat = 12
+    static let accountRadius: CGFloat = 24
+    static let glass = accent.opacity(0.06)
+    static let glassHighlight = accent.opacity(0.10)
+    static let overviewTrack = Color(uiColor: UIColor { traits in
+        (traits.userInterfaceStyle == .dark ? UIColor.white : UIColor.black).withAlphaComponent(0.10)
+    })
 }
 
 struct OverviewBackground: View {
@@ -620,8 +623,94 @@ struct OverviewCardMaterial: ViewModifier {
     }
 }
 
-/// Figma's compact SF line boxes, scaled with Dynamic Type. Accessibility sizes
-/// retain native leading so wrapped labels have room to breathe.
+/// The Mac row's highlighted surface is the iOS card's resting surface.
+struct OverviewAccountSurface: View {
+    var pressed = false
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: OverviewStyle.accountRadius)
+            .fill(OverviewStyle.glass)
+            .overlay { OverviewStyle.accent.opacity(pressed ? 0.05 : 0) }
+            .overlay(alignment: .top) { OverviewStyle.glassHighlight.frame(height: 1) }
+            .clipShape(RoundedRectangle(cornerRadius: OverviewStyle.accountRadius))
+            .allowsHitTesting(false)
+    }
+}
+
+struct OverviewAccountButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background { OverviewAccountSurface(pressed: configuration.isPressed) }
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
+struct OverviewScrollEdges: Equatable {
+    var top = false
+    var bottom = false
+
+    init(contentFrame: CGRect = .zero, viewportHeight: CGFloat = 0) {
+        let overflow = viewportHeight > 0 && contentFrame.height > viewportHeight + 1
+        top = overflow && contentFrame.minY < -1
+        bottom = overflow && contentFrame.maxY > viewportHeight + 1
+    }
+}
+
+/// MacAccountGridView's 24pt mask, with geometry observation that also works on iOS 17.
+struct OverviewScrollView<Content: View>: View {
+    @ViewBuilder var content: () -> Content
+    @Namespace private var coordinateSpace
+    @State private var scrollEdges = OverviewScrollEdges()
+    @State private var viewportHeight: CGFloat = 0
+
+    var body: some View {
+        let space = coordinateSpace
+        let height = viewportHeight
+        ScrollView {
+            content()
+                .onGeometryChange(for: OverviewScrollEdges.self) { geometry in
+                    OverviewScrollEdges(contentFrame: geometry.frame(in: .named(space)), viewportHeight: height)
+                } action: { scrollEdges = $0 }
+        }
+        .coordinateSpace(name: space)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { viewportHeight = $0 }
+        .mask {
+            GeometryReader { geometry in
+                let fade = min(0.5, 24 / max(1, geometry.size.height))
+                LinearGradient(stops: [
+                    .init(color: scrollEdges.top ? .clear : .black, location: 0),
+                    .init(color: .black, location: scrollEdges.top ? fade : 0),
+                    .init(color: .black, location: scrollEdges.bottom ? 1 - fade : 1),
+                    .init(color: scrollEdges.bottom ? .clear : .black, location: 1)
+                ], startPoint: .top, endPoint: .bottom)
+            }
+        }
+    }
+}
+
+/// Match MacAccountCard's suppression of generated/default account labels.
+func overviewDisplayAccountLabel(_ label: String, serviceName: String, plan: String?,
+                                 showsAccountLabel: Bool) -> String? {
+    let label = label.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !label.isEmpty else { return nil }
+    if !showsAccountLabel && label.caseInsensitiveCompare("Personal") == .orderedSame { return nil }
+    if label.caseInsensitiveCompare(serviceName) == .orderedSame { return nil }
+    if let plan, plan.caseInsensitiveCompare("Unknown") != .orderedSame {
+        var defaults = ["\(serviceName) \(plan)"]
+        if serviceName == "Codex", ["business", "enterprise"].contains(plan.lowercased()) {
+            defaults += ["Codex Business", "Codex Enterprise"]
+        }
+        if defaults.contains(where: { label.caseInsensitiveCompare($0) == .orderedSame }) { return nil }
+    }
+    let parts = label.split(whereSeparator: \.isWhitespace)
+    if parts.count == 2, ["account", "service"].contains(parts[0].lowercased()),
+       parts[1].allSatisfy(\.isNumber) { return nil }
+    return label
+}
+
+/// Mac row line boxes, scaled with Dynamic Type and native accessibility leading.
 private struct OverviewDetailType: ViewModifier {
     var title = false
     var weight: Font.Weight = .semibold
@@ -632,11 +721,11 @@ private struct OverviewDetailType: ViewModifier {
     func body(content: Content) -> some View {
         let size = title ? titleSize : bodySize
         let scale = size / (title ? 20 : 13)
-        let lineHeight = (title ? 22.0 : 15.0) * scale
+        let lineHeight = (title ? 24.0 : 16.0) * scale
         let nativeHeight = UIFont.systemFont(ofSize: size, weight: weight == .regular ? .regular : .semibold).lineHeight
         content
             .font(.system(size: size, weight: weight))
-            .tracking((title ? -0.25 : -0.1) * scale)
+            .tracking((title ? -0.25 : 0) * scale)
             .padding(.vertical, typeSize.isAccessibilitySize ? 0 : (lineHeight - nativeHeight) / 2)
     }
 }
@@ -658,11 +747,8 @@ struct ProviderDialCardContent: View {
     var tokenHistory: CodexTokenHistory? = nil
     var tokenHistoryUnavailable = false
     var tokenHistoryLoading: Bool? = nil
-    var largeDial = false
-    var allowanceOnly = false
-    @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.dynamicTypeSize) private var typeSize
-    @ScaledMetric(relativeTo: .body) private var dialSize = 124.0
+    @ScaledMetric(relativeTo: .body) private var dialSize = 108.0
     private var needsReconnect: Bool { !connected || failure == .reconnect || failure == .renewal }
     private var worst: Double {
         max(max(reading?.shortTerm?.usedPercent ?? 0,
@@ -673,46 +759,56 @@ struct ProviderDialCardContent: View {
         reading?.windows.isEmpty == true ? reading?.monthlyBudget : nil
     }
     private var tint: Color {
-        if !connected || failure != nil || error != nil { return OverviewStyle.secondary }
+        if !connected { return OverviewStyle.tertiary }
         if worst >= 95 { return OverviewStyle.critical }
         if worst >= 85 { return OverviewStyle.warning }
         return OverviewStyle.accent
     }
-    private var secondaryOpacity: Double { contrast == .increased ? 0.9 : 0.7 }
-    private var usesColumns: Bool { !typeSize.isAccessibilitySize && availableWidth >= min(dialSize, 200) + 180 }
+    private let secondaryOpacity = 0.7
+    private var usesColumns: Bool { !typeSize.isAccessibilitySize && availableWidth - 32 >= min(dialSize, 200) + 180 }
 
     var body: some View {
-        if allowanceOnly {
-            dial
-        } else if let onOpen, !needsReconnect {
-            Button(action: onOpen) { cardContent }
-                .buttonStyle(.plain)
+        if let open = onOpen ?? onReconnect {
+            Button(action: open) { cardContent }
+                .buttonStyle(OverviewAccountButtonStyle())
                 .accessibilityIdentifier(name == "Codex" ? "codexServiceCard" : "claudeServiceCard")
                 .accessibilityHint("Opens \(name) service sheet")
+                .accessibilityActions {
+                    if needsReconnect, let onReconnect {
+                        Button("Reconnect", action: onReconnect)
+                    }
+                }
         } else {
-            cardContent
+            cardContent.background { OverviewAccountSurface() }
         }
+    }
+    private var showsTokenHistory: Bool {
+        name == "Codex" && connected && MobileTokenHistoryView.presentation(
+            history: tokenHistory, unavailable: tokenHistoryUnavailable,
+            loading: tokenHistoryLoading ?? busy) == .populated
     }
     private var cardContent: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 0) {
             summary.modifier(UsageLoadingState(loading: busy && reading == nil))
-            if name == "Codex", connected,
-               MobileTokenHistoryView.presentation(history: tokenHistory,
-                                                   unavailable: tokenHistoryUnavailable,
-                                                   loading: tokenHistoryLoading ?? busy) == .populated {
-                MobileTokenHistoryView(history: tokenHistory, unavailable: tokenHistoryUnavailable || (tokenHistory == nil && error != nil), loading: tokenHistoryLoading ?? busy, availableWidth: availableWidth - 32)
+            if showsTokenHistory {
+                MobileTokenHistoryView(history: tokenHistory,
+                    unavailable: tokenHistoryUnavailable, loading: tokenHistoryLoading ?? busy,
+                    availableWidth: availableWidth - 32 + 2 * Self.strokeOutset)
+                    .padding(.horizontal, -Self.strokeOutset)
+                    .padding(.top, 8)
             }
         }
-        .padding(16)
+        .padding(.horizontal, 16)
+        .padding(.top, 21)
+        .padding(.bottom, showsTokenHistory ? 16 : 21)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(RoundedRectangle(cornerRadius: OverviewStyle.radius))
-        .modifier(OverviewCardMaterial())
-
+        .contentShape(RoundedRectangle(cornerRadius: OverviewStyle.accountRadius))
     }
+
     private var summary: some View {
         Group {
             if usesColumns {
-                HStack(alignment: .top, spacing: 24) { dial; details }
+                HStack(alignment: .top, spacing: 20) { dial; details }
             } else {
                 VStack(alignment: .leading, spacing: 12) { dial; details }
             }
@@ -725,25 +821,26 @@ struct ProviderDialCardContent: View {
             accountSummary
             if connected, reading?.monthlyBudget == nil,
                let spent = reading?.metadata?.usageSpent, spent > 0 { spending(spent) }
-        }.padding(.top, 2).frame(maxWidth: .infinity, alignment: .leading)
+        }.padding(.top, 8).frame(maxWidth: .infinity, alignment: .leading)
     }
     private var accountSummary: some View {
         VStack(alignment: .leading, spacing: 8) {
-            VStack(alignment: .leading, spacing: name == "Codex" ? 2 : 0) {
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(name).unredacted().modifier(OverviewDetailType(title: true)).foregroundStyle(OverviewStyle.primary)
-                Spacer(minLength: 0)
-                if !needsReconnect {
-                    OverviewCircularSymbol(systemName: "chevron.right.circle.fill")
-                        .foregroundStyle(OverviewStyle.tertiary).accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .center, spacing: 4) {
+                    Text(name).unredacted().modifier(OverviewDetailType(title: true)).foregroundStyle(OverviewStyle.primary)
+                    Spacer(minLength: 0)
+                    if onOpen != nil {
+                        Image(systemName: "chevron.right.circle.fill").font(.system(size: 20))
+                            .foregroundStyle(OverviewStyle.tertiary).accessibilityHidden(true)
+                    }
                 }
-            }
-            Text(connected ? ((reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported")
-                + (accountLabel.map { " · \($0)" } ?? "")) : "Not connected")
-                .modifier(OverviewDetailType(weight: .semibold)).foregroundStyle(OverviewStyle.primary)
+                Text(connected ? ((reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported")
+                    + (accountLabel.map { " · \($0)" } ?? "")) : "Not connected")
+                    .modifier(OverviewDetailType(weight: .semibold)).foregroundStyle(OverviewStyle.primary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             if connected {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 0) {
                     ForEach(reading?.windows ?? []) { window in
                         resetCaption(window, label: window.resetLabel)
                     }
@@ -759,15 +856,10 @@ struct ProviderDialCardContent: View {
                     }
                 }
                 if failure != nil || error != nil || reading == nil || worst >= 100 {
-                    Text(statusText).font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                    Text(statusText).modifier(OverviewDetailType(weight: .regular))
+                        .foregroundStyle(failure != nil || error != nil ? OverviewStyle.warning : OverviewStyle.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-            }
-            if needsReconnect, let reconnect = onReconnect ?? onOpen {
-                Button(connected ? "Reconnect" : "Connect", action: reconnect)
-                    .modifier(OnboardingPrimaryButtonStyle())
-                    .disabled(busy)
-                    .accessibilityHint("Opens \(name) account and connection")
             }
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -786,50 +878,53 @@ struct ProviderDialCardContent: View {
             .accessibilityLabel("Credits used: \(value)")
     }
 
-    private var ringWidth: CGFloat {
-        (reading?.windows.count == 1 || budgetOnly != nil ? OverviewStyle.singleRingWidth : OverviewStyle.ringWidth) * (largeDial ? 2 : 1)
-    }
+    // Mirror MacAccountDial; iOS scales all geometry together, capped at 200pt.
+    static let strokeOutset: CGFloat = 5
+    private var dialScale: CGFloat { min(dialSize, 200) / 108 }
+    private var showsSecondary: Bool { reading?.secondaryWindow != nil || reading == nil }
     var dial: some View {
         let primary = reading?.primaryWindow ?? budgetOnly.map {
             QuotaWindow(usedPercent: $0.usedPercent, durationSeconds: 30 * 86400, resetsAt: $0.resetsAt)
         }
+        let scale = dialScale
         return ZStack {
-            arc(primary, opacity: 1)
-                .padding((ringWidth - OverviewStyle.ringWidth * (largeDial ? 2 : 1)) / 2)
-            if let secondary = reading?.secondaryWindow {
-                arc(secondary, opacity: secondaryOpacity).padding(largeDial ? 20 : 10)
+            arc(primary, lineWidth: (showsSecondary ? 7 : 10) * scale, opacity: 1)
+            if showsSecondary {
+                arc(reading?.secondaryWindow, lineWidth: 7 * scale, opacity: secondaryOpacity)
+                    .padding(9 * scale)
             }
-            VStack(spacing: largeDial ? 16 : 6) {
-                Image(icon).resizable().scaledToFit().frame(width: largeDial ? 36 : 18, height: largeDial ? 36 : 18)
-                if !allowanceOnly {
-                VStack(spacing: 2) {
+            VStack(spacing: 5 * scale) {
+                Image(icon).resizable().scaledToFit().frame(width: 18 * scale, height: 18 * scale)
+                VStack(spacing: 2 * scale) {
                     if let budget = budgetOnly {
                         Text("\(Int(budget.usedPercent.rounded()))%")
-                            .font(largeDial ? .title.bold() : .subheadline.bold())
-                        Text("Monthly")
-                            .font(largeDial ? .body : .caption2)
+                            .font(.system(size: 16 * scale, weight: .semibold).monospacedDigit())
+                        Text("Monthly").font(.system(size: 13 * scale))
                             .foregroundStyle(OverviewStyle.secondary)
                     } else {
-                        dialValue(reading?.primaryWindow, label: reading?.primaryWindow?.compactLabel ?? "")
-                        if let secondary = reading?.secondaryWindow {
-                            dialValue(secondary, label: secondary.compactLabel).opacity(secondaryOpacity)
-                        }
+                        dialValue(primary, label: primary?.compactLabel ?? "5h")
+                    }
+                    if showsSecondary {
+                        dialValue(reading?.secondaryWindow, label: "7d").opacity(secondaryOpacity)
                     }
                 }
-                }
-            }.foregroundStyle(tint)
+            }
+            .frame(width: 80 * scale)
+            .offset(y: showsSecondary ? -5 * scale : 0)
+            .foregroundStyle(tint)
         }
-        .padding(largeDial ? 8 : OverviewStyle.ringWidth / 2)
-        .frame(width: allowanceOnly ? 96 : largeDial ? 248 : min(dialSize, 200),
-               height: allowanceOnly ? 96 : largeDial ? 248 : min(dialSize, 200))
+        .frame(width: 108 * scale, height: 108 * scale)
+        .padding(.top, Self.strokeOutset * scale)
+        .frame(height: 103 * scale, alignment: .top)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(name) allowance used")
         .accessibilityValue(reading?.accessibilitySummary ?? "Allowance unavailable")
     }
     private func dialValue(_ window: QuotaWindow?, label: String) -> some View {
         Text(window.map { "\(Int($0.usedPercent.rounded()))% \(label)" } ?? "— \(label)")
-            .font(largeDial ? .system(size: 32, weight: .medium).monospacedDigit() : .system(.subheadline, design: .default, weight: .medium).monospacedDigit())
-            .foregroundStyle(window == nil ? OverviewStyle.secondary : tint)
+            .font(.system(size: 16 * dialScale, weight: .semibold).monospacedDigit())
+            .lineLimit(1)
+            .minimumScaleFactor(0.85)
     }
 
     private func resetCaption(_ window: QuotaWindow?, label: String) -> some View {
@@ -837,24 +932,21 @@ struct ProviderDialCardContent: View {
             guard let window else { return "\(label) not reported" }
             return "\(label) \(window.resetDescription())"
         }()
-        return Text(text).modifier(OverviewDetailType())
+        return Text(text).modifier(OverviewDetailType(weight: .regular)).monospacedDigit()
             .foregroundStyle(window == nil ? OverviewStyle.secondary : OverviewStyle.resetAccent)
             .fixedSize(horizontal: false, vertical: true)
     }
-    private func arc(_ window: QuotaWindow?, opacity: Double) -> some View {
-        let width = ringWidth
-        let tickScale = largeDial ? 2.0 : min(dialSize, 200) / 124
-        return ZStack {
+    private func arc(_ window: QuotaWindow?, lineWidth: CGFloat, opacity: Double) -> some View {
+        ZStack {
             Circle().trim(from: 0, to: 0.75)
-                .stroke(OverviewStyle.track, style: StrokeStyle(
-                    lineWidth: width, lineCap: .butt,
-                    dash: window == nil && !busy ? [4 * tickScale, 5 * tickScale] : []))
-            if connected, !busy, let window {
+                .stroke(OverviewStyle.overviewTrack, style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt))
+            if connected, let window {
                 Circle().trim(from: 0, to: 0.75 * min(100, max(0, window.usedPercent)) / 100)
-                    .stroke(tint.opacity(opacity), style: StrokeStyle(lineWidth: width, lineCap: .butt))
+                    .stroke(tint.opacity(opacity), style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt))
             }
         }.rotationEffect(.degrees(135))
     }
+
 }
 
 

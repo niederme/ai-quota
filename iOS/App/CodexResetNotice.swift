@@ -70,6 +70,7 @@ final class CodexResetNotice {
 }
 
 struct CodexResetNoticeBanner: View {
+    @ScaledMetric(relativeTo: .subheadline) private var textSize = 15.0
     let announcement: CodexResetAnnouncement
     let openDetails: () -> Void
     let dismiss: () -> Void
@@ -87,23 +88,35 @@ struct CodexResetNoticeBanner: View {
                     }
                     .foregroundStyle(OverviewStyle.accent)
                 }
-                .font(.body)
+                .font(.system(size: textSize))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             Button(action: dismiss) {
-                OverviewCircularSymbol(systemName: "xmark.circle.fill")
-                    .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 16))
+                    .frame(width: 44, height: 44, alignment: .topTrailing)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .foregroundStyle(OverviewStyle.tertiary)
+            .foregroundStyle(Color(uiColor: .secondaryLabel).opacity(0.75))
             .accessibilityLabel("Dismiss reset announcement")
         }
         .modifier(UsageLoadingState(loading: loading, label: "Updating reset announcement"))
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .modifier(OverviewCardMaterial())
+        .background {
+            RoundedRectangle(cornerRadius: OverviewStyle.accountRadius)
+                .fill(.regularMaterial)
+                .overlay {
+                    RoundedRectangle(cornerRadius: OverviewStyle.accountRadius)
+                        .fill(OverviewStyle.accent.opacity(0.22))
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: OverviewStyle.accountRadius)
+                        .strokeBorder(OverviewStyle.primary.opacity(0.16), lineWidth: 1)
+                }
+        }
     }
 }

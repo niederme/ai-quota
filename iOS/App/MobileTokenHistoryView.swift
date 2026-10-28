@@ -5,8 +5,6 @@ import MobileAccessCore
 struct MobileTokenHistoryView: View {
     private static let weeks = CodexTokenHistory.visibleWeeks
     static let cellGap: CGFloat = 1
-    private static let monthLabelWidth: CGFloat = 20
-    private static let monthLabelSpacing: CGFloat = 4
     let history: CodexTokenHistory?
     let unavailable: Bool
     let loading: Bool
@@ -29,36 +27,23 @@ struct MobileTokenHistoryView: View {
             GeometryReader { geometry in
                 let gap = Self.cellGap
                 let side = Self.cellSide(for: geometry.size.width)
-                let gridWidth = CGFloat(Self.weeks) * side + CGFloat(Self.weeks - 1) * gap
-                let visibleMonthWeeks = Self.visibleMonthWeeks(days, width: geometry.size.width)
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(alignment: .top, spacing: gap) {
-                        ForEach(0..<Self.weeks, id: \.self) { week in
-                            VStack(spacing: gap) {
-                                ForEach(0..<7, id: \.self) { row in
-                                    let day = days[week * 7 + row]
-                                    RoundedRectangle(cornerRadius: 1)
-                                        .fill(fill(day, sortedPositives: positives))
-                                        .frame(width: side, height: side)
-                                        .accessibilityLabel(day.isToday ? "Today, \(description(day))" : description(day))
-                                        .accessibilityHidden(day.isFuture)
-                                }
+                HStack(alignment: .top, spacing: gap) {
+                    ForEach(0..<Self.weeks, id: \.self) { week in
+                        VStack(spacing: gap) {
+                            ForEach(0..<7, id: \.self) { row in
+                                let day = days[week * 7 + row]
+                                RoundedRectangle(cornerRadius: 1)
+                                    .fill(fill(day, sortedPositives: positives))
+                                    .frame(width: side, height: side)
+                                    .accessibilityLabel(day.isToday ? "Today, \(description(day))" : description(day))
+                                    .accessibilityHidden(day.isFuture)
                             }
                         }
                     }
-                    .frame(minHeight: 44, alignment: .top)
-                    .accessibilityElement(children: .contain)
-                    .accessibilityIdentifier("tokenActivityGrid")
-                    ZStack(alignment: .topLeading) {
-                        ForEach(visibleMonthWeeks, id: \.self) { week in
-                            if let label = Self.monthLabel(days, week: week) {
-                                Text(label).font(.system(size: 8)).foregroundStyle(.secondary)
-                                    .frame(width: Self.monthLabelWidth, alignment: .leading)
-                                    .offset(x: Self.monthLabelOffset(week: week, width: gridWidth))
-                            }
-                        }
-                    }.frame(height: 12)
                 }
+                .frame(minHeight: 44, alignment: .top)
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("tokenActivityGrid")
             }
             .frame(height: graphHeight)
             .accessibilityElement(children: .contain)
@@ -70,28 +55,7 @@ struct MobileTokenHistoryView: View {
         max(1, (width - CGFloat(weeks - 1) * cellGap) / CGFloat(weeks))
     }
     static func graphHeight(for width: CGFloat) -> CGFloat {
-        max(44, 7 * cellSide(for: width) + 6 * cellGap) + 16
-    }
-    static func monthLabelOffset(week: Int, width: CGFloat) -> CGFloat {
-        min(max(0, width - monthLabelWidth), CGFloat(week) * (cellSide(for: width) + cellGap))
-    }
-    static func visibleMonthWeeks(_ days: [CodexTokenHistory.Day], width: CGFloat) -> [Int] {
-        let candidates: [(week: Int, x: CGFloat)] = (0..<weeks).compactMap { week in
-            guard monthLabel(days, week: week) != nil else { return nil }
-            return (week, monthLabelOffset(week: week, width: width))
-        }
-        guard let first = candidates.first, let last = candidates.last else { return [] }
-        let minimumSpacing = monthLabelWidth + monthLabelSpacing
-        var visible = [first.week]
-        var lastX = first.x
-        for candidate in candidates.dropFirst().dropLast() {
-            guard candidate.x - lastX >= minimumSpacing,
-                  last.x - candidate.x >= minimumSpacing else { continue }
-            visible.append(candidate.week)
-            lastX = candidate.x
-        }
-        if last.week != first.week, last.x - lastX >= minimumSpacing { visible.append(last.week) }
-        return visible
+        max(44, 7 * cellSide(for: width) + 6 * cellGap)
     }
     private var graphHeight: CGFloat { Self.graphHeight(for: availableWidth) }
     private func fill(_ day: CodexTokenHistory.Day, sortedPositives: [Double]) -> Color {
@@ -126,14 +90,5 @@ struct MobileTokenHistoryView: View {
     private func description(_ day: CodexTokenHistory.Day) -> String {
         guard let tokens = day.tokens else { return "\(day.key): no record reported" }
         return "\(day.key): \(tokens.formatted(.number.precision(.fractionLength(0)))) tokens"
-    }
-    static func monthLabel(_ days: [CodexTokenHistory.Day], week: Int) -> String? {
-        let firstOfMonth = days[(week * 7)..<(week * 7 + 7)].first(where: {
-            !$0.isFuture && CodexTokenHistory.calendar.component(.day, from: $0.date) == 1
-        })
-        guard let day = firstOfMonth ?? (week == 0 ? days[0] : nil) else { return nil }
-        let formatter = CodexTokenHistory.dateFormatter()
-        formatter.dateFormat = "MMM"
-        return formatter.string(from: day.date)
     }
 }

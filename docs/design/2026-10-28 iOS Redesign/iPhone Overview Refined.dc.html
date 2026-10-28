@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/aiquota-app-design-system-2deee27f-2073-4d6d-9c88-a9a6ea8b7585/tokens/tokens.css">
+<link rel="stylesheet" href="_ds/aiquota-app-design-system-2deee27f-2073-4d6d-9c88-a9a6ea8b7585/_ds_bundle.css">
+<link rel="stylesheet" href="_ds/aiquota-app-design-system-2deee27f-2073-4d6d-9c88-a9a6ea8b7585/styles.css">
+<script src="_ds/aiquota-app-design-system-2deee27f-2073-4d6d-9c88-a9a6ea8b7585/_ds_bundle.js"></script>
+<style>body{margin:0;background:#16121a;font-family:var(--font-sans)}a{color:var(--accent)}a:hover{color:var(--reset-accent)}@keyframes aqspin{to{transform:rotate(360deg)}}</style>
+</helmet>
+<section id="t3" class="aq" style="background:#16121a;width:max-content;min-width:100%;padding:48px 56px 56px;display:flex;flex-direction:column;gap:24px;border-bottom:1px solid rgba(255,255,255,.08)">
+<div style="display:flex;align-items:baseline;gap:10px">
+<a href="#t3" style="font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#fff;color:#16121a;border-radius:4px;text-decoration:none">3</a>
+<span style="font:600 13px/16px var(--font-sans);color:#fff"><a href="#2a" style="color:#fff">2a</a> with 0, 1, 2, 3 and 4 accounts</span>
+</div>
+<div style="display:flex;gap:40px;align-items:flex-start">
+<sc-for list="{{ t3 }}" as="ph" hint-placeholder-count="5">
+<div id="{{ ph.id }}" style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:baseline;gap:8px;font:400 12px/16px var(--font-sans);color:rgba(235,235,245,.62)"><a href="#{{ ph.id }}" style="font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:#bf5af2;color:#fff;border-radius:5px;text-decoration:none">{{ ph.id }}</a>{{ ph.label }}</div>
+<div class="aq-phone aq-wash" style="color:var(--primary);height:852px;display:flex;flex-direction:column">
+<div class="aq-island"></div>
+<div class="aq-status"><span class="aq-num">9:41</span><i></i></div>
+<div class="aq-navbar"><h1>AIQuota</h1><span class="aq-toolbar aq-glass"><button class="aq-iconbtn" type="button" aria-label="Refresh usage"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6"></path><path d="M15.2 2.6v3.6h-3.6"></path></svg></button><button class="aq-iconbtn" type="button" aria-label="Settings"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="2.6"></circle><path d="M10 2.2v2.3M10 15.5v2.3M2.2 10h2.3M15.5 10h2.3M4.5 4.5l1.6 1.6M13.9 13.9l1.6 1.6M4.5 15.5l1.6-1.6M13.9 6.1l1.6-1.6"></path></svg></button></span></div>
+<div data-t3-scroll="" style="flex:1;min-height:0;overflow-y:auto;scrollbar-width:none;overscroll-behavior:contain">
+<div style="display:flex;flex-direction:column;gap:var(--aq2-gap,8px);padding:8px 16px 40px">
+<sc-if value="{{ ph.empty }}" hint-placeholder-val="{{ false }}">
+<div role="button" tabindex="0" aria-label="Codex, not connected" style="display:flex;flex-direction:column;gap:8px;padding:21px 16px 16px;border-radius:var(--aq2-r,24px);cursor:pointer;background:linear-gradient(color-mix(in srgb,var(--accent) 10%,transparent),color-mix(in srgb,var(--accent) 10%,transparent)) top / 100% 1px no-repeat,color-mix(in srgb,var(--accent) 6%,transparent)">
+<div style="display:flex;gap:20px;align-items:flex-start">
+<div style="flex:none;width:108px;height:103px;padding-top:5px"><div class="aq-dial aq-dial--mac" style="width:108px;height:108px;--tint:var(--tertiary)"><svg viewBox="0 0 108 108" aria-hidden="true"><path class="aq-dial__track" stroke-width="7" d="M15.82 92.18A54 54 0 1 1 92.18 92.18"></path><path class="aq-dial__track" stroke-width="7" d="M22.18 85.82A45 45 0 1 1 85.82 85.82"></path></svg><div class="aq-dial__body" aria-hidden="true" style="gap:5px;transform:translateY(-5px)"><i class="aq-glyph aq-glyph--openai"></i><div class="aq-dial__values" style="width:80px;font:600 16px/19px var(--font-sans);letter-spacing:0"><span>— 5h</span><span class="aq-dial__v--2">— 7d</span></div></div></div></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding-top:8px">
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font:600 20px/24px var(--font-sans);letter-spacing:-0.25px">Codex</span><span style="font:600 13px/16px var(--font-sans)">Not connected</span></div>
+<div style="display:flex;align-items:center;height:16px;width:100%;max-width:136px"><div style="height:8px;width:100%;border-radius:4px;background:var(--track-mac)"></div></div>
+<div style="display:flex;align-items:center;height:16px;width:100%;max-width:172px"><div style="height:8px;width:100%;border-radius:4px;background:var(--track-mac)"></div></div>
+<button class="aq-btn aq-btn--prominent aq-btn--small" type="button" style="margin-top:4px">Connect</button>
+</div>
+</div>
+<div aria-hidden="true" style="margin:0 -5px;display:flex;flex-direction:column;opacity:.6"><div class="aq-heat__grid"><sc-for list="{{ emptyHeat }}" as="h" hint-placeholder-count="294"><i style="background:var(--track-mac)"></i></sc-for></div></div>
+</div>
+<div role="button" tabindex="0" aria-label="Claude, not connected" style="display:flex;flex-direction:column;padding:21px 16px;border-radius:var(--aq2-r,24px);cursor:pointer;background:linear-gradient(color-mix(in srgb,var(--accent) 10%,transparent),color-mix(in srgb,var(--accent) 10%,transparent)) top / 100% 1px no-repeat,color-mix(in srgb,var(--accent) 6%,transparent)">
+<div style="display:flex;gap:20px;align-items:flex-start">
+<div style="flex:none;width:108px;height:103px;padding-top:5px"><div class="aq-dial aq-dial--mac" style="width:108px;height:108px;--tint:var(--tertiary)"><svg viewBox="0 0 108 108" aria-hidden="true"><path class="aq-dial__track" stroke-width="7" d="M15.82 92.18A54 54 0 1 1 92.18 92.18"></path><path class="aq-dial__track" stroke-width="7" d="M22.18 85.82A45 45 0 1 1 85.82 85.82"></path></svg><div class="aq-dial__body" aria-hidden="true" style="gap:5px;transform:translateY(-5px)"><i class="aq-glyph aq-glyph--claude"></i><div class="aq-dial__values" style="width:80px;font:600 16px/19px var(--font-sans);letter-spacing:0"><span>— 5h</span><span class="aq-dial__v--2">— 7d</span></div></div></div></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding-top:8px">
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font:600 20px/24px var(--font-sans);letter-spacing:-0.25px">Claude</span><span style="font:600 13px/16px var(--font-sans)">Not connected</span></div>
+<div style="display:flex;align-items:center;height:16px;width:100%;max-width:136px"><div style="height:8px;width:100%;border-radius:4px;background:var(--track-mac)"></div></div>
+<div style="display:flex;align-items:center;height:16px;width:100%;max-width:172px"><div style="height:8px;width:100%;border-radius:4px;background:var(--track-mac)"></div></div>
+<button class="aq-btn aq-btn--prominent aq-btn--small" type="button" style="margin-top:4px">Connect</button>
+</div>
+</div>
+</div>
+</sc-if>
+<sc-for list="{{ ph.accounts }}" as="a" hint-placeholder-count="2">
+<button type="button" aria-label="{{ a.name }}" style="display:flex;flex-direction:column;width:100%;padding:21px 16px;border:0;border-radius:var(--aq2-r,24px);font:inherit;text-align:left;color:var(--primary);cursor:pointer;-webkit-backdrop-filter:var(--aq2-under,none);backdrop-filter:var(--aq2-under,none);background:linear-gradient(color-mix(in srgb,var(--accent) 10%,transparent),color-mix(in srgb,var(--accent) 10%,transparent)) top / 100% 1px no-repeat,color-mix(in srgb,var(--accent) 6%,transparent);transition:box-shadow .12s ease-out" style-active="box-shadow:inset 0 0 0 999px color-mix(in srgb,var(--accent) 5%,transparent)">
+<div style="display:flex;gap:20px;align-items:flex-start;width:100%">
+<div style="flex:none;width:108px;height:103px;padding-top:5px"><div class="aq-dial aq-dial--mac {{ a.tint }}" role="img" aria-label="{{ a.aria }}" style="width:108px;height:108px"><svg viewBox="0 0 108 108" aria-hidden="true"><path class="aq-dial__track" stroke-width="7" d="M15.82 92.18A54 54 0 1 1 92.18 92.18"></path><path class="aq-dial__track" stroke-width="7" d="M22.18 85.82A45 45 0 1 1 85.82 85.82"></path><path class="aq-dial__fill" stroke-width="7" d="{{ a.d1 }}"></path><path class="aq-dial__fill aq-dial__fill--2" stroke-width="7" d="{{ a.d2 }}"></path></svg><div class="aq-dial__body" aria-hidden="true" style="gap:5px;transform:translateY(-5px)"><i class="aq-glyph {{ a.glyph }}"></i><div class="aq-dial__values" style="width:80px;font:600 16px/19px var(--font-sans);letter-spacing:0"><span>{{ a.v1 }}</span><span class="aq-dial__v--2">{{ a.v2 }}</span></div></div></div></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;padding-top:8px">
+<div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;align-items:center;gap:4px"><span style="flex:1;font:600 20px/24px var(--font-sans);letter-spacing:-0.25px">{{ a.name }}</span><svg viewBox="0 0 22 22" aria-hidden="true" style="width:20px;height:20px;flex:none;color:var(--tertiary)"><mask id="{{ a.mid }}"><rect width="22" height="22" fill="#fff"></rect><path d="M9.6 6.6l4.4 4.4-4.4 4.4" stroke="#000" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></mask><circle cx="11" cy="11" r="11" fill="currentColor" mask="url(#{{ a.mid }})"></circle></svg></div><span style="font:600 13px/16px var(--font-sans)">{{ a.plan }}</span></div>
+<div style="display:flex;flex-direction:column;font:400 13px/16px var(--font-sans);font-variant-numeric:tabular-nums;color:var(--reset-accent)"><span>{{ a.r1 }}</span><span>{{ a.r2 }}</span></div>
+<sc-if value="{{ a.status }}" hint-placeholder-val="{{ false }}"><span style="font:400 13px/16px var(--font-sans);color:var(--secondary)">{{ a.status }}</span></sc-if>
+</div>
+</div>
+<sc-if value="{{ a.heat }}" hint-placeholder-val="{{ false }}"><div role="img" aria-label="Token activity, past 42 weeks" style="align-self:stretch;margin:8px -5px -5px;display:flex;flex-direction:column"><div class="aq-heat__grid"><sc-for list="{{ a.heat }}" as="h" hint-placeholder-count="294"><i class="{{ h.c }}"></i></sc-for></div></div></sc-if>
+</button>
+</sc-for>
+<div style="display:flex;flex-direction:column;gap:4px;padding-top:8px;text-align:center;font:400 13px/18px var(--font-sans);color:var(--secondary)"><sc-for list="{{ ph.fresh }}" as="f" hint-placeholder-count="2"><span>{{ f }}</span></sc-for></div>
+</div>
+</div>
+<div class="aq-home"></div>
+</div>
+</div>
+</sc-for>
+</div>
+<p style="margin:0;font:12px/16px var(--font-sans);color:rgba(235,235,245,.5)">0 accounts uses the Mac’s placeholder rows (<span style="color:#fff">MacAccountPlaceholderRow</span>); iOS ships onboarding there today. Account labels appear only when a service has more than one account, as on the Mac. Notice omitted to isolate the stack.</p>
+<p style="margin:0;font:12px/16px var(--font-sans);color:rgba(235,235,245,.5)">Try next: "show <a href="#3e" style="color:inherit">3e</a> scrolled" · "group accounts by service" · "compact cards past 3 accounts"</p>
+</section>
+<section id="t2" class="aq" style="background:#16121a;width:max-content;min-width:100%;padding:48px 56px 56px;display:flex;flex-direction:column;gap:24px;border-bottom:1px solid rgba(255,255,255,.08)">
+<div style="display:flex;align-items:baseline;gap:10px">
+<a href="#t2" style="font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#fff;color:#16121a;border-radius:4px;text-decoration:none">2</a>
+<span style="font:600 13px/16px var(--font-sans);color:#fff">Rebuilt from MacAccountCard, MacAccountDial and MacResetNoticeBanner (ai-quota main)</span>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:48px;align-items:flex-start">
+
+<div id="2a" style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:baseline;gap:8px;font:400 12px/16px var(--font-sans);color:rgba(235,235,245,.62)"><a href="#2a" style="font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:#bf5af2;color:#fff;border-radius:5px;text-decoration:none">2a</a>Mac row surface as the resting card · dark</div>
+<div class="aq-phone aq-wash" style="color:var(--primary)">
+<div class="aq-island"></div>
+<div class="aq-status"><span class="aq-num">9:41</span><i></i></div>
+<div class="aq-navbar"><h1>AIQuota</h1><span class="aq-toolbar aq-glass"><button class="aq-iconbtn" type="button" aria-label="Refresh usage" onClick="{{ refreshD2 }}"><sc-if value="{{ spinD2 }}" hint-placeholder-val="{{ false }}">{{ spinner }}</sc-if><sc-if value="{{ idleD2 }}" hint-placeholder-val="{{ true }}"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6"></path><path d="M15.2 2.6v3.6h-3.6"></path></svg></sc-if></button><button class="aq-iconbtn" type="button" aria-label="Settings"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="2.6"></circle><path d="M10 2.2v2.3M10 15.5v2.3M2.2 10h2.3M15.5 10h2.3M4.5 4.5l1.6 1.6M13.9 13.9l1.6 1.6M4.5 15.5l1.6-1.6M13.9 6.1l1.6-1.6"></path></svg></button></span></div>
+<div style="display:flex;flex-direction:column;gap:var(--aq2-gap,8px);padding:8px 16px 16px">
+<sc-if value="{{ noticeD2 }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;align-items:flex-start;gap:8px;padding:12px 16px;border-radius:var(--aq2-r,24px);background:color-mix(in srgb,var(--accent) 22%,transparent);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--primary) 16%,transparent)">
+<a href="#" style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;text-decoration:none"><span style="font:600 15px/20px var(--font-sans);color:var(--primary)">Codex usage reset announced</span><span style="display:flex;gap:6px;align-items:baseline;font:400 15px/20px var(--font-sans);color:var(--accent)">Read more on Codex Resets<span aria-hidden="true">↗</span></span></a>
+<button type="button" aria-label="Dismiss reset announcement" onClick="{{ dismissD2 }}" style="flex:none;display:flex;justify-content:flex-end;align-items:flex-start;width:44px;height:44px;margin:-6px -6px -6px 0;padding:8px 6px 0 0;border:0;background:none;cursor:pointer;color:var(--secondary)"><svg viewBox="0 0 22 22" aria-hidden="true" style="width:16px;height:16px;opacity:.75"><mask id="dx2"><rect width="22" height="22" fill="#fff"></rect><path d="M7.5 7.5l7 7M14.5 7.5l-7 7" stroke="#000" stroke-width="2" stroke-linecap="round"></path></mask><circle cx="11" cy="11" r="11" fill="currentColor" mask="url(#dx2)"></circle></svg></button>
+</div>
+</sc-if>
+<button type="button" aria-label="Codex" style="display:flex;flex-direction:column;width:100%;padding:21px 16px 16px;border:0;border-radius:var(--aq2-r,24px);font:inherit;text-align:left;color:var(--primary);cursor:pointer;-webkit-backdrop-filter:var(--aq2-under,none);backdrop-filter:var(--aq2-under,none);background:linear-gradient(color-mix(in srgb,var(--accent) 10%,transparent),color-mix(in srgb,var(--accent) 10%,transparent)) top / 100% 1px no-repeat,color-mix(in srgb,var(--accent) 6%,transparent);transition:box-shadow .12s ease-out" style-active="box-shadow:inset 0 0 0 999px color-mix(in srgb,var(--accent) 5%,transparent)">
+<div style="display:flex;gap:20px;align-items:flex-start;width:100%">
+<div style="flex:none;width:108px;height:103px;padding-top:5px"><div class="aq-dial aq-dial--mac" role="img" aria-label="62% of 5h used, 41% of 7d used" style="width:108px;height:108px"><svg viewBox="0 0 108 108" aria-hidden="true"><path class="aq-dial__track" stroke-width="7" d="M15.82 92.18A54 54 0 1 1 92.18 92.18"></path><path class="aq-dial__track" stroke-width="7" d="M22.18 85.82A45 45 0 1 1 85.82 85.82"></path><path class="aq-dial__fill" stroke-width="7" d="M15.82 92.18A54 54 0 0 1 82.95 8.41"></path><path class="aq-dial__fill aq-dial__fill--2" stroke-width="7" d="M22.18 85.82A45 45 0 0 1 35.48 12.99"></path></svg><div class="aq-dial__body" aria-hidden="true" style="gap:5px;transform:translateY(-5px)"><i class="aq-glyph aq-glyph--openai"></i><div class="aq-dial__values" style="width:80px;font:600 16px/19px var(--font-sans);letter-spacing:0"><span>62% 5h</span><span class="aq-dial__v--2">41% 7d</span></div></div></div></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;padding-top:8px">
+<div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;align-items:center;gap:4px"><span style="flex:1;font:600 20px/24px var(--font-sans);letter-spacing:-0.25px">Codex</span><svg viewBox="0 0 22 22" aria-hidden="true" style="width:20px;height:20px;flex:none;color:var(--tertiary)"><mask id="dc2"><rect width="22" height="22" fill="#fff"></rect><path d="M9.6 6.6l4.4 4.4-4.4 4.4" stroke="#000" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></mask><circle cx="11" cy="11" r="11" fill="currentColor" mask="url(#dc2)"></circle></svg></div><span style="font:600 13px/16px var(--font-sans)">Pro plan</span></div>
+<div style="display:flex;flex-direction:column;font:400 13px/16px var(--font-sans);font-variant-numeric:tabular-nums;color:var(--reset-accent)"><span>5h resets 3:40 PM</span><span>7d resets Tue 10:07 PM</span></div>
+</div>
+</div>
+<div role="img" aria-label="Token activity, past 42 weeks" style="align-self:stretch;margin:8px -5px 0;display:flex;flex-direction:column"><div class="aq-heat__grid"><sc-for list="{{ heat }}" as="h" hint-placeholder-count="294"><i class="{{ h.c }}"></i></sc-for></div></div>
+</button>
+<button type="button" aria-label="Claude" style="display:flex;flex-direction:column;width:100%;padding:21px 16px;border:0;border-radius:var(--aq2-r,24px);font:inherit;text-align:left;color:var(--primary);cursor:pointer;-webkit-backdrop-filter:var(--aq2-under,none);backdrop-filter:var(--aq2-under,none);background:linear-gradient(color-mix(in srgb,var(--accent) 10%,transparent),color-mix(in srgb,var(--accent) 10%,transparent)) top / 100% 1px no-repeat,color-mix(in srgb,var(--accent) 6%,transparent);transition:box-shadow .12s ease-out" style-active="box-shadow:inset 0 0 0 999px color-mix(in srgb,var(--accent) 5%,transparent)">
+<div style="display:flex;gap:20px;align-items:flex-start;width:100%">
+<div style="flex:none;width:108px;height:103px;padding-top:5px"><div class="aq-dial aq-dial--mac aq-dial--warning" role="img" aria-label="88% of 5h used, 64% of 7d used" style="width:108px;height:108px"><svg viewBox="0 0 108 108" aria-hidden="true"><path class="aq-dial__track" stroke-width="7" d="M15.82 92.18A54 54 0 1 1 92.18 92.18"></path><path class="aq-dial__track" stroke-width="7" d="M22.18 85.82A45 45 0 1 1 85.82 85.82"></path><path class="aq-dial__fill" stroke-width="7" d="M15.82 92.18A54 54 0 1 1 106.70 65.78"></path><path class="aq-dial__fill aq-dial__fill--2" stroke-width="7" d="M22.18 85.82A45 45 0 0 1 81.58 18.44"></path></svg><div class="aq-dial__body" aria-hidden="true" style="gap:5px;transform:translateY(-5px)"><i class="aq-glyph aq-glyph--claude"></i><div class="aq-dial__values" style="width:80px;font:600 16px/19px var(--font-sans);letter-spacing:0"><span>88% 5h</span><span class="aq-dial__v--2">64% 7d</span></div></div></div></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;padding-top:8px">
+<div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;align-items:center;gap:4px"><span style="flex:1;font:600 20px/24px var(--font-sans);letter-spacing:-0.25px">Claude</span><svg viewBox="0 0 22 22" aria-hidden="true" style="width:20px;height:20px;flex:none;color:var(--tertiary)"><mask id="dc3"><rect width="22" height="22" fill="#fff"></rect><path d="M9.6 6.6l4.4 4.4-4.4 4.4" stroke="#000" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></mask><circle cx="11" cy="11" r="11" fill="currentColor" mask="url(#dc3)"></circle></svg></div><span style="font:600 13px/16px var(--font-sans)">Max plan · Work</span></div>
+<div style="display:flex;flex-direction:column;font:400 13px/16px var(--font-sans);font-variant-numeric:tabular-nums;color:var(--reset-accent)"><span>5h resets 12:00 PM</span><span>7d resets Wed 2:00 PM</span></div>
+</div>
+</div>
+</button>
+<div style="display:flex;flex-direction:column;gap:4px;padding-top:8px;text-align:center;font:400 13px/18px var(--font-sans);color:var(--secondary)"><span>Sample usage · No live account data</span><span>{{ freshD2 }}</span></div>
+</div>
+<div class="aq-home"></div>
+</div>
+</div>
+
+<div id="2b" data-theme="light" style="display:flex;flex-direction:column;gap:16px;color:var(--primary)">
+<div style="display:flex;align-items:baseline;gap:8px;font:400 12px/16px var(--font-sans);color:rgba(235,235,245,.62)"><a href="#2b" style="font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:#bf5af2;color:#fff;border-radius:5px;text-decoration:none">2b</a>Same, light</div>
+<div class="aq-phone aq-wash" style="color:var(--primary)">
+<div class="aq-island"></div>
+<div class="aq-status"><span class="aq-num">9:41</span><i></i></div>
+<div class="aq-navbar"><h1>AIQuota</h1><span class="aq-toolbar aq-glass"><button class="aq-iconbtn" type="button" aria-label="Refresh usage" onClick="{{ refreshL2 }}"><sc-if value="{{ spinL2 }}" hint-placeholder-val="{{ false }}">{{ spinner }}</sc-if><sc-if value="{{ idleL2 }}" hint-placeholder-val="{{ true }}"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6"></path><path d="M15.2 2.6v3.6h-3.6"></path></svg></sc-if></button><button class="aq-iconbtn" type="button" aria-label="Settings"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="2.6"></circle><path d="M10 2.2v2.3M10 15.5v2.3M2.2 10h2.3M15.5 10h2.3M4.5 4.5l1.6 1.6M13.9 13.9l1.6 1.6M4.5 15.5l1.6-1.6M13.9 6.1l1.6-1.6"></path></svg></button></span></div>
+<div style="display:flex;flex-direction:column;gap:var(--aq2-gap,8px);padding:8px 16px 16px">
+<sc-if value="{{ noticeL2 }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;align-items:flex-start;gap:8px;padding:12px 16px;border-radius:var(--aq2-r,24px);background:color-mix(in srgb,var(--accent) 22%,transparent);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--primary) 16%,transparent)">
+<a href="#" style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;text-decoration:none"><span style="font:600 15px/20px var(--font-sans);color:var(--primary)">Codex usage reset announced</span><span style="display:flex;gap:6px;align-items:baseline;font:400 15px/20px var(--font-sans);color:var(--accent)">Read more on Codex Resets<span aria-hidden="true">↗</span></span></a>
+<button type="button" aria-label="Dismiss reset announcement" onClick="{{ dismissL2 }}" style="flex:none;display:flex;justify-content:flex-end;align-items:flex-start;width:44px;height:44px;margin:-6px -6px -6px 0;padding:8px 6px 0 0;border:0;background:none;cursor:pointer;color:var(--secondary)"><svg viewBox="0 0 22 22" aria-hidden="true" style="width:16px;height:16px;opacity:.75"><mask id="ex2"><rect width="22" height="22" fill="#fff"></rect><path d="M7.5 7.5l7 7M14.5 7.5l-7 7" stroke="#000" stroke-width="2" stroke-linecap="round"></path></mask><circle cx="11" cy="11" r="11" fill="currentColor" mask="url(#ex2)"></circle></svg></button>
+</div>
+</sc-if>
+<button type="button" aria-label="Codex" style="display:flex;flex-direction:column;width:100%;padding:21px 16px 16px;border:0;border-radius:var(--aq2-r,24px);font:inherit;text-align:left;color:var(--primary);cursor:pointer;-webkit-backdrop-filter:var(--aq2-under,none);backdrop-filter:var(--aq2-under,none);background:linear-gradient(color-mix(in srgb,var(--accent) 10%,transparent),color-mix(in srgb,var(--accent) 10%,transparent)) top / 100% 1px no-repeat,color-mix(in srgb,var(--accent) 6%,transparent);transition:box-shadow .12s ease-out" style-active="box-shadow:inset 0 0 0 999px color-mix(in srgb,var(--accent) 5%,transparent)">
+<div style="display:flex;gap:20px;align-items:flex-start;width:100%">
+<div style="flex:none;width:108px;height:103px;padding-top:5px"><div class="aq-dial aq-dial--mac" role="img" aria-label="62% of 5h used, 41% of 7d used" style="width:108px;height:108px"><svg viewBox="0 0 108 108" aria-hidden="true"><path class="aq-dial__track" stroke-width="7" d="M15.82 92.18A54 54 0 1 1 92.18 92.18"></path><path class="aq-dial__track" stroke-width="7" d="M22.18 85.82A45 45 0 1 1 85.82 85.82"></path><path class="aq-dial__fill" stroke-width="7" d="M15.82 92.18A54 54 0 0 1 82.95 8.41"></path><path class="aq-dial__fill aq-dial__fill--2" stroke-width="7" d="M22.18 85.82A45 45 0 0 1 35.48 12.99"></path></svg><div class="aq-dial__body" aria-hidden="true" style="gap:5px;transform:translateY(-5px)"><i class="aq-glyph aq-glyph--openai"></i><div class="aq-dial__values" style="width:80px;font:600 16px/19px var(--font-sans);letter-spacing:0"><span>62% 5h</span><span class="aq-dial__v--2">41% 7d</span></div></div></div></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;padding-top:8px">
+<div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;align-items:center;gap:4px"><span style="flex:1;font:600 20px/24px var(--font-sans);letter-spacing:-0.25px">Codex</span><svg viewBox="0 0 22 22" aria-hidden="true" style="width:20px;height:20px;flex:none;color:var(--tertiary)"><mask id="ec2"><rect width="22" height="22" fill="#fff"></rect><path d="M9.6 6.6l4.4 4.4-4.4 4.4" stroke="#000" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></mask><circle cx="11" cy="11" r="11" fill="currentColor" mask="url(#ec2)"></circle></svg></div><span style="font:600 13px/16px var(--font-sans)">Pro plan</span></div>
+<div style="display:flex;flex-direction:column;font:400 13px/16px var(--font-sans);font-variant-numeric:tabular-nums;color:var(--reset-accent)"><span>5h resets 3:40 PM</span><span>7d resets Tue 10:07 PM</span></div>
+</div>
+</div>
+<div role="img" aria-label="Token activity, past 42 weeks" style="align-self:stretch;margin:8px -5px 0;display:flex;flex-direction:column"><div class="aq-heat__grid"><sc-for list="{{ heat }}" as="h" hint-placeholder-count="294"><i class="{{ h.c }}"></i></sc-for></div></div>
+</button>
+<button type="button" aria-label="Claude" style="display:flex;flex-direction:column;width:100%;padding:21px 16px;border:0;border-radius:var(--aq2-r,24px);font:inherit;text-align:left;color:var(--primary);cursor:pointer;-webkit-backdrop-filter:var(--aq2-under,none);backdrop-filter:var(--aq2-under,none);background:linear-gradient(color-mix(in srgb,var(--accent) 10%,transparent),color-mix(in srgb,var(--accent) 10%,transparent)) top / 100% 1px no-repeat,color-mix(in srgb,var(--accent) 6%,transparent);transition:box-shadow .12s ease-out" style-active="box-shadow:inset 0 0 0 999px color-mix(in srgb,var(--accent) 5%,transparent)">
+<div style="display:flex;gap:20px;align-items:flex-start;width:100%">
+<div style="flex:none;width:108px;height:103px;padding-top:5px"><div class="aq-dial aq-dial--mac aq-dial--warning" role="img" aria-label="88% of 5h used, 64% of 7d used" style="width:108px;height:108px"><svg viewBox="0 0 108 108" aria-hidden="true"><path class="aq-dial__track" stroke-width="7" d="M15.82 92.18A54 54 0 1 1 92.18 92.18"></path><path class="aq-dial__track" stroke-width="7" d="M22.18 85.82A45 45 0 1 1 85.82 85.82"></path><path class="aq-dial__fill" stroke-width="7" d="M15.82 92.18A54 54 0 1 1 106.70 65.78"></path><path class="aq-dial__fill aq-dial__fill--2" stroke-width="7" d="M22.18 85.82A45 45 0 0 1 81.58 18.44"></path></svg><div class="aq-dial__body" aria-hidden="true" style="gap:5px;transform:translateY(-5px)"><i class="aq-glyph aq-glyph--claude"></i><div class="aq-dial__values" style="width:80px;font:600 16px/19px var(--font-sans);letter-spacing:0"><span>88% 5h</span><span class="aq-dial__v--2">64% 7d</span></div></div></div></div>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;padding-top:8px">
+<div style="display:flex;flex-direction:column;gap:4px"><div style="display:flex;align-items:center;gap:4px"><span style="flex:1;font:600 20px/24px var(--font-sans);letter-spacing:-0.25px">Claude</span><svg viewBox="0 0 22 22" aria-hidden="true" style="width:20px;height:20px;flex:none;color:var(--tertiary)"><mask id="ec3"><rect width="22" height="22" fill="#fff"></rect><path d="M9.6 6.6l4.4 4.4-4.4 4.4" stroke="#000" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></mask><circle cx="11" cy="11" r="11" fill="currentColor" mask="url(#ec3)"></circle></svg></div><span style="font:600 13px/16px var(--font-sans)">Max plan · Work</span></div>
+<div style="display:flex;flex-direction:column;font:400 13px/16px var(--font-sans);font-variant-numeric:tabular-nums;color:var(--reset-accent)"><span>5h resets 12:00 PM</span><span>7d resets Wed 2:00 PM</span></div>
+</div>
+</div>
+</button>
+<div style="display:flex;flex-direction:column;gap:4px;padding-top:8px;text-align:center;font:400 13px/18px var(--font-sans);color:var(--secondary)"><span>Sample usage · No live account data</span><span>{{ freshL2 }}</span></div>
+</div>
+<div class="aq-home"></div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:12px;max-width:300px;padding-top:32px;font:400 13px/20px var(--font-sans);color:rgba(235,235,245,.62)">
+<p style="margin:0;font-weight:600;color:#fff">From the Mac code</p>
+<p style="margin:0">Card surface is <span style="color:#fff">MacAccountRowSurface</span> at its hover state: accent at 6%, a 1px accent‑10% highlight along the top, no border, no shadow. Pressed adds accent at 5%.</p>
+<p style="margin:0">Padding 21 top and bottom, 16 sides; 8 at the bottom when the heatmap closes the card.</p>
+<p style="margin:0">Dial 108 with 7pt rings (inner inset 9), 5pt top inset, frame trimmed to 103 so the open quarter takes no space. Readouts 16 semibold, 2 apart, lifted 5.</p>
+<p style="margin:0">Details 20 from the dial, 8 down: name 20 semibold, plan 13 semibold 4 below, reset lines 13 with no gap between them.</p>
+<p style="margin:0">Heatmap 8 below, bleeding 5 past the card padding to line up with the ring’s outer edge; no title, no month labels. Card closes 16 below the grid.</p>
+<p style="margin:0">Notice from <span style="color:#fff">MacResetNoticeBanner</span>: 15pt, accent‑22% tint, 1px primary‑16% edge, 16pt dismiss glyph (kept in a 44pt target).</p>
+<p style="margin:0">Content starts 8 below the nav bar, as the Mac list starts 8 below its header. Card gap is a tweak: the Mac stacks rows at 0, but they’re clear at rest.</p>
+<p style="margin:0">Supersedes <a href="#1b">1b</a> and <a href="#1c">1c</a>, which followed the design system notes rather than the code.</p>
+</div>
+
+</div>
+<p style="margin:0;font:12px/16px var(--font-sans);color:rgba(235,235,245,.5)">Try next: "card gap 0, like the Mac" · "back to 28 radius" · "add glass under the surface"</p>
+</section>
+<section id="t1" class="aq" style="background:#16121a;min-height:100vh;width:max-content;min-width:100%;padding:48px 56px 56px;display:flex;flex-direction:column;gap:24px">
+<div style="display:flex;align-items:baseline;gap:10px">
+<a href="#t1" style="font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#fff;color:#16121a;border-radius:4px;text-decoration:none">1</a>
+<span style="font:600 13px/16px var(--font-sans);color:#fff">iPhone overview: Mac card treatment and rhythm</span>
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:48px;align-items:flex-start">
+
+<div id="1a" style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:baseline;gap:8px;font:400 12px/16px var(--font-sans);color:rgba(235,235,245,.62)"><a href="#1a" style="font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(255,255,255,.12);color:#fff;border-radius:5px;text-decoration:none">1a</a>As shipped</div>
+<div class="aq-phone aq-wash" style="color:var(--primary)">
+<div class="aq-island"></div>
+<div class="aq-status"><span class="aq-num">9:41</span><i></i></div>
+<div class="aq-navbar"><h1>AIQuota</h1><span class="aq-toolbar aq-glass"><button class="aq-iconbtn" type="button" aria-label="Refresh usage"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6"></path><path d="M15.2 2.6v3.6h-3.6"></path></svg></button><button class="aq-iconbtn" type="button" aria-label="Settings"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="2.6"></circle><path d="M10 2.2v2.3M10 15.5v2.3M2.2 10h2.3M15.5 10h2.3M4.5 4.5l1.6 1.6M13.9 13.9l1.6 1.6M4.5 15.5l1.6-1.6M13.9 6.1l1.6-1.6"></path></svg></button></span></div>
+<div class="aq-screen">
+<div class="aq-notice aq-glass"><div class="aq-notice__text"><p class="aq-notice__title">Codex usage reset announced</p><a class="aq-notice__link" href="#">Read more on Codex Resets <span aria-hidden="true">↗</span></a></div><button class="aq-notice__close" type="button" aria-label="Dismiss reset announcement"><svg viewBox="0 0 22 22" aria-hidden="true"><mask id="ax0"><rect width="22" height="22" fill="#fff"></rect><path d="M7.5 7.5l7 7M14.5 7.5l-7 7" stroke="#000" stroke-width="2" stroke-linecap="round"></path></mask><circle cx="11" cy="11" r="11" fill="currentColor" mask="url(#ax0)"></circle></svg></button></div>
+<button type="button" class="aq-card aq-glass" aria-label="Codex"><div class="aq-card__summary"><div class="aq-dial" role="img" aria-label="62% of 5h used, 41% of 7d used"><svg viewBox="0 0 124 124" aria-hidden="true"><path class="aq-dial__track" stroke-width="8" d="M20.99 103.01A58 58 0 1 1 103.01 103.01"></path><path class="aq-dial__track" stroke-width="8" d="M28.06 95.94A48 48 0 1 1 95.94 95.94"></path><path class="aq-dial__fill" stroke-width="8" d="M20.99 103.01A58 58 0 0 1 93.08 13.03"></path><path class="aq-dial__fill aq-dial__fill--2" stroke-width="8" d="M28.06 95.94A48 48 0 0 1 42.25 18.25"></path></svg><div class="aq-dial__body" aria-hidden="true"><i class="aq-glyph aq-glyph--openai"></i><div class="aq-dial__values"><span>62% 5h</span><span class="aq-dial__v--2">41% 7d</span></div></div></div><div class="aq-card__details"><div class="aq-card__head"><p class="aq-card__name"><span>Codex</span><svg class="aq-chev" viewBox="0 0 22 22" aria-hidden="true"><mask id="ac0"><rect width="22" height="22" fill="#fff"></rect><path d="M9.6 6.6l4.4 4.4-4.4 4.4" stroke="#000" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></mask><circle cx="11" cy="11" r="11" fill="currentColor" mask="url(#ac0)"></circle></svg></p><p class="aq-card__plan">Pro plan</p></div><div class="aq-card__captions"><p class="aq-card__reset">5h resets 3:40 PM</p><p class="aq-card__reset">7d resets Tue 10:07 PM</p></div></div></div><div class="aq-heat" role="img" aria-label="Token activity, past 42 weeks"><div class="aq-heat__grid"><sc-for list="{{ heat }}" as="h" hint-placeholder-count="294"><i class="{{ h.c }}"></i></sc-for></div></div></button>
+<button type="button" class="aq-card aq-glass" aria-label="Claude"><div class="aq-card__summary"><div class="aq-dial aq-dial--warning" role="img" aria-label="88% of 5h used, 64% of 7d used"><svg viewBox="0 0 124 124" aria-hidden="true"><path class="aq-dial__track" stroke-width="8" d="M20.99 103.01A58 58 0 1 1 103.01 103.01"></path><path class="aq-dial__track" stroke-width="8" d="M28.06 95.94A48 48 0 1 1 95.94 95.94"></path><path class="aq-dial__fill" stroke-width="8" d="M20.99 103.01A58 58 0 1 1 118.60 74.65"></path><path class="aq-dial__fill aq-dial__fill--2" stroke-width="8" d="M28.06 95.94A48 48 0 0 1 91.42 24.07"></path></svg><div class="aq-dial__body" aria-hidden="true"><i class="aq-glyph aq-glyph--claude"></i><div class="aq-dial__values"><span>88% 5h</span><span class="aq-dial__v--2">64% 7d</span></div></div></div><div class="aq-card__details"><div class="aq-card__head"><p class="aq-card__name"><span>Claude</span><svg class="aq-chev" viewBox="0 0 22 22" aria-hidden="true"><mask id="ac1"><rect width="22" height="22" fill="#fff"></rect><path d="M9.6 6.6l4.4 4.4-4.4 4.4" stroke="#000" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></mask><circle cx="11" cy="11" r="11" fill="currentColor" mask="url(#ac1)"></circle></svg></p><p class="aq-card__plan">Max plan · Work</p></div><div class="aq-card__captions"><p class="aq-card__reset">5h resets 12:00 PM</p><p class="aq-card__reset">7d resets Wed 2:00 PM</p></div></div></div></button>
+<div><p class="aq-fresh">Sample usage · No live account data</p><p class="aq-fresh">Updated just now</p></div>
+</div>
+<div class="aq-home"></div>
+</div>
+</div>
+
+<div id="1b" style="display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;align-items:baseline;gap:8px;font:400 12px/16px var(--font-sans);color:rgba(235,235,245,.62)"><a href="#1b" style="font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:#bf5af2;color:#fff;border-radius:5px;text-decoration:none">1b</a>Refined · dark</div>
+<div class="aq-phone aq-wash" style="color:var(--primary)">
+<div class="aq-island"></div>
+<div class="aq-status"><span class="aq-num">9:41</span><i></i></div>
+<div class="aq-navbar"><h1>AIQuota</h1><span class="aq-toolbar aq-glass"><button class="aq-iconbtn" type="button" aria-label="Refresh usage" onClick="{{ refreshDark }}"><sc-if value="{{ spinDark }}" hint-placeholder-val="{{ false }}">{{ spinner }}</sc-if><sc-if value="{{ idleDark }}" hint-placeholder-val="{{ true }}"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6"></path><path d="M15.2 2.6v3.6h-3.6"></path></svg></sc-if></button><button class="aq-iconbtn" type="button" aria-label="Settings"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="2.6"></circle><path d="M10 2.2v2.3M10 15.5v2.3M2.2 10h2.3M15.5 10h2.3M4.5 4.5l1.6 1.6M13.9 13.9l1.6 1.6M4.5 15.5l1.6-1.6M13.9 6.1l1.6-1.6"></path></svg></button></span></div>
+<div style="display:flex;flex-direction:column;gap:16px;padding:16px 16px 24px">
+<sc-if value="{{ noticeDark }}" hint-placeholder-val="{{ true }}">
+<div class="aq-notice aq-glass" style="border-radius:var(--aq-card-r,28px);box-shadow:inset 0 0 0 1px var(--card-edge-mac);background-image:linear-gradient(var(--aq-rest,var(--hover-mac)),var(--aq-rest,var(--hover-mac)))"><div class="aq-notice__text" style="gap:4px;font:400 15px/20px var(--font-sans);letter-spacing:-0.23px"><p class="aq-notice__title">Codex usage reset announced</p><a class="aq-notice__link" href="#">Read more on Codex Resets <span aria-hidden="true">↗</span></a></div><button class="aq-notice__close" type="button" aria-label="Dismiss reset announcement" onClick="{{ dismissDark }}" style="padding:9px 4px 0 0;color:var(--secondary)"><svg viewBox="0 0 22 22" aria-hidden="true" style="width:18px;height:18px"><mask id="bx0"><rect width="22" height="22" fill="#fff"></rect><path d="M7.5 7.5l7 7M14.5 7.5l-7 7" stroke="#000" stroke-width="2" stroke-linecap="round"></path></mask><circle cx="11" cy="11" r="11" fill="currentColor" mask="url(#bx0)"></circle></svg></button></div>
+</sc-if>
+<button type="button" class="aq-macrow aq-glass" aria-label="Codex" style="border-radius:var(--aq-card-r,28px);background-image:linear-gradient(var(--aq-rest,var(--hover-mac)),var(--aq-rest,var(--hover-mac)))" style-active="background-color:var(--glass-raised)">
+<div class="aq-macrow__top">
+<div class="aq-dial-frame-mac"><div class="aq-dial aq-dial--mac" role="img" aria-label="62% of 5h used, 41% of 7d used"><svg viewBox="0 0 120 120" aria-hidden="true"><path class="aq-dial__track" stroke-width="8" d="M17.57 102.43A60 60 0 1 1 102.43 102.43"></path><path class="aq-dial__track" stroke-width="8" d="M24.64 95.36A50 50 0 1 1 95.36 95.36"></path><path class="aq-dial__fill" stroke-width="8" d="M17.57 102.43A60 60 0 0 1 92.15 9.34"></path><path class="aq-dial__fill aq-dial__fill--2" stroke-width="8" d="M24.64 95.36A50 50 0 0 1 39.42 14.43"></path></svg><div class="aq-dial__body" aria-hidden="true"><i class="aq-glyph aq-glyph--openai"></i><div class="aq-dial__values"><span>62% 5h</span><span class="aq-dial__v--2">41% 7d</span></div></div></div></div>
+<div class="aq-macrow__details" style="flex:1">
+<div><div style="display:flex;align-items:center;gap:4px"><p class="aq-macrow__name" style="flex:1">Codex</p><svg class="aq-chev" viewBox="0 0 22 22" aria-hidden="true" style="width:20px;height:20px"><mask id="bc0"><rect width="22" height="22" fill="#fff"></rect><path d="M9.6 6.6l4.4 4.4-4.4 4.4" stroke="#000" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></mask><circle cx="11" cy="11" r="11" fill="currentColor" mask="url(#bc0)"></circle></svg></div><p class="aq-macrow__plan">Pro plan</p></div>
+<p class="aq-macrow__cap">5h resets 3:40 PM</p>
+<p class="aq-macrow__cap">7d resets Tue 10:07 PM</p>
+</div>
+</div>
+<div style="margin-top:8px"><div class="aq-heat" role="img" aria-label="Token activity, past 42 weeks"><div class="aq-heat__grid"><sc-for list="{{ heat }}" as="h" hint-placeholder-count="294"><i class="{{ h.c }}"></i></sc-for></div></div></div>
+</button>
+<button type="button" class="aq-macrow aq-glass" aria-label="Claude" style="border-radius:var(--aq-card-r,28px);background-image:linear-gradient(var(--aq-rest,var(--hover-mac)),var(--aq-rest,var(--hover-mac)))" style-active="background-color:var(--glass-raised)">
+<div class="aq-macrow__top">
+<div class="aq-dial-frame-mac"><div class="aq-dial aq-dial--mac aq-dial--warning" role="img" aria-label="88% of 5h used, 64% of 7d used"><svg viewBox="0 0 120 120" aria-hidden="true"><path class="aq-dial__track" stroke-width="8" d="M17.57 102.43A60 60 0 1 1 102.43 102.43"></path><path class="aq-dial__track" stroke-width="8" d="M24.64 95.36A50 50 0 1 1 95.36 95.36"></path><path class="aq-dial__fill" stroke-width="8" d="M17.57 102.43A60 60 0 1 1 118.56 73.09"></path><path class="aq-dial__fill aq-dial__fill--2" stroke-width="8" d="M24.64 95.36A50 50 0 0 1 90.65 20.49"></path></svg><div class="aq-dial__body" aria-hidden="true"><i class="aq-glyph aq-glyph--claude"></i><div class="aq-dial__values"><span>88% 5h</span><span class="aq-dial__v--2">64% 7d</span></div></div></div></div>
+<div class="aq-macrow__details" style="flex:1">
+<div><div style="display:flex;align-items:center;gap:4px"><p class="aq-macrow__name" style="flex:1">Claude</p><svg class="aq-chev" viewBox="0 0 22 22" aria-hidden="true" style="width:20px;height:20px"><mask id="bc1"><rect width="22" height="22" fill="#fff"></rect><path d="M9.6 6.6l4.4 4.4-4.4 4.4" stroke="#000" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></mask><circle cx="11" cy="11" r="11" fill="currentColor" mask="url(#bc1)"></circle></svg></div><p class="aq-macrow__plan">Max plan · Work</p></div>
+<p class="aq-macrow__cap">5h resets 12:00 PM</p>
+<p class="aq-macrow__cap">7d resets Wed 2:00 PM</p>
+</div>
+</div>
+</button>
+<div style="display:flex;flex-direction:column;padding-top:4px"><p class="aq-fresh" style="line-height:16px">Sample usage · No live account data</p><p class="aq-fresh" style="line-height:16px">{{ freshDark }}</p></div>
+</div>
+<div class="aq-home"></div>
+</div>
+</div>
+
+<div id="1c" data-theme="light" style="display:flex;flex-direction:column;gap:16px;color:var(--primary)">
+<div style="display:flex;align-items:baseline;gap:8px;font:400 12px/16px var(--font-sans);color:rgba(235,235,245,.62)"><a href="#1c" style="font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:#bf5af2;color:#fff;border-radius:5px;text-decoration:none">1c</a>Refined · light</div>
+<div class="aq-phone aq-wash" style="color:var(--primary)">
+<div class="aq-island"></div>
+<div class="aq-status"><span class="aq-num">9:41</span><i></i></div>
+<div class="aq-navbar"><h1>AIQuota</h1><span class="aq-toolbar aq-glass"><button class="aq-iconbtn" type="button" aria-label="Refresh usage" onClick="{{ refreshLight }}"><sc-if value="{{ spinLight }}" hint-placeholder-val="{{ false }}">{{ spinner }}</sc-if><sc-if value="{{ idleLight }}" hint-placeholder-val="{{ true }}"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6"></path><path d="M15.2 2.6v3.6h-3.6"></path></svg></sc-if></button><button class="aq-iconbtn" type="button" aria-label="Settings"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="2.6"></circle><path d="M10 2.2v2.3M10 15.5v2.3M2.2 10h2.3M15.5 10h2.3M4.5 4.5l1.6 1.6M13.9 13.9l1.6 1.6M4.5 15.5l1.6-1.6M13.9 6.1l1.6-1.6"></path></svg></button></span></div>
+<div style="display:flex;flex-direction:column;gap:16px;padding:16px 16px 24px">
+<sc-if value="{{ noticeLight }}" hint-placeholder-val="{{ true }}">
+<div class="aq-notice aq-glass" style="border-radius:var(--aq-card-r,28px);box-shadow:inset 0 0 0 1px var(--card-edge-mac);background-image:linear-gradient(var(--aq-rest,var(--hover-mac)),var(--aq-rest,var(--hover-mac)))"><div class="aq-notice__text" style="gap:4px;font:400 15px/20px var(--font-sans);letter-spacing:-0.23px"><p class="aq-notice__title">Codex usage reset announced</p><a class="aq-notice__link" href="#">Read more on Codex Resets <span aria-hidden="true">↗</span></a></div><button class="aq-notice__close" type="button" aria-label="Dismiss reset announcement" onClick="{{ dismissLight }}" style="padding:9px 4px 0 0;color:var(--secondary)"><svg viewBox="0 0 22 22" aria-hidden="true" style="width:18px;height:18px"><mask id="cx0"><rect width="22" height="22" fill="#fff"></rect><path d="M7.5 7.5l7 7M14.5 7.5l-7 7" stroke="#000" stroke-width="2" stroke-linecap="round"></path></mask><circle cx="11" cy="11" r="11" fill="currentColor" mask="url(#cx0)"></circle></svg></button></div>
+</sc-if>
+<button type="button" class="aq-macrow aq-glass" aria-label="Codex" style="border-radius:var(--aq-card-r,28px);background-image:linear-gradient(var(--aq-rest,var(--hover-mac)),var(--aq-rest,var(--hover-mac)))" style-active="background-color:var(--glass-raised)">
+<div class="aq-macrow__top">
+<div class="aq-dial-frame-mac"><div class="aq-dial aq-dial--mac" role="img" aria-label="62% of 5h used, 41% of 7d used"><svg viewBox="0 0 120 120" aria-hidden="true"><path class="aq-dial__track" stroke-width="8" d="M17.57 102.43A60 60 0 1 1 102.43 102.43"></path><path class="aq-dial__track" stroke-width="8" d="M24.64 95.36A50 50 0 1 1 95.36 95.36"></path><path class="aq-dial__fill" stroke-width="8" d="M17.57 102.43A60 60 0 0 1 92.15 9.34"></path><path class="aq-dial__fill aq-dial__fill--2" stroke-width="8" d="M24.64 95.36A50 50 0 0 1 39.42 14.43"></path></svg><div class="aq-dial__body" aria-hidden="true"><i class="aq-glyph aq-glyph--openai"></i><div class="aq-dial__values"><span>62% 5h</span><span class="aq-dial__v--2">41% 7d</span></div></div></div></div>
+<div class="aq-macrow__details" style="flex:1">
+<div><div style="display:flex;align-items:center;gap:4px"><p class="aq-macrow__name" style="flex:1">Codex</p><svg class="aq-chev" viewBox="0 0 22 22" aria-hidden="true" style="width:20px;height:20px"><mask id="cc0"><rect width="22" height="22" fill="#fff"></rect><path d="M9.6 6.6l4.4 4.4-4.4 4.4" stroke="#000" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></mask><circle cx="11" cy="11" r="11" fill="currentColor" mask="url(#cc0)"></circle></svg></div><p class="aq-macrow__plan">Pro plan</p></div>
+<p class="aq-macrow__cap">5h resets 3:40 PM</p>
+<p class="aq-macrow__cap">7d resets Tue 10:07 PM</p>
+</div>
+</div>
+<div style="margin-top:8px"><div class="aq-heat" role="img" aria-label="Token activity, past 42 weeks"><div class="aq-heat__grid"><sc-for list="{{ heat }}" as="h" hint-placeholder-count="294"><i class="{{ h.c }}"></i></sc-for></div></div></div>
+</button>
+<button type="button" class="aq-macrow aq-glass" aria-label="Claude" style="border-radius:var(--aq-card-r,28px);background-image:linear-gradient(var(--aq-rest,var(--hover-mac)),var(--aq-rest,var(--hover-mac)))" style-active="background-color:var(--glass-raised)">
+<div class="aq-macrow__top">
+<div class="aq-dial-frame-mac"><div class="aq-dial aq-dial--mac aq-dial--warning" role="img" aria-label="88% of 5h used, 64% of 7d used"><svg viewBox="0 0 120 120" aria-hidden="true"><path class="aq-dial__track" stroke-width="8" d="M17.57 102.43A60 60 0 1 1 102.43 102.43"></path><path class="aq-dial__track" stroke-width="8" d="M24.64 95.36A50 50 0 1 1 95.36 95.36"></path><path class="aq-dial__fill" stroke-width="8" d="M17.57 102.43A60 60 0 1 1 118.56 73.09"></path><path class="aq-dial__fill aq-dial__fill--2" stroke-width="8" d="M24.64 95.36A50 50 0 0 1 90.65 20.49"></path></svg><div class="aq-dial__body" aria-hidden="true"><i class="aq-glyph aq-glyph--claude"></i><div class="aq-dial__values"><span>88% 5h</span><span class="aq-dial__v--2">64% 7d</span></div></div></div></div>
+<div class="aq-macrow__details" style="flex:1">
+<div><div style="display:flex;align-items:center;gap:4px"><p class="aq-macrow__name" style="flex:1">Claude</p><svg class="aq-chev" viewBox="0 0 22 22" aria-hidden="true" style="width:20px;height:20px"><mask id="cc1"><rect width="22" height="22" fill="#fff"></rect><path d="M9.6 6.6l4.4 4.4-4.4 4.4" stroke="#000" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></mask><circle cx="11" cy="11" r="11" fill="currentColor" mask="url(#cc1)"></circle></svg></div><p class="aq-macrow__plan">Max plan · Work</p></div>
+<p class="aq-macrow__cap">5h resets 12:00 PM</p>
+<p class="aq-macrow__cap">7d resets Wed 2:00 PM</p>
+</div>
+</div>
+</button>
+<div style="display:flex;flex-direction:column;padding-top:4px"><p class="aq-fresh" style="line-height:16px">Sample usage · No live account data</p><p class="aq-fresh" style="line-height:16px">{{ freshLight }}</p></div>
+</div>
+<div class="aq-home"></div>
+</div>
+</div>
+
+<div style="display:flex;flex-direction:column;gap:12px;max-width:300px;padding-top:32px;font:400 13px/20px var(--font-sans);color:rgba(235,235,245,.62)">
+<p style="margin:0;font-weight:600;color:#fff">What changed from <a href="#1a">1a</a></p>
+<p style="margin:0">Resting card is the Mac hover: glass, 1px <span style="color:#fff">card-edge-mac</span>, <span style="color:#fff">hover-mac</span> fill. Pressing adds glass-raised.</p>
+<p style="margin:0">Dial 124 → 120 in the Mac’s 114pt frame (6pt top inset), so the dial’s open bottom no longer adds dead space above the heatmap.</p>
+<p style="margin:0">Dial to details 24 → 20.</p>
+<p style="margin:0">Line boxes on a 4pt grid: name 22 → 24, plan 15 → 16 with 4 above, captions 15 → 16, everything 8 apart.</p>
+<p style="margin:0">Heatmap sits 8 below the summary.</p>
+<p style="margin:0">Stack 24 → 16 apart; content starts 16 below the nav bar (was 20).</p>
+<p style="margin:0">Notice gets the same edge and fill, 15/20 text, 18pt dismiss glyph in a 44pt target.</p>
+<p style="margin:0">Kept: nav bar and toolbar, iOS 28 radius (tweakable), iOS reset strings, chevron.</p>
+</div>
+
+</div>
+<p style="margin:0;font:12px/16px var(--font-sans);color:rgba(235,235,245,.5)">Try next: "apply the Mac 24 radius" · "do the service sheet next" · "show stacked cards at accessibility sizes"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;cardRadius&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;24&quot;,&quot;28&quot;],&quot;default&quot;:&quot;24&quot;,&quot;tsType&quot;:&quot;'24' | '28'&quot;,&quot;section&quot;:&quot;Turn 2 cards&quot;},&quot;cardGap&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;0&quot;,&quot;8&quot;,&quot;16&quot;],&quot;default&quot;:&quot;8&quot;,&quot;tsType&quot;:&quot;'0' | '8' | '16'&quot;,&quot;section&quot;:&quot;Turn 2 cards&quot;},&quot;glassUnder&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Turn 2 cards&quot;}}">
+class Component extends DCLogic {
+  state = { notice: { dark: true, light: true, d2: true, l2: true }, spin: {}, fresh: { dark: 'Updated just now', light: 'Updated just now', d2: 'Updated just now', l2: 'Updated just now' } };
+  months() {
+    if (this._months) return this._months;
+    const today = new Date(2026, 9, 28);
+    const start = new Date(today); start.setDate(today.getDate() - today.getDay() - 41 * 7);
+    const names = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const pitch = (339 - 41) / 42 + 1, out = []; let lastX = -99;
+    for (let w = 0; w < 42; w++) {
+      let label = w === 0 ? names[start.getMonth()] : null;
+      for (let d = 0; d < 7 && !label; d++) { const day = new Date(start); day.setDate(start.getDate() + w * 7 + d); if (day.getDate() === 1 && day <= today) label = names[day.getMonth()]; }
+      if (!label) continue;
+      const x = Math.min(339 - 20, w * pitch);
+      if (x - lastX < 24) continue;
+      out.push({ label, left: x.toFixed(1) + 'px' }); lastX = x;
+    }
+    return (this._months = out);
+  }
+  componentDidMount() { this.applyVars(); this.wireFades(); }
+  componentDidUpdate() { this.applyVars(); this.wireFades(); }
+  componentWillUnmount() { clearTimeout(this._fadeT); }
+  // Mac MacAccountGridView: 24pt fade on an edge only when content is hidden past it.
+  wireFades() {
+    clearTimeout(this._fadeT);
+    this._fadeT = setTimeout(() => {
+      document.querySelectorAll('[data-t3-scroll]').forEach(el => {
+        const apply = () => {
+          const over = el.scrollHeight > el.clientHeight + 1;
+          const top = over && el.scrollTop > 1, bottom = over && el.scrollTop + el.clientHeight < el.scrollHeight - 1;
+          const f = Math.min(0.5 * el.clientHeight, 24);
+          const m = `linear-gradient(to bottom, ${top ? 'transparent' : '#000'} 0, #000 ${top ? f : 0}px, #000 calc(100% - ${bottom ? f : 0}px), ${bottom ? 'transparent' : '#000'} 100%)`;
+          el.style.webkitMaskImage = m; el.style.maskImage = m;
+        };
+        if (!el._aqFade) { el._aqFade = true; el.addEventListener('scroll', apply, { passive: true }); }
+        apply();
+      });
+    }, 50);
+  }
+  applyVars() {
+    const s = document.documentElement.style;
+    s.removeProperty('--aq-card-r'); s.removeProperty('--aq-rest');
+    s.setProperty('--aq2-r', (this.props.cardRadius ?? '24') + 'px');
+    s.setProperty('--aq2-gap', (this.props.cardGap ?? '8') + 'px');
+    if (this.props.glassUnder) s.setProperty('--aq2-under', 'blur(30px) saturate(1.8)'); else s.removeProperty('--aq2-under');
+  }
+  arc(r, p) {
+    if (!p) return 'M0 0';
+    const rad = a => a * Math.PI / 180, c = 54;
+    const s = rad(135), e = rad(135 + 270 * Math.min(1, p / 100));
+    const f = n => n.toFixed(2);
+    return `M${f(c + r * Math.cos(s))} ${f(c + r * Math.sin(s))}A${r} ${r} 0 ${270 * p / 100 > 180 ? 1 : 0} 1 ${f(c + r * Math.cos(e))} ${f(c + r * Math.sin(e))}`;
+  }
+  acct(id, svc, plan, p1, p2, r1, r2, seed, status) {
+    const worst = Math.max(p1, p2);
+    return { mid: 'm3' + id, name: svc, plan, glyph: svc === 'Codex' ? 'aq-glyph--openai' : 'aq-glyph--claude',
+      tint: worst >= 95 ? 'aq-dial--critical' : worst >= 85 ? 'aq-dial--warning' : '',
+      d1: this.arc(54, p1), d2: this.arc(45, p2), v1: p1 + '% 5h', v2: p2 + '% 7d',
+      aria: `${p1}% of 5h used, ${p2}% of 7d used`, r1, r2, status: status || '',
+      heat: svc === 'Codex' ? this.heatFor(seed) : null };
+  }
+  t3() {
+    if (this._t3) return this._t3;
+    const cx = l => this.acct(l + 'cx', 'Codex', l ? 'Pro plan · Personal' : 'Pro plan', 62, 41, '5h resets 3:40 PM', '7d resets Tue 10:07 PM', 7);
+    const cw = () => this.acct('cw', 'Codex', 'Business plan · Work', 23, 9, '5h resets 5:15 PM', '7d resets Sat 9:30 AM', 19);
+    const cl = l => this.acct(l + 'cl', 'Claude', 'Max plan · Work', 88, 64, '5h resets 12:00 PM', '7d resets Wed 2:00 PM');
+    const cp = () => this.acct('cp', 'Claude', 'Pro plan · Personal', 100, 52, '5h resets 1:20 PM', '7d resets Thu 8:00 AM', 0, 'Limit reached');
+    const fresh = ['Sample usage · No live account data', 'Updated just now'];
+    return (this._t3 = [
+      { id: '3a', label: 'No accounts', empty: true, accounts: [], fresh: ['Connect a service to see your usage.'] },
+      { id: '3b', label: '1 account', empty: false, accounts: [cx('')], fresh },
+      { id: '3c', label: '2 accounts', empty: false, accounts: [cx(''), cl('')], fresh },
+      { id: '3d', label: '3 accounts', empty: false, accounts: [cx('p'), cw(), cl('3')], fresh },
+      { id: '3e', label: '4 accounts', empty: false, accounts: [cx('q'), cw(), cl('4'), cp()], fresh },
+    ]);
+  }
+  heat() { return this.heatFor(7); }
+  heatFor(s0) {
+    this._heats = this._heats || {};
+    if (this._heats[s0]) return this._heats[s0];
+    let seed = s0; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const out = [];
+    for (let i = 0; i < 294; i++) {
+      if (i < 30) out.push({ c: '' });
+      else if (i >= 291) out.push({ c: 'f' });
+      else { const r = rnd(); const day = i % 7; const w = day >= 5 ? 0.55 : 1; const v = r * w;
+        out.push({ c: v < 0.22 ? 'z' : v < 0.42 ? 'l1' : v < 0.64 ? 'l2' : v < 0.85 ? 'l3' : 'l4' }); }
+    }
+    return (this._heats[s0] = out);
+  }
+  refresh(k) {
+    if (this.state.spin[k]) return;
+    this.setState(s => ({ spin: { ...s.spin, [k]: true } }));
+    setTimeout(() => this.setState(s => ({ spin: { ...s.spin, [k]: false }, fresh: { ...s.fresh, [k]: 'Updated just now' } })), 1200);
+  }
+  renderVals() {
+    const { notice, spin, fresh } = this.state;
+    return {
+      heat: this.heat(),
+      t3: this.t3(),
+      emptyHeat: this._empty || (this._empty = Array.from({ length: 294 }, () => 0)),
+      emptyMonths: ['Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'],
+      spinner: React.createElement('span', { 'aria-hidden': true, style: { width: 18, height: 18, borderRadius: '50%', border: '2px solid var(--tertiary)', borderTopColor: 'var(--primary)', animation: 'aqspin .8s linear infinite', display: 'block' } }),
+      spinDark: spin.dark, idleDark: !spin.dark, spinLight: spin.light, idleLight: !spin.light,
+      refreshDark: () => this.refresh('dark'), refreshLight: () => this.refresh('light'),
+      noticeDark: notice.dark, noticeLight: notice.light,
+      dismissDark: () => this.setState(s => ({ notice: { ...s.notice, dark: false } })),
+      dismissLight: () => this.setState(s => ({ notice: { ...s.notice, light: false } })),
+      freshDark: fresh.dark, freshLight: fresh.light,
+      months: this.months(),
+      spinD2: !!spin.d2, idleD2: !spin.d2, spinL2: !!spin.l2, idleL2: !spin.l2,
+      refreshD2: () => this.refresh('d2'), refreshL2: () => this.refresh('l2'),
+      noticeD2: notice.d2, noticeL2: notice.l2,
+      dismissD2: () => this.setState(s => ({ notice: { ...s.notice, d2: false } })),
+      dismissL2: () => this.setState(s => ({ notice: { ...s.notice, l2: false } })),
+      freshD2: fresh.d2, freshL2: fresh.l2,
+    };
+  }
+}
+</script>
+</body>
+</html>

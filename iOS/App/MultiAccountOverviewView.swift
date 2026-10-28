@@ -93,8 +93,8 @@ struct MultiAccountOverviewView: View {
     private var dashboard: some View {
         NavigationStack {
             GeometryReader { geometry in
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
+                OverviewScrollView {
+                    VStack(alignment: .leading, spacing: 8) {
                         if let announcement = resetAnnouncement {
                             CodexResetNoticeBanner(announcement: announcement,
                                                    openDetails: { showResetDetails = true },
@@ -103,7 +103,7 @@ struct MultiAccountOverviewView: View {
                                                        accounts.codex($0)?.loading == true
                                                    })
                         }
-                        VStack(alignment: .leading, spacing: 16) {
+                        VStack(alignment: .leading, spacing: 8) {
                             ForEach(orderedProfiles, id: \.orderKey) { profile in
                                 accountCard(profile, width: min(geometry.size.width, 780) - 32)
                                     .onDrag {
@@ -127,11 +127,11 @@ struct MultiAccountOverviewView: View {
                                     }
                             }
                         }
-                        freshness.frame(maxWidth: .infinity)
+                        freshness.frame(maxWidth: .infinity).multilineTextAlignment(.center).padding(.top, 8)
                     }
                     .padding(.horizontal, 16)
-                    .padding(.top, 20)
-                    .padding(.bottom, 20)
+                    .padding(.top, 8)
+                    .padding(.bottom, 16)
                     .frame(maxWidth: 780)
                     .frame(maxWidth: .infinity)
                 }
@@ -232,7 +232,8 @@ struct MultiAccountOverviewView: View {
     }
 
     @ViewBuilder private func accountCard(_ profile: AccountProfile, width: CGFloat) -> some View {
-        let accountLabel = overviewAccountLabel(profile.label)
+        let reading = profile.service == .codex ? accounts.codex(profile)?.reading : accounts.claude(profile)?.reading
+        let accountLabel = overviewAccountLabel(profile, plan: reading?.metadata?.displayPlan)
         if profile.service == .codex, let model = accounts.codex(profile) {
             ProviderDialCard(name: "Codex", icon: profile.service.logo, availableWidth: width,
                              reading: model.reading, connected: model.connected, busy: model.loading,
@@ -255,16 +256,9 @@ struct MultiAccountOverviewView: View {
         }
     }
 
-    private func overviewAccountLabel(_ label: String) -> String? {
-        let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        let parts = trimmed.split(whereSeparator: \.isWhitespace)
-        if parts.count == 2,
-           (parts[0].lowercased() == "account" || parts[0].lowercased() == "service"),
-           !parts[1].isEmpty, parts[1].allSatisfy(\.isNumber) {
-            return nil
-        }
-        return trimmed
+    private func overviewAccountLabel(_ profile: AccountProfile, plan: String?) -> String? {
+        overviewDisplayAccountLabel(profile.label, serviceName: profile.service == .codex ? "Codex" : "Claude",
+                                    plan: plan, showsAccountLabel: accounts.connected(profile.service).count > 1)
     }
 
     @ViewBuilder private func sheetContent(_ selection: AccountSheetSelection) -> some View {

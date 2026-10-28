@@ -13,7 +13,7 @@ final class TokenHistoryReviewTests: XCTestCase {
             for (name, scheme) in [("light", ColorScheme.light), ("dark", .dark)] {
                 let content = NavigationStack {
                     ScrollView {
-                        VStack(spacing: 20) {
+                        VStack(spacing: 8) {
                             Text("Sample data · iOS layout verification").font(.caption)
                             CodexResetNoticeBanner(announcement: CodexResetNotice.demoAnnouncement, openDetails: {}, dismiss: {}, loading: false)
                             ProviderDialCardContent(name: "Codex", icon: "logo-openai", availableWidth: width - 32,
@@ -21,7 +21,7 @@ final class TokenHistoryReviewTests: XCTestCase {
                                 tokenHistory: history)
                             ProviderDialCardContent(name: "Claude", icon: "logo-claude", availableWidth: width - 32,
                                 reading: DemoQuotaData.reading(.claude), connected: true, busy: false, error: nil)
-                        }.padding(16)
+                        }.padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 16)
                     }.background { OverviewBackground().ignoresSafeArea() }
                         .navigationTitle("AIQuota").toolbarTitleDisplayMode(.inlineLarge)
                 }.frame(width: width, height: 920).environment(\.colorScheme, scheme)
@@ -66,39 +66,12 @@ final class TokenHistoryReviewTests: XCTestCase {
         XCTAssertEqual(values, [0, 0, 1, 2, 3])
     }
 
-    @MainActor func testMonthLabelsFollowUTCWeekColumns() throws {
-        let history = try XCTUnwrap(DemoQuotaData.tokenHistory())
-        let now = try XCTUnwrap(CodexTokenHistory.dateFormatter().date(from: "2026-10-22"))
-        let days = history.days(now: now)
-        let labels = (0..<CodexTokenHistory.visibleWeeks).compactMap { MobileTokenHistoryView.monthLabel(days, week: $0) }
-        XCTAssertEqual(labels, ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct"])
-        let visible = MobileTokenHistoryView.visibleMonthWeeks(days, width: 416)
-        XCTAssertEqual(visible.compactMap { MobileTokenHistoryView.monthLabel(days, week: $0) }, labels)
-    }
-
-    @MainActor func testMonthLabelsKeepEdgesAndAvoidOverlap() throws {
-        let history = try XCTUnwrap(DemoQuotaData.tokenHistory())
-        let now = try XCTUnwrap(CodexTokenHistory.dateFormatter().date(from: "2026-11-12"))
-        let days = history.days(now: now)
-        for width: CGFloat in [160, 256, 288, 416] {
-            let weeks = MobileTokenHistoryView.visibleMonthWeeks(days, width: width)
-            XCTAssertEqual(MobileTokenHistoryView.monthLabel(days, week: try XCTUnwrap(weeks.first)), "Jan")
-            XCTAssertEqual(MobileTokenHistoryView.monthLabel(days, week: try XCTUnwrap(weeks.last)), "Nov")
-            XCTAssertFalse(weeks.contains(1), "February should not collide with January")
-            for (left, right) in zip(weeks, weeks.dropFirst()) {
-                XCTAssertGreaterThanOrEqual(
-                    MobileTokenHistoryView.monthLabelOffset(week: right, width: width) -
-                    MobileTokenHistoryView.monthLabelOffset(week: left, width: width), 24)
-            }
-        }
-    }
-
     @MainActor func testFortyTwoWeekGridFillsCardWithSquareCells() {
         for width: CGFloat in [256, 288, 329, 376] {
             let side = MobileTokenHistoryView.cellSide(for: width)
             let gap = MobileTokenHistoryView.cellGap
             XCTAssertEqual(42 * side + 41 * gap, width, accuracy: 0.01)
-            XCTAssertEqual(MobileTokenHistoryView.graphHeight(for: width), max(44, 7 * side + 6 * gap) + 16, accuracy: 0.01)
+            XCTAssertEqual(MobileTokenHistoryView.graphHeight(for: width), max(44, 7 * side + 6 * gap), accuracy: 0.01)
             XCTAssertGreaterThan(side, 4)
             XCTAssertLessThan(side, 9)
         }
@@ -157,14 +130,14 @@ final class TokenHistoryReviewTests: XCTestCase {
             for (state, history, unavailable, loading) in states {
                 host.rootView = AnyView(NavigationStack {
                     ScrollView {
-                        VStack(spacing: 20) {
+                        VStack(spacing: 8) {
                             Text("Sample data · \(state.capitalized) state").font(.caption).foregroundStyle(.secondary)
                             ProviderDialCardContent(name: "Codex", icon: "logo-openai", availableWidth: 361,
                                 reading: DemoQuotaData.reading(.codex), connected: true, busy: false, error: nil,
                                 tokenHistory: history, tokenHistoryUnavailable: unavailable, tokenHistoryLoading: loading)
                             ProviderDialCardContent(name: "Claude", icon: "logo-claude", availableWidth: 361,
                                 reading: DemoQuotaData.reading(.claude), connected: true, busy: false, error: nil)
-                        }.padding(16)
+                        }.padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 16)
                     }.background { OverviewBackground().ignoresSafeArea() }
                         .navigationTitle("AIQuota").toolbarTitleDisplayMode(.inlineLarge)
                 }.environment(\.colorScheme, scheme))

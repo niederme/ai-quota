@@ -70,9 +70,15 @@ Notifications are configured per account, with one editable usage threshold
 every reset. The Mac app shares the same
 threshold model.
 
-Each Codex card shows a full-width, 26-week activity heatmap built from Codex's
-server-side daily history. Its light, dark, zero, and missing states match the
-Mac palette. Claude does not report daily history, so Claude cards have no graph.
+Overview cards use the Mac account row's highlighted surface at rest, with 24pt
+corners, matching dial geometry, and an 8pt gap. The list fades only at edges
+where more content is hidden. Accessibility text sizes stack the dial above the
+details; accounts still open their service sheets when tapped.
+
+Each Codex card shows a full-width, 42-week activity heatmap built from Codex's
+server-side daily history, without a title or month labels. Its light, dark,
+zero, and missing states match the Mac palette. Claude does not report daily
+history, so Claude cards have no graph.
 
 ## Anonymous usage analytics
 
@@ -162,8 +168,9 @@ possible resets, and banked reset credits have different wording. Each notice
 opens Codex Resets in an in-app browser for attribution and details. The copy is
 “Codex usage reset announced,” “Codex usage may reset soon,” or “Codex reset credit
 announced,” depending on the source. Historical averages and probabilities never
-trigger a notice or appear in the UI. The banner uses the same Liquid Glass
-material as quota cards, with a matching circular dismiss icon. Existing notices
+trigger a notice or appear in the UI. The banner matches the Mac reset notice:
+regular material with a purple tint and a subtle border, 24pt corners, and a
+circular dismiss icon with a 44pt hit target. Existing notices
 show a skeleton while usage or the announcement feed refreshes; unknown or
 ineligible announcements do not create placeholder cards. The Codex detail sheet
 places a discreet **Check Codex resets** link directly below **Account and
