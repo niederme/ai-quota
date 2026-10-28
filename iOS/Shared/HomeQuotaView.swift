@@ -259,27 +259,10 @@ struct WidgetWeeklySplitView: View {
     }
 }
 
-/// Every decorative layer belongs to WidgetKit's removable background.
+/// A flat plum surface; WidgetKit owns the outer shape and rendering treatment.
+/// Keep it inside the removable container background for tinted/clear modes.
 struct HomeWidgetBackground: View {
-    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .top) {
-                Color(red: 30/255, green: 18/255, blue: 35/255)
-                if !reduceTransparency {
-                    Canvas { context, size in
-                        context.scaleBy(x: 1.1, y: 0.8)
-                        let bounds = CGRect(x: -size.width, y: 0, width: size.width * 3, height: size.height * 2)
-                        context.fill(Path(bounds), with: .radialGradient(
-                            Gradient(colors: [WidgetPalette.accent.opacity(0.14), .clear]),
-                            center: CGPoint(x: size.width / 1.1, y: 0), startRadius: 0,
-                            endRadius: max(size.width, size.height) * 0.7))
-                    }
-                    Rectangle().fill(LinearGradient(colors: [.white.opacity(0.05), .clear], startPoint: .top, endPoint: .bottom)).frame(height: geometry.size.height * 0.45)
-                    Rectangle().fill(.white.opacity(0.10)).frame(height: 1)
-                    ContainerRelativeShape().strokeBorder(.white.opacity(0.06), lineWidth: 1)
-                }
-            }
-        }
+        Color(red: 30/255, green: 18/255, blue: 35/255)
     }
 }
