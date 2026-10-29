@@ -183,3 +183,54 @@ final class MultiAccountFlowTests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Demo account"].waitForExistence(timeout: 5))
     }
 }
+
+
+extension MultiAccountFlowTests {
+    func testAccountOrderSettingsMovesPersistAndOverviewFollows() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-multiAccountReorderUITest", "-resetMultiAccountReorderFixture"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Settings"].waitForExistence(timeout: 10))
+        func openOrder() {
+            app.buttons["Settings"].tap()
+            let order = app.buttons["Account order"]
+            for _ in 0..<6 where !order.isHittable { app.collectionViews.firstMatch.swipeUp() }
+            XCTAssertTrue(order.isHittable)
+            order.tap()
+            XCTAssertTrue(app.navigationBars["Account order"].waitForExistence(timeout: 5))
+        }
+        openOrder()
+        let personal = app.descendants(matching: .any).matching(identifier: "accountOrder-codex:live").firstMatch
+        let enterprise = app.descendants(matching: .any).matching(identifier: "accountOrder-claude:live").firstMatch
+        XCTAssertTrue(personal.waitForExistence(timeout: 5))
+        XCTAssertTrue(enterprise.exists)
+        func dragBefore(_ source: XCUIElement, _ destination: XCUIElement) {
+            let sourceCell = app.cells.containing(.any, identifier: source.identifier).firstMatch
+            let destinationCell = app.cells.containing(.any, identifier: destination.identifier).firstMatch
+            XCTAssertTrue(sourceCell.exists)
+            XCTAssertTrue(destinationCell.exists)
+            // Drag the native move handle above the destination's midpoint.
+            // A drop on its text centre can correctly insert after that row.
+            sourceCell.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.5))
+                .press(forDuration: 0.8, thenDragTo: destinationCell.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.1)))
+        }
+        dragBefore(enterprise, personal)
+        XCTAssertLessThan(enterprise.frame.midY, personal.frame.midY)
+        dragBefore(personal, enterprise)
+        XCTAssertLessThan(personal.frame.midY, enterprise.frame.midY)
+        dragBefore(enterprise, personal)
+        XCTAssertLessThan(enterprise.frame.midY, personal.frame.midY)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Account order after repeated moves"; screenshot.lifetime = .keepAlways; add(screenshot)
+        app.terminate()
+        app.launchArguments = ["-multiAccountReorderUITest"]
+        app.launch()
+        let claude = app.buttons["claudeServiceCard"]
+        let codex = app.buttons.matching(identifier: "codexServiceCard").element(boundBy: 0)
+        XCTAssertTrue(claude.waitForExistence(timeout: 10))
+        XCTAssertLessThan(claude.frame.midY, codex.frame.midY)
+        openOrder()
+        XCTAssertLessThan(enterprise.frame.midY, personal.frame.midY)
+    }
+}

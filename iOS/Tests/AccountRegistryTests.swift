@@ -112,3 +112,32 @@ final class AccountCardOrderTests: XCTestCase {
         XCTAssertEqual(reopened.all().map(\.label), ["Claude Enterprise", "Work"])
     }
 }
+
+
+extension AccountCardOrderTests {
+    func testRepeatedMovesPersistAndOrderedReadsAppendNewAccounts() throws {
+        let root = root()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let registry = AccountRegistry.Store(root: root, legacyServices: [])
+        let codex = registry.add(service: .codex, label: "Work")
+        let claude = registry.add(service: .claude, label: "Work")
+        let other = registry.add(service: .codex, label: "Work")
+        var order = [other.orderKey, claude.orderKey, codex.orderKey]
+        for _ in 0..<6 {
+            XCTAssertTrue(registry.setAccountOrder(order))
+            XCTAssertFalse(registry.setAccountOrder(order), "Repeated no-op moves must not trigger refresh work")
+            let reopened = AccountRegistry.Store(root: root, legacyServices: [])
+            XCTAssertEqual(reopened.orderedProfiles().map(\.orderKey), order)
+            order = Array(order.reversed())
+        }
+        let added = registry.add(service: .claude, label: "Work")
+        XCTAssertEqual(registry.orderedProfiles().last?.id, added.id)
+        let before = registry.accountOrder()
+        registry.rename(service: .codex, id: codex.id, label: "Renamed")
+        registry.setProviderIdentity(service: .codex, id: codex.id, identity: "new@example.com")
+        XCTAssertEqual(registry.accountOrder(), before)
+        registry.remove(service: .codex, id: other.id)
+        XCTAssertEqual(registry.orderedProfiles().map(\.orderKey), before.filter { $0 != other.orderKey })
+        XCTAssertEqual(registry.defaultProfile(for: .codex)?.id, codex.id)
+    }
+}

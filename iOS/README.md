@@ -336,6 +336,24 @@ The rectangular single-account Lock Screen widget copies the styling in
 October 22's `a82fbdb`: 14pt regular service title, 14pt medium usage/reset
 text, 60pt dial frame, 2pt gap and the historical 1pt final-row offset.
 Its dial geometry remains independent of Home Screen/circular widgets.
+Multi-account widgets default to **App order**, matching the overview's saved
+account order across sizes. Leave **Accounts** empty to include all accounts,
+or select a subset; the subset follows the same app order. Drag overview cards
+or use **Settings → Account order** to move accounts, including across services.
+Saving an actual order change requests a refresh of the Accounts widgets; iOS
+controls when the new timeline appears.
+
+Optional **Closest to a limit** sorts by the highest reported usage, with ties
+following app order. **Selection order** retains the widget's selected list.
+Existing stored `closestToLimit` and `asListed` choices keep their behavior;
+`asListed` is now labeled Selection order. An existing widget that saved the old
+default may need **Edit Widget → Order → App order** once. Account IDs and saved
+subsets remain unchanged, including reconnect entries for removed selections.
+Apple owns the widget editor and its collection controls; the app's reorder
+screen provides move handles and accessibility actions independently of those
+system controls. Compact budget captions show the two amounts on separate lines
+while accessibility descriptions keep the full spent/limit explanation.
+
 Widget account choices begin with Codex or Claude. A real friendly label or
 email is added only when multiple connections need distinguishing. Generic
 numbered account labels and opaque identifiers stay hidden. If saved metadata

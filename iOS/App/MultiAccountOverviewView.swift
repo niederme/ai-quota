@@ -2,6 +2,7 @@ import SwiftUI
 import MobileAccessCore
 import UIKit
 import UniformTypeIdentifiers
+import WidgetKit
 
 private struct AccountCardDropDelegate: DropDelegate {
     let destination: String
@@ -225,10 +226,7 @@ struct MultiAccountOverviewView: View {
         let visible = accounts.profiles.filter { profile in
             accounts.connected(profile.service).contains { $0.id == profile.id }
         }
-        let byKey = Dictionary(uniqueKeysWithValues: visible.map { ($0.orderKey, $0) })
-        let saved = accountOrder.compactMap { byKey[$0] }
-        let included = Set(saved.map(\.orderKey))
-        return saved + visible.filter { !included.contains($0.orderKey) }
+        return AccountProfile.ordered(visible, by: accountOrder)
     }
 
     @ViewBuilder private func accountCard(_ profile: AccountProfile, width: CGFloat) -> some View {
@@ -264,7 +262,7 @@ struct MultiAccountOverviewView: View {
     @ViewBuilder private func sheetContent(_ selection: AccountSheetSelection) -> some View {
         switch selection.kind {
         case .settings:
-            MultiAccountSettingsView(accounts: accounts, onboarding: onboarding)
+            MultiAccountSettingsView(accounts: accounts, onboarding: onboarding, orderStore: orderStore)
         case .connection:
             if let profile = selection.profile {
                 if profile.service == .codex, let model = accounts.codex(profile) {
@@ -298,8 +296,8 @@ struct MultiAccountOverviewView: View {
     }
 
     private func persistOrder(_ keys: [String]) {
-        if let orderStore { orderStore.setAccountOrder(keys) }
-        else { AccountRegistry.setAccountOrder(keys) }
+        let changed = orderStore?.setAccountOrder(keys) ?? AccountRegistry.setAccountOrder(keys)
+        if changed && !isFixtureMode { reloadAccountOrderWidgets() }
     }
 
     private func reordered(_ source: String, onto destination: String) -> [String]? {
