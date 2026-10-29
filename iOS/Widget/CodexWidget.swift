@@ -18,6 +18,7 @@ struct WidgetAccount: AppEntity {
     let label: String
     let identityHint: String?
     let isAvailable: Bool
+    var needsFriendlyName = false
 
     var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(title: "\(pickerTitle)", subtitle: pickerDetail.isEmpty ? nil : "\(pickerDetail)")
@@ -31,13 +32,13 @@ struct WidgetAccount: AppEntity {
         return "\(prefix) · \(name)"
     }
 
-    var pickerDetail: String { identityHint ?? (isAvailable ? "" : "Reconnect in AIQuota") }
+    var pickerDetail: String { identityHint ?? (isAvailable ? (needsFriendlyName ? "Name in AIQuota" : "") : "Reconnect in AIQuota") }
 
     init(_ profile: AccountProfile, identityHint: String?, displayLabel: String? = nil) {
         id = "\(profile.service.rawValue):\(profile.id)"
         profileID = profile.id
         service = profile.service
-        label = displayLabel ?? Self.friendlyLabel(profile.label) ?? "Account"
+        label = displayLabel ?? Self.friendlyLabel(profile.label) ?? profile.service.name
         self.identityHint = identityHint
         isAvailable = true
     }
@@ -58,21 +59,20 @@ struct WidgetAccount: AppEntity {
 
     static func make(_ profiles: [AccountProfile]) -> [WidgetAccount] {
         profiles.map { profile in
-            let serviceProfiles = profiles.filter { $0.service == profile.service }.sorted { $0.id < $1.id }
-            let ordinal = (serviceProfiles.firstIndex { $0.id == profile.id } ?? 0) + 1
-            let label = friendlyLabel(profile.label) ?? (serviceProfiles.count == 1 ? "Account" : "Account \(ordinal)")
+            let serviceProfiles = profiles.filter { $0.service == profile.service }
+            let friendly = friendlyLabel(profile.label)
             let collisions = serviceProfiles.filter {
-                normalizedLabel(friendlyLabel($0.label) ?? "") == normalizedLabel(friendlyLabel(profile.label) ?? "")
+                normalizedLabel(friendlyLabel($0.label) ?? "") == normalizedLabel(friendly ?? "")
             }
             let email = safeIdentityHint(profile.providerIdentity)
-            let sameEmails = collisions.compactMap { safeIdentityHint($0.providerIdentity) }
-            let uniqueEmail = email.map { value in sameEmails.filter { $0.caseInsensitiveCompare(value) == .orderedSame }.count == 1 } ?? false
-            let hint: String?
-            if friendlyLabel(profile.label) != nil && collisions.count > 1 && !uniqueEmail {
-                let number = (collisions.firstIndex { $0.id == profile.id } ?? 0) + 1
-                hint = "Saved account \(number)"
-            } else { hint = email }
-            return WidgetAccount(profile, identityHint: hint, displayLabel: label)
+            let matchingEmails = collisions.compactMap { safeIdentityHint($0.providerIdentity) }
+            let uniqueEmail = email.map { value in matchingEmails.filter { $0.caseInsensitiveCompare(value) == .orderedSame }.count == 1 } ?? false
+            let needsDistinction = collisions.count > 1
+            var option = WidgetAccount(profile, identityHint: needsDistinction && uniqueEmail ? email : nil,
+                displayLabel: serviceProfiles.count > 1 ? friendly ?? profile.service.name : profile.service.name)
+            // Missing metadata cannot safely be replaced with an invented identity.
+            option.needsFriendlyName = needsDistinction && !uniqueEmail
+            return option
         }
     }
 
@@ -92,7 +92,8 @@ struct WidgetAccount: AppEntity {
 
     private static func friendlyLabel(_ value: String) -> String? {
         let cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleaned.isEmpty, cleaned.lowercased() != "live", UUID(uuidString: cleaned) == nil else { return nil }
+        guard !cleaned.isEmpty, !(["live", "codex", "claude"].contains(cleaned.lowercased())), UUID(uuidString: cleaned) == nil,
+              cleaned.range(of: "^(?:(?:codex|claude)\\s+)?account\\s*([0-9]+)?$", options: [.regularExpression, .caseInsensitive]) == nil else { return nil }
         return cleaned
     }
 

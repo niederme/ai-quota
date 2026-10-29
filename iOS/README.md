@@ -336,9 +336,11 @@ The rectangular single-account Lock Screen widget follows the earlier tuned
 16pt typography: medium service title, semibold rounded percentage and regular
 allowance/reset labels. Its 44pt dial frame and 4pt gap leave 112pt for a full
 reset time. These dimensions are independent of Home Screen dial geometry.
-Widget account choices begin with the service and friendly account label.
-Duplicate labels use an available email or a numbered saved-account subtitle;
-opaque account and organization identifiers stay internal.
+Widget account choices begin with Codex or Claude. A real friendly label or
+email is added only when multiple connections need distinguishing. Generic
+numbered account labels and opaque identifiers stay hidden. If saved metadata
+cannot distinguish connections, the picker prompts “Name in AIQuota”; it keeps
+their distinct internal identities and existing selections.
 
 `WidgetHostedLayoutFlowTests` captures all three Account sizes through SpringBoard,
 using the app's demo data. Run it only on a dedicated English-language simulator

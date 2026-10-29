@@ -38,7 +38,7 @@ final class WidgetAccountConfigurationTests: XCTestCase {
         XCTAssertTrue(claude.allSatisfy { $0.service == .claude })
     }
 
-    func testDuplicateNicknamesUseFriendlyIdentityThenNumberedChoices() {
+    func testDuplicateNicknamesUseFriendlyIdentityOrRequestNaming() {
         let uniqueIdentities = WidgetAccount.make([
             codexWork,
             AccountProfile(id: "codex-other", service: .codex, label: "Work", providerIdentity: "other@example.com", isLegacy: false)
@@ -53,8 +53,9 @@ final class WidgetAccountConfigurationTests: XCTestCase {
             codexWork,
             AccountProfile(id: "codex-other", service: .codex, label: "Work", providerIdentity: "member@example.com", isLegacy: false)
         ])
-        XCTAssertEqual(Set(sameIdentity.map(\.pickerDetail)).count, 2)
-        XCTAssertEqual(Set(sameIdentity.map(\.pickerDetail)), Set(["Saved account 1", "Saved account 2"]))
+        XCTAssertEqual(Set(sameIdentity.map(\.id)).count, 2)
+        XCTAssertEqual(Set(sameIdentity.map(\.pickerDetail)), Set(["Name in AIQuota"]))
+        XCTAssertTrue(sameIdentity.allSatisfy(\.needsFriendlyName))
     }
 
     func testStableIdentitySurvivesRenameAndReorder() throws {
@@ -365,8 +366,8 @@ extension WidgetAccountConfigurationTests {
             AccountProfile(id: "codex-second", service: .codex, label: "Account 2", providerIdentity: "acct_opaque", isLegacy: false),
             AccountProfile(id: "claude-second", service: .claude, label: "Account 2", providerIdentity: "org_opaque", isLegacy: false)]
         let values = WidgetAccount.make(profiles)
-        XCTAssertEqual(values.map(\.pickerTitle), ["Codex · Account 1", "Claude · Account 1", "Codex · Account 2", "Claude · Account 2"])
-        XCTAssertTrue(values.allSatisfy { $0.pickerDetail.isEmpty })
+        XCTAssertEqual(values.map(\.pickerTitle), ["Codex", "Claude", "Codex", "Claude"])
+        XCTAssertTrue(values.allSatisfy { $0.pickerDetail == "Name in AIQuota" })
         XCTAssertEqual(values.map(\.id), ["codex:live", "claude:live", "codex:codex-second", "claude:claude-second"])
         let selected = try XCTUnwrap(values.first)
         guard case let .selected(profile, _) = resolveWidgetProfile(selected, for: .codex, profiles: profiles.filter { $0.service == .codex }, defaultProfile: nil) else { return XCTFail("Selection must survive presentation cleanup") }
@@ -377,15 +378,20 @@ extension WidgetAccountConfigurationTests {
         let before = Dictionary(uniqueKeysWithValues: WidgetAccount.make(duplicates).map { ($0.id, $0.pickerDetail) })
         let after = Dictionary(uniqueKeysWithValues: WidgetAccount.make(Array(duplicates.reversed())).map { ($0.id, $0.pickerDetail) })
         XCTAssertEqual(before, after)
-        XCTAssertEqual(Set(before.values), Set(["Saved account 1", "Saved account 2"]))
+        XCTAssertEqual(Set(before.values), Set(["Name in AIQuota"]))
         let missing = WidgetAccount.make([AccountProfile(id: "live", service: .claude, label: "", isLegacy: true)])
-        XCTAssertEqual(missing.first?.pickerTitle, "Claude · Account")
+        XCTAssertEqual(missing.first?.pickerTitle, "Claude")
         XCTAssertTrue(missing.first?.pickerDetail.isEmpty == true)
         let unnamed = WidgetAccount.make([
             AccountProfile(id: "b", service: .codex, label: "", providerIdentity: "opaque", isLegacy: false),
             AccountProfile(id: "a", service: .codex, label: "live", providerIdentity: "opaque", isLegacy: true)])
-        XCTAssertEqual(unnamed.map(\.pickerTitle), ["Codex · Account 2", "Codex · Account 1"])
-        XCTAssertTrue(unnamed.allSatisfy { $0.pickerDetail.isEmpty })
+        XCTAssertEqual(unnamed.map(\.pickerTitle), ["Codex", "Codex"])
+        XCTAssertTrue(unnamed.allSatisfy { $0.pickerDetail == "Name in AIQuota" })
+        let generic = WidgetAccount.make([
+            AccountProfile(id: "a", service: .codex, label: "Account1", isLegacy: false),
+            AccountProfile(id: "b", service: .codex, label: "Codex Account 2", isLegacy: false)])
+        XCTAssertEqual(generic.map(\.pickerTitle), ["Codex", "Codex"])
+        XCTAssertTrue(generic.allSatisfy(\.needsFriendlyName))
     }
 
     @MainActor func testReadablePickerPreview() throws {
