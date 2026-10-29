@@ -33,10 +33,10 @@ struct AccountLockView: View {
                             let reading = account.value.reading
                             Text(WidgetCopy.metric(reading?.primaryDisplayWindow)).lineLimit(1)
                             if let secondary = reading?.secondaryWindow {
-                                Text(WidgetCopy.metric(secondary)).lineLimit(1).opacity(0.6).offset(y: 1)
+                                Text(WidgetCopy.metric(secondary)).lineLimit(1).opacity(0.6)
                             } else {
                                 if let reset = LockScreenResetPresentation.make(reading: reading, needsApp: false, at: date) {
-                                    Text(reset.text).lineLimit(1).opacity(0.6).offset(y: 1)
+                                    Text(reset.text).lineLimit(1).opacity(0.6)
                                 }
                             }
                         }

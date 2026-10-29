@@ -100,6 +100,43 @@ import MobileAccessCore
         }
     }
 
+    func testAccessoryTextSpacingWithNamesAndWindows() throws {
+        for weight in [UIFont.Weight.regular, .medium] {
+            let font = UIFont.systemFont(ofSize: 14, weight: weight)
+            print("ACCESSORY_FONT \(weight): lineHeight=\(font.lineHeight), ascender=\(font.ascender), descender=\(font.descender), capHeight=\(font.capHeight)")
+        }
+        for service in QuotaService.allCases { for dual in [false, true] { for showName in [false, true] {
+            let sample = try reading(reset: now.addingTimeInterval(86400), dual: dual)
+            let account = WidgetAccountContent(id: "\(service.rawValue):work", value: .init(service: service, reading: sample, needsApp: false), label: "Account With A Long Name")
+            let view = AccountLockView(account: account, date: now, showAccountNames: showName)
+                .frame(width: 160, height: 72).foregroundStyle(.white).background(Color.black)
+            let renderer = ImageRenderer(content: view); renderer.scale = 3
+            let image = try XCTUnwrap(renderer.uiImage)
+            let attachment = XCTAttachment(image: image)
+            attachment.name = "spacing-\(service)-dual-\(dual)-names-\(showName)"; attachment.lifetime = .keepAlways; add(attachment)
+            let cg = try XCTUnwrap(image.cgImage)
+            var pixels = [UInt8](repeating: 0, count: cg.width * cg.height * 4)
+            let context = try XCTUnwrap(CGContext(data: &pixels, width: cg.width, height: cg.height, bitsPerComponent: 8, bytesPerRow: cg.width * 4,
+                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            context.draw(cg, in: CGRect(x: 0, y: 0, width: cg.width, height: cg.height))
+            var bands: [ClosedRange<Int>] = []
+            for y in 0..<cg.height {
+                let hasInk = (186..<cg.width).contains { pixels[(y * cg.width + $0) * 4] > 30 }
+                if hasInk {
+                    if let last = bands.last, last.upperBound == y - 1 { bands[bands.count - 1] = last.lowerBound...y }
+                    else { bands.append(y...y) }
+                }
+            }
+            print("ACCESSORY_INK \(service) dual=\(dual) names=\(showName): \(bands)")
+            XCTAssertEqual(bands.count, 3)
+            if bands.count == 3 {
+                let firstGap = bands[1].lowerBound - bands[0].upperBound - 1
+                let lastGap = bands[2].lowerBound - bands[1].upperBound - 1
+                XCTAssertEqual(lastGap, firstGap, accuracy: 1, "\(service), dual=\(dual), names=\(showName): last line has extra optical spacing")
+            }
+        } } }
+    }
+
     func testProductionViewStateMatrixRenders() throws {
         let samples: [(String, QuotaReading?, Bool)] = [
             ("single", try reading(reset: now.addingTimeInterval(86400)), false),
