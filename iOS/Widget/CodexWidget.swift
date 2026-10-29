@@ -20,18 +20,24 @@ struct WidgetAccount: AppEntity {
     let isAvailable: Bool
 
     var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: "\(label)", subtitle: "\(pickerDetail)")
+        DisplayRepresentation(title: "\(pickerTitle)", subtitle: pickerDetail.isEmpty ? nil : "\(pickerDetail)")
     }
 
-    var pickerDetail: String {
-        [service.name, identityHint].compactMap { $0 }.joined(separator: " · ")
+    var pickerTitle: String {
+        let prefix = service.name
+        let name = label.trimmingCharacters(in: .whitespacesAndNewlines)
+        if name.caseInsensitiveCompare(prefix) == .orderedSame { return prefix }
+        if name.lowercased().hasPrefix(prefix.lowercased() + " ") { return name }
+        return "\(prefix) · \(name)"
     }
 
-    init(_ profile: AccountProfile, identityHint: String?) {
+    var pickerDetail: String { identityHint ?? (isAvailable ? "" : "Reconnect in AIQuota") }
+
+    init(_ profile: AccountProfile, identityHint: String?, displayLabel: String? = nil) {
         id = "\(profile.service.rawValue):\(profile.id)"
         profileID = profile.id
         service = profile.service
-        label = profile.label
+        label = displayLabel ?? Self.friendlyLabel(profile.label) ?? "Account"
         self.identityHint = identityHint
         isAvailable = true
     }
@@ -51,17 +57,22 @@ struct WidgetAccount: AppEntity {
     }
 
     static func make(_ profiles: [AccountProfile]) -> [WidgetAccount] {
-        let groups = Dictionary(grouping: profiles) { normalizedLabel($0.label) }
-        return profiles.map { profile in
-            let collisions = groups[normalizedLabel(profile.label)] ?? []
-            let hint = safeIdentityHint(profile.providerIdentity)
-            guard collisions.count > 1 else { return WidgetAccount(profile, identityHint: hint) }
-
-            let matchingHints = collisions.compactMap { safeIdentityHint($0.providerIdentity) }
-            if let hint, matchingHints.filter({ $0.caseInsensitiveCompare(hint) == .orderedSame }).count == 1 {
-                return WidgetAccount(profile, identityHint: hint)
+        profiles.map { profile in
+            let serviceProfiles = profiles.filter { $0.service == profile.service }.sorted { $0.id < $1.id }
+            let ordinal = (serviceProfiles.firstIndex { $0.id == profile.id } ?? 0) + 1
+            let label = friendlyLabel(profile.label) ?? (serviceProfiles.count == 1 ? "Account" : "Account \(ordinal)")
+            let collisions = serviceProfiles.filter {
+                normalizedLabel(friendlyLabel($0.label) ?? "") == normalizedLabel(friendlyLabel(profile.label) ?? "")
             }
-            return WidgetAccount(profile, identityHint: "account \(shortID(profile.id))")
+            let email = safeIdentityHint(profile.providerIdentity)
+            let sameEmails = collisions.compactMap { safeIdentityHint($0.providerIdentity) }
+            let uniqueEmail = email.map { value in sameEmails.filter { $0.caseInsensitiveCompare(value) == .orderedSame }.count == 1 } ?? false
+            let hint: String?
+            if friendlyLabel(profile.label) != nil && collisions.count > 1 && !uniqueEmail {
+                let number = (collisions.firstIndex { $0.id == profile.id } ?? 0) + 1
+                hint = "Saved account \(number)"
+            } else { hint = email }
+            return WidgetAccount(profile, identityHint: hint, displayLabel: label)
         }
     }
 
@@ -74,15 +85,15 @@ struct WidgetAccount: AppEntity {
     }
 
     static func headerLabel(for profile: AccountProfile, among profiles: [AccountProfile]) -> String? {
-        guard profiles.count > 1 else { return nil }
-        let collisions = profiles.filter { normalizedLabel($0.label) == normalizedLabel(profile.label) }
-        guard collisions.count > 1 else { return profile.label }
-        let hint = safeIdentityHint(profile.providerIdentity)
-        let matchingHints = collisions.compactMap { safeIdentityHint($0.providerIdentity) }
-        if let hint, matchingHints.filter({ $0.caseInsensitiveCompare(hint) == .orderedSame }).count == 1 {
-            return "\(profile.label) · \(hint)"
-        }
-        return "\(profile.label) · \(shortID(profile.id))"
+        guard profiles.count > 1,
+              let option = make(profiles).first(where: { $0.profileID == profile.id && $0.service == profile.service }) else { return nil }
+        return [option.label, option.identityHint].compactMap { $0 }.joined(separator: " · ")
+    }
+
+    private static func friendlyLabel(_ value: String) -> String? {
+        let cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty, cleaned.lowercased() != "live", UUID(uuidString: cleaned) == nil else { return nil }
+        return cleaned
     }
 
     private static func normalizedLabel(_ value: String) -> String {
@@ -91,16 +102,15 @@ struct WidgetAccount: AppEntity {
 
     private static func safeIdentityHint(_ value: String?) -> String? {
         guard let value else { return nil }
-        let cleaned = value.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }.joined(separator: " ")
-        guard !cleaned.isEmpty else { return nil }
-        guard cleaned.count > 64 else { return cleaned }
-        return "\(cleaned.prefix(30))…\(cleaned.suffix(30))"
+        let cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let pieces = cleaned.split(separator: "@", omittingEmptySubsequences: false)
+        // Provider identities are usually opaque account/organization IDs.
+        // Only an actual email is useful as a human-readable identity hint.
+        guard pieces.count == 2, !pieces[0].isEmpty, !pieces[1].isEmpty,
+              !cleaned.contains(where: { $0.isWhitespace }), cleaned.count <= 254 else { return nil }
+        return cleaned
     }
 
-    private static func shortID(_ value: String) -> String {
-        let suffix = value.suffix(6)
-        return suffix.isEmpty ? "unknown" : String(suffix)
-    }
 }
 
 struct WidgetAccountQuery: EntityQuery {
@@ -140,7 +150,7 @@ private struct ServiceWidgetAccountOptionsProvider: DynamicOptionsProvider {
 enum AccountWidgetShow: String, AppEnum {
     case chosenAccount, closestToLimit
     static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Show")
-    static let caseDisplayRepresentations: [Self: DisplayRepresentation] = [.chosenAccount: "Chosen account", .closestToLimit: "Closest to a limit"]
+    static let caseDisplayRepresentations: [Self: DisplayRepresentation] = [.chosenAccount: "Selected account", .closestToLimit: "Closest to a limit"]
 }
 enum AccountsWidgetOrder: String, AppEnum {
     case closestToLimit, asListed
@@ -154,7 +164,7 @@ struct QuotaConfiguration: WidgetConfigurationIntent {
     @Parameter(title: "Show", default: .chosenAccount) var show: AccountWidgetShow
     @Parameter(title: "Service", default: .codex) var service: QuotaService
     @Parameter(title: "Account") var account: WidgetAccount?
-    @Parameter(title: "Show account names", default: false) var showAccountNames: Bool
+    @Parameter(title: "Use account names", default: false) var showAccountNames: Bool
     static var parameterSummary: some ParameterSummary {
         When(\.$show, .equalTo, .chosenAccount) { Summary { \.$show; \.$account; \.$showAccountNames } }
         otherwise: { Summary { \.$show; \.$showAccountNames } }
@@ -386,7 +396,7 @@ struct BothConfiguration: WidgetConfigurationIntent {
     static let title: LocalizedStringResource = "Accounts"
     @Parameter(title: "Accounts") var accounts: [WidgetAccount]?
     @Parameter(title: "Order", default: .closestToLimit) var order: AccountsWidgetOrder
-    @Parameter(title: "Show account names", default: false) var showAccountNames: Bool
+    @Parameter(title: "Use account names", default: false) var showAccountNames: Bool
     static var parameterSummary: some ParameterSummary { Summary { \.$accounts; \.$order; \.$showAccountNames } }
     @Parameter(title: "Codex account", optionsProvider: ServiceWidgetAccountOptionsProvider(service: .codex)) var codexAccount: WidgetAccount?
     @Parameter(title: "Claude account", optionsProvider: ServiceWidgetAccountOptionsProvider(service: .claude)) var claudeAccount: WidgetAccount?
@@ -432,7 +442,7 @@ enum CompactServices: String, AppEnum {
 struct CompactConfiguration: WidgetConfigurationIntent {
     static let title: LocalizedStringResource = "Allowance details"
     @Parameter(title: "Services", default: .both) var services: CompactServices
-    @Parameter(title: "Show account names", default: false) var showAccountNames: Bool
+    @Parameter(title: "Use account names", default: false) var showAccountNames: Bool
     @Parameter(title: "Codex account", optionsProvider: ServiceWidgetAccountOptionsProvider(service: .codex)) var codexAccount: WidgetAccount?
     @Parameter(title: "Claude account", optionsProvider: ServiceWidgetAccountOptionsProvider(service: .claude)) var claudeAccount: WidgetAccount?
 }
