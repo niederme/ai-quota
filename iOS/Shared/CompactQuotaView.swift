@@ -43,6 +43,8 @@ struct AccountLockView: View {
                     }
                     .font(.system(size: 14, weight: .medium)).monospacedDigit()
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    // The open-bottom dial's visible centre sits above its frame centre.
+                    .offset(y: -4)
                 }
             }
         }
