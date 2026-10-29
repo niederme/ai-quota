@@ -332,10 +332,10 @@ Compact widget labels default to **Codex** or **Claude**. Enable **Use account
 names** in a widget's configuration to use the longer account label instead.
 This applies to Home Screen tiles and Lock Screen labels; account selection,
 links and the full account identity in accessibility descriptions are preserved.
-The rectangular single-account Lock Screen widget follows the earlier tuned
-16pt typography: medium service title, semibold rounded percentage and regular
-allowance/reset labels. Its 44pt dial frame and 4pt gap leave 112pt for a full
-reset time. These dimensions are independent of Home Screen dial geometry.
+The rectangular single-account Lock Screen widget copies the styling in
+October 22's `a82fbdb`: 14pt regular service title, 14pt medium usage/reset
+text, 60pt dial frame, 2pt gap and the historical 1pt final-row offset.
+Its dial geometry remains independent of Home Screen/circular widgets.
 Widget account choices begin with Codex or Claude. A real friendly label or
 email is added only when multiple connections need distinguishing. Generic
 numbered account labels and opaque identifiers stay hidden. If saved metadata
