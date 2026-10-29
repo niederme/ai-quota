@@ -328,6 +328,12 @@ the WidgetKit container is transparent so its system material treatment does not
 add a glossy gradient. Tinted/vibrant modes and background removal omit that fill.
 Widget content scales from the approved 158×158, 338×158 and 338×354 canvases to
 preserve the dial and inset proportions across device widget sizes.
+Compact widget labels default to **Codex** or **Claude**. Enable **Show account
+names** in a widget's configuration to use the longer account label instead.
+This applies to Home Screen tiles and Lock Screen labels; account selection,
+links and the full account identity in accessibility descriptions are preserved.
+The rectangular single-account Lock Screen widget uses its earlier tuned dial,
+2pt text gap and regular 14pt title, independent of Home Screen dial geometry.
 
 `WidgetHostedLayoutFlowTests` captures all three Account sizes through SpringBoard,
 using the app's demo data. Run it only on a dedicated English-language simulator

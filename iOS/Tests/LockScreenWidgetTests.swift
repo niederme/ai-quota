@@ -73,6 +73,33 @@ import MobileAccessCore
         var utc = Calendar(identifier: .gregorian); utc.timeZone = try XCTUnwrap(TimeZone(secondsFromGMT: 0))
         XCTAssertEqual(LockScreenResetPresentation.make(reading: try reading(reset: now.addingTimeInterval(86400)), needsApp: false, at: now, calendar: utc)?.text, "Tue 12:00 AM")
     }
+    func testRestoredAccessoryGaugeAndResetFitAtNativeSize() throws {
+        // The pre-redesign Weather-adjacent gauge occupied about 51 points,
+        // leaving 98 points for a full weekday/time at the 160-point host width.
+        let sample = try reading(reset: now.addingTimeInterval(86400))
+        let account = WidgetAccountContent(id: "codex:work", value: .init(service: .codex, reading: sample, needsApp: false), label: "Account With A Long Name")
+        for showName in [false, true] {
+            let view = AccountLockView(account: account, date: now, showAccountNames: showName)
+                .frame(width: 160, height: 72).foregroundStyle(.white).background(Color.black)
+            let renderer = ImageRenderer(content: view); renderer.scale = 3
+            let image = try XCTUnwrap(renderer.uiImage)
+            let attachment = XCTAttachment(image: image)
+            attachment.name = "restored-rectangular-account-names-\(showName)"; attachment.lifetime = .keepAlways; add(attachment)
+            let cg = try XCTUnwrap(image.cgImage)
+            var pixels = [UInt8](repeating: 0, count: cg.width * cg.height * 4)
+            let context = try XCTUnwrap(CGContext(data: &pixels, width: cg.width, height: cg.height, bitsPerComponent: 8, bytesPerRow: cg.width * 4,
+                space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            context.draw(cg, in: CGRect(x: 0, y: 0, width: cg.width, height: cg.height))
+            var minX = 180, maxX = 0
+            for y in 0..<cg.height { for x in 0..<180 {
+                if pixels[(y * cg.width + x) * 4] > 20 { minX = min(minX, x); maxX = max(maxX, x) }
+            } }
+            let gaugeWidth = Double(maxX - minX + 1) / 3
+            XCTAssertGreaterThan(gaugeWidth, 49)
+            XCTAssertLessThan(gaugeWidth, 53, "Home dial geometry must not leak into the rectangular accessory")
+        }
+    }
+
     func testProductionViewStateMatrixRenders() throws {
         let samples: [(String, QuotaReading?, Bool)] = [
             ("single", try reading(reset: now.addingTimeInterval(86400)), false),

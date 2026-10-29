@@ -154,9 +154,10 @@ struct QuotaConfiguration: WidgetConfigurationIntent {
     @Parameter(title: "Show", default: .chosenAccount) var show: AccountWidgetShow
     @Parameter(title: "Service", default: .codex) var service: QuotaService
     @Parameter(title: "Account") var account: WidgetAccount?
+    @Parameter(title: "Show account names", default: false) var showAccountNames: Bool
     static var parameterSummary: some ParameterSummary {
-        When(\.$show, .equalTo, .chosenAccount) { Summary { \.$show; \.$account } }
-        otherwise: { Summary { \.$show } }
+        When(\.$show, .equalTo, .chosenAccount) { Summary { \.$show; \.$account; \.$showAccountNames } }
+        otherwise: { Summary { \.$show; \.$showAccountNames } }
     }
 }
 struct QuotaEntry: TimelineEntry {
@@ -164,6 +165,7 @@ struct QuotaEntry: TimelineEntry {
     let values: [ProviderReading]
     let accountLabels: [QuotaService: String]
     var accountContents: [WidgetAccountContent]? = nil
+    var showAccountNames = false
     var accounts: [WidgetAccountContent] {
         accountContents ?? values.enumerated().map {
             WidgetAccountContent(id: "\($0.offset)", value: $0.element, label: accountLabels[$0.element.service] ?? "")
@@ -208,13 +210,13 @@ private func profile(_ selection: WidgetAccount?, for service: QuotaService) -> 
     return resolveWidgetProfile(selection, for: service, profiles: profiles, defaultProfile: AccountRegistry.defaultProfile(for: service))
 }
 
-private func entry(_ readings: [WidgetReading], at date: Date = .now) -> QuotaEntry {
+private func entry(_ readings: [WidgetReading], at date: Date = .now, showAccountNames: Bool = false) -> QuotaEntry {
     var labels: [QuotaService: String] = [:]
     for reading in readings { if let label = reading.accountLabel { labels[reading.value.service] = label } }
     return QuotaEntry(date: date, values: readings.map(\.value), accountLabels: labels,
         accountContents: readings.enumerated().map { index, reading in
             reading.content ?? WidgetAccountContent(id: "\(reading.value.service.rawValue):\(reading.namespace ?? String(index))", value: reading.value, label: reading.accountLabel ?? "")
-        })
+        }, showAccountNames: showAccountNames)
 }
 private func enriched(_ reading: WidgetReading, selection: WidgetAccount?) -> WidgetReading {
     let store = reading.namespace.map { SharedQuotaStore(reading.value.service, namespace: $0) }
@@ -358,7 +360,7 @@ private func snapshotReading(_ service: QuotaService, account: WidgetAccount? = 
     )
     return WidgetReading(value: value, accountLabel: headerLabel, namespace: profile.id)
 }
-private func timeline(_ readings: [WidgetReading]) -> Timeline<QuotaEntry> {
+private func timeline(_ readings: [WidgetReading], showAccountNames: Bool) -> Timeline<QuotaEntry> {
     let now = Date.now
     let values = readings.map(\.value)
     let dates = Array(Set([now] + values.flatMap { WidgetFreshness.boundaries($0.reading, after: now) })).sorted()
@@ -366,42 +368,43 @@ private func timeline(_ readings: [WidgetReading]) -> Timeline<QuotaEntry> {
         guard let namespace = reading.namespace else { continue }
         SharedQuotaStore(reading.value.service, namespace: namespace).log("widget", "timeline_handoff", reading: reading.value.reading, entryDates: dates)
     }
-    return Timeline(entries: dates.map { entry(readings, at: $0) }, policy: .after(now.addingTimeInterval(5 * 60)))
+    return Timeline(entries: dates.map { entry(readings, at: $0, showAccountNames: showAccountNames) }, policy: .after(now.addingTimeInterval(5 * 60)))
 }
 struct CodexProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> QuotaEntry { entry([enriched(snapshotReading(.codex), selection: nil)]) }
     func snapshot(for configuration: QuotaConfiguration, in context: Context) async -> QuotaEntry {
-        entry(await singleReadings(configuration, fetch: false))
+        entry(await singleReadings(configuration, fetch: false), showAccountNames: configuration.showAccountNames)
     }
     func timeline(for configuration: QuotaConfiguration, in context: Context) async -> Timeline<QuotaEntry> {
-        WidgetTimeline.make(await singleReadings(configuration, fetch: true))
+        WidgetTimeline.make(await singleReadings(configuration, fetch: true), showAccountNames: configuration.showAccountNames)
     }
 }
 private enum WidgetTimeline {
-    static func make(_ values: [WidgetReading]) -> Timeline<QuotaEntry> { timeline(values) }
+    static func make(_ values: [WidgetReading], showAccountNames: Bool) -> Timeline<QuotaEntry> { timeline(values, showAccountNames: showAccountNames) }
 }
 struct BothConfiguration: WidgetConfigurationIntent {
     static let title: LocalizedStringResource = "Accounts"
     @Parameter(title: "Accounts") var accounts: [WidgetAccount]?
     @Parameter(title: "Order", default: .closestToLimit) var order: AccountsWidgetOrder
-    static var parameterSummary: some ParameterSummary { Summary { \.$accounts; \.$order } }
+    @Parameter(title: "Show account names", default: false) var showAccountNames: Bool
+    static var parameterSummary: some ParameterSummary { Summary { \.$accounts; \.$order; \.$showAccountNames } }
     @Parameter(title: "Codex account", optionsProvider: ServiceWidgetAccountOptionsProvider(service: .codex)) var codexAccount: WidgetAccount?
     @Parameter(title: "Claude account", optionsProvider: ServiceWidgetAccountOptionsProvider(service: .claude)) var claudeAccount: WidgetAccount?
 }
 struct BothProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> QuotaEntry { QuotaEntry(date: .now, values: QuotaService.allCases.map { ProviderReading(service: $0, reading: nil, needsApp: false) }, accountLabels: [:]) }
     func snapshot(for configuration: BothConfiguration, in context: Context) async -> QuotaEntry {
-        entry(await multipleReadings(configuration, fetch: false))
+        entry(await multipleReadings(configuration, fetch: false), showAccountNames: configuration.showAccountNames)
     }
     func timeline(for configuration: BothConfiguration, in context: Context) async -> Timeline<QuotaEntry> {
-        WidgetTimeline.make(await multipleReadings(configuration, fetch: true))
+        WidgetTimeline.make(await multipleReadings(configuration, fetch: true), showAccountNames: configuration.showAccountNames)
     }
 }
 struct SingleLockScreenWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "CodexLockScreen", intent: QuotaConfiguration.self, provider: CodexProvider()) { entry in
             if let account = entry.accounts.first {
-                AccountLockView(account: account, date: entry.date, circular: true)
+                AccountLockView(account: account, date: entry.date, circular: true, showAccountNames: entry.showAccountNames)
                     .widgetURL(account.url).containerBackground(for: .widget) { Color.clear }
             }
         }
@@ -413,7 +416,7 @@ struct SingleLockScreenWidget: Widget {
 struct BothLockScreenWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "BothLockScreen", intent: BothConfiguration.self, provider: BothProvider()) { entry in
-            AccountsLockView(accounts: entry.accounts, date: entry.date).containerBackground(for: .widget) { Color.clear }
+            AccountsLockView(accounts: entry.accounts, date: entry.date, showAccountNames: entry.showAccountNames).containerBackground(for: .widget) { Color.clear }
         }
         .configurationDisplayName("Accounts")
         .description("Several accounts at a glance. Existing Lock Screen widget.")
@@ -429,6 +432,7 @@ enum CompactServices: String, AppEnum {
 struct CompactConfiguration: WidgetConfigurationIntent {
     static let title: LocalizedStringResource = "Allowance details"
     @Parameter(title: "Services", default: .both) var services: CompactServices
+    @Parameter(title: "Show account names", default: false) var showAccountNames: Bool
     @Parameter(title: "Codex account", optionsProvider: ServiceWidgetAccountOptionsProvider(service: .codex)) var codexAccount: WidgetAccount?
     @Parameter(title: "Claude account", optionsProvider: ServiceWidgetAccountOptionsProvider(service: .claude)) var claudeAccount: WidgetAccount?
 }
@@ -439,22 +443,22 @@ struct CompactProvider: AppIntentTimelineProvider {
     func snapshot(for configuration: CompactConfiguration, in context: Context) async -> QuotaEntry {
         entry(configuration.services.services.map { service in
             enriched(snapshotReading(service, account: service == .codex ? configuration.codexAccount : configuration.claudeAccount), selection: service == .codex ? configuration.codexAccount : configuration.claudeAccount)
-        })
+        }, showAccountNames: configuration.showAccountNames)
     }
     func timeline(for configuration: CompactConfiguration, in context: Context) async -> Timeline<QuotaEntry> {
         if configuration.services == .both {
             async let codex = loadReading(.codex, account: configuration.codexAccount)
             async let claude = loadReading(.claude, account: configuration.claudeAccount)
-            return WidgetTimeline.make(await [enriched(codex, selection: configuration.codexAccount), enriched(claude, selection: configuration.claudeAccount)])
+            return WidgetTimeline.make(await [enriched(codex, selection: configuration.codexAccount), enriched(claude, selection: configuration.claudeAccount)], showAccountNames: configuration.showAccountNames)
         }
         let service = configuration.services.services[0]
-        return WidgetTimeline.make([enriched(await loadReading(service, account: service == .codex ? configuration.codexAccount : configuration.claudeAccount), selection: service == .codex ? configuration.codexAccount : configuration.claudeAccount)])
+        return WidgetTimeline.make([enriched(await loadReading(service, account: service == .codex ? configuration.codexAccount : configuration.claudeAccount), selection: service == .codex ? configuration.codexAccount : configuration.claudeAccount)], showAccountNames: configuration.showAccountNames)
     }
 }
 struct CompactLockScreenWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "CompactLockScreen", intent: CompactConfiguration.self, provider: CompactProvider()) { entry in
-            AccountsLockView(accounts: entry.accounts, date: entry.date).containerBackground(for: .widget) { Color.clear }
+            AccountsLockView(accounts: entry.accounts, date: entry.date, showAccountNames: entry.showAccountNames).containerBackground(for: .widget) { Color.clear }
         }
         .configurationDisplayName("Accounts")
         .description("Existing two-service configuration.")
@@ -473,7 +477,7 @@ struct ServiceDetailsWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "ServiceDetails", intent: QuotaConfiguration.self, provider: CodexProvider()) { entry in
             if let account = entry.accounts.first {
-                AccountLockView(account: account, date: entry.date).widgetURL(account.url)
+                AccountLockView(account: account, date: entry.date, showAccountNames: entry.showAccountNames).widgetURL(account.url)
                     .containerBackground(for: .widget) { Color.clear }
             }
         }
@@ -492,12 +496,12 @@ struct HomeEntryView: View {
     var body: some View {
         let displayFamily = previewFamily ?? family
         if displayFamily == .accessoryCircular, let account = entry.accounts.first {
-            AccountLockView(account: account, date: entry.date, circular: true)
+            AccountLockView(account: account, date: entry.date, circular: true, showAccountNames: entry.showAccountNames)
         } else if displayFamily == .accessoryRectangular {
-            if both { AccountsLockView(accounts: entry.accounts, date: entry.date) }
-            else if let account = entry.accounts.first { AccountLockView(account: account, date: entry.date) }
+            if both { AccountsLockView(accounts: entry.accounts, date: entry.date, showAccountNames: entry.showAccountNames) }
+            else if let account = entry.accounts.first { AccountLockView(account: account, date: entry.date, showAccountNames: entry.showAccountNames) }
         } else {
-            HomeQuotaView(values: entry.values, date: entry.date, layout: layout(displayFamily), accounts: entry.accounts)
+            HomeQuotaView(values: entry.values, date: entry.date, layout: layout(displayFamily), accounts: entry.accounts, showAccountNames: entry.showAccountNames)
                 .background {
                     // Keep the opaque full-color plate out of the system's
                     // material background pass, while honoring background removal.
