@@ -22,35 +22,43 @@ struct AccountLockView: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
             } else {
-                HStack(spacing: 2) {
-                    TunedLockScreenDial(account: account, date: date).frame(width: 60, height: 60)
+                HStack(spacing: 4) {
+                    TunedLockScreenDial(account: account, date: date).frame(width: 44, height: 44).offset(y: 2)
                     VStack(alignment: .leading, spacing: 0) {
-                        Text(account.compactName(showAccountNames: showAccountNames))
-                            .font(.system(size: 14, weight: .regular)).lineLimit(1)
+                        accessoryRow(account.compactName(showAccountNames: showAccountNames), weight: .medium)
                         if account.value.needsApp || account.value.reading == nil || account.isSaved(at: date) {
                             Text(account.status(at: date)).lineLimit(2).opacity(0.6)
                         } else {
                             let reading = account.value.reading
-                            Text(WidgetCopy.metric(reading?.primaryDisplayWindow)).lineLimit(1)
+                            accessoryMetric(reading?.primaryDisplayWindow)
                             if let secondary = reading?.secondaryWindow {
-                                Text(WidgetCopy.metric(secondary)).lineLimit(1).opacity(0.6)
+                                accessoryMetric(secondary).opacity(0.6)
                             } else {
                                 if let reset = LockScreenResetPresentation.make(reading: reading, needsApp: false, at: date) {
-                                    Text(reset.text).lineLimit(1).opacity(0.6)
+                                    accessoryRow(reset.text).opacity(0.6)
                                 }
                             }
                         }
                     }
-                    .font(.system(size: 14, weight: .medium)).monospacedDigit()
+                    .font(.system(size: 16, weight: .medium)).monospacedDigit()
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    // The open-bottom dial's visible centre sits above its frame centre.
-                    .offset(y: -4)
                 }
             }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(account.accessibility(at: date))
         .accessibilityHint("Opens AIQuota")
+    }
+    private func accessoryRow(_ text: String, weight: Font.Weight = .regular) -> some View {
+        Text(text).font(.system(size: 16, weight: weight)).lineLimit(1)
+    }
+    // Typography restored from the tuned 3e6740e rectangular accessory.
+    private func accessoryMetric(_ window: QuotaWindow?) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 3) {
+            Text(window.map { "\(Int($0.usedPercent.rounded()))%" } ?? "N/A")
+                .font(.system(size: 16, weight: .semibold, design: .rounded)).monospacedDigit()
+            Text(WidgetCopy.key(window)).font(.system(size: 16, weight: .regular))
+        }.lineLimit(1)
     }
 }
 

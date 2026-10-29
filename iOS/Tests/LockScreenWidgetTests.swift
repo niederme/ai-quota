@@ -44,12 +44,12 @@ import MobileAccessCore
         }
     }
     func testLargestThreeLetterTimeFitsWithoutScaling() {
-        let font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        let font = UIFont.monospacedDigitSystemFont(ofSize: 16, weight: .regular)
         let combinedFont = UIFont.systemFont(ofSize: 11, weight: .medium)
         for day in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] {
             for hour in 1...12 { for minute in 0...59 { for period in ["AM", "PM"] {
                 let text = "\(day) \(hour):" + String(format: "%02d", minute) + " " + period
-                XCTAssertLessThanOrEqual((text as NSString).size(withAttributes: [.font: font]).width, 98, text)
+                XCTAssertLessThanOrEqual((text as NSString).size(withAttributes: [.font: font]).width, 112, text)
                 XCTAssertLessThanOrEqual((text as NSString).size(withAttributes: [.font: combinedFont]).width, 79, text)
             } } }
         }
@@ -74,8 +74,8 @@ import MobileAccessCore
         XCTAssertEqual(LockScreenResetPresentation.make(reading: try reading(reset: now.addingTimeInterval(86400)), needsApp: false, at: now, calendar: utc)?.text, "Tue 12:00 AM")
     }
     func testRestoredAccessoryGaugeAndResetFitAtNativeSize() throws {
-        // The pre-redesign Weather-adjacent gauge occupied about 51 points,
-        // leaving 98 points for a full weekday/time at the 160-point host width.
+        // A 44pt dial frame plus 4pt gap leaves 112pt for full-size 16pt reset copy.
+        // Its inset visible ring stays subordinate to the three text rows.
         let sample = try reading(reset: now.addingTimeInterval(86400))
         let account = WidgetAccountContent(id: "codex:work", value: .init(service: .codex, reading: sample, needsApp: false), label: "Account With A Long Name")
         for showName in [false, true] {
@@ -90,19 +90,19 @@ import MobileAccessCore
             let context = try XCTUnwrap(CGContext(data: &pixels, width: cg.width, height: cg.height, bitsPerComponent: 8, bytesPerRow: cg.width * 4,
                 space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
             context.draw(cg, in: CGRect(x: 0, y: 0, width: cg.width, height: cg.height))
-            var minX = 180, maxX = 0
-            for y in 0..<cg.height { for x in 0..<180 {
+            var minX = 132, maxX = 0
+            for y in 0..<cg.height { for x in 0..<132 {
                 if pixels[(y * cg.width + x) * 4] > 20 { minX = min(minX, x); maxX = max(maxX, x) }
             } }
             let gaugeWidth = Double(maxX - minX + 1) / 3
-            XCTAssertGreaterThan(gaugeWidth, 49)
-            XCTAssertLessThan(gaugeWidth, 53, "Home dial geometry must not leak into the rectangular accessory")
+            XCTAssertGreaterThan(gaugeWidth, 35)
+            XCTAssertLessThan(gaugeWidth, 38, "Home dial geometry must not leak into the rectangular accessory")
         }
     }
 
     func testAccessoryTextSpacingWithNamesAndWindows() throws {
         for weight in [UIFont.Weight.regular, .medium] {
-            let font = UIFont.systemFont(ofSize: 14, weight: weight)
+            let font = UIFont.systemFont(ofSize: 16, weight: weight)
             print("ACCESSORY_FONT \(weight): lineHeight=\(font.lineHeight), ascender=\(font.ascender), descender=\(font.descender), capHeight=\(font.capHeight)")
         }
         for service in QuotaService.allCases { for dual in [false, true] { for showName in [false, true] {
@@ -121,7 +121,7 @@ import MobileAccessCore
             context.draw(cg, in: CGRect(x: 0, y: 0, width: cg.width, height: cg.height))
             var bands: [ClosedRange<Int>] = []
             for y in 0..<cg.height {
-                let hasInk = (186..<cg.width).contains { pixels[(y * cg.width + $0) * 4] > 30 }
+                let hasInk = (144..<cg.width).contains { pixels[(y * cg.width + $0) * 4] > 30 }
                 if hasInk {
                     if let last = bands.last, last.upperBound == y - 1 { bands[bands.count - 1] = last.lowerBound...y }
                     else { bands.append(y...y) }
@@ -130,7 +130,7 @@ import MobileAccessCore
             print("ACCESSORY_INK \(service) dual=\(dual) names=\(showName): \(bands)")
             XCTAssertEqual(bands.count, 3)
             var dialTop = cg.height, dialBottom = 0
-            for y in 0..<cg.height { for x in 0..<180 {
+            for y in 0..<cg.height { for x in 0..<132 {
                 if pixels[(y * cg.width + x) * 4] > 20 {
                     dialTop = min(dialTop, y); dialBottom = max(dialBottom, y)
                 }

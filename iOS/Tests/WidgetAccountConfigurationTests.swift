@@ -38,23 +38,24 @@ final class WidgetAccountConfigurationTests: XCTestCase {
         XCTAssertTrue(claude.allSatisfy { $0.service == .claude })
     }
 
-    func testDuplicateNicknamesUseIdentityThenStableIDSuffixToStayDistinct() {
+    func testDuplicateNicknamesUseFriendlyIdentityOrRequestNaming() {
         let uniqueIdentities = WidgetAccount.make([
             codexWork,
             AccountProfile(id: "codex-other", service: .codex, label: "Work", providerIdentity: "other@example.com", isLegacy: false)
         ])
         XCTAssertEqual(uniqueIdentities.map(\.label), ["Work", "Work"])
         XCTAssertEqual(uniqueIdentities.map(\.pickerDetail), [
-            "Codex · member@example.com",
-            "Codex · other@example.com"
+            "member@example.com",
+            "other@example.com"
         ])
 
         let sameIdentity = WidgetAccount.make([
             codexWork,
             AccountProfile(id: "codex-other", service: .codex, label: "Work", providerIdentity: "member@example.com", isLegacy: false)
         ])
-        XCTAssertEqual(Set(sameIdentity.map(\.pickerDetail)).count, 2)
-        XCTAssertTrue(sameIdentity.allSatisfy { $0.pickerDetail.hasPrefix("Codex · account ") })
+        XCTAssertEqual(Set(sameIdentity.map(\.id)).count, 2)
+        XCTAssertEqual(Set(sameIdentity.map(\.pickerDetail)), Set(["Name in AIQuota"]))
+        XCTAssertTrue(sameIdentity.allSatisfy(\.needsFriendlyName))
     }
 
     func testStableIdentitySurvivesRenameAndReorder() throws {
@@ -353,5 +354,77 @@ extension WidgetAccountConfigurationTests {
                 }
             }
         }
+    }
+}
+
+
+extension WidgetAccountConfigurationTests {
+    func testPickerUsesServiceFirstNamesWithoutBackendIdentifiers() throws {
+        let profiles = [
+            AccountProfile(id: "live", service: .codex, label: "Account 1", providerIdentity: "145b2756-fb5a-4da7-96bc-fe86a4b82cd5", isLegacy: true),
+            AccountProfile(id: "live", service: .claude, label: "Account 1", providerIdentity: "org_03D337", isLegacy: true),
+            AccountProfile(id: "codex-second", service: .codex, label: "Account 2", providerIdentity: "acct_opaque", isLegacy: false),
+            AccountProfile(id: "claude-second", service: .claude, label: "Account 2", providerIdentity: "org_opaque", isLegacy: false)]
+        let values = WidgetAccount.make(profiles)
+        XCTAssertEqual(values.map(\.pickerTitle), ["Codex", "Claude", "Codex", "Claude"])
+        XCTAssertTrue(values.allSatisfy { $0.pickerDetail == "Name in AIQuota" })
+        XCTAssertEqual(values.map(\.id), ["codex:live", "claude:live", "codex:codex-second", "claude:claude-second"])
+        let selected = try XCTUnwrap(values.first)
+        guard case let .selected(profile, _) = resolveWidgetProfile(selected, for: .codex, profiles: profiles.filter { $0.service == .codex }, defaultProfile: nil) else { return XCTFail("Selection must survive presentation cleanup") }
+        XCTAssertEqual(profile.id, "live")
+        let duplicates = [
+            AccountProfile(id: "b", service: .codex, label: "Work", providerIdentity: "opaque-b", isLegacy: false),
+            AccountProfile(id: "a", service: .codex, label: "Work", providerIdentity: "opaque-a", isLegacy: false)]
+        let before = Dictionary(uniqueKeysWithValues: WidgetAccount.make(duplicates).map { ($0.id, $0.pickerDetail) })
+        let after = Dictionary(uniqueKeysWithValues: WidgetAccount.make(Array(duplicates.reversed())).map { ($0.id, $0.pickerDetail) })
+        XCTAssertEqual(before, after)
+        XCTAssertEqual(Set(before.values), Set(["Name in AIQuota"]))
+        let missing = WidgetAccount.make([AccountProfile(id: "live", service: .claude, label: "", isLegacy: true)])
+        XCTAssertEqual(missing.first?.pickerTitle, "Claude")
+        XCTAssertTrue(missing.first?.pickerDetail.isEmpty == true)
+        let unnamed = WidgetAccount.make([
+            AccountProfile(id: "b", service: .codex, label: "", providerIdentity: "opaque", isLegacy: false),
+            AccountProfile(id: "a", service: .codex, label: "live", providerIdentity: "opaque", isLegacy: true)])
+        XCTAssertEqual(unnamed.map(\.pickerTitle), ["Codex", "Codex"])
+        XCTAssertTrue(unnamed.allSatisfy { $0.pickerDetail == "Name in AIQuota" })
+        let generic = WidgetAccount.make([
+            AccountProfile(id: "a", service: .codex, label: "Account1", isLegacy: false),
+            AccountProfile(id: "b", service: .codex, label: "Codex Account 2", isLegacy: false)])
+        XCTAssertEqual(generic.map(\.pickerTitle), ["Codex", "Codex"])
+        XCTAssertTrue(generic.allSatisfy(\.needsFriendlyName))
+    }
+
+    @MainActor func testReadablePickerPreview() throws {
+        let profiles = [
+            AccountProfile(id: "live", service: .codex, label: "Account 1", providerIdentity: "opaque", isLegacy: true),
+            AccountProfile(id: "live", service: .claude, label: "Account 1", providerIdentity: "opaque", isLegacy: true),
+            AccountProfile(id: "second", service: .codex, label: "Account 2", providerIdentity: "opaque", isLegacy: false),
+            AccountProfile(id: "second", service: .claude, label: "Account 2", providerIdentity: "opaque", isLegacy: false)]
+        let view = VStack(alignment: .leading, spacing: 16) {
+            Text("Account").font(.headline)
+            ForEach(WidgetAccount.make(profiles), id: \.id) { account in
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(account.pickerTitle).font(.body)
+                    if !account.pickerDetail.isEmpty { Text(account.pickerDetail).font(.caption).foregroundStyle(.secondary) }
+                }
+            }
+            Divider()
+            HStack { Text("Use account names"); Spacer(); Image(systemName: "switch.2") }
+                .font(.body)
+        }.padding(20).frame(width: 300).foregroundStyle(.white).background(Color(white: 0.16))
+        let renderer = ImageRenderer(content: view); renderer.scale = 3
+        let attachment = XCTAttachment(image: try XCTUnwrap(renderer.uiImage)); attachment.name = "Readable account picker proposal"; attachment.lifetime = .keepAlways; add(attachment)
+    }
+}
+
+
+extension WidgetAccountConfigurationTests {
+    func testMissingSavedSelectionPreservesStableIdentifier() async throws {
+        let identifier = "codex:removed-widget-account"
+        let result = try await WidgetAccountQuery().entities(for: [identifier])
+        XCTAssertEqual(result.first?.id, identifier)
+        XCTAssertEqual(result.first?.profileID, "removed-widget-account")
+        XCTAssertEqual(result.first?.pickerTitle, "Codex · Choose or reconnect")
+        XCTAssertEqual(result.first?.pickerDetail, "Reconnect in AIQuota")
     }
 }
