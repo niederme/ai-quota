@@ -487,6 +487,8 @@ struct HomeEntryView: View {
     let both: Bool
     var previewFamily: WidgetFamily? = nil
     @Environment(\.widgetFamily) private var family
+    @Environment(\.widgetRenderingMode) private var renderingMode
+    @Environment(\.showsWidgetContainerBackground) private var showsBackground
     var body: some View {
         let displayFamily = previewFamily ?? family
         if displayFamily == .accessoryCircular, let account = entry.accounts.first {
@@ -496,6 +498,13 @@ struct HomeEntryView: View {
             else if let account = entry.accounts.first { AccountLockView(account: account, date: entry.date) }
         } else {
             HomeQuotaView(values: entry.values, date: entry.date, layout: layout(displayFamily), accounts: entry.accounts)
+                .background {
+                    // Keep the opaque full-color plate out of the system's
+                    // material background pass, while honoring background removal.
+                    if renderingMode == .fullColor && showsBackground {
+                        HomeWidgetBackground()
+                    }
+                }
         }
     }
     private func layout(_ family: WidgetFamily) -> HomeQuotaView.Layout {
@@ -503,19 +512,12 @@ struct HomeEntryView: View {
         return family == .systemSmall ? .small : family == .systemLarge ? .accountLarge : .singleMedium
     }
 }
-struct WidgetSurface: View {
-    @Environment(\.widgetFamily) private var family
-    var body: some View {
-        if family == .accessoryCircular || family == .accessoryRectangular { Color.clear }
-        else { HomeWidgetBackground() }
-    }
-}
 struct SingleHomeScreenWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "AIQuotaHomeSingle", intent: QuotaConfiguration.self, provider: CodexProvider()) { entry in
             HomeEntryView(entry: entry, both: false)
                 .widgetURL(entry.accounts.first?.url)
-                .containerBackground(for: .widget) { WidgetSurface() }
+                .containerBackground(for: .widget) { Color.clear }
         }
         .configurationDisplayName("Account")
         .description("One account in depth, or the account closest to a limit.")
@@ -528,7 +530,7 @@ struct BothHomeScreenWidget: Widget {
         AppIntentConfiguration(kind: "AIQuotaHomeBoth", intent: BothConfiguration.self, provider: BothProvider()) { entry in
             HomeEntryView(entry: entry, both: true)
                 .widgetURL(URL(string: "aiquota-probe://overview"))
-                .containerBackground(for: .widget) { WidgetSurface() }
+                .containerBackground(for: .widget) { Color.clear }
         }
         .configurationDisplayName("Accounts")
         .description("Choose accounts from any service, ordered by usage or as listed.")
