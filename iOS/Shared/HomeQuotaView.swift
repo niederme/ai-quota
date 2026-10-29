@@ -9,6 +9,7 @@ struct HomeQuotaView: View {
     let date: Date
     let layout: Layout
     var accounts: [WidgetAccountContent]? = nil
+    var showAccountNames = false
     @Environment(\.widgetRenderingMode) private var renderingMode
     @ScaledMetric(relativeTo: .caption2) private var nameSize = 11
     @ScaledMetric(relativeTo: .caption2) private var captionSize = 10
@@ -89,7 +90,7 @@ struct HomeQuotaView: View {
             if monochrome && (account.worstPercent ?? 0) >= 85 {
                 Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 9)).accessibilityHidden(true)
             }
-            Text(account.name).font(.system(size: min(nameSize, 13), weight: .semibold)).lineLimit(lines).truncationMode(.tail)
+            Text(account.compactName(showAccountNames: showAccountNames)).font(.system(size: min(nameSize, 13), weight: .semibold)).lineLimit(lines).truncationMode(.tail)
         }
     }
     private func status(_ account: WidgetAccountContent, compact: Bool = false) -> some View {

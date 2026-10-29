@@ -17,6 +17,9 @@ struct WidgetAccountContent: Identifiable, Sendable {
         if label.caseInsensitiveCompare(service) == .orderedSame || label.lowercased().hasPrefix(service.lowercased() + " ") { return label }
         return "\(service) \(label)"
     }
+    func compactName(showAccountNames: Bool) -> String {
+        showAccountNames ? name : value.service.name
+    }
     var url: URL {
         let prefix = value.service.rawValue + ":"
         guard id.hasPrefix(prefix) else { return value.service.url }

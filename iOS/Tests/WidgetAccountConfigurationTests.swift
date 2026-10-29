@@ -309,3 +309,49 @@ extension WidgetAccountConfigurationTests {
         }
     }
 }
+
+
+extension WidgetAccountConfigurationTests {
+    @MainActor func testCompactNamesKeepSelectionAndIdentity() throws {
+        var account = WidgetAccountContent(id: "codex:work-account", value: .init(service: .codex, reading: nil, needsApp: false), label: "Account With A Long Name")
+        let destination = account.url
+        XCTAssertEqual(account.compactName(showAccountNames: false), "Codex")
+        XCTAssertEqual(account.compactName(showAccountNames: true), "Codex Account With A Long Name")
+        XCTAssertTrue(account.accessibility(at: .now).contains("Account With A Long Name"))
+        XCTAssertEqual(account.url, destination)
+        XCTAssertEqual(account.id, "codex:work-account")
+        account.label = ""
+        XCTAssertEqual(account.compactName(showAccountNames: true), "Codex")
+        let claude = WidgetAccountContent(id: "claude:work", value: .init(service: .claude, reading: nil, needsApp: false), label: "Claude Enterprise")
+        XCTAssertEqual(claude.compactName(showAccountNames: false), "Claude")
+        XCTAssertEqual(claude.compactName(showAccountNames: true), "Claude Enterprise")
+        XCTAssertFalse(QuotaConfiguration().showAccountNames)
+        XCTAssertFalse(BothConfiguration().showAccountNames)
+        XCTAssertFalse(CompactConfiguration().showAccountNames)
+    }
+
+    @MainActor func testNamePreferenceRendersAcrossCompactFamilies() throws {
+        let now = Date.now
+        let reading = QuotaReading(fetchedAt: now,
+            shortTerm: .init(usedPercent: 12, durationSeconds: 18000, resetsAt: now.addingTimeInterval(3600)),
+            weekly: .init(usedPercent: 31, durationSeconds: 604800, resetsAt: now.addingTimeInterval(86400)))
+        let accounts = QuotaService.allCases.map { service in
+            WidgetAccountContent(id: "\(service.rawValue):work", value: .init(service: service, reading: reading, needsApp: false), label: "Account With A Long Name")
+        }
+        for show in [false, true] {
+            let entry = QuotaEntry(date: now, values: accounts.map(\.value), accountLabels: [:], accountContents: accounts, showAccountNames: show)
+            for both in [false, true] {
+                for (family, size) in [(WidgetFamily.systemSmall, CGSize(width: 164, height: 164)), (.systemMedium, CGSize(width: 350, height: 164)), (.systemLarge, CGSize(width: 350, height: 366)), (.accessoryRectangular, CGSize(width: 160, height: 72))] {
+                    let view = HomeEntryView(entry: entry, both: both, previewFamily: family)
+                        .frame(width: size.width, height: size.height)
+                        .background(Color(red: 0.25, green: 0.19, blue: 0.30)).foregroundStyle(.white)
+                        .environment(\.colorScheme, .dark)
+                    let renderer = ImageRenderer(content: view); renderer.scale = 3
+                    let image = try XCTUnwrap(renderer.uiImage)
+                    let attachment = XCTAttachment(image: image)
+                    attachment.name = "names-\(show)-both-\(both)-\(family)"; attachment.lifetime = .keepAlways; add(attachment)
+                }
+            }
+        }
+    }
+}
