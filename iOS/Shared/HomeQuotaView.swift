@@ -19,6 +19,27 @@ struct HomeQuotaView: View {
     private var captionInk: Color { monochrome ? .primary : WidgetPalette.reset }
 
     var body: some View {
+        GeometryReader { geometry in
+            let canvas = referenceSize
+            let scale = min(geometry.size.width / canvas.width, geometry.size.height / canvas.height)
+            content
+                .frame(width: canvas.width, height: canvas.height)
+                .scaleEffect(scale)
+                .frame(width: geometry.size.width, height: geometry.size.height)
+        }
+    }
+
+    // Keep the approved canvas proportions on each device's actual widget size.
+    // Fixed dials inside a growing frame otherwise accumulate empty space.
+    private var referenceSize: CGSize {
+        switch layout {
+        case .small, .accountsSmall: CGSize(width: 158, height: 158)
+        case .singleMedium, .dualMedium: CGSize(width: 338, height: 158)
+        case .large, .accountLarge: CGSize(width: 338, height: 354)
+        }
+    }
+
+    private var content: some View {
         Group {
             switch layout {
             case .small:

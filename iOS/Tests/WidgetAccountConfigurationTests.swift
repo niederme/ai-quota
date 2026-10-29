@@ -253,3 +253,59 @@ extension WidgetAccountConfigurationTests {
         XCTAssertEqual(URLComponents(url: account.url, resolvingAgainstBaseURL: false)?.queryItems?.first?.value, "work")
     }
 }
+
+extension WidgetAccountConfigurationTests {
+    @MainActor func testDesignProportionsSurviveLargerWidgetFrames() throws {
+        let now = Date.now
+        let reading = QuotaReading(fetchedAt: now,
+            shortTerm: .init(usedPercent: 26, durationSeconds: 18000, resetsAt: now.addingTimeInterval(3600)),
+            weekly: .init(usedPercent: 42, durationSeconds: 604800, resetsAt: now.addingTimeInterval(86400)))
+        let samples = (0..<4).map { index in
+            WidgetAccountContent(id: "proportions-\(index)", value: .init(
+                service: index % 2 == 0 ? .codex : .claude, reading: reading, needsApp: false), label: "Personal")
+        }
+        func render(_ layout: HomeQuotaView.Layout, count: Int, size: CGSize, name: String) throws -> CGRect {
+            let shown = Array(samples.prefix(count))
+            let view = HomeQuotaView(values: shown.map(\.value), date: now, layout: layout, accounts: shown)
+                .frame(width: size.width, height: size.height).background(HomeWidgetBackground())
+                .environment(\.colorScheme, .dark).environment(\.widgetRenderingMode, .fullColor)
+            let renderer = ImageRenderer(content: view); renderer.scale = 2
+            let image = try XCTUnwrap(renderer.uiImage)
+            let attachment = XCTAttachment(image: image); attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
+            let cg = try XCTUnwrap(image.cgImage)
+            var pixels = [UInt8](repeating: 0, count: cg.width * cg.height * 4)
+            let context = try XCTUnwrap(CGContext(data: &pixels, width: cg.width, height: cg.height, bitsPerComponent: 8,
+                bytesPerRow: cg.width * 4, space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+            context.draw(cg, in: CGRect(x: 0, y: 0, width: cg.width, height: cg.height))
+            var minX = cg.width, minY = cg.height, maxX = 0, maxY = 0
+            for y in 0..<cg.height { for x in 0..<cg.width {
+                let i = (y * cg.width + x) * 4
+                let r = Int(pixels[i]), g = Int(pixels[i + 1]), b = Int(pixels[i + 2])
+                if r - g > 35 && b - g > 35 && max(r, b) > 100 && pixels[i + 3] > 240 {
+                    minX = min(minX, x); maxX = max(maxX, x); minY = min(minY, y); maxY = max(maxY, y)
+                }
+            } }
+            XCTAssertLessThan(minX, maxX)
+            return CGRect(x: Double(minX) / 2, y: Double(minY) / 2,
+                          width: Double(maxX - minX + 1) / 2, height: Double(maxY - minY + 1) / 2)
+        }
+        let cases: [(String, HomeQuotaView.Layout, Int, CGSize, CGSize)] = [
+            ("account-small", .small, 1, .init(width: 158, height: 158), .init(width: 170, height: 170)),
+            ("accounts-small", .accountsSmall, 2, .init(width: 158, height: 158), .init(width: 170, height: 170)),
+            ("account-medium", .singleMedium, 1, .init(width: 338, height: 158), .init(width: 364, height: 170)),
+            ("accounts-medium", .dualMedium, 4, .init(width: 338, height: 158), .init(width: 364, height: 170)),
+            ("account-large", .accountLarge, 1, .init(width: 338, height: 354), .init(width: 364, height: 382)),
+            ("accounts-large", .large, 4, .init(width: 338, height: 354), .init(width: 364, height: 382))]
+        for (name, layout, count, reference, actual) in cases {
+            let a = try render(layout, count: count, size: reference, name: "\(name)-reference")
+            let b = try render(layout, count: count, size: actual, name: "\(name)-larger-host")
+            let scale = min(actual.width / reference.width, actual.height / reference.height)
+            let dx = (actual.width - reference.width * scale) / 2
+            let dy = (actual.height - reference.height * scale) / 2
+            XCTAssertEqual(b.minX, a.minX * scale + dx, accuracy: 2, name)
+            XCTAssertEqual(b.minY, a.minY * scale + dy, accuracy: 2, name)
+            XCTAssertEqual(b.width, a.width * scale, accuracy: 2, name)
+            XCTAssertEqual(b.height, a.height * scale, accuracy: 2, name)
+        }
+    }
+}

@@ -323,6 +323,18 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
 Choose an available simulator if that local device is absent. Keep signing enabled
 for hosted Keychain tests; disabling it causes storage failures.
 
+Home Screen widgets draw their opaque full-color fill in the content layer;
+the WidgetKit container is transparent so its system material treatment does not
+add a glossy gradient. Tinted/vibrant modes and background removal omit that fill.
+Widget content scales from the approved 158×158, 338×158 and 338×354 canvases to
+preserve the dial and inset proportions across device widget sizes.
+
+`WidgetHostedLayoutFlowTests` captures all three Account sizes through SpringBoard,
+using the app's demo data. Run it only on a dedicated English-language simulator
+whose name begins with `AIQuota Integration Check`; it changes that simulator's
+Home Screen. The widget unit target also checks all six Account/Accounts layouts
+at reference and larger host sizes.
+
 ## TestFlight release workflow
 
 From the active worktree, run `python3 scripts/testflight.py release --wait 0`.
