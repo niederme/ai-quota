@@ -85,12 +85,12 @@ struct HomeQuotaView: View {
     private func dial(_ account: WidgetAccountContent, size: CGFloat, readings: Bool = true) -> some View {
         AccountWidgetDial(account: account, date: date, size: size, readings: readings, compact: layout == .dualMedium || layout == .accountsSmall || layout == .large, vibrant: monochrome)
     }
-    private func name(_ account: WidgetAccountContent, lines: Int = 1) -> some View {
+    private func name(_ account: WidgetAccountContent, lines: Int = 1, reservingSpace: Bool = false) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 2) {
             if monochrome && (account.worstPercent ?? 0) >= 85 {
                 Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 9)).accessibilityHidden(true)
             }
-            Text(account.compactName(showAccountNames: showAccountNames)).font(.system(size: min(nameSize, 13), weight: .semibold)).lineLimit(lines).truncationMode(.tail)
+            Text(account.compactName(showAccountNames: showAccountNames)).font(.system(size: min(nameSize, 13), weight: .semibold)).lineLimit(lines, reservesSpace: reservingSpace).truncationMode(.tail)
         }
     }
     private func status(_ account: WidgetAccountContent, compact: Bool = false) -> some View {
@@ -100,7 +100,7 @@ struct HomeQuotaView: View {
     private func tile(_ account: WidgetAccountContent, size: CGFloat, readings: Bool = true) -> some View {
         VStack(spacing: 2) {
             dial(account, size: size, readings: readings)
-            name(account).padding(.top, readings ? -6 : 2)
+            name(account, lines: layout == .dualMedium && showAccountNames ? 2 : 1, reservingSpace: layout == .dualMedium && showAccountNames).padding(.top, readings ? -6 : 2)
             status(account, compact: size <= 60)
         }
         .multilineTextAlignment(.center)

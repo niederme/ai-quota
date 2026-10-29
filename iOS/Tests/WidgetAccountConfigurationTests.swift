@@ -428,3 +428,112 @@ extension WidgetAccountConfigurationTests {
         XCTAssertEqual(result.first?.pickerDetail, "Reconnect in AIQuota")
     }
 }
+
+
+extension WidgetAccountConfigurationTests {
+    func testAppOrderDefaultAndSavedSortValuesRemainCompatible() {
+        XCTAssertEqual(BothConfiguration().order, .appOrder)
+        XCTAssertEqual(AccountsWidgetOrder(rawValue: "asListed"), .asListed)
+        XCTAssertEqual(AccountsWidgetOrder(rawValue: "closestToLimit"), .closestToLimit)
+        let profiles = [claudeWork, codexWork, codexPersonal]
+        let selected = WidgetAccount.make([codexPersonal, claudeWork, codexWork])
+        var configuration = BothConfiguration()
+        configuration.accounts = selected
+        XCTAssertEqual(multipleWidgetSelections(configuration, profiles: profiles, defaults: [:]).map(\.id),
+            ["claude:claude-work", "codex:codex-work", "codex:codex-personal"])
+        configuration.order = .asListed
+        XCTAssertEqual(multipleWidgetSelections(configuration, profiles: profiles, defaults: [:]).map(\.id), selected.map(\.id))
+        configuration.order = .closestToLimit
+        XCTAssertEqual(multipleWidgetSelections(configuration, profiles: profiles, defaults: [:]).map(\.id),
+            ["claude:claude-work", "codex:codex-work", "codex:codex-personal"], "Tied usage resolves in app order")
+    }
+
+    func testAppReorderingRespectsSubsetAndRetainsMissingSelectionIdentity() {
+        var configuration = BothConfiguration()
+        let removed = AccountProfile(id: "removed", service: .codex, label: "Work", isLegacy: false)
+        let selected = WidgetAccount.make([codexPersonal, removed, claudeWork, codexPersonal])
+        configuration.accounts = selected
+        let order = [claudeWork, codexWork, codexPersonal]
+        let result = multipleWidgetSelections(configuration, profiles: order, defaults: [:])
+        XCTAssertEqual(result.map(\.id), ["claude:claude-work", "codex:codex-personal", "codex:removed"])
+        XCTAssertFalse(result.contains { $0.id == "codex:codex-work" }, "A newly added account must not enter an explicit subset")
+        XCTAssertEqual(resolveWidgetProfile(result[2], for: .codex, profiles: [codexPersonal, codexWork], defaultProfile: codexWork), .unavailable)
+        let reconnected = multipleWidgetSelections(configuration, profiles: [removed] + order, defaults: [:])
+        XCTAssertEqual(reconnected.first?.id, "codex:removed")
+        guard case let .selected(profile, _) = resolveWidgetProfile(reconnected.first, for: .codex,
+            profiles: [removed, codexPersonal, codexWork], defaultProfile: codexWork) else { return XCTFail("Reconnection must keep selected identity") }
+        XCTAssertEqual(profile.id, removed.id)
+    }
+
+    func testAutomaticAccountsAndLegacyExplicitChoices() {
+        let profiles = [claudeWork, codexWork, codexPersonal]
+        var configuration = BothConfiguration()
+        for cleared: [WidgetAccount]? in [nil, []] {
+            configuration.accounts = cleared
+            XCTAssertEqual(multipleWidgetSelections(configuration, profiles: profiles, defaults: [:]).map(\.id), WidgetAccount.make(profiles).map(\.id))
+        }
+        configuration.accounts = nil
+        configuration.codexAccount = WidgetAccount(codexWork, identityHint: nil)
+        XCTAssertEqual(multipleWidgetSelections(configuration, profiles: profiles, defaults: [.claude: claudeWork, .codex: codexPersonal]).map(\.id),
+            ["claude:claude-work", "codex:codex-work"])
+        configuration.order = .asListed
+        XCTAssertEqual(multipleWidgetSelections(configuration, profiles: profiles, defaults: [.claude: claudeWork]).map(\.id),
+            ["codex:codex-work", "claude:claude-work"])
+    }
+
+    func testDuplicateLabelsAndSharedLegacyIDsNeverChangeOrderIdentity() {
+        let profiles = [AccountProfile(id: "live", service: .claude, label: "Work", isLegacy: true),
+                        AccountProfile(id: "live", service: .codex, label: "Work", isLegacy: true),
+                        AccountProfile(id: "other", service: .codex, label: "Work", isLegacy: false)]
+        var configuration = BothConfiguration()
+        configuration.accounts = WidgetAccount.make(profiles.reversed())
+        XCTAssertEqual(multipleWidgetSelections(configuration, profiles: profiles, defaults: [:]).map(\.id),
+            ["claude:live", "codex:live", "codex:other"])
+    }
+
+    @MainActor func testOrderedFamiliesAndCompactBudgetCaptionsRender() throws {
+        let now = Date(timeIntervalSince1970: 1793275200)
+        let profiles = [claudeWork, codexPersonal, codexWork,
+                        AccountProfile(id: "other", service: .claude, label: "Another Workspace", isLegacy: false)]
+        var configuration = BothConfiguration()
+        configuration.accounts = WidgetAccount.make(profiles.reversed())
+        let selections = multipleWidgetSelections(configuration, profiles: profiles, defaults: [:])
+        let accounts = selections.enumerated().map { index, selection in
+            let reading: QuotaReading = index < 2
+                ? .init(fetchedAt: now, shortTerm: nil, weekly: nil,
+                    monthlyBudget: MonthlyBudget(used: index == 0 ? 120.68 : 26.96, limit: index == 0 ? 200 : 7000, unit: index == 0 ? "USD" : nil, resetsAt: now.addingTimeInterval(86400)))
+                : .init(fetchedAt: now, shortTerm: .init(usedPercent: 36, durationSeconds: 18000, resetsAt: now.addingTimeInterval(3600)),
+                    weekly: .init(usedPercent: 12, durationSeconds: 604800, resetsAt: now.addingTimeInterval(86400)))
+            return WidgetAccountContent(id: selection.id, value: .init(service: selection.service, reading: reading, needsApp: false), label: profiles[index].label)
+        }
+        for account in accounts.prefix(2) {
+            let lines = account.status(at: now, compact: true).split(separator: "\n")
+            XCTAssertEqual(lines.count, 2)
+            XCTAssertTrue(lines[1].hasPrefix("of "))
+            for line in lines {
+                XCTAssertLessThanOrEqual((String(line) as NSString).size(withAttributes: [.font: UIFont.systemFont(ofSize: 11)]).width, 66)
+            }
+            XCTAssertTrue(account.accessibility(at: now).contains("Spent"), "Accessible copy keeps the complete budget description")
+        }
+        let tied = WidgetAccountOrdering.closestFirst(Array(accounts.reversed()))
+        XCTAssertEqual(tied.filter { $0.worstPercent == 36 }.map(\.id), accounts.reversed().filter { $0.worstPercent == 36 }.map(\.id))
+        for (label, layout, width, height) in [("small", HomeQuotaView.Layout.accountsSmall, 158.0, 158.0),
+            ("medium", .dualMedium, 338.0, 158.0), ("large", .large, 338.0, 354.0)] {
+            for names in [false, true] { for accented in [false, true] {
+                let view = HomeQuotaView(values: accounts.map(\.value), date: now, layout: layout, accounts: accounts, showAccountNames: names)
+                    .frame(width: width, height: height).background(HomeWidgetBackground())
+                    .environment(\.widgetRenderingMode, accented ? .accented : .fullColor)
+                let renderer = ImageRenderer(content: view); renderer.scale = 3
+                let image = try XCTUnwrap(renderer.uiImage)
+                XCTAssertEqual(image.size, CGSize(width: width, height: height))
+                let attachment = XCTAttachment(image: image)
+                attachment.name = "app-order-\(label)-names-\(names)-accented-\(accented)"
+                attachment.lifetime = .keepAlways; add(attachment)
+            } }
+        }
+        let renderer = ImageRenderer(content: AccountsLockView(accounts: accounts, date: now).frame(width: 160, height: 72).background(.black))
+        renderer.scale = 3
+        let attachment = XCTAttachment(image: try XCTUnwrap(renderer.uiImage)); attachment.name = "app-order-multi-accessory"
+        attachment.lifetime = .keepAlways; add(attachment)
+    }
+}

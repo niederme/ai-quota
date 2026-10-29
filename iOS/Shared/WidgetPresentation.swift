@@ -42,7 +42,11 @@ struct WidgetAccountContent: Identifiable, Sendable {
         if reading.metadata?.plan == "Demo" { return "Sample usage" }
         if isSaved(at: date) { return WidgetCopy.olderReading(reading, at: date) }
         if (worstPercent ?? 0) >= 95 { return "Limit reached" }
-        if let budget = reading.budgetOnly { return "Spent \(WidgetCopy.amount(budget.used, budget: budget)) of \(WidgetCopy.amount(budget.limit, budget: budget))" }
+        if let budget = reading.budgetOnly {
+            let used = WidgetCopy.amount(budget.used, budget: budget)
+            let limit = WidgetCopy.amount(budget.limit, budget: budget)
+            return compact ? "\(used)\nof \(limit)" : "Spent \(used) of \(limit)"
+        }
         guard let window = reading.windows.max(by: { $0.usedPercent < $1.usedPercent }) else { return "No reading yet" }
         return WidgetCopy.reset(window.resetsAt, at: date, compact: compact)
     }

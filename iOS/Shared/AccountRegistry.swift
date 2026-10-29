@@ -25,6 +25,15 @@ struct AccountProfile: Codable, Equatable, Identifiable, Sendable {
     /// are only unique within a service because both legacy profiles can be
     /// named `live`.
     var orderKey: String { "\(service.rawValue)\u{0}\(id)" }
+
+    static func ordered(_ profiles: [Self], by keys: [String]) -> [Self] {
+        let byKey = Dictionary(profiles.map { ($0.orderKey, $0) }, uniquingKeysWith: { first, _ in first })
+        var seen = Set<String>()
+        return keys.compactMap { key in
+            guard seen.insert(key).inserted else { return nil }
+            return byKey[key]
+        } + profiles.filter { seen.insert($0.orderKey).inserted }
+    }
 }
 
 /// App-group account metadata shared by the app and widgets.
@@ -99,6 +108,9 @@ enum AccountRegistry {
         }
 
         func all() -> [AccountProfile] { transaction { state in state.profiles } }
+        func orderedProfiles() -> [AccountProfile] {
+            transaction { state in AccountProfile.ordered(state.profiles, by: state.accountOrder ?? []) }
+        }
         func profiles(for service: QuotaService) -> [AccountProfile] {
             transaction { state in state.profiles.filter { $0.service == service } }
         }
@@ -189,8 +201,13 @@ enum AccountRegistry {
             transaction { state in state.serviceOrder = order }
         }
         func accountOrder() -> [String] { transaction { state in state.accountOrder ?? [] } }
-        func setAccountOrder(_ keys: [String]) {
-            transaction { state in state.accountOrder = keys }
+        @discardableResult func setAccountOrder(_ keys: [String]) -> Bool {
+            transaction { state in
+                let before = state.accountOrder
+                state.accountOrder = keys
+                state.normalize()
+                return before != state.accountOrder
+            }
         }
 
         private var dataURL: URL? { root?.appendingPathComponent("account-registry-v1.json") }
@@ -258,6 +275,7 @@ enum AccountRegistry {
     }
 
     static func all() -> [AccountProfile] { store.all() }
+    static func orderedProfiles() -> [AccountProfile] { store.orderedProfiles() }
     static func profiles(for service: QuotaService) -> [AccountProfile] { store.profiles(for: service) }
     static func defaultProfile(for service: QuotaService) -> AccountProfile? { store.defaultProfile(for: service) }
     static func add(service: QuotaService, label: String? = nil, suggestedNamePending: Bool = true) -> AccountProfile {
@@ -278,7 +296,7 @@ enum AccountRegistry {
     static func serviceOrder() -> [QuotaService] { store.serviceOrder() }
     static func setServiceOrder(_ order: [QuotaService]) { store.setServiceOrder(order) }
     static func accountOrder() -> [String] { store.accountOrder() }
-    static func setAccountOrder(_ keys: [String]) { store.setAccountOrder(keys) }
+    @discardableResult static func setAccountOrder(_ keys: [String]) -> Bool { store.setAccountOrder(keys) }
 
     private static func legacyServices() -> Set<QuotaService> {
         Set(QuotaService.allCases.filter { service in

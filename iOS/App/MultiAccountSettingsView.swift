@@ -1,11 +1,13 @@
 import SwiftUI
 import MobileAccessCore
+import WidgetKit
 
 struct MultiAccountSettingsView: View {
     @Environment(\.setDemoEnabled) private var setDemoEnabled
     @AppStorage("refreshIntervalMinutes") private var refreshMinutes = 0
     let accounts: MobileAccountCollection
     let onboarding: OnboardingProgress
+    var orderStore: AccountRegistry.Store? = nil
     @State private var connectionProfile: AccountProfile?
     @State private var pendingAdd: AccountProfile?
     @State private var namingService: QuotaService?
@@ -65,6 +67,7 @@ struct MultiAccountSettingsView: View {
             Section {
                 Button("Notifications") { showNotifications = true }
                 Button("Widgets") { showWidgets = true }
+                NavigationLink("Account order") { AccountOrderSettingsView(profiles: accounts.profiles, orderStore: orderStore) }
                 Button("Codex Resets", systemImage: "arrow.up.right") { showCodexResets = true }
                     .accessibilityHint("Opens Codex Resets in the in-app browser")
             }
@@ -217,4 +220,66 @@ struct MultiAccountSettingsView: View {
         connectionProfile = profile
     }
 
+}
+
+
+@MainActor func reloadAccountOrderWidgets() {
+    WidgetCenter.shared.reloadTimelines(ofKind: "AIQuotaHomeBoth")
+    WidgetCenter.shared.reloadTimelines(ofKind: "BothLockScreen")
+}
+
+struct AccountOrderSettingsView: View {
+    let profiles: [AccountProfile]
+    private let orderStore: AccountRegistry.Store?
+    @State private var order: [String]
+
+    init(profiles: [AccountProfile], orderStore: AccountRegistry.Store? = nil) {
+        self.profiles = profiles
+        self.orderStore = orderStore
+        _order = State(initialValue: orderStore?.accountOrder() ?? AccountRegistry.accountOrder())
+    }
+
+    private var ordered: [AccountProfile] { AccountProfile.ordered(profiles, by: order) }
+    var body: some View {
+        List {
+            Section {
+                ForEach(ordered, id: \.orderKey) { profile in
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(profile.service.name).fontWeight(.semibold)
+                        if profile.label.caseInsensitiveCompare(profile.service.name) != .orderedSame {
+                            Text(profile.label).font(.subheadline).foregroundStyle(.secondary)
+                        }
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier("accountOrder-\(profile.service.rawValue):\(profile.id)")
+                    .accessibilityAction(named: "Move earlier") { move(profile.orderKey, offset: -1) }
+                    .accessibilityAction(named: "Move later") { move(profile.orderKey, offset: 1) }
+                }
+                .onMove { source, destination in
+                    var keys = ordered.map(\.orderKey)
+                    keys.move(fromOffsets: source, toOffset: destination)
+                    save(keys)
+                }
+            } footer: {
+                Text("Drag to change the order in the app and widgets using App order. Widgets with a selected subset keep only those accounts. Other sort choices stay unchanged.")
+            }
+        }
+        .environment(\.editMode, .constant(.active))
+        .navigationTitle("Account order")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear { order = orderStore?.accountOrder() ?? AccountRegistry.accountOrder() }
+        .onChange(of: profiles) { _, _ in order = orderStore?.accountOrder() ?? AccountRegistry.accountOrder() }
+    }
+
+    private func move(_ key: String, offset: Int) {
+        var keys = ordered.map(\.orderKey)
+        guard let index = keys.firstIndex(of: key), keys.indices.contains(index + offset) else { return }
+        keys.swapAt(index, index + offset)
+        save(keys)
+    }
+    private func save(_ keys: [String]) {
+        order = keys
+        let changed = orderStore?.setAccountOrder(keys) ?? AccountRegistry.setAccountOrder(keys)
+        if changed && orderStore == nil { reloadAccountOrderWidgets() }
+    }
 }

@@ -131,7 +131,7 @@ struct WidgetAccountQuery: EntityQuery {
     func defaultResult() async -> WidgetAccount? { WidgetAccount.soleDefault(in: accounts) }
 
     private var accounts: [WidgetAccount] {
-        let profiles = service.map(AccountRegistry.profiles(for:)) ?? AccountRegistry.all()
+        let profiles = AccountRegistry.orderedProfiles().filter { service == nil || $0.service == service }
         return service.map { WidgetAccount.options(for: $0, profiles: profiles) } ?? WidgetAccount.make(profiles)
     }
 }
@@ -154,9 +154,12 @@ enum AccountWidgetShow: String, AppEnum {
     static let caseDisplayRepresentations: [Self: DisplayRepresentation] = [.chosenAccount: "Selected account", .closestToLimit: "Closest to a limit"]
 }
 enum AccountsWidgetOrder: String, AppEnum {
-    case closestToLimit, asListed
+    // Preserve stored raw values so existing explicit widget choices survive.
+    case appOrder, closestToLimit, asListed
     static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Order")
-    static let caseDisplayRepresentations: [Self: DisplayRepresentation] = [.closestToLimit: "Closest to a limit", .asListed: "As listed"]
+    static let caseDisplayRepresentations: [Self: DisplayRepresentation] = [
+        .appOrder: "App order", .closestToLimit: "Closest to a limit", .asListed: "Selection order"
+    ]
 }
 
 struct QuotaConfiguration: WidgetConfigurationIntent {
@@ -257,7 +260,7 @@ private func accountReadings(_ selections: [WidgetAccount], fetch: Bool) async -
 }
 private func singleReadings(_ configuration: QuotaConfiguration, fetch: Bool) async -> [WidgetReading] {
     if configuration.show == .closestToLimit {
-        let selections = WidgetAccount.make(AccountRegistry.all())
+        let selections = WidgetAccount.make(AccountRegistry.orderedProfiles())
         let readings = await accountReadings(selections, fetch: fetch)
         if let first = ranked(readings).first { return [first] }
     }
@@ -268,18 +271,36 @@ private func singleReadings(_ configuration: QuotaConfiguration, fetch: Bool) as
     let reading = fetch ? await loadReading(service, account: configuration.account) : snapshotReading(service, account: configuration.account)
     return [enriched(reading, selection: configuration.account)]
 }
-private func multipleReadings(_ configuration: BothConfiguration, fetch: Bool) async -> [WidgetReading] {
-    let selections: [WidgetAccount]
-    if let accounts = configuration.accounts {
-        var seen = Set<String>()
-        selections = accounts.filter { seen.insert($0.id).inserted }
+/// Resolve identity and order before asynchronous loads, so fetch completion cannot
+/// move accounts. Missing explicit selections remain present as reconnect entries.
+func multipleWidgetSelections(_ configuration: BothConfiguration, profiles: [AccountProfile],
+                              defaults: [QuotaService: AccountProfile]) -> [WidgetAccount] {
+    let proposed: [WidgetAccount]
+    if let accounts = configuration.accounts, !accounts.isEmpty {
+        proposed = accounts
     } else if configuration.codexAccount != nil || configuration.claudeAccount != nil {
-        // The old two-service parameters remain decodable for placed widgets.
-        selections = [configuration.codexAccount ?? AccountRegistry.defaultProfile(for: .codex).map { WidgetAccount($0, identityHint: nil) },
-                      configuration.claudeAccount ?? AccountRegistry.defaultProfile(for: .claude).map { WidgetAccount($0, identityHint: nil) }].compactMap { $0 }
+        proposed = [configuration.codexAccount ?? defaults[.codex].map { WidgetAccount($0, identityHint: nil) },
+                    configuration.claudeAccount ?? defaults[.claude].map { WidgetAccount($0, identityHint: nil) }].compactMap { $0 }
     } else {
-        selections = WidgetAccount.make(AccountRegistry.all())
+        // An empty selection means all accounts, following the app's current order.
+        proposed = WidgetAccount.make(profiles)
     }
+    var seen = Set<String>()
+    let unique = proposed.filter { seen.insert($0.id).inserted }
+    guard configuration.order != .asListed else { return unique }
+    let positions = Dictionary(profiles.enumerated().map { ($0.element.orderKey, $0.offset) }, uniquingKeysWith: min)
+    return unique.enumerated().sorted {
+        let lhs = positions["\($0.element.service.rawValue)\u{0}\($0.element.profileID)"] ?? Int.max
+        let rhs = positions["\($1.element.service.rawValue)\u{0}\($1.element.profileID)"] ?? Int.max
+        return lhs == rhs ? $0.offset < $1.offset : lhs < rhs
+    }.map(\.element)
+}
+private func multipleReadings(_ configuration: BothConfiguration, fetch: Bool) async -> [WidgetReading] {
+    let profiles = AccountRegistry.orderedProfiles()
+    let defaults = Dictionary(uniqueKeysWithValues: QuotaService.allCases.compactMap { service in
+        AccountRegistry.defaultProfile(for: service).map { (service, $0) }
+    })
+    let selections = multipleWidgetSelections(configuration, profiles: profiles, defaults: defaults)
     if selections.isEmpty {
         return QuotaService.allCases.map { service in
             if DemoQuotaData.isEnabled {
@@ -395,8 +416,9 @@ private enum WidgetTimeline {
 }
 struct BothConfiguration: WidgetConfigurationIntent {
     static let title: LocalizedStringResource = "Accounts"
-    @Parameter(title: "Accounts") var accounts: [WidgetAccount]?
-    @Parameter(title: "Order", default: .closestToLimit) var order: AccountsWidgetOrder
+    static let description = IntentDescription("Follows the account order in AIQuota. Leave Accounts empty to show all accounts. Drag accounts in AIQuota or Settings → Account order to change their order.")
+    @Parameter(title: "Accounts", description: "Leave empty for all accounts.") var accounts: [WidgetAccount]?
+    @Parameter(title: "Order", default: .appOrder) var order: AccountsWidgetOrder
     @Parameter(title: "Use account names", default: false) var showAccountNames: Bool
     static var parameterSummary: some ParameterSummary { Summary { \.$accounts; \.$order; \.$showAccountNames } }
     @Parameter(title: "Codex account", optionsProvider: ServiceWidgetAccountOptionsProvider(service: .codex)) var codexAccount: WidgetAccount?
@@ -548,7 +570,7 @@ struct BothHomeScreenWidget: Widget {
                 .containerBackground(for: .widget) { Color.clear }
         }
         .configurationDisplayName("Accounts")
-        .description("Choose accounts from any service, ordered by usage or as listed.")
+        .description("Follows app order. Choose accounts or an optional sort order in Edit Widget.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular])
         .contentMarginsDisabled()
     }
