@@ -54,7 +54,7 @@ enum AccountRegistry {
         static func migrated(legacyServices: Set<QuotaService>) -> Self {
             let profiles = QuotaService.allCases.compactMap { service in
                 legacyServices.contains(service)
-                    ? AccountProfile(id: "live", service: service, label: "Account 1", isLegacy: true)
+                    ? AccountProfile(id: "live", service: service, label: service.name, isLegacy: true, suggestedNamePending: true)
                     : nil
             }
             return Self(
@@ -69,6 +69,18 @@ enum AccountRegistry {
             version = 2
             var seen = Set<String>()
             profiles = profiles.filter { seen.insert($0.orderKey).inserted }
+
+            // Old migrations had no naming flag. A deliberate rename writes false,
+            // including when the user explicitly chooses the old generic label.
+            for index in profiles.indices where profiles[index].isLegacy
+                && profiles[index].suggestedNamePending == nil
+                && profiles[index].label == "Account 1" {
+                let profile = profiles[index]
+                profiles[index].label = AccountNameSuggestion.make(
+                    service: profile.service.name, plan: nil,
+                    existingLabels: profiles.filter { $0.service == profile.service && $0.id != profile.id }.map(\.label))
+                profiles[index].suggestedNamePending = true
+            }
 
             for service in QuotaService.allCases {
                 let values = profiles.filter { $0.service == service }

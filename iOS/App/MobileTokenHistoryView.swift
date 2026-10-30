@@ -5,6 +5,8 @@ import MobileAccessCore
 struct MobileTokenHistoryView: View {
     private static let weeks = CodexTokenHistory.visibleWeeks
     static let cellGap: CGFloat = 1
+    static let maximumCellSide: CGFloat = 9
+    static var maximumWidth: CGFloat { CGFloat(weeks) * maximumCellSide + CGFloat(weeks - 1) * cellGap }
     let history: CodexTokenHistory?
     let unavailable: Bool
     let loading: Bool
@@ -46,6 +48,7 @@ struct MobileTokenHistoryView: View {
                 .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("tokenActivityGrid")
             }
+            .frame(maxWidth: Self.maximumWidth, alignment: .leading)
             .frame(height: graphHeight)
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Token activity, past 42 weeks")
@@ -53,7 +56,7 @@ struct MobileTokenHistoryView: View {
         }
     }
     static func cellSide(for width: CGFloat) -> CGFloat {
-        max(1, (width - CGFloat(weeks - 1) * cellGap) / CGFloat(weeks))
+        min(maximumCellSide, max(1, (width - CGFloat(weeks - 1) * cellGap) / CGFloat(weeks)))
     }
     static func graphHeight(for width: CGFloat) -> CGFloat {
         max(44, 7 * cellSide(for: width) + 6 * cellGap)

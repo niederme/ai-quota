@@ -766,6 +766,12 @@ struct ProviderDialCardContent: View {
     }
     private let secondaryOpacity = 0.7
     private var usesColumns: Bool { !typeSize.isAccessibilitySize && availableWidth - 32 >= min(dialSize, 200) + 180 }
+    private var usesWideLayout: Bool { availableWidth >= 600 && !typeSize.isAccessibilitySize }
+    private var displayedDialSize: CGFloat { min(dialSize * (usesWideLayout ? 160.0 / 108.0 : 1), 200) }
+    private var historyWidth: CGFloat {
+        usesWideLayout ? availableWidth - 32 - displayedDialSize - 20
+            : availableWidth - 32 + 2 * Self.strokeOutset
+    }
 
     var body: some View {
         if let open = onOpen ?? onReconnect {
@@ -788,14 +794,21 @@ struct ProviderDialCardContent: View {
             loading: tokenHistoryLoading ?? busy) == .populated
     }
     private var cardContent: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            summary.modifier(UsageLoadingState(loading: busy && reading == nil))
-            if showsTokenHistory {
-                MobileTokenHistoryView(history: tokenHistory,
-                    unavailable: tokenHistoryUnavailable, loading: tokenHistoryLoading ?? busy,
-                    availableWidth: availableWidth - 32 + 2 * Self.strokeOutset)
-                    .padding(.horizontal, -Self.strokeOutset)
-                    .padding(.top, 8)
+        Group {
+            if usesWideLayout {
+                HStack(alignment: .top, spacing: 20) {
+                    dial.modifier(UsageLoadingState(loading: busy && reading == nil))
+                    VStack(alignment: .leading, spacing: 0) {
+                        details.modifier(UsageLoadingState(loading: busy && reading == nil))
+                        tokenActivity
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
+                    summary.modifier(UsageLoadingState(loading: busy && reading == nil))
+                    tokenActivity
+                }
             }
         }
         .padding(.horizontal, 16)
@@ -803,6 +816,16 @@ struct ProviderDialCardContent: View {
         .padding(.bottom, showsTokenHistory ? 16 : 21)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(RoundedRectangle(cornerRadius: OverviewStyle.accountRadius))
+    }
+
+    @ViewBuilder private var tokenActivity: some View {
+        if showsTokenHistory {
+            MobileTokenHistoryView(history: tokenHistory,
+                unavailable: tokenHistoryUnavailable, loading: tokenHistoryLoading ?? busy,
+                availableWidth: historyWidth)
+                .padding(.horizontal, usesWideLayout ? 0 : -Self.strokeOutset)
+                .padding(.top, 8)
+        }
     }
 
     private var summary: some View {
@@ -880,7 +903,7 @@ struct ProviderDialCardContent: View {
 
     // Mirror MacAccountDial; iOS scales all geometry together, capped at 200pt.
     static let strokeOutset: CGFloat = 5
-    private var dialScale: CGFloat { min(dialSize, 200) / 108 }
+    private var dialScale: CGFloat { displayedDialSize / 108 }
     private var showsSecondary: Bool { reading?.secondaryWindow != nil || reading == nil }
     var dial: some View {
         let primary = reading?.primaryWindow ?? budgetOnly.map {

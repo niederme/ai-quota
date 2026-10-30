@@ -294,7 +294,7 @@ final class AccountRegistryTests: XCTestCase {
         let migrating = AccountRegistry.Store(root: root, legacyServices: [.claude])
 
         XCTAssertEqual(migrating.all(), [
-            AccountProfile(id: "live", service: .claude, label: "Account 1", isLegacy: true)
+            AccountProfile(id: "live", service: .claude, label: "Claude", isLegacy: true, suggestedNamePending: true)
         ])
         XCTAssertEqual(migrating.defaultProfile(for: .claude)?.id, "live")
         XCTAssertNil(migrating.defaultProfile(for: .codex))
@@ -329,7 +329,7 @@ final class AccountRegistryTests: XCTestCase {
 
         XCTAssertEqual(registry.defaultProfile(for: .codex)?.label, "Work")
         XCTAssertEqual(registry.defaultProfile(for: .codex)?.providerIdentity, "member@example.com")
-        XCTAssertEqual(registry.defaultProfile(for: .claude)?.label, "Account 1")
+        XCTAssertEqual(registry.defaultProfile(for: .claude)?.label, "Claude")
         XCTAssertNil(registry.defaultProfile(for: .claude)?.providerIdentity)
     }
 
@@ -342,7 +342,7 @@ final class AccountRegistryTests: XCTestCase {
 
         let app = AccountRegistry.Store(root: root, legacyServices: [.codex])
         XCTAssertEqual(app.all(), [
-            AccountProfile(id: "live", service: .codex, label: "Account 1", isLegacy: true)
+            AccountProfile(id: "live", service: .codex, label: "Codex", isLegacy: true, suggestedNamePending: true)
         ])
     }
 

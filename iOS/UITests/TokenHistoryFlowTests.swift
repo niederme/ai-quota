@@ -29,3 +29,40 @@ final class TokenHistoryFlowTests: XCTestCase {
         let image = XCTAttachment(screenshot: app.screenshot()); image.name = "iOS Codex card opens service sheet"; image.lifetime = .keepAlways; add(image)
     }
 }
+
+
+extension TokenHistoryFlowTests {
+    func testWideCardsPlaceHistoryUnderDetailsBesideLargerDial() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-multiAccountUITest"]
+        app.launch()
+        let card = app.buttons.matching(identifier: "codexServiceCard").firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 10))
+        if min(app.frame.width, app.frame.height) > 600 {
+            XCUIDevice.shared.orientation = .landscapeLeft
+        }
+        defer { XCUIDevice.shared.orientation = .portrait }
+        let dial = card.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Codex allowance used")).firstMatch
+        let graph = card.descendants(matching: .any).matching(identifier: "tokenActivityGrid").firstMatch
+        XCTAssertTrue(dial.exists)
+        XCTAssertTrue(graph.exists)
+        let title = card.staticTexts["Codex"]
+        if card.frame.width >= 600 {
+            XCTAssertGreaterThan(dial.frame.width, 140)
+            XCTAssertGreaterThan(graph.frame.minX, dial.frame.maxX)
+            XCTAssertEqual(graph.frame.minX, title.frame.minX, accuracy: 2)
+            XCTAssertLessThanOrEqual(graph.frame.height, 70)
+        } else {
+            XCTAssertLessThan(dial.frame.width, 130)
+            XCTAssertGreaterThan(graph.frame.minY, dial.frame.maxY)
+        }
+        XCTAssertLessThanOrEqual(graph.frame.maxX, card.frame.maxX)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Responsive account card proportions"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        graph.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        XCTAssertTrue(app.navigationBars["Codex"].waitForExistence(timeout: 5))
+    }
+}

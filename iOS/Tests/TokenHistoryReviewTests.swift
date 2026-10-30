@@ -9,7 +9,7 @@ final class TokenHistoryReviewTests: XCTestCase {
         let previous = scene.windows.first(where: \.isKeyWindow)
         let history = try XCTUnwrap(DemoQuotaData.tokenHistory())
         XCTAssertEqual(history.days().count, 294)
-        for width in [320.0, 440.0] {
+        for (width, textSize) in [(320.0, DynamicTypeSize.large), (440.0, .large), (669.0, .large), (780.0, .large), (780.0, .accessibility1)] {
             for (name, scheme) in [("light", ColorScheme.light), ("dark", .dark)] {
                 let content = NavigationStack {
                     ScrollView {
@@ -25,6 +25,7 @@ final class TokenHistoryReviewTests: XCTestCase {
                     }.background { OverviewBackground().ignoresSafeArea() }
                         .navigationTitle("AIQuota").toolbarTitleDisplayMode(.inlineLarge)
                 }.frame(width: width, height: 920).environment(\.colorScheme, scheme)
+                    .environment(\.dynamicTypeSize, textSize)
                 let host = UIHostingController(rootView: content)
                 let window = UIWindow(windowScene: scene)
                 window.frame = CGRect(x: 0, y: 0, width: width, height: 920)
@@ -33,7 +34,7 @@ final class TokenHistoryReviewTests: XCTestCase {
                 try await Task.sleep(for: .milliseconds(500))
                 let renderer = UIGraphicsImageRenderer(size: CGSize(width: width, height: 920))
                 let image = renderer.image { _ in host.view.drawHierarchy(in: CGRect(x: 0,y: 0,width: width,height: 920), afterScreenUpdates: true) }
-                let path = FileManager.default.temporaryDirectory.appendingPathComponent("ios-token-grid-\(Int(width))-\(name).png")
+                let path = FileManager.default.temporaryDirectory.appendingPathComponent("ios-token-grid-\(Int(width))-\(name)-\(textSize.isAccessibilitySize ? "large-text" : "standard").png")
                 try image.pngData()?.write(to: path)
                 print("TOKEN_GRID_REVIEW " + path.path)
                 XCTAssertEqual(image.size.width, width)

@@ -141,3 +141,72 @@ extension AccountCardOrderTests {
         XCTAssertEqual(registry.defaultProfile(for: .codex)?.id, codex.id)
     }
 }
+
+
+extension AccountCardOrderTests {
+    func testOldGenericLabelsUpgradeWithoutChangingCustomNamesDefaultsOrOrder() throws {
+        let root = root()
+        defer { try? FileManager.default.removeItem(at: root) }
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        let old: [String: Any] = [
+            "version": 2,
+            "profiles": [
+                ["id": "live", "service": "codex", "label": "Account 1", "isLegacy": true],
+                ["id": "work", "service": "codex", "label": "Codex Pro", "isLegacy": false],
+                ["id": "live", "service": "claude", "label": "Account 1", "isLegacy": true, "suggestedNamePending": false],
+                ["id": "custom", "service": "claude", "label": "Family", "isLegacy": true]
+            ],
+            "defaults": ["codex": "work", "claude": "live"],
+            "serviceOrder": ["claude", "codex"],
+            "accountOrder": ["claude\u{0}custom", "codex\u{0}work", "claude\u{0}live", "codex\u{0}live"]
+        ]
+        try JSONSerialization.data(withJSONObject: old).write(to: root.appendingPathComponent("account-registry-v1.json"))
+        let registry = AccountRegistry.Store(root: root, legacyServices: [])
+        let initial = registry.all()
+        XCTAssertEqual(initial.map(\.label), ["Codex", "Codex Pro", "Account 1", "Family"])
+        XCTAssertEqual(initial.first?.suggestedNamePending, true)
+        registry.applySuggestedPlan(service: .codex, id: "live", plan: "Unknown")
+        XCTAssertEqual(registry.all().first?.label, "Codex")
+        registry.applySuggestedPlan(service: .codex, id: "live", plan: "Pro")
+        registry.applySuggestedPlan(service: .claude, id: "live", plan: "Max")
+        registry.applySuggestedPlan(service: .claude, id: "custom", plan: "Max")
+        let reopened = AccountRegistry.Store(root: root, legacyServices: [])
+        XCTAssertEqual(reopened.all().map(\.label), ["Codex Pro 2", "Codex Pro", "Account 1", "Family"])
+        XCTAssertEqual(reopened.defaultProfile(for: .codex)?.id, "work")
+        XCTAssertEqual(reopened.defaultProfile(for: .claude)?.id, "live")
+        XCTAssertEqual(reopened.accountOrder(), old["accountOrder"] as? [String])
+    }
+}
+
+@MainActor
+final class MobileAccountNamingTests: XCTestCase {
+    func testNewAccountDoesNotBorrowExistingPlanAndNamesAfterConnection() throws {
+        let accounts = MobileAccountCollection(fixtureProfiles: [
+            AccountProfile(id: "existing", service: .codex, label: "Work", isLegacy: false)
+        ])
+        // The existing model has a known Demo plan; it must not name the new connection.
+        XCTAssertEqual(accounts.suggestedName(for: .codex), "Codex")
+        let added = accounts.add(.codex)
+        XCTAssertEqual(added.label, "Codex")
+        let connected = try XCTUnwrap(accounts.finishAdding(added))
+        XCTAssertEqual(connected.label, "Codex Demo")
+        accounts.rename(connected, to: "Personal")
+        accounts.updateSuggestedNameIfReady(connected)
+        XCTAssertEqual(accounts.all(.codex).last?.label, "Personal")
+        XCTAssertEqual(accounts.all(.codex).first?.label, "Work")
+    }
+
+    func testExplicitNameMatchingPlaceholderIsPreserved() throws {
+        let accounts = MobileAccountCollection(fixtureProfiles: [])
+        let added = accounts.add(.claude, named: "Claude")
+        XCTAssertEqual(added.suggestedNamePending, false)
+        XCTAssertEqual(accounts.finishAdding(added)?.label, "Claude")
+    }
+
+    func testMissingConnectionDoesNotProceedToNaming() {
+        let accounts = MobileAccountCollection(fixtureProfiles: [])
+        let missing = AccountProfile(id: "cancelled", service: .codex, label: "Codex", isLegacy: false)
+        XCTAssertNil(accounts.finishAdding(missing))
+        XCTAssertTrue(accounts.profiles.isEmpty)
+    }
+}

@@ -10,7 +10,7 @@ struct MultiAccountSettingsView: View {
     var orderStore: AccountRegistry.Store? = nil
     @State private var connectionProfile: AccountProfile?
     @State private var pendingAdd: AccountProfile?
-    @State private var namingService: QuotaService?
+    @State private var namingAccount: AccountProfile?
     @State private var nameDraft = ""
     @State private var accountToRename: AccountProfile?
     @State private var labelDraft = ""
@@ -40,11 +40,15 @@ struct MultiAccountSettingsView: View {
                 Section {
                     ForEach(accounts.all(service), id: \.id) { profile in
                         HStack(spacing: 12) {
-                            Button { connectionProfile = profile } label: { accountRow(profile) }
+                            Button {
+                                pendingAdd = profile.suggestedNamePending == true ? profile : nil
+                                connectionProfile = profile
+                            } label: { accountRow(profile) }
                                 .buttonStyle(.plain)
                             Menu {
                                 Button("Rename") { rename(profile) }
-                                Button("Use as widget default") { accounts.setDefault(profile) }
+                                Button("Use as widget fallback") { accounts.setDefault(profile) }
+                                    .disabled(AccountRegistry.defaultProfile(for: service)?.id == profile.id)
                                 Button("Remove account", role: .destructive) { accountToRemove = profile }
                             } label: {
                                 Image(systemName: "ellipsis.circle")
@@ -54,15 +58,20 @@ struct MultiAccountSettingsView: View {
                         }
                             .contextMenu {
                                 Button("Rename") { rename(profile) }
-                                Button("Use as widget default") { accounts.setDefault(profile) }
+                                Button("Use as widget fallback") { accounts.setDefault(profile) }
+                                    .disabled(AccountRegistry.defaultProfile(for: service)?.id == profile.id)
                                 Button("Remove account", role: .destructive) { accountToRemove = profile }
                             }
                             .swipeActions(edge: .trailing) {
                                 Button("Remove", role: .destructive) { accountToRemove = profile }
                             }
                     }
-                    Button("Add \(service.name) account", systemImage: "plus") { prepareName(for: service) }
-                } header: { Text(service.name) }
+                    Button("Add \(service.name) account", systemImage: "plus") { add(service) }
+                } header: { Text(service.name) } footer: {
+                    if accounts.all(service).count > 1 {
+                        Text("The widget fallback is used when a widget has no account selected. Widgets with a selected account keep their choice.")
+                    }
+                }
             }
             Section {
                 Button("Notifications") { showNotifications = true }
@@ -87,6 +96,7 @@ struct MultiAccountSettingsView: View {
                 LabeledContent("Build", value: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—")
             }
         }
+        .onAppear { accounts.reload() }
         .disabled(resetting)
         .scrollContentBackground(.hidden)
         .background { BrandSurfaceBackground().ignoresSafeArea() }
@@ -94,18 +104,18 @@ struct MultiAccountSettingsView: View {
         .tint(OverviewStyle.accent)
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
-        .alert("Add account", isPresented: Binding(
-            get: { namingService != nil }, set: { if !$0 { namingService = nil } }
+        .alert("Name your account", isPresented: Binding(
+            get: { namingAccount != nil }, set: { if !$0 { namingAccount = nil } }
         )) {
             TextField("Account name", text: $nameDraft)
-            Button("Connect") {
-                if let namingService { add(namingService, named: nameDraft) }
-                namingService = nil
+            Button("Save") {
+                if let namingAccount { accounts.rename(namingAccount, to: nameDraft) }
+                namingAccount = nil
             }
             .disabled(nameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            Button("Cancel", role: .cancel) { namingService = nil }
+            Button("Not now", role: .cancel) { namingAccount = nil }
         } message: {
-            Text("Edit the suggested name now or rename the account later.")
+            Text("Your account is connected. Save the suggested name or choose your own. You can change it later in Settings.")
         }
         .alert("Rename account", isPresented: Binding(
             get: { accountToRename != nil },
@@ -158,8 +168,10 @@ struct MultiAccountSettingsView: View {
         }
         .sheet(item: $connectionProfile, onDismiss: {
             if let pendingAdd {
-                accounts.updateSuggestedNameIfReady(pendingAdd)
-                accounts.discardIfUnconnected(pendingAdd)
+                if let connected = accounts.finishAdding(pendingAdd) {
+                    nameDraft = connected.label
+                    namingAccount = connected
+                }
             }
             pendingAdd = nil
             accounts.reload()
@@ -197,8 +209,8 @@ struct MultiAccountSettingsView: View {
                 Text("Updated \(updated.formatted(date: .abbreviated, time: .shortened))")
                     .font(.footnote).foregroundStyle(OverviewStyle.secondary)
             }
-            if AccountRegistry.defaultProfile(for: profile.service)?.id == profile.id {
-                Text("Widget default").font(.footnote).foregroundStyle(OverviewStyle.secondary)
+            if accounts.all(profile.service).count > 1, AccountRegistry.defaultProfile(for: profile.service)?.id == profile.id {
+                Text("Widget fallback").font(.footnote).foregroundStyle(OverviewStyle.secondary)
             }
         }
         .frame(minHeight: 44, alignment: .leading)
@@ -209,13 +221,8 @@ struct MultiAccountSettingsView: View {
         accountToRename = profile
     }
 
-    private func prepareName(for service: QuotaService) {
-        nameDraft = accounts.suggestedName(for: service)
-        namingService = service
-    }
-
-    private func add(_ service: QuotaService, named name: String) {
-        let profile = accounts.add(service, named: name)
+    private func add(_ service: QuotaService) {
+        let profile = accounts.add(service)
         pendingAdd = profile
         connectionProfile = profile
     }

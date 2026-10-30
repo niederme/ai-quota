@@ -181,6 +181,17 @@ final class MultiAccountFlowTests: XCTestCase {
         XCTAssertTrue(addClaude.isHittable)
         addClaude.tap()
         XCTAssertTrue(app.navigationBars["Demo account"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.alerts["Name your account"].exists)
+        app.buttons["Close"].firstMatch.tap()
+        let naming = app.alerts["Name your account"]
+        XCTAssertTrue(naming.waitForExistence(timeout: 5))
+        XCTAssertEqual(naming.textFields.firstMatch.value as? String, "Claude Demo")
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Name connected account"; screenshot.lifetime = .keepAlways; add(screenshot)
+        naming.textFields.firstMatch.tap()
+        naming.textFields.firstMatch.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: "Claude Demo".count) + "Personal")
+        naming.buttons["Save"].tap()
+        XCTAssertTrue(app.buttons["Manage Claude Personal"].waitForExistence(timeout: 5))
     }
 }
 
@@ -232,5 +243,33 @@ extension MultiAccountFlowTests {
         XCTAssertLessThan(claude.frame.midY, codex.frame.midY)
         openOrder()
         XCTAssertLessThan(enterprise.frame.midY, personal.frame.midY)
+    }
+}
+
+
+extension MultiAccountFlowTests {
+    func testGuidedSetupNamesAfterConnectionAndCanDefer() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-multiAccountUITest"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Settings"].waitForExistence(timeout: 10))
+        app.buttons["Settings"].tap()
+        let setup = app.buttons["Guided Setup…"]
+        for _ in 0..<8 where !setup.isHittable { app.collectionViews.firstMatch.swipeUp() }
+        XCTAssertTrue(setup.isHittable)
+        setup.tap()
+        XCTAssertTrue(app.buttons["Continue"].waitForExistence(timeout: 5))
+        app.buttons["Continue"].tap()
+        app.buttons["Add another account"].tap()
+        app.buttons.matching(identifier: "Codex").firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Demo account"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.alerts["Name your account"].exists)
+        app.buttons["Close"].firstMatch.tap()
+        let naming = app.alerts["Name your account"]
+        XCTAssertTrue(naming.waitForExistence(timeout: 5))
+        XCTAssertEqual(naming.textFields.firstMatch.value as? String, "Codex Demo")
+        naming.buttons["Not now"].tap()
+        XCTAssertTrue(app.staticTexts["3 accounts connected"].waitForExistence(timeout: 5))
     }
 }
