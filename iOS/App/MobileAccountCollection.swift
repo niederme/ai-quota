@@ -51,6 +51,17 @@ final class MobileAccountCollection {
         codexModels = codexModels.filter { codexIDs.contains($0.key) }
         claudeModels = claudeModels.filter { claudeIDs.contains($0.key) }
         profiles = current
+        // Upgrade untouched legacy names immediately when saved plan metadata is available.
+        var renamed = false
+        for profile in current where profile.suggestedNamePending == true {
+            guard let plan = connectedPlan(for: profile) else { continue }
+            AccountRegistry.applySuggestedPlan(service: profile.service, id: profile.id, plan: plan)
+            renamed = true
+        }
+        if renamed {
+            profiles = AccountRegistry.all()
+            WidgetCenter.shared.reloadAllTimelines()
+        }
     }
 
     func all(_ service: QuotaService) -> [AccountProfile] {
@@ -74,21 +85,36 @@ final class MobileAccountCollection {
     func claude(_ profile: AccountProfile) -> ClaudeProbeModel? { claudeModels[profile.id] }
 
     func suggestedName(for service: QuotaService) -> String {
-        let plan = all(service).compactMap { profile -> String? in
-            switch service {
-            case .codex: return codex(profile)?.reading?.metadata?.displayPlan
-            case .claude: return claude(profile)?.reading?.metadata?.displayPlan
-            }
-        }.first
-        return AccountNameSuggestion.make(service: service.name, plan: plan,
+        // This is only a placeholder until this connection supplies its own plan.
+        AccountNameSuggestion.make(service: service.name, plan: nil,
             existingLabels: all(service).map(\.label))
+    }
+
+    private func connectedPlan(for profile: AccountProfile) -> String? {
+        guard connected(profile.service).contains(where: { $0.id == profile.id }) else { return nil }
+        let plan = (profile.service == .codex
+            ? codex(profile)?.reading?.metadata?.displayPlan
+            : claude(profile)?.reading?.metadata?.displayPlan)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let plan, !plan.isEmpty, plan.caseInsensitiveCompare("Unknown") != .orderedSame else { return nil }
+        return plan
+    }
+
+    /// Called after the connection sheet closes, in Settings and guided setup.
+    /// Only successful connections proceed to naming.
+    func finishAdding(_ profile: AccountProfile) -> AccountProfile? {
+        guard connected(profile.service).contains(where: { $0.id == profile.id }) else {
+            discardIfUnconnected(profile)
+            return nil
+        }
+        updateSuggestedNameIfReady(profile)
+        return profiles.first { $0.orderKey == profile.orderKey }
     }
 
     @discardableResult func add(_ service: QuotaService, named requestedName: String? = nil) -> AccountProfile {
         let suggested = suggestedName(for: service)
         let trimmed = requestedName?.trimmingCharacters(in: .whitespacesAndNewlines)
         let name = trimmed.flatMap { $0.isEmpty ? nil : $0 } ?? suggested
-        let pending = name == suggested
+        let pending = trimmed == nil || trimmed?.isEmpty == true
         if fixtureMode {
             let profile = AccountProfile(id: UUID().uuidString, service: service,
                                          label: name, isLegacy: false, suggestedNamePending: pending)
@@ -105,16 +131,7 @@ final class MobileAccountCollection {
     func updateSuggestedNameIfReady(_ profile: AccountProfile) {
         guard let current = profiles.first(where: { $0.service == profile.service && $0.id == profile.id }),
               current.suggestedNamePending == true else { return }
-        let plan: String?
-        switch profile.service {
-        case .codex:
-            guard codex(current)?.connected == true else { return }
-            plan = codex(current)?.reading?.metadata?.displayPlan
-        case .claude:
-            guard claude(current)?.connected == true else { return }
-            plan = claude(current)?.reading?.metadata?.displayPlan
-        }
-        guard let plan, !plan.isEmpty, plan.caseInsensitiveCompare("Unknown") != .orderedSame else { return }
+        guard let plan = connectedPlan(for: current) else { return }
         if fixtureMode {
             guard let index = profiles.firstIndex(where: { $0.orderKey == current.orderKey }) else { return }
             profiles[index].label = AccountNameSuggestion.make(service: current.service.name, plan: plan,
