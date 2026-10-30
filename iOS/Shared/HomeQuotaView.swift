@@ -166,7 +166,7 @@ struct WidgetTokenHeatmap: View {
     let cell: CGFloat
     var body: some View {
         let days = Array(history.days(now: date).suffix(weeks * 7))
-        let positives = days.compactMap(\.tokens).filter { $0 > 0 }.sorted()
+        let scale = CodexTokenActivityScale(tokensByDate: history.tokensByDate, now: date)
         // The nominal grid compresses horizontally on smaller device families.
         GeometryReader { geometry in
             let side = min(cell, max(1, (geometry.size.width - CGFloat(weeks - 1) * 2) / CGFloat(weeks)))
@@ -175,7 +175,7 @@ struct WidgetTokenHeatmap: View {
                     VStack(spacing: 2) {
                         ForEach(0..<7, id: \.self) { row in
                             let day = days[week * 7 + row]
-                            RoundedRectangle(cornerRadius: 1).fill(fill(day, positives: positives)).frame(width: side, height: cell)
+                            RoundedRectangle(cornerRadius: 1).fill(fill(day, scale: scale)).frame(width: side, height: cell)
                         }
                     }
                 }
@@ -185,13 +185,14 @@ struct WidgetTokenHeatmap: View {
         .widgetAccentable()
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Token activity, past \(weeks) weeks. Missing days have no record.")
+        .accessibilityHint(CodexTokenActivityScale.explanation)
+        .help(CodexTokenActivityScale.explanation)
     }
-    private func fill(_ day: CodexTokenHistory.Day, positives: [Double]) -> Color {
+    private func fill(_ day: CodexTokenHistory.Day, scale: CodexTokenActivityScale) -> Color {
         if day.isFuture { return .clear }
         guard let tokens = day.tokens else { return WidgetPalette.secondary.opacity(0.18) }
         if tokens == 0 { return Color(red: 77/255, green: 71/255, blue: 87/255) }
-        let rank = Double(positives.filter { $0 <= tokens }.count) / Double(max(1, positives.count))
-        return WidgetPalette.heat[rank <= 0.25 ? 0 : rank <= 0.5 ? 1 : rank <= 0.75 ? 2 : 3]
+        return WidgetPalette.heat[scale.positiveLevel(for: tokens)]
     }
 }
 
