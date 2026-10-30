@@ -85,6 +85,15 @@ server-side daily history, without a title or month labels. Its light, dark,
 zero, and missing states match the Mac palette. Claude does not report daily
 history, so Claude cards have no graph.
 
+Pixel intensity uses each account's recorded, nonzero days from the preceding
+90 completed UTC calendar days. The 50th, 80th, and 95th percentiles separate four
+active shades, with the brightest reserved for usage above the 95th percentile.
+The Mac app, iOS app, and widget graphs share this rule regardless of how many
+weeks they display. Missing and zero days do not train the scale, and today's
+incomplete count does not move it. Sparse histories use the available completed
+days; without any, active pixels stay in the quietest shade. As the baseline
+changes, historical colors may change; exact counts remain unchanged.
+
 ## Anonymous usage analytics
 
 The iOS app shares the Mac `AnalyticsClient` and Firebase Analytics Core dependency.

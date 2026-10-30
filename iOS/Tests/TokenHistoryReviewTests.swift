@@ -61,11 +61,6 @@ final class TokenHistoryReviewTests: XCTestCase {
         XCTAssertNil(zero.tokensByDate["2026-10-07"])
     }
 
-    @MainActor func testPositiveColorStepsRemainDistinct() {
-        let values = [0.1, 0.25, 0.5, 0.75, 1].map { MobileTokenHistoryView.positiveLevel(fraction: $0) }
-        XCTAssertEqual(values, [0, 0, 1, 2, 3])
-    }
-
     @MainActor func testFortyTwoWeekGridFillsCardWithSquareCells() {
         for width: CGFloat in [256, 288, 329, 376] {
             let side = MobileTokenHistoryView.cellSide(for: width)
