@@ -601,6 +601,7 @@ final class QuotaViewModel {
         isReadOnlyPreview = readOnlyPreview
         if readOnlyPreview { return }
         #endif
+        Task { await QuotaInsightStore.shared.prepare() }
         AccountRegistry.migrateLegacyAccountsIfNeeded()
         for provider in enrolledServices { ensurePrimaryAccount(for: provider, selectNewAccount: false) }
         self.additionalAccounts = AccountRegistry.accounts()

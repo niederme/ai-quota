@@ -77,18 +77,6 @@ struct OverviewView: View {
         claude.refresh()
     }
 
-    private var refreshButton: some View {
-        Button(action: refreshUsage) {
-            ZStack {
-                Image(systemName: "arrow.clockwise").opacity(codex.loading || claude.loading ? 0 : 1)
-                ProgressView().opacity(codex.loading || claude.loading ? 1 : 0)
-            }.frame(width: 24, height: 24)
-        }
-        .tint(OverviewStyle.primary)
-        .disabled(codex.busy || claude.busy)
-        .accessibilityLabel(codex.loading || claude.loading ? "Refreshing usage" : "Refresh usage")
-    }
-
     private var dashboard: some View {
         NavigationStack {
             GeometryReader { geometry in
@@ -147,12 +135,10 @@ struct OverviewView: View {
                 .toolbar(wide ? .hidden : .visible, for: .navigationBar)
                 .toolbar {
                     if !wide {
-                        ToolbarItem(placement: .topBarTrailing) { refreshButton }
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button { selectedService = .settings } label: { Image(systemName: "gearshape") }
-                                .tint(OverviewStyle.primary)
-                                .accessibilityLabel("Settings")
-                        }
+                        OverviewActionsToolbar(refreshing: codex.loading || claude.loading,
+                                               refreshDisabled: codex.busy || claude.busy,
+                                               refresh: refreshUsage,
+                                               settings: { selectedService = .settings })
                     }
                 }
             }
@@ -622,26 +608,8 @@ struct OverviewWideHeader: View {
                 .foregroundStyle(OverviewStyle.primary)
                 .accessibilityAddTraits(.isHeader)
             Spacer(minLength: 24)
-            HStack(spacing: 0) {
-                Button(action: refresh) {
-                    ZStack {
-                        Image(systemName: "arrow.clockwise").opacity(refreshing ? 0 : 1)
-                        ProgressView().opacity(refreshing ? 1 : 0)
-                    }
-                    .frame(width: 44, height: 44).contentShape(Rectangle())
-                }
-                .disabled(refreshDisabled)
-                .accessibilityLabel(refreshing ? "Refreshing usage" : "Refresh usage")
-                Button(action: settings) {
-                    Image(systemName: "gearshape")
-                        .frame(width: 44, height: 44).contentShape(Rectangle())
-                }
-                .accessibilityLabel("Settings")
-            }
-            .font(.title3)
-            .buttonStyle(.plain)
-            .foregroundStyle(OverviewStyle.primary)
-            .background(.ultraThinMaterial, in: Capsule())
+            OverviewActions(refreshing: refreshing, refreshDisabled: refreshDisabled,
+                            refresh: refresh, settings: settings)
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
@@ -649,6 +617,58 @@ struct OverviewWideHeader: View {
         .frame(maxWidth: 720)
         .frame(maxWidth: .infinity)
         .accessibilityIdentifier("wideOverviewHeader")
+    }
+}
+
+/// Share the account cards' purple surface across compact and wide navigation.
+struct OverviewActions: View {
+    var refreshing = false
+    var refreshDisabled = false
+    let refresh: () -> Void
+    let settings: () -> Void
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Button(action: refresh) {
+                ZStack {
+                    Image(systemName: "arrow.clockwise").opacity(refreshing ? 0 : 1)
+                    ProgressView().opacity(refreshing ? 1 : 0)
+                }
+                .frame(width: 44, height: 44).contentShape(Rectangle())
+            }
+            .disabled(refreshDisabled)
+            .accessibilityLabel(refreshing ? "Refreshing usage" : "Refresh usage")
+            Button(action: settings) {
+                Image(systemName: "gearshape")
+                    .frame(width: 44, height: 44).contentShape(Rectangle())
+            }
+            .accessibilityLabel("Settings")
+        }
+        .font(.title3)
+        .buttonStyle(.plain)
+        .foregroundStyle(OverviewStyle.primary)
+        .background { OverviewAccountSurface() }
+    }
+}
+
+struct OverviewActionsToolbar: ToolbarContent {
+    var refreshing = false
+    var refreshDisabled = false
+    let refresh: () -> Void
+    let settings: () -> Void
+
+    private var actions: some View {
+        OverviewActions(refreshing: refreshing, refreshDisabled: refreshDisabled,
+                        refresh: refresh, settings: settings)
+    }
+
+    var body: some ToolbarContent {
+        if #available(iOS 26.0, *) {
+            ToolbarItem(placement: .topBarTrailing) { actions }
+                .sharedBackgroundVisibility(.hidden)
+        } else {
+            ToolbarItem(placement: .topBarTrailing) { actions }
+        }
     }
 }
 

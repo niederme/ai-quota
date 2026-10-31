@@ -494,15 +494,30 @@ Choose **Try demo** from the welcome screen or Settings to explore labeled sampl
 
 ## Quota pace forecasts
 
-The live iPhone/iPad overview shows the earliest eligible account forecast beneath
-reset announcements. It shares the Mac estimator and date formatting. Successful
-app, widget, and background fetches collect device-local observations under the
-existing account lease; cached reads and demo data never create samples.
+The live iPhone/iPad overview shows an eligible before-reset warning beneath reset
+announcements, using the same on-device estimator as Mac. It uses the current
+quota reading and existing service-provided daily history. Forecasting does not
+collect or persist quota observations, add network requests, or use an LLM.
+The existing graph cache remains a snapshot of service history. Upgrades delete
+the former pace-observation store and preserve only current-window dismissals.
 
-A forecast requires a verified provider identity, known plan, actual reset time,
-and enough recent, stable observations. Minimum observed spans are one hour for
-five-hour windows, 12 hours for weekly windows, and 24 hours for monthly windows;
-iOS background scheduling can make collection take longer. History does not sync
-from the Mac. Missing, stale, corrected, or irregular data suppresses the forecast.
-Dismissal lasts for that account's current reset window. Reconnecting or removing
-an account clears its observations, and plan/identity changes never combine data.
+Codex weekday patterns use 28 complete provider UTC days, with the latest week
+held out to check whether weekday weighting beats a simple average. Each person's
+pattern can favor any days, including weekends. Missing days remain unknown.
+Daily history cannot identify working hours or night shifts: partial days are
+conservatively bounded rather than assigned an assumed hourly schedule. This can
+suppress a warning when there is too little complete-day evidence before reset.
+Tokens/credits supply relative timing weights, never a conversion to quota percent.
+
+Without a reliable matching daily pattern, a clearly labelled period-average
+estimate uses the current reading and actual provider window duration. Five-hour
+windows always use that average. A verified identity, known plan, fresh reading,
+and real reset are required; budget-only monthly responses with no period duration
+are omitted. Personal Claude quotas currently use the average because available
+Enterprise daily spend is organization-scoped. Warnings require projected usage
+at least 10% beyond the allowance; no exact exhaustion time is claimed.
+
+This can work on first installation when the provider period is already underway:
+at least 30 minutes for a five-hour window or one day for a weekly/monthly window.
+Dismissal lasts for that account's current reset window. Reconnect/removal clears
+its dismissal preferences. Account identities and histories never mix.

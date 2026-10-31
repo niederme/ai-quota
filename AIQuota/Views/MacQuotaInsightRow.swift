@@ -19,19 +19,12 @@ struct MacQuotaInsightRow: View {
         let forecast: QuotaExhaustionForecast
         let query: Query
     }
-    private struct Query: Hashable {
-        let accountID: String
-        let provider: String
-        let identity: String
-        let source: String
-        let plan: String
+    private struct Query: Equatable {
         let label: String
-        let fetchedAt: Date
-        let fiveHourReset: Date?
-        let weeklyReset: Date?
-        let monthlyReset: Date?
+        let inputs: [QuotaForecastInput]
+        let history: QuotaForecastDailyHistory?
     }
-    private struct RefreshID: Hashable {
+    private struct RefreshID: Equatable {
         let queries: [Query]
         let minute: Int
     }
@@ -54,12 +47,16 @@ struct MacQuotaInsightRow: View {
                 let usage = isolated ? session?.claudeUsage : viewModel.claudeUsage
                 guard let usage, usage.source == .web, let identity = usage.quotaScopeID,
                       !identity.isEmpty, identity == account.workspaceID else { return nil }
-                return Query(accountID: account.id, provider: "claude", identity: identity,
-                    source: usage.source.rawValue, plan: usage.planLabel.rawValue,
-                    label: "\(account.displayLabel) Claude", fetchedAt: usage.fetchedAt,
-                    fiveHourReset: eligible(usage.fiveHourUtilization) ? usage.fiveHourResetsAt : nil,
-                    weeklyReset: eligible(usage.sevenDayUtilization) ? usage.sevenDayResetsAt : nil,
-                    monthlyReset: nil)
+                let inputs = [(QuotaForecastScope.Window.fiveHour, usage.fiveHourUtilization, usage.fiveHourResetsAt, 18000.0),
+                              (.weekly, usage.sevenDayUtilization, usage.sevenDayResetsAt, 604800.0)].compactMap { window, used, reset, duration -> QuotaForecastInput? in
+                    guard let used, let reset else { return nil }
+                    return .init(scope: .init(accountID: account.id, provider: "claude", identity: identity,
+                        source: usage.source.rawValue, plan: usage.planLabel.rawValue, window: window, resetAt: reset),
+                        usedPercent: used, duration: duration, fetchedAt: usage.fetchedAt)
+                }
+                // The available Enterprise spend report is organization-scoped;
+                // do not apply it to a personal allowance without verified matching scope.
+                return Query(label: "\(account.displayLabel) Claude", inputs: inputs, history: nil)
             }
             if !isolated {
                 guard viewModel.isCodexAuthenticated, viewModel.codexError == nil else { return nil }
@@ -67,24 +64,28 @@ struct MacQuotaInsightRow: View {
             let usage = isolated ? session?.codexUsage : viewModel.codexUsage
             guard let usage, let identity = usage.accountID, !identity.isEmpty,
                   identity == account.workspaceID, let source = usage.quotaSource, source != .unknown else { return nil }
-            let hasWindows = usage.reportedWindowShape != nil
-            let short = usage.reportedWindowShape == .dual && usage.hourlyWindowSeconds == 18000
-                && eligible(Double(usage.hourlyUsedPercent))
-            let weekly = hasWindows && eligible(Double(usage.weeklyUsedPercent))
-            let budget = usage.displayableMonthlyBudget
-            let monthly = !hasWindows && eligible(budget?.used, limit: budget?.limit ?? 0)
-            return Query(accountID: account.id, provider: "codex", identity: identity,
-                source: source.rawValue, plan: usage.planType,
-                label: "\(account.displayLabel) Codex", fetchedAt: usage.fetchedAt,
-                fiveHourReset: short ? usage.hourlyResetAt : nil,
-                weeklyReset: weekly ? usage.weeklyResetAt : nil,
-                monthlyReset: monthly ? budget?.resetAt : nil)
+            var inputs: [QuotaForecastInput] = []
+            func append(_ window: QuotaForecastScope.Window, used: Double, duration: Double, reset: Date) {
+                inputs.append(.init(scope: .init(accountID: account.id, provider: "codex", identity: identity,
+                    source: source.rawValue, plan: usage.planType, window: window, resetAt: reset),
+                    usedPercent: used, duration: duration, fetchedAt: usage.fetchedAt))
+            }
+            if usage.reportedWindowShape == .dual, usage.hourlyWindowSeconds == 18000 {
+                append(.fiveHour, used: Double(usage.hourlyUsedPercent), duration: 18000, reset: usage.hourlyResetAt)
+            }
+            if usage.reportedWindowShape != nil {
+                append(.weekly, used: Double(usage.weeklyUsedPercent), duration: 604800, reset: usage.weeklyResetAt)
+            }
+            let creditHistory = isolated ? session?.codexUsageHistory : viewModel.codexUsageHistory
+            let historyFailed = isolated ? session?.usageHistoryFailed == true : viewModel.usageHistoryFailed
+            let tokenHistory = isolated ? session?.codexTokenHistory : viewModel.codexTokenHistory
+            var history = historyFailed ? nil : creditHistory.map(QuotaForecastDailyHistory.init)
+            if history == nil, let tokenHistory, tokenHistory.isAttributed(toWorkspaceID: identity) {
+                history = .init(values: tokenHistory.tokensByDate, fetchedAt: tokenHistory.fetchedAt)
+            }
+            return Query(label: "\(account.displayLabel) Codex", inputs: inputs, history: history)
         }
         #endif
-    }
-
-    private func eligible(_ used: Double?, limit: Double = 100) -> Bool {
-        used.map { $0.isFinite && limit.isFinite && limit > 0 && $0 > 0 && $0 < limit } == true
     }
 
     var body: some View {
@@ -92,8 +93,8 @@ struct MacQuotaInsightRow: View {
             let currentQueries = queries
             let visible = insight.flatMap { candidate -> Insight? in
                 guard !dismissedScopes.contains(candidate.forecast.scope),
-                      currentQueries.contains(candidate.query), matches(candidate.forecast, query: candidate.query),
-                      candidate.forecast.earliest > context.date,
+                      currentQueries.contains(candidate.query),
+                      candidate.forecast.scope.resetAt > context.date,
                       candidate.forecast.validUntil > context.date else { return nil }
                 return candidate
             }
@@ -127,28 +128,17 @@ struct MacQuotaInsightRow: View {
             .task(id: RefreshID(queries: currentQueries, minute: Int(context.date.timeIntervalSince1970 / 60))) {
                 var candidates: [Insight] = []
                 for query in currentQueries {
-                    let forecasts = await QuotaInsightStore.shared.forecasts(accountID: query.accountID,
-                        provider: query.provider, identity: query.identity, source: query.source,
-                        plan: query.plan, now: context.date)
-                    candidates += forecasts.filter { matches($0, query: query) }
-                        .map { Insight(forecast: $0, query: query) }
+                    let estimates = query.inputs.compactMap {
+                        QuotaExhaustionForecast.estimate($0, history: query.history, now: context.date)
+                    }
+                    let forecasts = await QuotaInsightStore.shared.visible(estimates)
+                    candidates += forecasts.map { Insight(forecast: $0, query: query) }
                 }
                 guard !Task.isCancelled else { return }
-                insight = candidates.min { $0.forecast.earliest < $1.forecast.earliest }
+                insight = candidates.min { $0.forecast.scope.resetAt < $1.forecast.scope.resetAt }
             }
         }
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { onHeightChange($0) }
     }
 
-    private func matches(_ forecast: QuotaExhaustionForecast, query: Query) -> Bool {
-        let scope = forecast.scope
-        let reset: Date? = switch scope.window {
-        case .fiveHour: query.fiveHourReset
-        case .weekly: query.weeklyReset
-        case .monthly: query.monthlyReset
-        }
-        return scope.accountID == query.accountID && scope.provider == query.provider
-            && scope.identity == query.identity && scope.source == query.source && scope.plan == query.plan
-            && reset.map { abs($0.timeIntervalSince(scope.resetAt)) < 1 } == true
-    }
 }

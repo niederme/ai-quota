@@ -1,5 +1,6 @@
 import MobileAccessCore
 
 public typealias QuotaForecastScope = MobileAccessCore.QuotaForecastScope
-public typealias QuotaPaceObservation = MobileAccessCore.QuotaPaceObservation
+public typealias QuotaForecastInput = MobileAccessCore.QuotaForecastInput
+public typealias QuotaForecastDailyHistory = MobileAccessCore.QuotaForecastDailyHistory
 public typealias QuotaExhaustionForecast = MobileAccessCore.QuotaExhaustionForecast

@@ -146,7 +146,6 @@ public actor OpenAIClient {
     }
 
     public func fetchUsage() async throws -> CodexUsage {
-        let captureGeneration = await QuotaInsightStore.shared.captureGeneration()
         let context: CodexAccessContext
         do {
             context = try await verifiedAccessContext()
@@ -236,18 +235,6 @@ public actor OpenAIClient {
             ?? (accountStorageID == nil ? SharedDefaults.loadCachedUsage() : nil)
         let verifiedPrevious = previous.flatMap {
             $0.accountID != nil && $0.accountID == context.accountID ? $0 : nil
-        }
-        try await verifyResponseIdentity(context)
-        let accounts = AccountRegistry.accounts(for: .codex)
-        let account: ConnectedAccount?
-        if let accountStorageID {
-            account = accounts.first { $0.id == accountStorageID.uuidString }
-        } else {
-            account = accounts.first { $0.connectionKind == .legacyPrimary }
-        }
-        if let account, let identity = context.accountID {
-            await QuotaInsightStore.shared.recordCodex(usage, account: account, identity: identity,
-                                                       captureGeneration: captureGeneration)
         }
         try await verifyResponseIdentity(context)
         return usage.retainingLastConfirmedWindows(from: verifiedPrevious)

@@ -12,9 +12,9 @@ struct MacQuotaInsightBanner: View {
     private var row: some View {
         MacAlertRow(title: "\(accountLabel) may hit its \(forecast.scope.window.label) limit",
                     announcement: false, onDismiss: onDismiss) {
-            Text("Around \(QuotaForecastTextFormatter.range(forecast)) at your recent pace · Resets \(QuotaForecastTextFormatter.reset(forecast))")
+            Text(QuotaForecastTextFormatter.detail(forecast))
         }
-        .help("Approximate range from this account’s recent quota observations. Changes in usage can change the estimate.")
+        .help("Estimate from current quota usage and available service history. Changes in usage can change the forecast.")
         .accessibilityIdentifier("quotaPaceInsight")
     }
 

@@ -1,12 +1,10 @@
 import Foundation
 
 public enum QuotaForecastTextFormatter {
-    public static func range(_ forecast: QuotaExhaustionForecast, now: Date = .now,
-                             calendar: Calendar = .autoupdatingCurrent,
-                             locale: Locale = .autoupdatingCurrent) -> String {
-        let dated = forecast.scope.window == .monthly || dayOffset(forecast.latest, from: now, calendar: calendar) >= 7
-        let style = style(dated: dated, calendar: calendar, locale: locale)
-        return "\(forecast.earliest.formatted(style))–\(forecast.latest.formatted(style))"
+    public static func detail(_ forecast: QuotaExhaustionForecast) -> String {
+        let basis = forecast.basis == .weeklyPattern
+            ? "Based on your usual weekly pattern" : "At your average pace this period"
+        return "\(basis) · Resets \(reset(forecast))"
     }
 
     public static func reset(_ forecast: QuotaExhaustionForecast, now: Date = .now,

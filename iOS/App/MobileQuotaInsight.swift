@@ -6,6 +6,8 @@ final class MobileQuotaInsightModel {
     struct Query: Equatable {
         let profile: AccountProfile
         let reading: QuotaReading
+        let historyFetchedAt: Date?
+        let tokensFetchedAt: Date?
     }
     struct RefreshID: Equatable {
         let queries: [Query]
@@ -37,13 +39,15 @@ final class MobileQuotaInsightModel {
                 reading = model.reading
             }
             guard let reading, reading.providerIdentity != nil else { return nil }
-            return Query(profile: profile, reading: reading)
+            return Query(profile: profile, reading: reading,
+                         historyFetchedAt: accounts.codex(profile)?.history?.fetchedAt,
+                         tokensFetchedAt: accounts.codex(profile)?.tokenHistory?.fetchedAt)
         }
     }
 
     func current(queries: [Query], now: Date) -> Insight? {
         guard let insight, queries.contains(insight.query), !dismissed.contains(insight.forecast.scope),
-              insight.forecast.earliest > now, insight.forecast.validUntil > now else { return nil }
+              insight.forecast.scope.resetAt > now, insight.forecast.validUntil > now else { return nil }
         return insight
     }
 
@@ -54,7 +58,7 @@ final class MobileQuotaInsightModel {
             candidates += forecasts.filter { !dismissed.contains($0.scope) }.map { Insight(forecast: $0, query: query) }
         }
         guard !Task.isCancelled else { return }
-        insight = candidates.min { $0.forecast.earliest < $1.forecast.earliest }
+        insight = candidates.min { $0.forecast.scope.resetAt < $1.forecast.scope.resetAt }
     }
 
     func dismiss(_ value: Insight) {

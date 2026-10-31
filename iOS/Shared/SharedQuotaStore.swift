@@ -47,37 +47,54 @@ struct SharedQuotaStore: Sendable {
     var readingURL: URL? { root?.appendingPathComponent(namespacedFile("\(service.rawValue)-v2.json")) }
     private var forecastURL: URL? { root?.appendingPathComponent(namespacedFile("\(service.rawValue)-pace-v1.json")) }
 
-    private func forecastHistory() -> QuotaForecastHistory {
-        guard let url = forecastURL, let data = try? Data(contentsOf: url),
-              let history = try? JSONDecoder().decode(QuotaForecastHistory.self, from: data) else { return .init() }
-        return history
+    private var forecastDismissalsURL: URL? {
+        root?.appendingPathComponent(namespacedFile("\(service.rawValue)-pace-dismissals-v2.json"))
     }
-
-    private func saveForecastHistory(_ history: QuotaForecastHistory) throws {
-        guard let url = forecastURL else { throw AccessError.storage }
-        try JSONEncoder().encode(history).write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+    private func forecastDismissals() -> QuotaForecastDismissals {
+        guard let url = forecastDismissalsURL, let data = try? Data(contentsOf: url),
+              let value = try? JSONDecoder().decode(QuotaForecastDismissals.self, from: data) else { return .init() }
+        return value
     }
-
-    // Call inside the credential lease on disconnect or replacement sign-in.
+    private func saveForecastDismissals(_ value: QuotaForecastDismissals) throws {
+        guard let url = forecastDismissalsURL else { throw AccessError.storage }
+        try JSONEncoder().encode(value).write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+    }
+    // Runs under the account lease, including cached/background/widget refreshes.
+    private func migrateForecastHistory() throws {
+        guard let url = forecastURL, FileManager.default.fileExists(atPath: url.path) else { return }
+        var dismissals = forecastDismissals()
+        if let data = try? Data(contentsOf: url) { dismissals.migrateLegacy(data) }
+        try saveForecastDismissals(dismissals)
+        try FileManager.default.removeItem(at: url)
+    }
     func clearForecastHistory() throws {
-        if let url = forecastURL, FileManager.default.fileExists(atPath: url.path) {
+        for url in [forecastURL, forecastDismissalsURL].compactMap({ $0 }) where FileManager.default.fileExists(atPath: url.path) {
             try FileManager.default.removeItem(at: url)
         }
     }
-
     func quotaForecasts(matching current: QuotaReading, now: Date = .now) async throws -> [QuotaExhaustionForecast] {
         try await withLease {
             guard failure() == nil, reading() == current else { return [] }
-            return forecastHistory().forecasts(for: current, accountID: namespace, provider: service.rawValue, now: now)
+            if service == .codex {
+                guard let credential = try load(CodexTokens.self),
+                      credential.accountID == current.providerIdentity else { return [] }
+            }
+            let providerHistory = widgetHistory() // Already identity-checked by the existing cache.
+            let history = providerHistory?.usage.map(QuotaForecastDailyHistory.init)
+                ?? providerHistory?.tokens.map { QuotaForecastDailyHistory(values: $0.tokensByDate, fetchedAt: $0.fetchedAt) }
+            let dismissals = forecastDismissals()
+            return QuotaForecastInput.inputs(for: current, accountID: namespace, provider: service.rawValue)
+                .compactMap { QuotaExhaustionForecast.estimate($0, history: history, now: now) }
+                .filter { !dismissals.contains($0.scope) }
         }
     }
-
     func dismissForecast(_ scope: QuotaForecastScope) async throws {
         try await withLease {
-            guard scope.accountID == namespace, scope.provider == service.rawValue else { return }
-            var history = forecastHistory()
-            history.dismiss(scope)
-            try saveForecastHistory(history)
+            guard scope.accountID == namespace, scope.provider == service.rawValue,
+                  reading()?.providerIdentity == scope.identity else { return }
+            var dismissals = forecastDismissals()
+            dismissals.dismiss(scope)
+            try saveForecastDismissals(dismissals)
         }
     }
     private var widgetHistoryURL: URL? { root?.appendingPathComponent(namespacedFile("\(service.rawValue)-widget-history.json")) }
@@ -167,6 +184,7 @@ struct SharedQuotaStore: Sendable {
         }
         defer { flock(fd, LOCK_UN) }
         try Task.checkCancellation()
+        try? migrateForecastHistory()
         return try await action()
     }
     func fetch<T: QuotaCredentials>(
@@ -222,10 +240,6 @@ struct SharedQuotaStore: Sendable {
                 }
                 try Task.checkCancellation()
                 try saveReading(value)
-                var pace = forecastHistory()
-                pace.record(value, accountID: namespace, provider: service.rawValue)
-                // Optional insights must never turn a successful quota refresh into an error.
-                try? saveForecastHistory(pace)
                 saveFailure(nil)
                 await MobileResetNotifications.update(service, reading: value, evaluateUsage: true, namespace: namespace)
                 await MobileResetNotifications.planChanged(
