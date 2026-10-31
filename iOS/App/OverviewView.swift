@@ -92,7 +92,7 @@ struct OverviewView: View {
     private var dashboard: some View {
         NavigationStack {
             GeometryReader { geometry in
-                let wide = min(geometry.size.width, 780) - 32 >= 600 && !typeSize.isAccessibilitySize
+                let wide = min(geometry.size.width, 720) - 32 >= 600 && !typeSize.isAccessibilitySize
                 OverviewScrollView {
                     VStack(alignment: .leading, spacing: 8) {
                         if isDemo { DemoBanner() }
@@ -103,7 +103,7 @@ struct OverviewView: View {
                             }, loading: codex.loading || claude.loading || resetNotice.fetching)
                         }
                         if codex.connected {
-                            ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 780) - 32, reading: codex.reading,
+                            ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 720) - 32, reading: codex.reading,
                                              connected: codex.connected, busy: codex.loading, error: codex.error, failure: codex.connectionFailure,
                                              history: codex.history, historyUnavailable: codex.historyUnavailable,
                                              tokenHistory: codex.tokenHistory, tokenHistoryUnavailable: codex.tokenHistoryUnavailable, tokenHistoryLoading: codex.tokenHistoryLoading || (codex.busy && codex.tokenHistory == nil),
@@ -112,7 +112,7 @@ struct OverviewView: View {
                             }
                         }
                         if claude.connected {
-                            ProviderDialCard(name: "Claude", icon: "logo-claude", availableWidth: min(geometry.size.width, 780) - 32, reading: claude.reading,
+                            ProviderDialCard(name: "Claude", icon: "logo-claude", availableWidth: min(geometry.size.width, 720) - 32, reading: claude.reading,
                                              connected: claude.connected, busy: claude.loading, error: claude.error, failure: claude.connectionFailure,
                                              onReconnect: { selectedService = .claudeAccount }) {
                                 selectedService = .claude
@@ -124,7 +124,7 @@ struct OverviewView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
                     .padding(.bottom, 16)
-                    .frame(maxWidth: 780)
+                    .frame(maxWidth: 720)
                     .frame(maxWidth: .infinity)
                 }
                 .refreshable {
@@ -646,7 +646,7 @@ struct OverviewWideHeader: View {
         .padding(.horizontal, 16)
         .padding(.top, 8)
         .padding(.bottom, 16)
-        .frame(maxWidth: 780)
+        .frame(maxWidth: 720)
         .frame(maxWidth: .infinity)
         .accessibilityIdentifier("wideOverviewHeader")
     }
@@ -839,7 +839,7 @@ struct ProviderDialCardContent: View {
             ? Color(red: 0.90, green: 0.69, blue: 1.0) : OverviewStyle.resetAccent
     }
     private var historyWidth: CGFloat {
-        usesWideLayout ? availableWidth - 40 - displayedDialSize - 24
+        usesWideLayout ? availableWidth - 40 - displayedDialSize - 40
             : availableWidth - 32 + 2 * Self.strokeOutset
     }
 
@@ -861,12 +861,12 @@ struct ProviderDialCardContent: View {
     private var showsTokenHistory: Bool {
         name == "Codex" && connected && MobileTokenHistoryView.presentation(
             history: tokenHistory, unavailable: tokenHistoryUnavailable,
-            loading: tokenHistoryLoading ?? busy) == .populated
+            loading: tokenHistoryLoading ?? busy, weeks: MobileTokenHistoryView.weekCount(for: historyWidth)) == .populated
     }
     private var cardContent: some View {
         Group {
             if usesWideLayout {
-                HStack(alignment: showsTokenHistory ? .top : .center, spacing: 24) {
+                HStack(alignment: showsTokenHistory ? .top : .center, spacing: 40) {
                     dial.modifier(UsageLoadingState(loading: busy && reading == nil))
                     VStack(alignment: .leading, spacing: 0) {
                         details.modifier(UsageLoadingState(loading: busy && reading == nil))

@@ -95,7 +95,7 @@ struct MultiAccountOverviewView: View {
     private var dashboard: some View {
         NavigationStack {
             GeometryReader { geometry in
-                let wide = min(geometry.size.width, 780) - 32 >= 600 && !typeSize.isAccessibilitySize
+                let wide = min(geometry.size.width, 720) - 32 >= 600 && !typeSize.isAccessibilitySize
                 OverviewScrollView {
                     VStack(alignment: .leading, spacing: 8) {
                         if let announcement = resetAnnouncement {
@@ -108,7 +108,7 @@ struct MultiAccountOverviewView: View {
                         }
                         VStack(alignment: .leading, spacing: 8) {
                             ForEach(orderedProfiles, id: \.orderKey) { profile in
-                                accountCard(profile, width: min(geometry.size.width, 780) - 32)
+                                accountCard(profile, width: min(geometry.size.width, 720) - 32)
                                     .onDrag {
                                         draggingAccount = profile.orderKey
                                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -135,7 +135,7 @@ struct MultiAccountOverviewView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
                     .padding(.bottom, 16)
-                    .frame(maxWidth: 780)
+                    .frame(maxWidth: 720)
                     .frame(maxWidth: .infinity)
                 }
                 .refreshable {

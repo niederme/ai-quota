@@ -59,13 +59,14 @@ public struct CodexTokenHistory: Codable, Sendable {
     public static let visibleWeeks = 42
 
     /// Sunday-first columns; the current week is always the rightmost.
-    public func days(now: Date = .now) -> [Day] {
+    public func days(now: Date = .now, weeks: Int = Self.visibleWeeks) -> [Day] {
+        let weeks = max(1, weeks)
         let calendar = Self.calendar
         let today = calendar.startOfDay(for: now)
         let sunday = calendar.date(byAdding: .day, value: -(calendar.component(.weekday, from: today) - 1), to: today)!
-        let start = calendar.date(byAdding: .day, value: -(Self.visibleWeeks - 1) * 7, to: sunday)!
+        let start = calendar.date(byAdding: .day, value: -(weeks - 1) * 7, to: sunday)!
         let formatter = Self.dateFormatter()
-        return (0..<(Self.visibleWeeks * 7)).map { offset in
+        return (0..<(weeks * 7)).map { offset in
             let date = calendar.date(byAdding: .day, value: offset, to: start)!
             let key = formatter.string(from: date)
             return Day(date: date, key: key, tokens: tokensByDate[key], isFuture: date > today, isToday: date == today)

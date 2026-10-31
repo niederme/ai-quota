@@ -21,6 +21,19 @@ struct CodexTokenHistoryTests {
         #expect(days.first?.tokens == nil)
     }
 
+    @Test func expandedHistoryAddsEarlierWeeksWithoutMovingCurrentWeek() throws {
+        let history = try #require(try CodexTokenHistory.decode(response("[{\"start_date\":\"2025-12-01\",\"tokens\":123}]")))
+        let now = try #require(CodexTokenHistory.dateFormatter().date(from: "2026-10-09"))
+        let compact = history.days(now: now)
+        let expanded = history.days(now: now, weeks: 45)
+        #expect(expanded.count == 315)
+        #expect(expanded.first?.key == "2025-11-30")
+        #expect(expanded.suffix(compact.count).map(\.key) == compact.map(\.key))
+        #expect(expanded.first { $0.key == "2025-12-01" }?.tokens == 123)
+        #expect(expanded.filter(\.isToday).count == 1)
+        #expect(expanded.filter(\.isFuture).count == 1)
+    }
+
     @Test func absentGraphAndEmptyHistory() throws {
         #expect(try CodexTokenHistory.decode(Data("{\"page\":{\"activity_graph\":null}}".utf8)) == nil)
         #expect(try CodexTokenHistory.decode(response("[]"))?.tokensByDate.isEmpty == true)

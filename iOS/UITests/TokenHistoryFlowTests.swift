@@ -57,6 +57,8 @@ extension TokenHistoryFlowTests {
             XCTAssertGreaterThan(dial.frame.width, 140)
             XCTAssertGreaterThan(graph.frame.minX, dial.frame.maxX)
             XCTAssertEqual(graph.frame.minX, title.frame.minX, accuracy: 2)
+            XCTAssertEqual(graph.frame.maxX, card.frame.maxX - 20, accuracy: 2)
+            XCTAssertGreaterThanOrEqual(graph.frame.minX - dial.frame.maxX, 30)
             XCTAssertLessThanOrEqual(graph.frame.height, 70)
         } else {
             XCTAssertLessThan(dial.frame.width, 130)
