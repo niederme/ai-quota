@@ -67,42 +67,44 @@ struct MacAccountGridView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 leadingContent
-                if accounts.isEmpty {
-                    ForEach([ServiceType.codex, .claude], id: \.self) { service in
-                        MacAccountPlaceholderRow(service: service, availableWidth: cardContentWidth,
-                                                 highlighted: highlight(service.rawValue),
-                                                 connect: { connect(service) })
-                            .focused($focusedRowID, equals: service.rawValue)
-                            .onHover { hover(service.rawValue, $0) }
+                VStack(alignment: .leading, spacing: CGFloat(MacAccountGridLayout.cardSpacing)) {
+                    if accounts.isEmpty {
+                        ForEach([ServiceType.codex, .claude], id: \.self) { service in
+                            MacAccountPlaceholderRow(service: service, availableWidth: cardContentWidth,
+                                                     highlighted: highlight(service.rawValue),
+                                                     connect: { connect(service) })
+                                .focused($focusedRowID, equals: service.rawValue)
+                                .onHover { hover(service.rawValue, $0) }
+                        }
                     }
-                }
-                ForEach(accounts) { account in
-                    MacAccountCard(account: account, session: session(for: account),
-                                   tokenHistory: tokenHistory(for: account),
-                                   availableWidth: cardContentWidth,
-                                   showsAccountLabel: accounts.filter { $0.provider == account.provider }.count > 1,
-                                   open: { openAccount(account) }, reconnect: { reconnect(account) },
-                                   highlighted: highlight(account.id))
-                        .focused($focusedRowID, equals: account.id)
-                        .onHover { hover(account.id, $0) }
-                        .onDrag {
-                            dragging = account.id
-                            return NSItemProvider(object: account.id as NSString)
-                        }
-                        .onDrop(of: [UTType.plainText], delegate: AccountCardDropDelegate(
-                            destination: account.id, dragging: $dragging, move: move
-                        ))
-                        .contextMenu {
-                            Button("Refresh usage") { refresh(account) }
-                            Button("Manage account in Settings", action: openSettings)
-                            Divider()
-                            Button("Move earlier") { move(account.id, offset: -1) }
-                                .disabled(accounts.first?.id == account.id)
-                            Button("Move later") { move(account.id, offset: 1) }
-                                .disabled(accounts.last?.id == account.id)
-                        }
-                        .accessibilityAction(named: "Move earlier") { move(account.id, offset: -1) }
-                        .accessibilityAction(named: "Move later") { move(account.id, offset: 1) }
+                    ForEach(accounts) { account in
+                        MacAccountCard(account: account, session: session(for: account),
+                                       tokenHistory: tokenHistory(for: account),
+                                       availableWidth: cardContentWidth,
+                                       showsAccountLabel: accounts.filter { $0.provider == account.provider }.count > 1,
+                                       open: { openAccount(account) }, reconnect: { reconnect(account) },
+                                       highlighted: highlight(account.id))
+                            .focused($focusedRowID, equals: account.id)
+                            .onHover { hover(account.id, $0) }
+                            .onDrag {
+                                dragging = account.id
+                                return NSItemProvider(object: account.id as NSString)
+                            }
+                            .onDrop(of: [UTType.plainText], delegate: AccountCardDropDelegate(
+                                destination: account.id, dragging: $dragging, move: move
+                            ))
+                            .contextMenu {
+                                Button("Refresh usage") { refresh(account) }
+                                Button("Manage account in Settings", action: openSettings)
+                                Divider()
+                                Button("Move earlier") { move(account.id, offset: -1) }
+                                    .disabled(accounts.first?.id == account.id)
+                                Button("Move later") { move(account.id, offset: 1) }
+                                    .disabled(accounts.last?.id == account.id)
+                            }
+                            .accessibilityAction(named: "Move earlier") { move(account.id, offset: -1) }
+                            .accessibilityAction(named: "Move later") { move(account.id, offset: 1) }
+                    }
                 }
             }
             .padding(.horizontal, 16)
