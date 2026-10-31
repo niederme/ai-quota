@@ -73,6 +73,7 @@ final class CodexResetNotice {
 struct OverviewAlerts: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.displayScale) private var displayScale
+    @Environment(\.dynamicTypeSize) private var typeSize
     let announcement: CodexResetAnnouncement?
     var forecast: QuotaExhaustionForecast? = nil
     var accountLabel = ""
@@ -123,6 +124,8 @@ struct OverviewAlerts: View {
             .background { OverviewAccountSurface() }
             .clipShape(RoundedRectangle(cornerRadius: OverviewStyle.accountRadius))
             .animation(reduceMotion ? nil : .default, value: rowIDs)
+            // Add to the overview's 8pt stack gap only while alerts are visible.
+            .padding(.bottom, wide && !typeSize.isAccessibilitySize ? 16 : 8)
         }
     }
 
@@ -222,6 +225,8 @@ struct OverviewAlertRow: View {
                 }
         }
         .padding(.leading, 16)
+        // Match the service card's 20pt/16pt inset while keeping a 44pt target.
+        .padding(.trailing, isWide ? 8 : 4)
         .padding(.vertical, 11)
         .frame(minHeight: 44)
         .accessibilityElement(children: .combine)
