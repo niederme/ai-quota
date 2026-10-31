@@ -163,8 +163,8 @@ struct MultiAccountOverviewView: View {
                 .toolbar(wide ? .hidden : .visible, for: .navigationBar)
                 .toolbar {
                     if !wide {
-                        ToolbarItem(placement: .topBarTrailing) { refreshButton() }
-                        ToolbarItem(placement: .topBarTrailing) { settingsButton() }
+                        OverviewActionsToolbar(refresh: refreshUsage,
+                                               settings: { selected = .init(kind: .settings) })
                     }
                 }
             }
@@ -227,18 +227,6 @@ struct MultiAccountOverviewView: View {
             await accounts.refreshAll()
             if hasConnectedCodex, !isFixtureMode { await resetNotice.refresh() }
         }
-    }
-
-    private func refreshButton() -> some View {
-        Button(action: refreshUsage) { Image(systemName: "arrow.clockwise") }
-            .tint(OverviewStyle.primary)
-            .accessibilityLabel("Refresh usage")
-    }
-
-    private func settingsButton() -> some View {
-        Button { selected = .init(kind: .settings) } label: { Image(systemName: "gearshape") }
-            .tint(OverviewStyle.primary)
-            .accessibilityLabel("Settings")
     }
 
     private var hasConnectedCodex: Bool { !accounts.connected(.codex).isEmpty }

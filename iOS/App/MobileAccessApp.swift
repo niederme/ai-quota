@@ -8,6 +8,11 @@ struct MobileAccessApp: App {
     @UIApplicationDelegateAdaptor(MobileAnalyticsAppDelegate.self) private var analyticsDelegate
     @State private var demoEnabled = DemoQuotaData.isEnabled
     init() {
+        Task {
+            // Also migrate while offline, before any forecast can be shown.
+            for profile in AccountRegistry.all() { try? await SharedQuotaStore(profile).withLease {} }
+            for service in QuotaService.allCases { try? await SharedQuotaStore(service).withLease {} }
+        }
         // The default WebKit store can outlive an app uninstall. A new install
         // must not silently inherit a former user's Claude web session.
         let marker = "claudeDetails.installPrepared"
@@ -99,8 +104,7 @@ private struct GroupedAlertsFixtureView: View {
     private var forecast: QuotaExhaustionForecast {
         .init(scope: .init(accountID: "fixture", provider: "codex", identity: "fixture",
             source: "wham", plan: "pro", window: .weekly, resetAt: now.addingTimeInterval(4 * 86400)),
-            earliest: now.addingTimeInterval(86400), latest: now.addingTimeInterval(2 * 86400),
-            observedSpan: 86400, validUntil: now.addingTimeInterval(3600))
+            basis: .weeklyPattern, projectedUsedPercent: 140, validUntil: now.addingTimeInterval(3600))
     }
     var body: some View {
         NavigationStack {

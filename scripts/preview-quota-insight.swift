@@ -7,11 +7,8 @@ private let sampleNow = Date(timeIntervalSince1970: 1_800_000_000)
 private func sampleForecast() -> QuotaExhaustionForecast {
     let scope = QuotaForecastScope(accountID: "sample", provider: "claude", identity: "sample",
         source: "web", plan: "pro", window: .weekly, resetAt: sampleNow.addingTimeInterval(4 * 86400))
-    let observations = (0...24).map { i in
-        QuotaPaceObservation(scope: scope, date: sampleNow.addingTimeInterval(Double(i - 24) * 3600),
-                             used: 25 + Double(i) * 40 / 24)
-    }
-    return QuotaExhaustionForecast.estimate(scope: scope, observations: observations, now: sampleNow)!
+    return .init(scope: scope, basis: .weeklyPattern, projectedUsedPercent: 140,
+                 validUntil: sampleNow.addingTimeInterval(3600))
 }
 
 private struct SampleInsightView: View {

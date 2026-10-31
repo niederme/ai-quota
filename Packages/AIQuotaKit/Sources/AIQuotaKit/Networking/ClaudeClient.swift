@@ -46,7 +46,6 @@ public actor ClaudeClient {
     // MARK: - Public API
 
     public func fetchUsage() async throws -> ClaudeUsage {
-        let captureGeneration = await QuotaInsightStore.shared.captureGeneration()
         if !isScoped && !oauthDisabledForSession {
             do {
                 let oauth = try await coordinator.loadOAuthCredentials(allowKeychain: false)
@@ -131,8 +130,6 @@ public actor ClaudeClient {
                     account.updatedAt = .now
                     AccountRegistry.save(account)
                 }
-                await QuotaInsightStore.shared.recordClaude(usage, account: account, identity: ctx.orgId,
-                                                            captureGeneration: captureGeneration)
             }
             try await verifyCurrentContext(ctx)
             recordAttempt(source: .web, httpStatus: 200, category: .success)

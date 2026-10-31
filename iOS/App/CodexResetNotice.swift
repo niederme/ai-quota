@@ -134,7 +134,7 @@ struct OverviewAlerts: View {
                     openDetails: openDetails, dismiss: { dismiss(id) })
             } else if let forecast {
                 OverviewAlertRow(title: "\(accountLabel) may hit its \(forecast.scope.window.label) limit",
-                    detail: "Around \(QuotaForecastTextFormatter.range(forecast)) at your recent pace · Resets \(QuotaForecastTextFormatter.reset(forecast))",
+                    detail: QuotaForecastTextFormatter.detail(forecast),
                     announcement: false, wide: wide, dismiss: { dismiss(id) })
                     .accessibilityIdentifier("quotaPaceInsight")
             }
