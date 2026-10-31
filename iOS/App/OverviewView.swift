@@ -644,7 +644,7 @@ struct OverviewActions: View {
             }
             .accessibilityLabel("Settings")
         }
-        .font(.title3)
+        .font(.system(size: 20))
         .buttonStyle(.plain)
         .foregroundStyle(OverviewStyle.primary)
         .background { OverviewAccountSurface() }
