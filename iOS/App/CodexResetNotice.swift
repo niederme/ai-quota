@@ -69,54 +69,178 @@ final class CodexResetNotice {
     }
 }
 
+/// One flat account surface, with native trailing swipe actions for each alert.
+struct OverviewAlerts: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.displayScale) private var displayScale
+    let announcement: CodexResetAnnouncement?
+    var forecast: QuotaExhaustionForecast? = nil
+    var accountLabel = ""
+    var wide = false
+    var loading = false
+    let openDetails: () -> Void
+    let dismissAnnouncement: () -> Void
+    var dismissForecast: () -> Void = {}
+
+    private var rowIDs: [String] {
+        (announcement.map { ["announcement-" + $0.id] } ?? [])
+            + (forecast.map { ["forecast-" + $0.scope.accountID + "-" + String($0.scope.resetAt.timeIntervalSince1970)] } ?? [])
+    }
+
+    var body: some View {
+        if !rowIDs.isEmpty {
+            // The noninteractive sizing copy gives this short, non-scrolling List
+            // its intrinsic height inside the overview ScrollView, including at AX sizes.
+            VStack(spacing: 0) {
+                ForEach(rowIDs, id: \.self) { id in row(id) }
+            }
+            .hidden()
+            .accessibilityHidden(true)
+            .allowsHitTesting(false)
+            .overlay {
+                List {
+                    ForEach(rowIDs, id: \.self) { id in
+                        row(id)
+                            .listRowInsets(EdgeInsets())
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button("Dismiss", systemImage: "xmark", role: .destructive) {
+                                    dismiss(id)
+                                }
+                                .disabled(id.hasPrefix("announcement-") && loading)
+                            }
+                    }
+                }
+                .listStyle(.plain)
+                .environment(\.defaultMinListRowHeight, 0)
+                .contentMargins(.all, 0, for: .scrollContent)
+                .scrollContentBackground(.hidden)
+                .scrollDisabled(true)
+                .accessibilityLabel("Alerts")
+                .accessibilityIdentifier("overviewAlerts")
+            }
+            .background { OverviewAccountSurface() }
+            .clipShape(RoundedRectangle(cornerRadius: OverviewStyle.accountRadius))
+            .animation(reduceMotion ? nil : .default, value: rowIDs)
+        }
+    }
+
+    @ViewBuilder private func row(_ id: String) -> some View {
+        VStack(spacing: 0) {
+            if id.hasPrefix("announcement-"), let announcement {
+                OverviewAlertRow(title: announcement.title, detail: "Read more on Codex Resets",
+                    announcement: true, wide: wide, loading: loading,
+                    openDetails: openDetails, dismiss: { dismiss(id) })
+            } else if let forecast {
+                OverviewAlertRow(title: "\(accountLabel) may hit its \(forecast.scope.window.label) limit",
+                    detail: "Around \(QuotaForecastTextFormatter.range(forecast)) at your recent pace · Resets \(QuotaForecastTextFormatter.reset(forecast))",
+                    announcement: false, wide: wide, dismiss: { dismiss(id) })
+                    .accessibilityIdentifier("quotaPaceInsight")
+            }
+            if id != rowIDs.last {
+                OverviewStyle.overviewTrack.frame(height: 1 / displayScale)
+                    .padding(.leading, 50).accessibilityHidden(true)
+            }
+        }
+    }
+
+    private func dismiss(_ id: String) {
+        withAnimation(reduceMotion ? nil : .default) {
+            if id.hasPrefix("announcement-") { dismissAnnouncement() }
+            else { dismissForecast() }
+        }
+    }
+}
+
+struct OverviewAlertRow: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @ScaledMetric(relativeTo: .subheadline) private var compactTitleLine = 20.0
+    @ScaledMetric(relativeTo: .headline) private var wideTitleLine = 22.0
+    let title: String
+    let detail: String
+    let announcement: Bool
+    var wide = false
+    var loading = false
+    var openDetails: () -> Void = {}
+    let dismiss: () -> Void
+
+    private var isWide: Bool { wide && !typeSize.isAccessibilitySize }
+    private var titleLine: CGFloat { isWide ? wideTitleLine : compactTitleLine }
+    private var dismissalLabel: String { announcement ? "Dismiss reset announcement" : "Dismiss limit forecast" }
+
+    @ViewBuilder var body: some View {
+        if announcement {
+            content.accessibilityAction { if !loading { openDetails() } }
+        } else {
+            content
+        }
+    }
+
+    private var content: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: announcement ? "info.circle" : "exclamationmark.triangle.fill")
+                .font(.system(size: 18))
+                .foregroundStyle(announcement ? OverviewStyle.accent : OverviewStyle.warning)
+                .frame(width: 22, height: titleLine)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(isWide ? .headline : .subheadline.weight(.semibold))
+                    .foregroundStyle(OverviewStyle.primary)
+                if announcement {
+                    Button(action: openDetails) {
+                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                            Text(detail)
+                            Image(systemName: "arrow.up.right").accessibilityHidden(true)
+                        }
+                        .foregroundStyle(OverviewStyle.accent)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("resetAnnouncementDetails")
+                } else {
+                    Text(detail).foregroundStyle(OverviewStyle.secondary)
+                }
+            }
+            .font(isWide ? .subheadline : .footnote)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // Reserve a full target while centering the glyph on the first title line.
+            Color.clear.frame(width: 44, height: titleLine)
+                .overlay(alignment: .top) {
+                    Button(action: dismiss) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 20))
+                            .foregroundStyle(OverviewStyle.tertiary)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .offset(y: (titleLine - 44) / 2)
+                    .accessibilityLabel(dismissalLabel)
+                }
+        }
+        .padding(.leading, 16)
+        .padding(.vertical, 11)
+        .frame(minHeight: 44)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(title + ". " + detail)
+        .accessibilityAction(named: Text(dismissalLabel), dismiss)
+        .modifier(UsageLoadingState(loading: loading, label: "Updating reset announcement"))
+    }
+}
+
+/// Single-announcement entry point used by the demo and isolated previews.
 struct CodexResetNoticeBanner: View {
-    @ScaledMetric(relativeTo: .subheadline) private var textSize = 15.0
     let announcement: CodexResetAnnouncement
     let openDetails: () -> Void
     let dismiss: () -> Void
     var loading = false
+    var wide = false
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Button(action: openDetails) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(announcement.title).fontWeight(.semibold)
-                        .foregroundStyle(OverviewStyle.primary)
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text("Read more on Codex Resets")
-                        Image(systemName: "arrow.up.right").accessibilityHidden(true)
-                    }
-                    .foregroundStyle(OverviewStyle.accent)
-                }
-                .font(.system(size: textSize))
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            Button(action: dismiss) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 16))
-                    .frame(width: 44, height: 44, alignment: .topTrailing)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(Color(uiColor: .secondaryLabel).opacity(0.75))
-            .accessibilityLabel("Dismiss reset announcement")
-        }
-        .modifier(UsageLoadingState(loading: loading, label: "Updating reset announcement"))
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background {
-            RoundedRectangle(cornerRadius: OverviewStyle.accountRadius)
-                .fill(.regularMaterial)
-                .overlay {
-                    RoundedRectangle(cornerRadius: OverviewStyle.accountRadius)
-                        .fill(OverviewStyle.accent.opacity(0.22))
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: OverviewStyle.accountRadius)
-                        .strokeBorder(OverviewStyle.primary.opacity(0.16), lineWidth: 1)
-                }
-        }
+        OverviewAlerts(announcement: announcement, wide: wide, loading: loading,
+                       openDetails: openDetails, dismissAnnouncement: dismiss)
     }
 }

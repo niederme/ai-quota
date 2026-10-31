@@ -6,6 +6,8 @@ trap 'rm -rf "$preview_dir"' EXIT
 swiftc -parse-as-library \
   "$task_root/Packages/MobileAccessCore/Sources/MobileAccessCore/QuotaExhaustionForecast.swift" \
   "$task_root/Packages/MobileAccessCore/Sources/MobileAccessCore/QuotaForecastTextFormatter.swift" \
+  "$task_root/AIQuota/Views/AdaptiveColors.swift" \
+  "$task_root/AIQuota/Views/MacResetNoticeBanner.swift" \
   "$task_root/AIQuota/Views/MacQuotaInsightBanner.swift" \
   "$task_root/scripts/preview-quota-insight.swift" \
   -o "$preview_dir/QuotaInsightPreview"

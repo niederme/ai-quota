@@ -100,7 +100,7 @@ struct OverviewView: View {
                             CodexResetNoticeBanner(announcement: announcement, openDetails: { showResetDetails = true }, dismiss: {
                                 if isDemo { demoResetDismissed = true }
                                 else { dismissedResetID = announcement.id }
-                            }, loading: codex.loading || claude.loading || resetNotice.fetching)
+                            }, loading: codex.loading || claude.loading || resetNotice.fetching, wide: wide)
                         }
                         if codex.connected {
                             ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 720) - 32, reading: codex.reading,

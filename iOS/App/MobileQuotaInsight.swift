@@ -65,41 +65,13 @@ final class MobileQuotaInsightModel {
 }
 
 struct MobileQuotaInsightBanner: View {
-    @ScaledMetric(relativeTo: .subheadline) private var textSize = 15.0
     let forecast: QuotaExhaustionForecast
     let accountLabel: String
+    var wide = false
     let dismiss: () -> Void
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("\(accountLabel) may reach its \(forecast.scope.window.label) limit around \(QuotaForecastTextFormatter.range(forecast))")
-                    .fontWeight(.semibold)
-                Text("At your recent pace · Resets \(QuotaForecastTextFormatter.reset(forecast))")
-            }
-            .font(.system(size: textSize))
-            .foregroundStyle(OverviewStyle.primary)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            Button(action: dismiss) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 16))
-                    .frame(width: 44, height: 44, alignment: .topTrailing)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(Color(uiColor: .secondaryLabel).opacity(0.75))
-            .accessibilityLabel("Dismiss quota insight for \(accountLabel)")
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .background {
-            RoundedRectangle(cornerRadius: OverviewStyle.accountRadius)
-                .fill(.regularMaterial)
-                .overlay { RoundedRectangle(cornerRadius: OverviewStyle.accountRadius).fill(OverviewStyle.accent.opacity(0.14)) }
-                .overlay { RoundedRectangle(cornerRadius: OverviewStyle.accountRadius).strokeBorder(OverviewStyle.primary.opacity(0.16), lineWidth: 1) }
-        }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("quotaPaceInsight")
+        OverviewAlerts(announcement: nil, forecast: forecast, accountLabel: accountLabel,
+                       wide: wide, openDetails: {}, dismissAnnouncement: {}, dismissForecast: dismiss)
     }
 }

@@ -101,8 +101,9 @@ import MobileAccessCore
             let content = ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("AIQuota").font(.largeTitle.bold()).padding(.bottom, 4)
-                    CodexResetNoticeBanner(announcement: CodexResetNotice.demoAnnouncement, openDetails: {}, dismiss: {})
-                    MobileQuotaInsightBanner(forecast: forecast, accountLabel: "Personal Codex", dismiss: {})
+                    OverviewAlerts(announcement: CodexResetNotice.demoAnnouncement,
+                        forecast: forecast, accountLabel: "Personal Codex", wide: width - 32 >= 600,
+                        openDetails: {}, dismissAnnouncement: {}, dismissForecast: {})
                     ProviderDialCardContent(name: "Codex", icon: "logo-openai", availableWidth: width - 32,
                         reading: current, connected: true, busy: false, error: nil)
                 }.padding(16)
