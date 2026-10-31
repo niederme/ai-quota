@@ -29,6 +29,7 @@ struct MacResetNoticeBanner: View {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text("Read more on Codex Resets")
                         Image(systemName: "arrow.up.right")
+                            .font(.system(size: 13, weight: .medium))
                             .accessibilityHidden(true)
                     }
                     .font(.system(size: 15))
@@ -43,7 +44,7 @@ struct MacResetNoticeBanner: View {
                 Image(systemName: "xmark.circle.fill")
                     .font(.system(size: 16))
                     .foregroundStyle(Color(nsColor: .secondaryLabelColor).opacity(0.75))
-                    .frame(width: 32, height: 32, alignment: .topTrailing)
+                    .frame(width: 28, height: 28, alignment: .topTrailing)
                     .contentShape(Rectangle())
             }
             .accessibilityLabel("Dismiss reset announcement")
