@@ -318,7 +318,7 @@ struct MacAccountCard: View {
     }
 }
 
-/// Shared row treatment: clear at rest, glass on hover/focus, and an added press tint.
+/// Match the iOS resting card, with stronger hover/focus and press feedback.
 struct MacAccountRowSurface: View {
     let highlighted: Bool
     let pressed: Bool
@@ -326,12 +326,11 @@ struct MacAccountRowSurface: View {
     var body: some View {
         RoundedRectangle(cornerRadius: 24)
             .fill(Color.overviewGlass)
-            .overlay { Color.overviewAccent.opacity(pressed ? 0.05 : 0) }
+            .overlay { Color.overviewAccent.opacity(pressed ? 0.05 : highlighted ? 0.03 : 0) }
             .overlay(alignment: .top) {
                 Color.overviewGlassHighlight.frame(height: 1)
             }
             .clipShape(RoundedRectangle(cornerRadius: 24))
-            .opacity(highlighted || pressed ? 1 : 0)
             .allowsHitTesting(false)
     }
 }
