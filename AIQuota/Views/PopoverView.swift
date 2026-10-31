@@ -310,18 +310,24 @@ struct PopoverView: View {
         }
     }
 
+    private var hasOverviewNotices: Bool {
+        !errorBanners.isEmpty || (viewModel.isCodexAuthenticated && resetAnnouncement != nil)
+            || quotaInsightHeight > 0
+    }
+
     private var overviewNotices: some View {
         VStack(spacing: 0) {
             ForEach(errorBanners) { banner in
-                errorBanner(banner).padding(.bottom, 16)
+                errorBanner(banner).padding(.bottom, 8)
             }
             if viewModel.isCodexAuthenticated, resetAnnouncement != nil {
-                resetNoticeRow.padding(.bottom, 16)
+                resetNoticeRow.padding(.bottom, 8)
             }
-            MacQuotaInsightRow(onHeightChange: { quotaInsightHeight = $0 })
-                .padding(.horizontal, -16)
-                .padding(.bottom, quotaInsightHeight > 0 ? 16 : 0)
+            MacQuotaInsightRow(inset: false, onHeightChange: { quotaInsightHeight = $0 })
+                .padding(.bottom, quotaInsightHeight > 0 ? 8 : 0)
         }
+        // Each visible notice supplies 8 points; finish the group with 12.
+        .padding(.bottom, hasOverviewNotices ? 4 : 0)
     }
 
     private func connectService(_ service: ServiceType) {
@@ -911,7 +917,7 @@ struct PopoverView: View {
         }
         .padding(.horizontal, 16)
         .padding(.top, 16)
-        .padding(.bottom, 12)
+        .padding(.bottom, hasOverviewNotices ? 4 : 12)
     }
 
     // MARK: - Footer

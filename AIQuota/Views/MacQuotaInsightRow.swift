@@ -5,6 +5,7 @@ import AIQuotaKit
 struct MacQuotaInsightRow: View {
     @Environment(QuotaViewModel.self) private var viewModel
     var accountID: String? = nil
+    var inset = true
     var onHeightChange: (CGFloat) -> Void = { _ in }
     @State private var insight: Insight?
     @State private var dismissedScopes: Set<QuotaForecastScope> = []
@@ -92,7 +93,7 @@ struct MacQuotaInsightRow: View {
                    matches(insight.forecast, query: insight.query),
                    insight.forecast.earliest > context.date,
                    insight.forecast.validUntil > context.date {
-                    MacQuotaInsightBanner(forecast: insight.forecast, accountLabel: insight.query.label) {
+                    MacQuotaInsightBanner(forecast: insight.forecast, accountLabel: insight.query.label, inset: inset) {
                         self.insight = nil
                         dismissedScopes.insert(insight.forecast.scope)
                         Task { await QuotaInsightStore.shared.dismiss(insight.forecast.scope) }
