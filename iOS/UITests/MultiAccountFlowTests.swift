@@ -1,6 +1,43 @@
 import XCTest
 
 final class MultiAccountFlowTests: XCTestCase {
+    func testGroupedAlertsDismissIndependentlyWithButtonAndSwipe() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-groupedAlertsUITest"]
+        app.launch()
+        let forecast = app.descendants(matching: .any)["quotaPaceInsight"].firstMatch
+        let announcement = app.buttons["Dismiss reset announcement"]
+        XCTAssertTrue(forecast.waitForExistence(timeout: 10))
+        XCTAssertTrue(announcement.exists)
+        let before = app.descendants(matching: .any)["fixtureAccountCard"].firstMatch.frame.minY
+        app.buttons["Dismiss limit forecast"].tap()
+        XCTAssertTrue(forecast.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(announcement.exists)
+        XCTAssertLessThan(app.descendants(matching: .any)["fixtureAccountCard"].firstMatch.frame.minY, before)
+        app.collectionViews["overviewAlerts"].cells.firstMatch.swipeLeft()
+        app.buttons["Dismiss"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["overviewAlerts"].firstMatch.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["fixtureAccountCard"].firstMatch.exists)
+    }
+
+    func testGroupedAlertsAnnouncementDismissalKeepsForecastAndScrollWorks() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["-groupedAlertsUITest"]
+        app.launch()
+        XCTAssertTrue(app.buttons["Dismiss reset announcement"].waitForExistence(timeout: 10))
+        app.buttons["Dismiss reset announcement"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["quotaPaceInsight"].firstMatch.exists)
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "Single remaining grouped forecast"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        app.collectionViews["overviewAlerts"].cells.firstMatch.swipeLeft()
+        app.buttons["Dismiss"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["overviewAlerts"].firstMatch.waitForNonExistence(timeout: 5))
+    }
+
     func testLiveResetNoticeDismissalPersistsAndSettingsBrowserOpens() {
         continueAfterFailure = false
         let app = XCUIApplication()
@@ -13,7 +50,7 @@ final class MultiAccountFlowTests: XCTestCase {
         overview.lifetime = .keepAlways
         add(overview)
 
-        app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Read more on Codex Resets")).firstMatch.tap()
+        app.buttons.matching(NSPredicate(format: "label == %@", "Read more on Codex Resets")).firstMatch.tap()
         XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 10))
         app.buttons["Done"].tap()
 

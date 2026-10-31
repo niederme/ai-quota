@@ -192,9 +192,11 @@ possible resets, and banked reset credits have different wording. Each notice
 opens Codex Resets in an in-app browser for attribution and details. The copy is
 “Codex usage reset announced,” “Codex usage may reset soon,” or “Codex reset credit
 announced,” depending on the source. Historical averages and probabilities never
-trigger a notice or appear in the UI. The banner matches the Mac reset notice:
-regular material with a purple tint and a subtle border, 24pt corners, and a
-circular dismiss icon with a 44pt hit target. Existing notices
+trigger a notice or appear in the UI. Announcements and limit forecasts share one flat account surface with 24pt
+corners, SF Symbols, and an inset separator. Announcement rows come first.
+Each row has its own circular dismiss control (44pt hit target) and native
+trailing swipe action. iPad wide layouts use larger type; accessibility sizes
+use the compact layout with scaled text. Dismissal respects Reduce Motion. Existing notices
 show a skeleton while usage or the announcement feed refreshes; unknown or
 ineligible announcements do not create placeholder cards. The Codex detail sheet
 places a discreet **Check Codex resets** link directly below **Account and

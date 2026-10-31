@@ -101,19 +101,17 @@ struct MultiAccountOverviewView: View {
                     TimelineView(.periodic(from: .now, by: 60)) { context in
                         let queries = MobileQuotaInsightModel.queries(accounts)
                         VStack(alignment: .leading, spacing: 8) {
-                            if let announcement = resetAnnouncement {
-                                CodexResetNoticeBanner(announcement: announcement,
-                                                       openDetails: { showResetDetails = true },
-                                                       dismiss: { dismissedResetID = announcement.id },
-                                                       loading: resetNotice.fetching || accounts.connected(.codex).contains {
-                                                           accounts.codex($0)?.loading == true
-                                                       })
-                            }
-                            if let insight = quotaInsights.current(queries: queries, now: context.date) {
-                                MobileQuotaInsightBanner(forecast: insight.forecast, accountLabel: insight.label) {
-                                    quotaInsights.dismiss(insight)
-                                }
-                            }
+                            let insight = quotaInsights.current(queries: queries, now: context.date)
+                            OverviewAlerts(announcement: resetAnnouncement, forecast: insight?.forecast,
+                                accountLabel: insight?.label ?? "", wide: wide,
+                                loading: resetNotice.fetching || accounts.connected(.codex).contains {
+                                    accounts.codex($0)?.loading == true
+                                }, openDetails: { showResetDetails = true },
+                                dismissAnnouncement: {
+                                    if let announcement = resetAnnouncement { dismissedResetID = announcement.id }
+                                }, dismissForecast: {
+                                    if let insight { quotaInsights.dismiss(insight) }
+                                })
                             VStack(alignment: .leading, spacing: 8) {
                                 ForEach(orderedProfiles, id: \.orderKey) { profile in
                                     accountCard(profile, width: min(geometry.size.width, 720) - 32)

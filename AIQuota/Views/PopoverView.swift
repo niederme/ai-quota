@@ -26,6 +26,7 @@ struct PopoverView: View {
     @State private var resetNotice = CodexResetNotice()
     @AppStorage(CodexResetNotice.dismissalKey) private var dismissedResetID = ""
     @State private var demoResetDismissed = false
+    @State private var showResetDetails = false
 
     private var resetAnnouncement: CodexResetAnnouncement? {
         #if DEMO_MODE
@@ -86,6 +87,7 @@ struct PopoverView: View {
             onCapture: { menuBarWindow = $0 },
             onResizeFinished: finishNavigationResize
         )
+        .sheet(isPresented: $showResetDetails) { MacResetDetailsView() }
         .onAppear { presentationID += 1 }
         .task(id: viewModel.isCodexAuthenticated) {
             #if !DEMO_MODE
@@ -320,14 +322,22 @@ struct PopoverView: View {
             ForEach(errorBanners) { banner in
                 errorBanner(banner).padding(.bottom, 8)
             }
-            if viewModel.isCodexAuthenticated, resetAnnouncement != nil {
-                resetNoticeRow.padding(.bottom, 8)
-            }
-            MacQuotaInsightRow(inset: false, onHeightChange: { quotaInsightHeight = $0 })
-                .padding(.bottom, quotaInsightHeight > 0 ? 8 : 0)
+            groupedAlerts(inset: false)
+                .padding(.bottom, quotaInsightHeight > 0 ? 16 : 0)
         }
-        // Each visible notice supplies 8 points; finish the group with 12.
-        .padding(.bottom, hasOverviewNotices ? 4 : 0)
+    }
+
+    private func groupedAlerts(inset: Bool) -> some View {
+        MacQuotaInsightRow(inset: inset,
+            announcementTitle: viewModel.isCodexAuthenticated ? resetAnnouncement?.title : nil,
+            onReadMore: { showResetDetails = true },
+            onDismissAnnouncement: {
+                #if DEMO_MODE
+                demoResetDismissed = true
+                #else
+                if let announcement = resetAnnouncement { dismissedResetID = announcement.id }
+                #endif
+            }, onHeightChange: { quotaInsightHeight = $0 })
     }
 
     private func connectService(_ service: ServiceType) {
@@ -407,30 +417,12 @@ struct PopoverView: View {
                 Divider()
             }
 
-            if viewModel.isCodexAuthenticated {
-                resetNoticeRow
-            }
-            MacQuotaInsightRow(onHeightChange: { quotaInsightHeight = $0 })
+            groupedAlerts(inset: true)
 
             serviceArea
 
             updateAvailableRow
             footer
-        }
-    }
-
-    @ViewBuilder
-    private var resetNoticeRow: some View {
-        if let announcement = resetAnnouncement {
-            MacResetNoticeBanner(title: announcement.title, inset: false) {
-                NSWorkspace.shared.open(CodexResetNotice.website)
-            } onDismiss: {
-                    #if DEMO_MODE
-                    demoResetDismissed = true
-                    #else
-                    dismissedResetID = announcement.id
-                    #endif
-            }
         }
     }
 

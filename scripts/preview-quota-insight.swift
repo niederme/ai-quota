@@ -24,7 +24,11 @@ private struct SampleInsightView: View {
                 Text("Dismissed for this sample window.")
                     .font(.callout).padding(20)
             } else {
-                MacQuotaInsightBanner(forecast: sampleForecast(), accountLabel: "Sample Claude") { dismissed = true }
+                MacAlertGroup {
+                    MacResetNoticeBanner(title: "Codex reset credit announced", onReadMore: {}, onDismiss: {})
+                    Color.overviewTrack.frame(height: 0.5).padding(.leading, 40)
+                    MacQuotaInsightBanner(forecast: sampleForecast(), accountLabel: "Personal Codex", inset: false) { dismissed = true }
+                }.padding(.horizontal, 16)
             }
         }
         .padding(.bottom, 8)

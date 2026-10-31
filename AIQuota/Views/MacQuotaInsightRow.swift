@@ -6,6 +6,11 @@ struct MacQuotaInsightRow: View {
     @Environment(QuotaViewModel.self) private var viewModel
     var accountID: String? = nil
     var inset = true
+    var announcementTitle: String? = nil
+    var onReadMore: () -> Void = {}
+    var onDismissAnnouncement: () -> Void = {}
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.displayScale) private var displayScale
     var onHeightChange: (CGFloat) -> Void = { _ in }
     @State private var insight: Insight?
     @State private var dismissedScopes: Set<QuotaForecastScope> = []
@@ -85,19 +90,38 @@ struct MacQuotaInsightRow: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 60)) { context in
             let currentQueries = queries
+            let visible = insight.flatMap { candidate -> Insight? in
+                guard !dismissedScopes.contains(candidate.forecast.scope),
+                      currentQueries.contains(candidate.query), matches(candidate.forecast, query: candidate.query),
+                      candidate.forecast.earliest > context.date,
+                      candidate.forecast.validUntil > context.date else { return nil }
+                return candidate
+            }
             VStack(spacing: 0) {
-                // A new reading, rename, account switch, correction, or reset hides
-                // old content synchronously while the async query is refreshed.
-                if let insight, !dismissedScopes.contains(insight.forecast.scope),
-                   currentQueries.contains(insight.query),
-                   matches(insight.forecast, query: insight.query),
-                   insight.forecast.earliest > context.date,
-                   insight.forecast.validUntil > context.date {
-                    MacQuotaInsightBanner(forecast: insight.forecast, accountLabel: insight.query.label, inset: inset) {
-                        self.insight = nil
-                        dismissedScopes.insert(insight.forecast.scope)
-                        Task { await QuotaInsightStore.shared.dismiss(insight.forecast.scope) }
+                if announcementTitle != nil || visible != nil {
+                    MacAlertGroup {
+                        if let announcementTitle {
+                            MacResetNoticeBanner(title: announcementTitle, onReadMore: onReadMore) {
+                                withAnimation(reduceMotion ? nil : .default) { onDismissAnnouncement() }
+                            }
+                        }
+                        if announcementTitle != nil && visible != nil {
+                            Color.overviewTrack.frame(height: 1 / displayScale)
+                                .padding(.leading, 40).accessibilityHidden(true)
+                        }
+                        // A changed reading or reset hides stale content synchronously.
+                        if let visible {
+                            MacQuotaInsightBanner(forecast: visible.forecast, accountLabel: visible.query.label, inset: false) {
+                                withAnimation(reduceMotion ? nil : .default) {
+                                    insight = nil
+                                    dismissedScopes.insert(visible.forecast.scope)
+                                }
+                                Task { await QuotaInsightStore.shared.dismiss(visible.forecast.scope) }
+                            }
+                        }
                     }
+                    .padding(.horizontal, inset ? 16 : 0)
+                    .padding(.vertical, inset ? 8 : 0)
                 }
             }
             .task(id: RefreshID(queries: currentQueries, minute: Int(context.date.timeIntervalSince1970 / 60))) {

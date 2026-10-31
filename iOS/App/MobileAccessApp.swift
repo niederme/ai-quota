@@ -40,6 +40,8 @@ struct MobileAccessApp: App {
                     AccountProfile(id: "fixture-codex-work", service: .codex, label: "Work", isLegacy: false),
                     AccountProfile(id: "fixture-claude-work", service: .claude, label: "Work", isLegacy: false)
                 ])
+            } else if ProcessInfo.processInfo.arguments.contains("-groupedAlertsUITest") {
+                GroupedAlertsFixtureView()
             } else if ProcessInfo.processInfo.arguments.contains("-multiAccountResetNoticeUITest") {
                 MultiAccountResetNoticeFixtureView()
             } else if ProcessInfo.processInfo.arguments.contains("-genericAccountLabelsUITest") {
@@ -87,6 +89,46 @@ struct MobileAccessApp: App {
 }
 
 #if DEBUG
+/// Synthetic presentation fixture; never records observations or touches live accounts.
+private struct GroupedAlertsFixtureView: View {
+    @State private var announcementVisible = true
+    @State private var forecastVisible = true
+    @State private var showDetails = false
+    @Environment(\.dynamicTypeSize) private var typeSize
+    private let now = Date.now
+    private var forecast: QuotaExhaustionForecast {
+        .init(scope: .init(accountID: "fixture", provider: "codex", identity: "fixture",
+            source: "wham", plan: "pro", window: .weekly, resetAt: now.addingTimeInterval(4 * 86400)),
+            earliest: now.addingTimeInterval(86400), latest: now.addingTimeInterval(2 * 86400),
+            observedSpan: 86400, validUntil: now.addingTimeInterval(3600))
+    }
+    var body: some View {
+        NavigationStack {
+            GeometryReader { geometry in
+                let width = min(geometry.size.width, 720) - 32
+                ScrollView {
+                    VStack(spacing: 8) {
+                        OverviewAlerts(announcement: announcementVisible ? CodexResetNotice.demoAnnouncement : nil,
+                            forecast: forecastVisible ? forecast : nil, accountLabel: "Personal Codex",
+                            wide: width >= 600 && !typeSize.isAccessibilitySize,
+                            openDetails: { showDetails = true },
+                            dismissAnnouncement: { announcementVisible = false },
+                            dismissForecast: { forecastVisible = false })
+                        ProviderDialCardContent(name: "Codex", icon: "logo-openai", availableWidth: width,
+                            reading: .init(fetchedAt: now, shortTerm: nil,
+                                weekly: .init(usedPercent: 87, durationSeconds: 604800,
+                                              resetsAt: now.addingTimeInterval(4 * 86400))),
+                            connected: true, busy: false, error: nil)
+                            .accessibilityIdentifier("fixtureAccountCard")
+                    }.padding(16).frame(maxWidth: 720).frame(maxWidth: .infinity)
+                }.background { OverviewBackground().ignoresSafeArea() }
+            }
+            .navigationTitle("AIQuota").toolbarTitleDisplayMode(.inlineLarge)
+            .sheet(isPresented: $showDetails) { ProbeBrowser(url: CodexResetNotice.website) }
+        }
+    }
+}
+
 private struct MultiAccountResetNoticeFixtureView: View {
     private let profiles: [AccountProfile]
     private let notice: CodexResetNotice
