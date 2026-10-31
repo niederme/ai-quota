@@ -38,6 +38,7 @@ struct MultiAccountOverviewView: View {
     @State private var selected: AccountSheetSelection?
     @State private var accountOrder: [String]
     @State private var draggingAccount: String?
+    @State private var quotaInsights = MobileQuotaInsightModel()
     @State private var resetNotice: CodexResetNotice
     @State private var showResetDetails = false
     @AppStorage(CodexResetNotice.dismissalKey) private var dismissedResetID = ""
@@ -97,46 +98,57 @@ struct MultiAccountOverviewView: View {
             GeometryReader { geometry in
                 let wide = min(geometry.size.width, 720) - 32 >= 600 && !typeSize.isAccessibilitySize
                 OverviewScrollView {
-                    VStack(alignment: .leading, spacing: 8) {
-                        if let announcement = resetAnnouncement {
-                            CodexResetNoticeBanner(announcement: announcement,
-                                                   openDetails: { showResetDetails = true },
-                                                   dismiss: { dismissedResetID = announcement.id },
-                                                   loading: resetNotice.fetching || accounts.connected(.codex).contains {
-                                                       accounts.codex($0)?.loading == true
-                                                   })
-                        }
+                    TimelineView(.periodic(from: .now, by: 60)) { context in
+                        let queries = MobileQuotaInsightModel.queries(accounts)
                         VStack(alignment: .leading, spacing: 8) {
-                            ForEach(orderedProfiles, id: \.orderKey) { profile in
-                                accountCard(profile, width: min(geometry.size.width, 720) - 32)
-                                    .onDrag {
-                                        draggingAccount = profile.orderKey
-                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                        return NSItemProvider(object: profile.orderKey as NSString)
-                                    }
-                                    .onDrop(of: [UTType.plainText], delegate: AccountCardDropDelegate(
-                                        destination: profile.orderKey,
-                                        dragging: $draggingAccount,
-                                        hover: { source, destination in
-                                            reorderDuringDrag(source, onto: destination)
-                                        },
-                                        finish: finishDrag
-                                    ))
-                                    .accessibilityAction(named: "Move earlier") {
-                                        moveAccount(profile.orderKey, offset: -1)
-                                    }
-                                    .accessibilityAction(named: "Move later") {
-                                        moveAccount(profile.orderKey, offset: 1)
-                                    }
+                            if let announcement = resetAnnouncement {
+                                CodexResetNoticeBanner(announcement: announcement,
+                                                       openDetails: { showResetDetails = true },
+                                                       dismiss: { dismissedResetID = announcement.id },
+                                                       loading: resetNotice.fetching || accounts.connected(.codex).contains {
+                                                           accounts.codex($0)?.loading == true
+                                                       })
                             }
+                            if let insight = quotaInsights.current(queries: queries, now: context.date) {
+                                MobileQuotaInsightBanner(forecast: insight.forecast, accountLabel: insight.label) {
+                                    quotaInsights.dismiss(insight)
+                                }
+                            }
+                            VStack(alignment: .leading, spacing: 8) {
+                                ForEach(orderedProfiles, id: \.orderKey) { profile in
+                                    accountCard(profile, width: min(geometry.size.width, 720) - 32)
+                                        .onDrag {
+                                            draggingAccount = profile.orderKey
+                                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                            return NSItemProvider(object: profile.orderKey as NSString)
+                                        }
+                                        .onDrop(of: [UTType.plainText], delegate: AccountCardDropDelegate(
+                                            destination: profile.orderKey,
+                                            dragging: $draggingAccount,
+                                            hover: { source, destination in
+                                                reorderDuringDrag(source, onto: destination)
+                                            },
+                                            finish: finishDrag
+                                        ))
+                                        .accessibilityAction(named: "Move earlier") {
+                                            moveAccount(profile.orderKey, offset: -1)
+                                        }
+                                        .accessibilityAction(named: "Move later") {
+                                            moveAccount(profile.orderKey, offset: 1)
+                                        }
+                                }
+                            }
+                            freshness.frame(maxWidth: .infinity).multilineTextAlignment(.center).padding(.top, 8)
                         }
-                        freshness.frame(maxWidth: .infinity).multilineTextAlignment(.center).padding(.top, 8)
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                        .padding(.bottom, 16)
+                        .frame(maxWidth: 720)
+                        .frame(maxWidth: .infinity)
+                        .task(id: MobileQuotaInsightModel.RefreshID(queries: queries, minute: Int(context.date.timeIntervalSince1970 / 60))) {
+                            await quotaInsights.refresh(queries: queries, now: context.date)
+                        }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                    .padding(.bottom, 16)
-                    .frame(maxWidth: 720)
-                    .frame(maxWidth: .infinity)
                 }
                 .refreshable {
                     await accounts.refreshAll()

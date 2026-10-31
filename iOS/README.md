@@ -489,3 +489,18 @@ zero spending is hidden. Claude detail is unchanged by this iteration.
 ## Demo and App Review access
 
 Choose **Try demo** from the welcome screen or Settings to explore labeled sample usage, Codex history, provider details, and widgets without signing in. **Exit demo** restores the normal account flow. Samples are generated in memory and do not overwrite saved accounts or usage. Guided Setup remains available in demo mode with separate, temporary progress. See [App Review access](docs/APP_REVIEW_ACCESS.md) for the live test-mailbox and Google backup-code instructions.
+
+## Quota pace forecasts
+
+The live iPhone/iPad overview shows the earliest eligible account forecast beneath
+reset announcements. It shares the Mac estimator and date formatting. Successful
+app, widget, and background fetches collect device-local observations under the
+existing account lease; cached reads and demo data never create samples.
+
+A forecast requires a verified provider identity, known plan, actual reset time,
+and enough recent, stable observations. Minimum observed spans are one hour for
+five-hour windows, 12 hours for weekly windows, and 24 hours for monthly windows;
+iOS background scheduling can make collection take longer. History does not sync
+from the Mac. Missing, stale, corrected, or irregular data suppresses the forecast.
+Dismissal lasts for that account's current reset window. Reconnecting or removing
+an account clears its observations, and plan/identity changes never combine data.

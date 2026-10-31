@@ -161,11 +161,12 @@ public struct ClaudeAPI: Sendable {
         let profile = try? await transport.send(profileRequest)
         try Task.checkCancellation()
         let plan = profile.flatMap { (200..<300).contains($0.status) ? Self.decodePlan($0.data) : nil }
+        let identity = profile.flatMap { (200..<300).contains($0.status) ? Self.decodeOrganizationID($0.data) : nil }
         let metadata = AccountMetadata(plan: plan, balanceUSD: reading.metadata?.balanceUSD,
             usageSpent: reading.metadata?.usageSpent, usageCurrency: reading.metadata?.usageCurrency)
         return QuotaReading(fetchedAt: reading.fetchedAt, shortTerm: reading.shortTerm,
                             weekly: reading.weekly, metadata: metadata, claudeBreakdown: reading.claudeBreakdown,
-                            monthlyBudget: reading.monthlyBudget)
+                            monthlyBudget: reading.monthlyBudget, providerIdentity: identity)
     }
     /// Returns the opaque organization UUID from the authenticated profile.
     /// A profile without an organization UUID is a valid, unavailable result.
