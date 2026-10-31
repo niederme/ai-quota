@@ -80,10 +80,20 @@ indicator. iOS controls their final visibility: iOS 26 can still hide the Home
 indicator despite this preference. This is independent of the overview's scroll
 mask; the app does not render a replacement gesture pill.
 
-Each Codex card shows a full-width, 42-week activity heatmap built from Codex's
+Cards at least 600pt wide use a 160pt dial beside the details and history.
+Wide cards use 22pt headings, 15pt supporting text, 20pt padding, and a 40pt
+column gap. Supporting text is higher contrast, and cards without history center
+the details beside the dial. The page title and controls align with the centered
+720pt content column in both connected and demo dashboards. Narrow windows retain native
+navigation; accessibility text sizes retain the stacked layout.
+
+Each Codex card shows at least 42 weeks of activity built from Codex's
 server-side daily history, without a title or month labels. Its light, dark,
 zero, and missing states match the Mac palette. Claude does not report daily
-history, so Claude cards have no graph.
+history, so Claude cards have no graph. The graph sits below the summary in
+compact cards and below the details in wide cards. It fills the available width
+with square cells capped at 9pt, adding earlier week columns when needed. The
+current week remains rightmost; unreported dates remain dim missing-data cells.
 
 Pixel intensity uses each account's recorded, nonzero days from the preceding
 90 completed UTC calendar days. The 50th, 80th, and 95th percentiles separate four

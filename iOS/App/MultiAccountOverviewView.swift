@@ -44,6 +44,7 @@ struct MultiAccountOverviewView: View {
     private let orderStore: AccountRegistry.Store?
     private let isFixtureMode: Bool
     @AppStorage("refreshIntervalMinutes") private var refreshMinutes = 0
+    @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -94,6 +95,7 @@ struct MultiAccountOverviewView: View {
     private var dashboard: some View {
         NavigationStack {
             GeometryReader { geometry in
+                let wide = min(geometry.size.width, 720) - 32 >= 600 && !typeSize.isAccessibilitySize
                 OverviewScrollView {
                     VStack(alignment: .leading, spacing: 8) {
                         if let announcement = resetAnnouncement {
@@ -106,7 +108,7 @@ struct MultiAccountOverviewView: View {
                         }
                         VStack(alignment: .leading, spacing: 8) {
                             ForEach(orderedProfiles, id: \.orderKey) { profile in
-                                accountCard(profile, width: min(geometry.size.width, 780) - 32)
+                                accountCard(profile, width: min(geometry.size.width, 720) - 32)
                                     .onDrag {
                                         draggingAccount = profile.orderKey
                                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -133,33 +135,27 @@ struct MultiAccountOverviewView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
                     .padding(.bottom, 16)
-                    .frame(maxWidth: 780)
+                    .frame(maxWidth: 720)
                     .frame(maxWidth: .infinity)
                 }
                 .refreshable {
                     await accounts.refreshAll()
                     if hasConnectedCodex, !isFixtureMode { await resetNotice.refresh() }
                 }
-                .background { OverviewBackground().ignoresSafeArea() }
-            }
-            .navigationTitle("AIQuota")
-            .toolbarTitleDisplayMode(.inlineLarge)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        MobileAnalytics.shared.manualRefresh()
-                        Task {
-                            await accounts.refreshAll()
-                            if hasConnectedCodex, !isFixtureMode { await resetNotice.refresh() }
-                        }
-                    } label: { Image(systemName: "arrow.clockwise") }
-                        .tint(OverviewStyle.primary)
-                        .accessibilityLabel("Refresh usage")
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    if wide {
+                        OverviewWideHeader(refresh: refreshUsage, settings: { selected = .init(kind: .settings) })
+                    }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { selected = .init(kind: .settings) } label: { Image(systemName: "gearshape") }
-                        .tint(OverviewStyle.primary)
-                        .accessibilityLabel("Settings")
+                .background { OverviewBackground().ignoresSafeArea() }
+                .navigationTitle("AIQuota")
+                .toolbarTitleDisplayMode(.inlineLarge)
+                .toolbar(wide ? .hidden : .visible, for: .navigationBar)
+                .toolbar {
+                    if !wide {
+                        ToolbarItem(placement: .topBarTrailing) { refreshButton() }
+                        ToolbarItem(placement: .topBarTrailing) { settingsButton() }
+                    }
                 }
             }
             .onOpenURL { url in
@@ -213,6 +209,26 @@ struct MultiAccountOverviewView: View {
         .sheet(isPresented: $showResetDetails) {
             ProbeBrowser(url: CodexResetNotice.website)
         }
+    }
+
+    private func refreshUsage() {
+        MobileAnalytics.shared.manualRefresh()
+        Task {
+            await accounts.refreshAll()
+            if hasConnectedCodex, !isFixtureMode { await resetNotice.refresh() }
+        }
+    }
+
+    private func refreshButton() -> some View {
+        Button(action: refreshUsage) { Image(systemName: "arrow.clockwise") }
+            .tint(OverviewStyle.primary)
+            .accessibilityLabel("Refresh usage")
+    }
+
+    private func settingsButton() -> some View {
+        Button { selected = .init(kind: .settings) } label: { Image(systemName: "gearshape") }
+            .tint(OverviewStyle.primary)
+            .accessibilityLabel("Settings")
     }
 
     private var hasConnectedCodex: Bool { !accounts.connected(.codex).isEmpty }

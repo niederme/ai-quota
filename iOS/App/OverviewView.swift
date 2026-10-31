@@ -13,6 +13,7 @@ struct OverviewView: View {
     @AppStorage(CodexResetNotice.dismissalKey) private var dismissedResetID = ""
     @State private var navigationID = UUID()
     @State private var selectedService: OverviewService?
+    @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.scenePhase) private var scenePhase
     @State private var claude: ClaudeProbeModel
     private let isDemo: Bool
@@ -70,9 +71,28 @@ struct OverviewView: View {
         MobileAnalytics.shared.observeServices(codex: codex.connected, claude: claude.connected, isDemo: isDemo)
     }
 
+    private func refreshUsage() {
+        MobileAnalytics.shared.manualRefresh()
+        codex.refresh()
+        claude.refresh()
+    }
+
+    private var refreshButton: some View {
+        Button(action: refreshUsage) {
+            ZStack {
+                Image(systemName: "arrow.clockwise").opacity(codex.loading || claude.loading ? 0 : 1)
+                ProgressView().opacity(codex.loading || claude.loading ? 1 : 0)
+            }.frame(width: 24, height: 24)
+        }
+        .tint(OverviewStyle.primary)
+        .disabled(codex.busy || claude.busy)
+        .accessibilityLabel(codex.loading || claude.loading ? "Refreshing usage" : "Refresh usage")
+    }
+
     private var dashboard: some View {
         NavigationStack {
             GeometryReader { geometry in
+                let wide = min(geometry.size.width, 720) - 32 >= 600 && !typeSize.isAccessibilitySize
                 OverviewScrollView {
                     VStack(alignment: .leading, spacing: 8) {
                         if isDemo { DemoBanner() }
@@ -83,7 +103,7 @@ struct OverviewView: View {
                             }, loading: codex.loading || claude.loading || resetNotice.fetching)
                         }
                         if codex.connected {
-                            ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 780) - 32, reading: codex.reading,
+                            ProviderDialCard(name: "Codex", icon: "logo-openai", availableWidth: min(geometry.size.width, 720) - 32, reading: codex.reading,
                                              connected: codex.connected, busy: codex.loading, error: codex.error, failure: codex.connectionFailure,
                                              history: codex.history, historyUnavailable: codex.historyUnavailable,
                                              tokenHistory: codex.tokenHistory, tokenHistoryUnavailable: codex.tokenHistoryUnavailable, tokenHistoryLoading: codex.tokenHistoryLoading || (codex.busy && codex.tokenHistory == nil),
@@ -92,7 +112,7 @@ struct OverviewView: View {
                             }
                         }
                         if claude.connected {
-                            ProviderDialCard(name: "Claude", icon: "logo-claude", availableWidth: min(geometry.size.width, 780) - 32, reading: claude.reading,
+                            ProviderDialCard(name: "Claude", icon: "logo-claude", availableWidth: min(geometry.size.width, 720) - 32, reading: claude.reading,
                                              connected: claude.connected, busy: claude.loading, error: claude.error, failure: claude.connectionFailure,
                                              onReconnect: { selectedService = .claudeAccount }) {
                                 selectedService = .claude
@@ -104,7 +124,7 @@ struct OverviewView: View {
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
                     .padding(.bottom, 16)
-                    .frame(maxWidth: 780)
+                    .frame(maxWidth: 720)
                     .frame(maxWidth: .infinity)
                 }
                 .refreshable {
@@ -113,10 +133,29 @@ struct OverviewView: View {
                     async let second: Void = claude.refreshAndWait()
                     _ = await (first, second)
                 }
+                .safeAreaInset(edge: .top, spacing: 0) {
+                    if wide {
+                        OverviewWideHeader(refreshing: codex.loading || claude.loading,
+                                           refreshDisabled: codex.busy || claude.busy,
+                                           refresh: refreshUsage,
+                                           settings: { selectedService = .settings })
+                    }
+                }
                 .background { OverviewBackground().ignoresSafeArea() }
+                .navigationTitle("AIQuota")
+                .toolbarTitleDisplayMode(.inlineLarge)
+                .toolbar(wide ? .hidden : .visible, for: .navigationBar)
+                .toolbar {
+                    if !wide {
+                        ToolbarItem(placement: .topBarTrailing) { refreshButton }
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button { selectedService = .settings } label: { Image(systemName: "gearshape") }
+                                .tint(OverviewStyle.primary)
+                                .accessibilityLabel("Settings")
+                        }
+                    }
+                }
             }
-            .navigationTitle("AIQuota")
-            .toolbarTitleDisplayMode(.inlineLarge)
             .onOpenURL { url in
                 guard url.scheme == "aiquota-probe" else { return }
                 if url.host == "overview" {
@@ -157,28 +196,6 @@ struct OverviewView: View {
                     await resetNotice.refresh()
                     do { try await Task.sleep(for: .seconds(60)) }
                     catch { return }
-                }
-            }
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        MobileAnalytics.shared.manualRefresh()
-                        codex.refresh()
-                        claude.refresh()
-                    } label: {
-                        ZStack {
-                            Image(systemName: "arrow.clockwise").opacity(codex.loading || claude.loading ? 0 : 1)
-                            ProgressView().opacity(codex.loading || claude.loading ? 1 : 0)
-                        }.frame(width: 24, height: 24)
-                    }
-                    .tint(OverviewStyle.primary)
-                    .disabled(codex.busy || claude.busy)
-                    .accessibilityLabel(codex.loading || claude.loading ? "Refreshing usage" : "Refresh usage")
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { selectedService = .settings } label: { Image(systemName: "gearshape") }
-                    .tint(OverviewStyle.primary)
-                    .accessibilityLabel("Settings")
                 }
             }
         }.id(navigationID).tint(OverviewStyle.accent)
@@ -591,6 +608,50 @@ enum OverviewStyle {
     })
 }
 
+/// Align wide-window navigation with the same centered column as the account cards.
+struct OverviewWideHeader: View {
+    var refreshing = false
+    var refreshDisabled = false
+    let refresh: () -> Void
+    let settings: () -> Void
+
+    var body: some View {
+        HStack {
+            Text("AIQuota")
+                .font(.largeTitle.bold())
+                .foregroundStyle(OverviewStyle.primary)
+                .accessibilityAddTraits(.isHeader)
+            Spacer(minLength: 24)
+            HStack(spacing: 0) {
+                Button(action: refresh) {
+                    ZStack {
+                        Image(systemName: "arrow.clockwise").opacity(refreshing ? 0 : 1)
+                        ProgressView().opacity(refreshing ? 1 : 0)
+                    }
+                    .frame(width: 44, height: 44).contentShape(Rectangle())
+                }
+                .disabled(refreshDisabled)
+                .accessibilityLabel(refreshing ? "Refreshing usage" : "Refresh usage")
+                Button(action: settings) {
+                    Image(systemName: "gearshape")
+                        .frame(width: 44, height: 44).contentShape(Rectangle())
+                }
+                .accessibilityLabel("Settings")
+            }
+            .font(.title3)
+            .buttonStyle(.plain)
+            .foregroundStyle(OverviewStyle.primary)
+            .background(.ultraThinMaterial, in: Capsule())
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+        .padding(.bottom, 16)
+        .frame(maxWidth: 720)
+        .frame(maxWidth: .infinity)
+        .accessibilityIdentifier("wideOverviewHeader")
+    }
+}
+
 struct OverviewBackground: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
@@ -714,14 +775,15 @@ func overviewDisplayAccountLabel(_ label: String, serviceName: String, plan: Str
 private struct OverviewDetailType: ViewModifier {
     var title = false
     var weight: Font.Weight = .semibold
+    var wide = false
     @ScaledMetric(relativeTo: .title3) private var titleSize = 20.0
     @ScaledMetric(relativeTo: .footnote) private var bodySize = 13.0
     @Environment(\.dynamicTypeSize) private var typeSize
 
     func body(content: Content) -> some View {
-        let size = title ? titleSize : bodySize
-        let scale = size / (title ? 20 : 13)
-        let lineHeight = (title ? 24.0 : 16.0) * scale
+        let scale = title ? titleSize / 20 : bodySize / 13
+        let size = (title ? (wide ? 22.0 : 20.0) : (wide ? 15.0 : 13.0)) * scale
+        let lineHeight = (title ? (wide ? 26.0 : 24.0) : (wide ? 20.0 : 16.0)) * scale
         let nativeHeight = UIFont.systemFont(ofSize: size, weight: weight == .regular ? .regular : .semibold).lineHeight
         content
             .font(.system(size: size, weight: weight))
@@ -748,6 +810,7 @@ struct ProviderDialCardContent: View {
     var tokenHistoryUnavailable = false
     var tokenHistoryLoading: Bool? = nil
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.colorScheme) private var colorScheme
     @ScaledMetric(relativeTo: .body) private var dialSize = 108.0
     private var needsReconnect: Bool { !connected || failure == .reconnect || failure == .renewal }
     private var worst: Double {
@@ -768,8 +831,15 @@ struct ProviderDialCardContent: View {
     private var usesColumns: Bool { !typeSize.isAccessibilitySize && availableWidth - 32 >= min(dialSize, 200) + 180 }
     private var usesWideLayout: Bool { availableWidth >= 600 && !typeSize.isAccessibilitySize }
     private var displayedDialSize: CGFloat { min(dialSize * (usesWideLayout ? 160.0 / 108.0 : 1), 200) }
+    private var supportingTextColor: Color {
+        usesWideLayout ? OverviewStyle.primary.opacity(0.8) : OverviewStyle.secondary
+    }
+    private var resetTextColor: Color {
+        usesWideLayout && colorScheme == .dark
+            ? Color(red: 0.90, green: 0.69, blue: 1.0) : OverviewStyle.resetAccent
+    }
     private var historyWidth: CGFloat {
-        usesWideLayout ? availableWidth - 32 - displayedDialSize - 20
+        usesWideLayout ? availableWidth - 40 - displayedDialSize - 40
             : availableWidth - 32 + 2 * Self.strokeOutset
     }
 
@@ -791,12 +861,12 @@ struct ProviderDialCardContent: View {
     private var showsTokenHistory: Bool {
         name == "Codex" && connected && MobileTokenHistoryView.presentation(
             history: tokenHistory, unavailable: tokenHistoryUnavailable,
-            loading: tokenHistoryLoading ?? busy) == .populated
+            loading: tokenHistoryLoading ?? busy, weeks: MobileTokenHistoryView.weekCount(for: historyWidth)) == .populated
     }
     private var cardContent: some View {
         Group {
             if usesWideLayout {
-                HStack(alignment: .top, spacing: 20) {
+                HStack(alignment: showsTokenHistory ? .top : .center, spacing: 40) {
                     dial.modifier(UsageLoadingState(loading: busy && reading == nil))
                     VStack(alignment: .leading, spacing: 0) {
                         details.modifier(UsageLoadingState(loading: busy && reading == nil))
@@ -811,9 +881,9 @@ struct ProviderDialCardContent: View {
                 }
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 21)
-        .padding(.bottom, showsTokenHistory ? 16 : 21)
+        .padding(.horizontal, usesWideLayout ? 20 : 16)
+        .padding(.top, usesWideLayout ? 20 : 21)
+        .padding(.bottom, usesWideLayout ? 20 : (showsTokenHistory ? 16 : 21))
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(RoundedRectangle(cornerRadius: OverviewStyle.accountRadius))
     }
@@ -844,13 +914,13 @@ struct ProviderDialCardContent: View {
             accountSummary
             if connected, reading?.monthlyBudget == nil,
                let spent = reading?.metadata?.usageSpent, spent > 0 { spending(spent) }
-        }.padding(.top, 8).frame(maxWidth: .infinity, alignment: .leading)
+        }.padding(.top, usesWideLayout && !showsTokenHistory ? 0 : 8).frame(maxWidth: .infinity, alignment: .leading)
     }
     private var accountSummary: some View {
         VStack(alignment: .leading, spacing: 8) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .center, spacing: 4) {
-                    Text(name).unredacted().modifier(OverviewDetailType(title: true)).foregroundStyle(OverviewStyle.primary)
+                    Text(name).unredacted().modifier(OverviewDetailType(title: true, wide: usesWideLayout)).foregroundStyle(OverviewStyle.primary)
                     Spacer(minLength: 0)
                     if onOpen != nil {
                         Image(systemName: "chevron.right.circle.fill").font(.system(size: 20))
@@ -859,7 +929,7 @@ struct ProviderDialCardContent: View {
                 }
                 Text(connected ? ((reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported")
                     + (accountLabel.map { " · \($0)" } ?? "")) : "Not connected")
-                    .modifier(OverviewDetailType(weight: .semibold)).foregroundStyle(OverviewStyle.primary)
+                    .modifier(OverviewDetailType(weight: .semibold, wide: usesWideLayout)).foregroundStyle(OverviewStyle.primary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if connected {
@@ -869,17 +939,17 @@ struct ProviderDialCardContent: View {
                     }
                     if let budget = reading?.monthlyBudget {
                         Text("\(budget.amountText(budget.used)) of \(budget.amountText(budget.limit))")
-                            .modifier(OverviewDetailType()).foregroundStyle(OverviewStyle.secondary)
-                        Text(budget.unitLabel).modifier(OverviewDetailType())
-                            .foregroundStyle(OverviewStyle.secondary)
+                            .modifier(OverviewDetailType(wide: usesWideLayout)).foregroundStyle(supportingTextColor)
+                        Text(budget.unitLabel).modifier(OverviewDetailType(wide: usesWideLayout))
+                            .foregroundStyle(supportingTextColor)
                         if let reset = budget.confirmedResetDescription() {
-                            Text(reset).modifier(OverviewDetailType())
-                                .foregroundStyle(OverviewStyle.resetAccent)
+                            Text(reset).modifier(OverviewDetailType(wide: usesWideLayout))
+                                .foregroundStyle(resetTextColor)
                         }
                     }
                 }
                 if failure != nil || error != nil || reading == nil || worst >= 100 {
-                    Text(statusText).modifier(OverviewDetailType(weight: .regular))
+                    Text(statusText).modifier(OverviewDetailType(weight: .regular, wide: usesWideLayout))
                         .foregroundStyle(failure != nil || error != nil ? OverviewStyle.warning : OverviewStyle.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
@@ -896,7 +966,7 @@ struct ProviderDialCardContent: View {
         let value = reading?.metadata?.usageCurrency.map { amount.formatted(.currency(code: $0)) }
             ?? amount.formatted(.number.precision(.fractionLength(0...2))) + " credits"
         return Text("Credits used  \(value)")
-            .modifier(OverviewDetailType()).foregroundStyle(OverviewStyle.secondary)
+            .modifier(OverviewDetailType(wide: usesWideLayout)).foregroundStyle(supportingTextColor)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityLabel("Credits used: \(value)")
     }
@@ -955,8 +1025,8 @@ struct ProviderDialCardContent: View {
             guard let window else { return "\(label) not reported" }
             return "\(label) \(window.resetDescription())"
         }()
-        return Text(text).modifier(OverviewDetailType(weight: .regular)).monospacedDigit()
-            .foregroundStyle(window == nil ? OverviewStyle.secondary : OverviewStyle.resetAccent)
+        return Text(text).modifier(OverviewDetailType(weight: .regular, wide: usesWideLayout)).monospacedDigit()
+            .foregroundStyle(window == nil ? supportingTextColor : resetTextColor)
             .fixedSize(horizontal: false, vertical: true)
     }
     private func arc(_ window: QuotaWindow?, lineWidth: CGFloat, opacity: Double) -> some View {

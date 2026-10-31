@@ -3,10 +3,8 @@ import MobileAccessCore
 
 /// Profile tokens, never the credit-spending history shown in service analytics.
 struct MobileTokenHistoryView: View {
-    private static let weeks = CodexTokenHistory.visibleWeeks
     static let cellGap: CGFloat = 1
     static let maximumCellSide: CGFloat = 9
-    static var maximumWidth: CGFloat { CGFloat(weeks) * maximumCellSide + CGFloat(weeks - 1) * cellGap }
     let history: CodexTokenHistory?
     let unavailable: Bool
     let loading: Bool
@@ -14,24 +12,25 @@ struct MobileTokenHistoryView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     enum Presentation: Equatable { case loading, empty, unavailable, populated }
-    static func presentation(history: CodexTokenHistory?, unavailable: Bool, loading: Bool, now: Date = .now) -> Presentation {
+    static func presentation(history: CodexTokenHistory?, unavailable: Bool, loading: Bool, now: Date = .now, weeks: Int = CodexTokenHistory.visibleWeeks) -> Presentation {
         if let history {
-            return history.days(now: now).contains { !$0.isFuture && $0.tokens != nil } ? .populated : .empty
+            return history.days(now: now, weeks: weeks).contains { !$0.isFuture && $0.tokens != nil } ? .populated : .empty
         }
         return loading ? .loading : .unavailable
     }
-    private var presentation: Presentation { Self.presentation(history: history, unavailable: unavailable, loading: loading) }
+    private var presentation: Presentation { Self.presentation(history: history, unavailable: unavailable, loading: loading, weeks: Self.weekCount(for: availableWidth)) }
 
     var body: some View {
         if let history, presentation == .populated {
             let now = Date.now
-            let days = history.days(now: now)
             let scale = CodexTokenActivityScale(tokensByDate: history.tokensByDate, now: now)
             GeometryReader { geometry in
+                let weeks = Self.weekCount(for: geometry.size.width)
+                let days = history.days(now: now, weeks: weeks)
                 let gap = Self.cellGap
                 let side = Self.cellSide(for: geometry.size.width)
                 HStack(alignment: .top, spacing: gap) {
-                    ForEach(0..<Self.weeks, id: \.self) { week in
+                    ForEach(0..<weeks, id: \.self) { week in
                         VStack(spacing: gap) {
                             ForEach(0..<7, id: \.self) { row in
                                 let day = days[week * 7 + row]
@@ -48,15 +47,20 @@ struct MobileTokenHistoryView: View {
                 .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("tokenActivityGrid")
             }
-            .frame(maxWidth: Self.maximumWidth, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .frame(height: graphHeight)
             .accessibilityElement(children: .contain)
-            .accessibilityLabel("Token activity, past 42 weeks")
+            .accessibilityLabel("Token activity, past \(Self.weekCount(for: availableWidth)) weeks")
             .accessibilityHint("Dim cells have no record. Dates are in UTC. " + CodexTokenActivityScale.explanation)
         }
     }
+    /// Add earlier weeks instead of enlarging cells or leaving a blank trailing strip.
+    static func weekCount(for width: CGFloat) -> Int {
+        max(CodexTokenHistory.visibleWeeks, Int(ceil((width + cellGap) / (maximumCellSide + cellGap))))
+    }
     static func cellSide(for width: CGFloat) -> CGFloat {
-        min(maximumCellSide, max(1, (width - CGFloat(weeks - 1) * cellGap) / CGFloat(weeks)))
+        let weeks = weekCount(for: width)
+        return min(maximumCellSide, max(1, (width - CGFloat(weeks - 1) * cellGap) / CGFloat(weeks)))
     }
     static func graphHeight(for width: CGFloat) -> CGFloat {
         max(44, 7 * cellSide(for: width) + 6 * cellGap)

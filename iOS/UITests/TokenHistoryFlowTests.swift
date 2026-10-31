@@ -41,6 +41,11 @@ extension TokenHistoryFlowTests {
         XCTAssertTrue(card.waitForExistence(timeout: 10))
         if min(app.frame.width, app.frame.height) > 600 {
             XCUIDevice.shared.orientation = .landscapeLeft
+            // Rotation and navigation-bar visibility settle asynchronously on iPad.
+            let landscape = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+                app.frame.width > app.frame.height && card.frame.width >= 600
+            }, object: nil)
+            XCTAssertEqual(XCTWaiter.wait(for: [landscape], timeout: 5), .completed)
         }
         defer { XCUIDevice.shared.orientation = .portrait }
         let dial = card.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Codex allowance used")).firstMatch
@@ -52,6 +57,8 @@ extension TokenHistoryFlowTests {
             XCTAssertGreaterThan(dial.frame.width, 140)
             XCTAssertGreaterThan(graph.frame.minX, dial.frame.maxX)
             XCTAssertEqual(graph.frame.minX, title.frame.minX, accuracy: 2)
+            XCTAssertEqual(graph.frame.maxX, card.frame.maxX - 20, accuracy: 2)
+            XCTAssertGreaterThanOrEqual(graph.frame.minX - dial.frame.maxX, 30)
             XCTAssertLessThanOrEqual(graph.frame.height, 70)
         } else {
             XCTAssertLessThan(dial.frame.width, 130)
