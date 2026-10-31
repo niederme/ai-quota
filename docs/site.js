@@ -1,145 +1,173 @@
-const themeStorageKey = "aiquota-docs-theme";
+const themeStorageKey = "aiquota-theme";
+const legacyThemeStorageKey = "aiquota-docs-theme";
 const themeColorByMode = {
-  dark: "#0b1730",
-  light: "#f4f7fc",
+  dark: "#0b060f",
+  light: "#f4f1f7",
 };
 
+const root = document.documentElement;
 const themeMediaQuery = window.matchMedia("(prefers-color-scheme: light)");
 const themeColorMeta = document.querySelector('meta[name="theme-color"]');
-const themeToggleButtons = Array.from(document.querySelectorAll("[data-theme-toggle]"));
+const themeButtons = Array.from(document.querySelectorAll("[data-theme-choice]"));
 
-const getStoredTheme = () => {
-  const storedTheme = window.localStorage.getItem(themeStorageKey);
-  return storedTheme === "light" || storedTheme === "dark" ? storedTheme : null;
-};
-
-const getResolvedTheme = () => {
-  const storedTheme = getStoredTheme();
-  if (storedTheme) {
-    return storedTheme;
+const readStorage = (key) => {
+  try {
+    return window.localStorage.getItem(key);
+  } catch (error) {
+    return null;
   }
-
-  return themeMediaQuery.matches ? "light" : "dark";
 };
 
-const syncThemeToggle = (theme) => {
-  const nextTheme = theme === "light" ? "dark" : "light";
-
-  themeToggleButtons.forEach((button) => {
-    button.setAttribute("aria-label", `Switch to ${nextTheme} mode`);
-    button.setAttribute("title", `Switch to ${nextTheme} mode`);
-  });
+const writeStorage = (key, value) => {
+  try {
+    if (value === null) {
+      window.localStorage.removeItem(key);
+    } else {
+      window.localStorage.setItem(key, value);
+    }
+  } catch (error) {}
 };
 
-const applyTheme = (theme) => {
-  document.documentElement.dataset.theme = theme;
-  document.documentElement.style.colorScheme = theme;
+// Carry a choice made on the 1.x site over to the new key.
+const legacyTheme = readStorage(legacyThemeStorageKey);
+if (legacyTheme !== null) {
+  if (readStorage(themeStorageKey) === null && (legacyTheme === "light" || legacyTheme === "dark")) {
+    writeStorage(themeStorageKey, legacyTheme);
+  }
+  writeStorage(legacyThemeStorageKey, null);
+}
+
+const getThemeMode = () => {
+  const storedTheme = readStorage(themeStorageKey);
+  return storedTheme === "light" || storedTheme === "dark" ? storedTheme : "system";
+};
+
+const applyThemeMode = (mode) => {
+  const theme = mode === "system" ? (themeMediaQuery.matches ? "light" : "dark") : mode;
+  root.dataset.theme = theme;
 
   if (themeColorMeta) {
     themeColorMeta.setAttribute("content", themeColorByMode[theme]);
   }
 
-  syncThemeToggle(theme);
+  themeButtons.forEach((button) => {
+    button.setAttribute("aria-pressed", String(button.dataset.themeChoice === mode));
+  });
 };
 
-applyTheme(getResolvedTheme());
+applyThemeMode(getThemeMode());
 
-themeToggleButtons.forEach((button) => {
+themeButtons.forEach((button) => {
   button.addEventListener("click", () => {
-    const nextTheme = document.documentElement.dataset.theme === "light" ? "dark" : "light";
-    window.localStorage.setItem(themeStorageKey, nextTheme);
-    applyTheme(nextTheme);
+    const mode = button.dataset.themeChoice;
+    writeStorage(themeStorageKey, mode === "system" ? null : mode);
+    applyThemeMode(mode);
   });
 });
 
 themeMediaQuery.addEventListener("change", () => {
-  if (getStoredTheme() !== null) {
-    return;
+  if (getThemeMode() === "system") {
+    applyThemeMode("system");
   }
-
-  applyTheme(getResolvedTheme());
 });
 
-const demoVideos = Array.from(document.querySelectorAll("[data-demo-video]"));
+// Nav: raised shadow once the page scrolls, and the narrow-screen menu.
+const nav = document.querySelector("[data-nav]");
 
-if (demoVideos.length > 0) {
-  const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-  let reducedMotion = motionQuery.matches;
+if (nav) {
+  const syncRaised = () => {
+    nav.classList.toggle("aq-nav--raised", window.scrollY > 8);
+  };
+  syncRaised();
+  window.addEventListener("scroll", syncRaised, { passive: true });
+}
 
-  const syncPausedState = (video) => {
-    const frame = video.closest(".hero-demo-frame");
-    video.classList.toggle("is-paused", video.paused);
-    if (frame) {
-      frame.classList.toggle("is-paused", video.paused);
-    }
+const menuToggle = document.querySelector("[data-menu-toggle]");
+const menu = menuToggle ? document.getElementById(menuToggle.getAttribute("aria-controls")) : null;
+
+if (menuToggle && menu) {
+  const setMenuOpen = (open) => {
+    menuToggle.setAttribute("aria-expanded", String(open));
+    menu.hidden = !open;
   };
 
-  const playDemo = (video) => {
-    const playback = video.play();
-    if (playback && typeof playback.catch === "function") {
-      playback.catch(() => {});
+  menuToggle.addEventListener("click", () => {
+    setMenuOpen(menuToggle.getAttribute("aria-expanded") !== "true");
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !menu.hidden) {
+      setMenuOpen(false);
+      menuToggle.focus();
     }
-  };
+  });
 
-  const toggleDemoPlayback = (video) => {
-    if (video.paused) {
-      playDemo(video);
-      return;
+  window.matchMedia("(min-width: 760px)").addEventListener("change", (event) => {
+    if (event.matches) {
+      setMenuOpen(false);
     }
+  });
+}
 
-    video.pause();
-  };
+// Quota dials sweep in the first time they scroll into view.
+const dials = Array.from(document.querySelectorAll(".aq-dial"));
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  const observer = new IntersectionObserver(
+if (reducedMotion || !("IntersectionObserver" in window)) {
+  dials.forEach((dial) => dial.classList.add("is-shown"));
+} else {
+  const dialObserver = new IntersectionObserver(
     (entries) => {
       entries.forEach((entry) => {
-        const video = entry.target;
         if (entry.isIntersecting) {
-          if (!reducedMotion && video.paused) {
-            playDemo(video);
-          }
-          return;
-        }
-
-        if (!video.paused) {
-          video.pause();
+          entry.target.classList.add("is-shown");
+          dialObserver.unobserve(entry.target);
         }
       });
     },
-    { threshold: 0.25 }
+    { threshold: 0.4 }
   );
-
-  demoVideos.forEach((video) => {
-    video.addEventListener("play", () => syncPausedState(video));
-    video.addEventListener("pause", () => syncPausedState(video));
-    video.addEventListener("click", () => toggleDemoPlayback(video));
-    video.addEventListener("keydown", (event) => {
-      if (event.key !== " " && event.key !== "Enter") {
-        return;
-      }
-
-      event.preventDefault();
-      toggleDemoPlayback(video);
-    });
-
-    observer.observe(video);
-    syncPausedState(video);
-  });
-
-  motionQuery.addEventListener("change", (event) => {
-    reducedMotion = event.matches;
-
-    demoVideos.forEach((video) => {
-      if (reducedMotion) {
-        if (!video.paused) {
-          video.pause();
-        }
-        return;
-      }
-
-      if (video.paused && video.currentTime === 0) {
-        playDemo(video);
-      }
-    });
-  });
+  dials.forEach((dial) => dialObserver.observe(dial));
 }
+
+// Sample reset notices: dismissing hides them; some offer "Show again".
+document.querySelectorAll("[data-notice]").forEach((notice) => {
+  const dismissed = notice.parentElement.querySelector("[data-notice-dismissed]");
+  const dismiss = notice.querySelector("[data-notice-dismiss]");
+  const restore = dismissed ? dismissed.querySelector("[data-notice-restore]") : null;
+
+  dismiss.addEventListener("click", () => {
+    notice.hidden = true;
+    if (dismissed) {
+      dismissed.hidden = false;
+      if (restore) {
+        restore.focus();
+      }
+    }
+  });
+
+  if (restore) {
+    restore.addEventListener("click", () => {
+      dismissed.hidden = true;
+      notice.hidden = false;
+      dismiss.focus();
+    });
+  }
+});
+
+// FAQ: one answer open at a time.
+document.querySelectorAll("[data-faq]").forEach((list) => {
+  const items = Array.from(list.querySelectorAll("details"));
+  items.forEach((item) => {
+    item.addEventListener("toggle", () => {
+      if (!item.open) {
+        return;
+      }
+      items.forEach((other) => {
+        if (other !== item && other.open) {
+          other.open = false;
+        }
+      });
+    });
+  });
+});
