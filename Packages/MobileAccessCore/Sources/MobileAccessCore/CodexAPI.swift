@@ -140,8 +140,15 @@ public struct QuotaReading: Codable, Sendable, Equatable {
     }
     public let metadata: AccountMetadata?
     public let claudeBreakdown: ClaudeWeeklyBreakdown?
-    public init(fetchedAt: Date, shortTerm: QuotaWindow?, weekly: QuotaWindow?, metadata: AccountMetadata? = nil, claudeBreakdown: ClaudeWeeklyBreakdown? = nil, monthlyBudget: MonthlyBudget? = nil) {
+    /// Identity verified by the authenticated request, never inferred from cached account labels.
+    public let providerIdentity: String?
+    public init(fetchedAt: Date, shortTerm: QuotaWindow?, weekly: QuotaWindow?, metadata: AccountMetadata? = nil, claudeBreakdown: ClaudeWeeklyBreakdown? = nil, monthlyBudget: MonthlyBudget? = nil, providerIdentity: String? = nil) {
         self.fetchedAt = fetchedAt; self.shortTerm = shortTerm; self.weekly = weekly; self.metadata = metadata; self.claudeBreakdown = claudeBreakdown; self.monthlyBudget = monthlyBudget
+        self.providerIdentity = providerIdentity
+    }
+    public func identifying(_ identity: String?) -> Self {
+        Self(fetchedAt: fetchedAt, shortTerm: shortTerm, weekly: weekly, metadata: metadata,
+             claudeBreakdown: claudeBreakdown, monthlyBudget: monthlyBudget, providerIdentity: identity)
     }
     public static func decode(_ data: Data, now: Date) throws -> Self {
         let raw = try JSONDecoder().decode(UsageResponse.self, from: data)
@@ -324,15 +331,15 @@ public struct CodexAPI: Sendable {
             reading = QuotaReading(fetchedAt: fetchedAt, shortTerm: nil, weekly: nil,
                 metadata: try QuotaReading.metadata(r.data), monthlyBudget: budget)
         }
-        guard includeSpending, reading.monthlyBudget == nil else { return reading }
+        guard includeSpending, reading.monthlyBudget == nil else { return reading.identifying(tokens.accountID) }
         req.url = URL(string: "https://chatgpt.com/backend-api/wham/usage/credit-usage-events")!
         req.timeoutInterval = 5
         // Optional metadata must not turn a successful quota fetch into a failure.
         guard let response = try? await transport.send(req), (200..<300).contains(response.status),
-              let spent = try? Self.decodeSpending(response.data, now: reading.fetchedAt) else { return reading }
+              let spent = try? Self.decodeSpending(response.data, now: reading.fetchedAt) else { return reading.identifying(tokens.accountID) }
         return QuotaReading(fetchedAt: reading.fetchedAt, shortTerm: reading.shortTerm, weekly: reading.weekly,
             metadata: AccountMetadata(plan: reading.metadata?.plan, balanceUSD: reading.metadata?.balanceUSD,
-                usageSpent: spent, usageCurrency: "USD"), monthlyBudget: reading.monthlyBudget)
+                usageSpent: spent, usageCurrency: "USD"), monthlyBudget: reading.monthlyBudget, providerIdentity: tokens.accountID)
     }
     /// Optional overview analytics. This never changes the successful quota reading.
     public func usageHistory(_ tokens: CodexTokens, now: Date = .now) async throws -> CodexUsageHistory {

@@ -98,6 +98,7 @@ final class ClaudeProbeModel {
             try Task.checkCancellation()
             let migrateLegacy = usesLegacyStorage
             try await shared.withLease { [shared] in
+                        try shared.clearForecastHistory()
                         try shared.saveCredentials(newTokens)
                         if migrateLegacy { try ClaudeTokenStore.clear() }
                     }

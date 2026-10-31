@@ -114,6 +114,7 @@
 		7CF47B58B590EFF9D53F33E6 /* ClaudeAnalyticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 065ADF5600B820E82899F732 /* ClaudeAnalyticsTests.swift */; };
 		7FA23D210B18C2EFE0DFAAFE /* MacResetNoticeBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7B94CCD3C4AF3EFD214175B /* MacResetNoticeBanner.swift */; };
 		8216D0F3164D0E0251628667 /* DemoQuotaData.swift in Sources */ = {isa = PBXBuildFile; fileRef = F67E72577EE3060D479BB8A0 /* DemoQuotaData.swift */; };
+		8237E8B55D13A06CEF7E9B58 /* MobileQuotaInsightTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15D8685BD3594ED428F7B3C3 /* MobileQuotaInsightTests.swift */; };
 		8345576EE21F0AB14ECE70BD /* MobileAnalyticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEF02E14FDE3406AB3CFB999 /* MobileAnalyticsTests.swift */; };
 		8828EA515EF0D8B3DC3288A9 /* AccountRegistryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECD33CA5FBBEE3CA3B3060EB /* AccountRegistryTests.swift */; };
 		88EEEE7F5FB64436900693AD /* LockScreenResetPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3B0E5DE08ACE9177CD91F9C /* LockScreenResetPresentation.swift */; };
@@ -140,6 +141,7 @@
 		A235B96E676D7BB0D9AA389F /* FirebaseAnalyticsCore in Frameworks */ = {isa = PBXBuildFile; productRef = 99ECBE0988C11C866C163C4A /* FirebaseAnalyticsCore */; };
 		A26EC10C0CB510CB32E4ADD0 /* CompactQuotaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2681A208A2007E5167B5903 /* CompactQuotaView.swift */; };
 		A27DDA505B42FB7634AA0E49 /* SignInCodeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA990197CB437869D146B21C /* SignInCodeStore.swift */; };
+		A38CAF3EA97F0B2FF46AAD54 /* MobileQuotaInsight.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF6F7FD0C295AD6393C650E1 /* MobileQuotaInsight.swift */; };
 		A572546535157516F66CC64F /* MacAccountGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41981861E4B4857781EB49AF /* MacAccountGridView.swift */; };
 		A5CE7015A83FEB3D44D29F33 /* MobileAccessCore in Frameworks */ = {isa = PBXBuildFile; productRef = 33DE59475A6640AF67580B78 /* MobileAccessCore */; };
 		A854CED8FF8E77BCB8FF09B4 /* MobileAccessCore in Frameworks */ = {isa = PBXBuildFile; productRef = 78A0AA96ED672D905CDC7DCA /* MobileAccessCore */; };
@@ -301,6 +303,7 @@
 		0FFBABD81D84B816E058A18A /* TokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenStore.swift; sourceTree = "<group>"; };
 		115906498DE453D508A34102 /* MacQuotaInsightRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacQuotaInsightRow.swift; sourceTree = "<group>"; };
 		126972287BBBDE180220E188 /* ClaudeTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeTokenStore.swift; sourceTree = "<group>"; };
+		15D8685BD3594ED428F7B3C3 /* MobileQuotaInsightTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileQuotaInsightTests.swift; sourceTree = "<group>"; };
 		16BD0A4CB52E425D9A5A6C34 /* AIQuotaKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = AIQuotaKit; path = Packages/AIQuotaKit; sourceTree = SOURCE_ROOT; };
 		1D3DAB2AE10FEF44FAAAEEEE /* OnboardingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingTests.swift; sourceTree = "<group>"; };
 		1F1F18DB5A7FD4515D863D71 /* WidgetIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetIntent.swift; sourceTree = "<group>"; };
@@ -418,6 +421,7 @@
 		FB52A74E8799BDEFB61FFF62 /* BaseScreenReviewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseScreenReviewTests.swift; sourceTree = "<group>"; };
 		FB657B3EE7EFE0906CC89C7E /* MenuBarIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIconView.swift; sourceTree = "<group>"; };
 		FDB07E879351E6BD1CF046B8 /* MultiAccountSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MultiAccountSettingsView.swift; sourceTree = "<group>"; };
+		FF6F7FD0C295AD6393C650E1 /* MobileQuotaInsight.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MobileQuotaInsight.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -579,6 +583,7 @@
 				24E173E35FDE86A21177108E /* MobileAccountCollection.swift */,
 				8D95553FAC04DFF7EC1268BF /* MobileAnalytics.swift */,
 				22397551BCDC46E340DA0D00 /* MobileBackgroundRefresh.swift */,
+				FF6F7FD0C295AD6393C650E1 /* MobileQuotaInsight.swift */,
 				EC6483FA9D6F3174B3E47F3D /* MobileSettingsView.swift */,
 				D5BD4CEEB4F5DD02A33A6C7C /* MobileTokenHistoryView.swift */,
 				F118F93DD5ECCFC53B2D5D6E /* MultiAccountOverviewView.swift */,
@@ -673,6 +678,7 @@
 				3805EE8533FA745C2DDA0491 /* HomeWidgetTests.swift */,
 				419400F7BFA8341777F59D91 /* LockScreenWidgetTests.swift */,
 				DEF02E14FDE3406AB3CFB999 /* MobileAnalyticsTests.swift */,
+				15D8685BD3594ED428F7B3C3 /* MobileQuotaInsightTests.swift */,
 				1D3DAB2AE10FEF44FAAAEEEE /* OnboardingTests.swift */,
 				8924102467BA8034DBE2CECD /* SharedQuotaStoreTests.swift */,
 				5C6CBA2120FA33C3C7AA09E5 /* TokenHistoryReviewTests.swift */,
@@ -1404,6 +1410,7 @@
 				47F478EF1CBBC73F3C1D831E /* MobileAccountCollection.swift in Sources */,
 				8A411DE18F08C54C94DD92E6 /* MobileAnalytics.swift in Sources */,
 				248A84446476180600474073 /* MobileBackgroundRefresh.swift in Sources */,
+				A38CAF3EA97F0B2FF46AAD54 /* MobileQuotaInsight.swift in Sources */,
 				2FCFA2535E9E9290F1988907 /* MobileSettingsView.swift in Sources */,
 				C43C98F49925EAFD25F50041 /* MobileTokenHistoryView.swift in Sources */,
 				6519FE22202D16832C73CE03 /* MultiAccountOverviewView.swift in Sources */,
@@ -1437,6 +1444,7 @@
 				18F490DA24873632F7F02099 /* HomeWidgetTests.swift in Sources */,
 				066948F25E92DC96EDD5187B /* LockScreenWidgetTests.swift in Sources */,
 				8345576EE21F0AB14ECE70BD /* MobileAnalyticsTests.swift in Sources */,
+				8237E8B55D13A06CEF7E9B58 /* MobileQuotaInsightTests.swift in Sources */,
 				016897F2F3C03D3BD1F940E8 /* OnboardingTests.swift in Sources */,
 				41C02C66278A722573030C3B /* SharedQuotaStoreTests.swift in Sources */,
 				10013BDDC507730F8B40BB1C /* TokenHistoryReviewTests.swift in Sources */,

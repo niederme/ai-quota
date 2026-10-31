@@ -133,6 +133,7 @@ final class ProbeModel {
     private func finishSignIn(_ newTokens: CodexTokens) async throws {
         let migrateLegacy = usesLegacyStorage
         try await shared.withLease { [shared] in
+            try shared.clearForecastHistory()
             try shared.saveCredentials(newTokens)
             if migrateLegacy { try TokenStore.clear() }
         }
