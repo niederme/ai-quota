@@ -39,8 +39,7 @@ final class BaseScreenReviewTests: XCTestCase {
                     .background { OverviewBackground().ignoresSafeArea() }
                     .navigationTitle("AIQuota").toolbarTitleDisplayMode(.inlineLarge)
                     .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) { Button("Refresh", systemImage: "arrow.clockwise") {}.tint(OverviewStyle.primary) }
-                        ToolbarItem(placement: .topBarTrailing) { Button("Settings", systemImage: "gearshape") {}.tint(OverviewStyle.primary) }
+                        OverviewActionsToolbar(refresh: {}, settings: {})
                     }
                 }.tint(Color("OverviewAccent"))
                     .environment(\.colorScheme, scheme).environment(\.dynamicTypeSize, size)

@@ -113,7 +113,9 @@ import MobileAccessCore
             ("phone-dark", 390.0, ColorScheme.dark, DynamicTypeSize.large),
             ("phone-light", 390.0, .light, .large),
             ("ipad-dark", 720.0, .dark, .large),
-            ("phone-accessible", 390.0, .dark, .accessibility3)
+            ("phone-accessible", 390.0, .dark, .accessibility3),
+            ("phone-contrast-dark", 390.0, .dark, .large),
+            ("phone-contrast-light", 390.0, .light, .large)
         ] {
             let content = ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
@@ -126,11 +128,12 @@ import MobileAccessCore
                         forecast: forecast, accountLabel: "Personal Codex", wide: width - 32 >= 600,
                         openDetails: {}, dismissAnnouncement: {}, dismissForecast: {})
                     ProviderDialCardContent(name: "Codex", icon: "logo-openai", availableWidth: width - 32,
-                        reading: current, connected: true, busy: false, error: nil)
+                        reading: current, connected: true, busy: false, error: nil, onOpen: {})
                 }.padding(16)
             }.frame(width: width, height: 1000).background { OverviewBackground() }
                 .environment(\.colorScheme, scheme).environment(\.dynamicTypeSize, typeSize)
             let host = UIHostingController(rootView: content)
+            host.traitOverrides.accessibilityContrast = name.contains("contrast") ? .high : .normal
             let window = UIWindow(windowScene: scene)
             window.frame = CGRect(x: 0, y: 0, width: width, height: 1000)
             window.rootViewController = host
