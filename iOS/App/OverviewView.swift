@@ -130,6 +130,7 @@ struct OverviewView: View {
                     }
                 }
                 .background { OverviewBackground().ignoresSafeArea() }
+                .persistentSystemOverlays(.visible)
                 .navigationTitle("AIQuota")
                 .toolbarTitleDisplayMode(.inlineLarge)
                 .toolbar(wide ? .hidden : .visible, for: .navigationBar)
@@ -589,6 +590,7 @@ enum OverviewStyle {
     static let accountRadius: CGFloat = 24
     static let glass = accent.opacity(0.06)
     static let glassHighlight = accent.opacity(0.10)
+    static let controlLavender = Color(red: 0.74, green: 0.61, blue: 0.84)
     static let overviewTrack = Color(uiColor: UIColor { traits in
         (traits.userInterfaceStyle == .dark ? UIColor.white : UIColor.black).withAlphaComponent(0.10)
     })
@@ -620,7 +622,7 @@ struct OverviewWideHeader: View {
     }
 }
 
-/// Share the account cards' purple surface across compact and wide navigation.
+/// A slightly lifted version of the card surface, legible over the bright header.
 struct OverviewActions: View {
     var refreshing = false
     var refreshDisabled = false
@@ -647,7 +649,52 @@ struct OverviewActions: View {
         .font(.system(size: 20))
         .buttonStyle(.plain)
         .foregroundStyle(OverviewStyle.primary)
-        .background { OverviewAccountSurface() }
+        .background { OverviewActionSurface() }
+    }
+}
+
+struct OverviewActionSurface: View {
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: OverviewStyle.accountRadius)
+        shape
+            .fill(reduceTransparency
+                ? (scheme == .dark ? Color(red: 0.20, green: 0.12, blue: 0.28)
+                                   : Color(red: 0.89, green: 0.84, blue: 0.94))
+                : OverviewStyle.controlLavender.opacity(scheme == .dark ? 0.12 : 0.10))
+            .overlay {
+                shape.strokeBorder(OverviewStyle.controlLavender.opacity(contrast == .increased ? 0.50 : 0.18), lineWidth: 1)
+            }
+            .allowsHitTesting(false)
+    }
+}
+
+/// Quiet navigation/dismissal chrome shared by account and alert cards.
+/// The glyph stays readable while only its surrounding circle is translucent.
+struct OverviewControlGlyph: View {
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    let symbol: String
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: 10, weight: .bold))
+            .foregroundStyle(contrast == .increased
+                ? (scheme == .dark ? Color(red: 0.91, green: 0.84, blue: 0.98)
+                                   : Color(red: 0.28, green: 0.16, blue: 0.38))
+                : (scheme == .dark ? OverviewStyle.controlLavender : Color(red: 0.43, green: 0.28, blue: 0.54)))
+            .frame(width: 20, height: 20)
+            .background {
+                Circle().fill(reduceTransparency
+                    ? (scheme == .dark ? Color(red: 0.23, green: 0.16, blue: 0.30)
+                                       : Color(red: 0.87, green: 0.81, blue: 0.92))
+                    : OverviewStyle.controlLavender.opacity(contrast == .increased ? 0.24 : 0.14))
+            }
+            .accessibilityHidden(true)
     }
 }
 
@@ -943,8 +990,7 @@ struct ProviderDialCardContent: View {
                     Text(name).unredacted().modifier(OverviewDetailType(title: true, wide: usesWideLayout)).foregroundStyle(OverviewStyle.primary)
                     Spacer(minLength: 0)
                     if onOpen != nil {
-                        Image(systemName: "chevron.right.circle.fill").font(.system(size: 20))
-                            .foregroundStyle(OverviewStyle.tertiary).accessibilityHidden(true)
+                        OverviewControlGlyph(symbol: "chevron.right")
                     }
                 }
                 Text(connected ? ((reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported")

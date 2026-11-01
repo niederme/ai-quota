@@ -158,6 +158,7 @@ struct MultiAccountOverviewView: View {
                     }
                 }
                 .background { OverviewBackground().ignoresSafeArea() }
+                .persistentSystemOverlays(.visible)
                 .navigationTitle("AIQuota")
                 .toolbarTitleDisplayMode(.inlineLarge)
                 .toolbar(wide ? .hidden : .visible, for: .navigationBar)

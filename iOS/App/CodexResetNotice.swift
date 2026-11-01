@@ -213,9 +213,7 @@ struct OverviewAlertRow: View {
             Color.clear.frame(width: 44, height: titleLine)
                 .overlay(alignment: .top) {
                     Button(action: dismiss) {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 20))
-                            .foregroundStyle(OverviewStyle.tertiary)
+                        OverviewControlGlyph(symbol: "xmark")
                             .frame(width: 44, height: 44)
                             .contentShape(Rectangle())
                     }
