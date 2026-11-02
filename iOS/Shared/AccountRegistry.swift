@@ -26,6 +26,11 @@ struct AccountProfile: Codable, Equatable, Identifiable, Sendable {
     /// named `live`.
     var orderKey: String { "\(service.rawValue)\u{0}\(id)" }
 
+    var alertDisplayName: String {
+        AccountAlertName.make(service: service.name, label: label,
+                              explicitlyNamed: suggestedNamePending == false)
+    }
+
     static func ordered(_ profiles: [Self], by keys: [String]) -> [Self] {
         let byKey = Dictionary(profiles.map { ($0.orderKey, $0) }, uniquingKeysWith: { first, _ in first })
         var seen = Set<String>()

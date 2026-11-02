@@ -62,13 +62,15 @@ public enum AccountRegistry {
         displayLabel: String,
         workspaceID: String? = nil,
         authSource: AccountAuthSource,
-        connectionKind: AccountConnectionKind = .isolated
+        connectionKind: AccountConnectionKind = .isolated,
+        labelExplicitlyNamed: Bool? = nil
     ) -> ConnectedAccount {
         if let workspaceID,
            var existing = accounts().first(where: {
                $0.provider == provider && $0.workspaceID == workspaceID
            }) {
             existing.displayLabel = displayLabel
+            if let labelExplicitlyNamed { existing.labelExplicitlyNamed = labelExplicitlyNamed }
             existing.authSource = authSource
             existing.connectionKind = connectionKind
             existing.updatedAt = .now
@@ -81,7 +83,8 @@ public enum AccountRegistry {
             displayLabel: displayLabel,
             workspaceID: workspaceID,
             authSource: authSource,
-            connectionKind: connectionKind
+            connectionKind: connectionKind,
+            labelExplicitlyNamed: labelExplicitlyNamed
         )
         save(account)
         return account

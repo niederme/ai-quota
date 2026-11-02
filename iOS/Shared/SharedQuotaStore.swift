@@ -338,11 +338,12 @@ import UserNotifications
 /// Scheduled reset estimates only. Delivery does not confirm renewed availability.
 enum MobileResetNotifications {
     static var defaults: UserDefaults { UserDefaults(suiteName: WidgetStore.group) ?? .standard }
-    private static func displayName(_ service: QuotaService, namespace: String) -> String {
-        let profiles = AccountRegistry.profiles(for: service)
-        guard profiles.count > 1,
-              let profile = profiles.first(where: { $0.id == namespace }) else { return service.name }
-        return "\(service.name) · \(profile.label)"
+    static func displayName(_ service: QuotaService, namespace: String,
+                            profiles: [AccountProfile]? = nil) -> String {
+        let profiles = profiles ?? AccountRegistry.profiles(for: service)
+        guard let profile = profiles.first(where: { $0.service == service && $0.id == namespace })
+        else { return service.name }
+        return profile.alertDisplayName
     }
     // An absent preference means enabled; an explicit opt-out must survive re-enabling notifications.
     static func alertEnabled(_ key: String, store: UserDefaults = defaults) -> Bool {
