@@ -16,11 +16,7 @@ final class MobileQuotaInsightModel {
     struct Insight {
         let forecast: QuotaExhaustionForecast
         let query: Query
-        var label: String {
-            let name = query.profile.service.name
-            let label = query.profile.label.trimmingCharacters(in: .whitespacesAndNewlines)
-            return label.isEmpty ? name : label.localizedCaseInsensitiveContains(name) ? label : "\(label) \(name)"
-        }
+        var label: String { query.profile.alertDisplayName }
     }
     private var insight: Insight?
     private var dismissed: Set<QuotaForecastScope> = []

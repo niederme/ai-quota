@@ -4,6 +4,38 @@ import MobileAccessCore
 @testable import AIQuota_iOS
 
 @MainActor final class MobileQuotaInsightTests: XCTestCase {
+    func testInsightAndNotificationNamesShareAccountScopedPresentation() throws {
+        let now = Date.now
+        let profiles = [
+            AccountProfile(id: "live", service: .codex, label: "Account 2", isLegacy: true),
+            AccountProfile(id: "work", service: .codex, label: "Work", isLegacy: false),
+            AccountProfile(id: "live", service: .claude, label: "Service 2", isLegacy: true),
+            AccountProfile(id: "family", service: .claude, label: "Family", isLegacy: false),
+            AccountProfile(id: "custom", service: .codex, label: "Account 2", isLegacy: false,
+                           suggestedNamePending: false)
+        ]
+        let names = ["Codex", "Codex · Work", "Claude", "Claude · Family", "Codex · Account 2"]
+        for (profile, name) in zip(profiles, names) {
+            let reset = now.addingTimeInterval(86400)
+            let forecast = QuotaExhaustionForecast(scope: .init(accountID: profile.id,
+                provider: profile.service.rawValue, identity: "identity-\(profile.orderKey)", source: "wham",
+                plan: "pro", window: .weekly, resetAt: reset), basis: .periodAverage,
+                projectedUsedPercent: 140, validUntil: reset)
+            let query = MobileQuotaInsightModel.Query(profile: profile,
+                reading: reading(at: now, used: 65, reset: reset), historyFetchedAt: nil, tokensFetchedAt: nil)
+            let insight = MobileQuotaInsightModel.Insight(forecast: forecast, query: query)
+            XCTAssertEqual(insight.label, name)
+            XCTAssertEqual(insight.forecast.scope.accountID, profile.id)
+            XCTAssertEqual(MobileResetNotifications.displayName(profile.service, namespace: profile.id,
+                                                                profiles: profiles), name)
+            XCTAssertEqual(MobileResetNotifications.displayName(profile.service, namespace: profile.id,
+                                                                profiles: [profile]), name)
+            XCTAssertEqual(try JSONDecoder().decode(AccountProfile.self,
+                from: JSONEncoder().encode(profile)), profile)
+        }
+        XCTAssertEqual(MobileResetNotifications.displayName(.codex, namespace: "missing", profiles: profiles), "Codex")
+    }
+
     private func reading(at date: Date, used: Double, reset: Date) -> QuotaReading {
         QuotaReading(fetchedAt: date, shortTerm: nil,
             weekly: .init(usedPercent: used, durationSeconds: 604800, resetsAt: reset),

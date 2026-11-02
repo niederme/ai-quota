@@ -1,4 +1,5 @@
 import Foundation
+import MobileAccessCore
 
 public enum AccountAuthSource: String, Codable, CaseIterable, Sendable {
     case oauth
@@ -20,11 +21,18 @@ public struct ConnectedAccount: Codable, Identifiable, Sendable, Equatable {
     public let id: String
     public var provider: ServiceType
     public var displayLabel: String
+    /// Nil for older metadata; true after an explicit rename.
+    public var labelExplicitlyNamed: Bool?
     public var workspaceID: String?
     public var authSource: AccountAuthSource
     public var connectionKind: AccountConnectionKind
     public let createdAt: Date
     public var updatedAt: Date
+
+    public var alertDisplayName: String {
+        AccountAlertName.make(service: provider == .codex ? "Codex" : "Claude", label: displayLabel,
+                              explicitlyNamed: labelExplicitlyNamed != false)
+    }
 
     public init(
         id: UUID = UUID(),
@@ -34,11 +42,13 @@ public struct ConnectedAccount: Codable, Identifiable, Sendable, Equatable {
         authSource: AccountAuthSource,
         connectionKind: AccountConnectionKind = .isolated,
         createdAt: Date = .now,
-        updatedAt: Date = .now
+        updatedAt: Date = .now,
+        labelExplicitlyNamed: Bool? = nil
     ) {
         self.id = id.uuidString
         self.provider = provider
         self.displayLabel = displayLabel
+        self.labelExplicitlyNamed = labelExplicitlyNamed
         self.workspaceID = workspaceID
         self.authSource = authSource
         self.connectionKind = connectionKind

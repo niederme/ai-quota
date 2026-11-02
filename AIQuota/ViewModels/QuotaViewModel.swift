@@ -214,7 +214,8 @@ final class QuotaViewModel {
             provider: provider,
             displayLabel: "Personal",
             authSource: .webSession,
-            connectionKind: .legacyPrimary
+            connectionKind: .legacyPrimary,
+            labelExplicitlyNamed: false
         )
         if selectNewAccount {
             settings.registerMenuBarAccount(id: account.id, existingAccountIDs: existingIDs)
@@ -287,7 +288,8 @@ final class QuotaViewModel {
                 service: provider == .codex ? "Codex" : "Claude", plan: nil,
                 existingLabels: AccountRegistry.accounts(for: provider).map(\.displayLabel)
             ),
-            authSource: .webSession
+            authSource: .webSession,
+            labelExplicitlyNamed: false
         )
         settings.registerMenuBarAccount(id: account.id, existingAccountIDs: existingIDs)
         saveSettings()
@@ -378,6 +380,7 @@ final class QuotaViewModel {
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty, var account = AccountRegistry.account(id: id) else { return }
         account.displayLabel = name
+        account.labelExplicitlyNamed = true
         account.updatedAt = .now
         AccountRegistry.save(account)
         additionalAccounts.first { $0.id == id }?.updateAccount(account)
