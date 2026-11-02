@@ -504,7 +504,7 @@ struct CompactLockScreenWidget: Widget {
 struct QuotaWidgets: WidgetBundle {
     // Lead with the two complete designs; retain all old kind/intent identities
     // until on-device migration has been validated.
-    var body: some Widget { SingleHomeScreenWidget(); BothHomeScreenWidget(); SingleLockScreenWidget(); BothLockScreenWidget(); CompactLockScreenWidget(); ServiceDetailsWidget() }
+    var body: some Widget { SingleHomeScreenWidget(); BothHomeScreenWidget(); TwoRowHomeScreenWidget(); SingleLockScreenWidget(); BothLockScreenWidget(); CompactLockScreenWidget(); ServiceDetailsWidget() }
 }
 struct ServiceDetailsWidget: Widget {
     var body: some WidgetConfiguration {
@@ -523,6 +523,7 @@ struct HomeEntryView: View {
     let entry: QuotaEntry
     let both: Bool
     var previewFamily: WidgetFamily? = nil
+    var twoRows = false
     @Environment(\.widgetFamily) private var family
     @Environment(\.widgetRenderingMode) private var renderingMode
     @Environment(\.showsWidgetContainerBackground) private var showsBackground
@@ -545,6 +546,7 @@ struct HomeEntryView: View {
         }
     }
     private func layout(_ family: WidgetFamily) -> HomeQuotaView.Layout {
+        if twoRows { return .accountsRows }
         if both { return family == .systemSmall ? .accountsSmall : family == .systemLarge ? .large : .dualMedium }
         return family == .systemSmall ? .small : family == .systemLarge ? .accountLarge : .singleMedium
     }
@@ -572,6 +574,21 @@ struct BothHomeScreenWidget: Widget {
         .configurationDisplayName("Accounts")
         .description("Follows app order. Choose accounts or an optional sort order in Edit Widget.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .accessoryRectangular])
+        .contentMarginsDisabled()
+    }
+}
+
+/// A separate kind preserves the existing Accounts layouts and placed widgets.
+struct TwoRowHomeScreenWidget: Widget {
+    var body: some WidgetConfiguration {
+        AppIntentConfiguration(kind: "AIQuotaHomeTwoRows", intent: BothConfiguration.self, provider: BothProvider()) { entry in
+            HomeEntryView(entry: entry, both: true, twoRows: true)
+                .widgetURL(URL(string: "aiquota-probe://overview"))
+                .containerBackground(for: .widget) { Color.clear }
+        }
+        .configurationDisplayName("Accounts · Two rows")
+        .description("Two accounts in one card, with allowance details and available history. Follows your selected account order.")
+        .supportedFamilies([.systemLarge])
         .contentMarginsDisabled()
     }
 }

@@ -375,6 +375,13 @@ screen provides move handles and accessibility actions independently of those
 system controls. Compact budget captions show the two amounts on separate lines
 while accessibility descriptions keep the full spent/limit explanation.
 
+**Accounts · Two rows** is an additional large Home Screen widget. Its single
+surface contains two horizontal account rows, each with a full dial, service,
+plan/account label, reset details, and available Codex history. It shows the first
+two accounts in the configured order, with each row opening that account. Choose
+a Codex and a Claude account in Edit Widget to show one of each service. Existing
+Account and Accounts widgets keep their layouts and saved configuration.
+
 Widget account choices begin with Codex or Claude. A real friendly label or
 email is added only when multiple connections need distinguishing. Generic
 numbered account labels and opaque identifiers stay hidden. If saved metadata
