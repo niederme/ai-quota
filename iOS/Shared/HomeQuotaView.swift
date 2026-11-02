@@ -4,7 +4,7 @@ import MobileAccessCore
 
 struct HomeQuotaView: View {
     // Existing review callers retain these names. Production chooses by family.
-    enum Layout { case small, singleMedium, dualMedium, large, accountLarge, accountsSmall }
+    enum Layout { case small, singleMedium, dualMedium, large, accountLarge, accountsSmall, accountsRows }
     let values: [ProviderReading]
     let date: Date
     let layout: Layout
@@ -36,7 +36,7 @@ struct HomeQuotaView: View {
         switch layout {
         case .small, .accountsSmall: CGSize(width: 158, height: 158)
         case .singleMedium, .dualMedium: CGSize(width: 338, height: 158)
-        case .large, .accountLarge: CGSize(width: 338, height: 354)
+        case .large, .accountLarge, .accountsRows: CGSize(width: 338, height: 354)
         }
     }
 
@@ -49,6 +49,17 @@ struct HomeQuotaView: View {
                 if let account = visible.first { accountSummary(account, size: 124, heatmap: true) }
             case .accountLarge:
                 if let account = visible.first { largeAccount(account) }
+            case .accountsRows:
+                VStack(spacing: 12) {
+                    ForEach(Array(visible.prefix(2))) { account in
+                        Link(destination: account.url) {
+                            accountSummary(account, size: 124, heatmap: true)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        }
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(account.accessibility(at: date))
+                    }
+                }
             case .accountsSmall:
                 VStack(spacing: 12) {
                     ForEach(Array(visible.prefix(2))) { account in

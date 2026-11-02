@@ -291,6 +291,7 @@ extension WidgetAccountConfigurationTests {
                           width: Double(maxX - minX + 1) / 2, height: Double(maxY - minY + 1) / 2)
         }
         let cases: [(String, HomeQuotaView.Layout, Int, CGSize, CGSize)] = [
+            ("accounts-rows", .accountsRows, 2, .init(width: 338, height: 354), .init(width: 364, height: 382)),
             ("account-small", .small, 1, .init(width: 158, height: 158), .init(width: 170, height: 170)),
             ("accounts-small", .accountsSmall, 2, .init(width: 158, height: 158), .init(width: 170, height: 170)),
             ("account-medium", .singleMedium, 1, .init(width: 338, height: 158), .init(width: 364, height: 170)),
@@ -307,6 +308,53 @@ extension WidgetAccountConfigurationTests {
             XCTAssertEqual(b.minY, a.minY * scale + dy, accuracy: 2, name)
             XCTAssertEqual(b.width, a.width * scale, accuracy: 2, name)
             XCTAssertEqual(b.height, a.height * scale, accuracy: 2, name)
+        }
+    }
+}
+
+extension WidgetAccountConfigurationTests {
+    @MainActor func testTwoRowWidgetRendersReferenceAndAccountStates() throws {
+        let now = Date(timeIntervalSince1970: 1793606400)
+        func account(_ service: QuotaService, id: String, label: String, short: Double?, week: Double,
+                     plan: String, fetchedAt: Date? = nil, reconnect: Bool = false) -> WidgetAccountContent {
+            WidgetAccountContent(id: "\(service.rawValue):\(id)", value: .init(service: service,
+                reading: .init(fetchedAt: fetchedAt ?? now,
+                    shortTerm: short.map { .init(usedPercent: $0, durationSeconds: 18000, resetsAt: now.addingTimeInterval(3600)) },
+                    weekly: .init(usedPercent: week, durationSeconds: 604800, resetsAt: now.addingTimeInterval(4 * 86400)),
+                    metadata: .init(plan: plan, balanceUSD: nil, usageSpent: nil, usageCurrency: nil)), needsApp: reconnect),
+                label: label, tokenHistory: service == .codex ? DemoQuotaData.tokenHistory(now: now) : nil)
+        }
+        let codex = account(.codex, id: "personal", label: "Codex Pro", short: nil, week: 71, plan: "pro")
+        let claude = account(.claude, id: "work", label: "Claude Max", short: 2, week: 21, plan: "max")
+        let saved = account(.codex, id: "saved", label: "Personal", short: 44, week: 61, plan: "pro", fetchedAt: now.addingTimeInterval(-86400))
+        let reconnect = account(.claude, id: "removed", label: "Work", short: 12, week: 21, plan: "max", reconnect: true)
+        let limit = account(.claude, id: "limit", label: "Work", short: 100, week: 40, plan: "max")
+        let warning = account(.codex, id: "warning", label: "Personal", short: 88, week: 41, plan: "pro")
+        let long = account(.codex, id: "other", label: "Research and development workspace", short: 15, week: 36, plan: "pro")
+        let missing = WidgetAccountContent(id: "claude:empty", value: .init(service: .claude, reading: nil, needsApp: false))
+        let cases: [(String, [WidgetAccountContent])] = [
+            ("reference", [codex, claude]), ("reversed", [claude, codex]),
+            ("saved-reconnect", [saved, reconnect]), ("warning-limit", [warning, limit]),
+            ("same-service-long-name", [codex, long]), ("single", [codex]),
+            ("missing", [missing, codex]), ("empty", [])]
+        for (name, accounts) in cases {
+            let entry = QuotaEntry(date: now, values: accounts.map(\.value), accountLabels: [:], accountContents: accounts)
+            for dark in name == "reference" ? [false, true] : [true] {
+                let view = HomeEntryView(entry: entry, both: true, previewFamily: .systemLarge, twoRows: true)
+                    .frame(width: 338, height: 354)
+                    // WidgetKit supplies the outer shape in the actual host.
+                    .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                    .environment(\.colorScheme, dark ? .dark : .light)
+                    .environment(\.widgetRenderingMode, .fullColor)
+                let renderer = ImageRenderer(content: view); renderer.scale = 3
+                let image = try XCTUnwrap(renderer.uiImage)
+                XCTAssertEqual(image.size, CGSize(width: 338, height: 354))
+                let title = "two-rows-\(name)-\(dark ? "dark" : "light")"
+                let attachment = XCTAttachment(image: image); attachment.name = title; attachment.lifetime = .keepAlways; add(attachment)
+                let path = FileManager.default.temporaryDirectory.appendingPathComponent(title + ".png")
+                try XCTUnwrap(image.pngData()).write(to: path)
+                print("TWO_ROWS_REVIEW " + path.path)
+            }
         }
     }
 }
