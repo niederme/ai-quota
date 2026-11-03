@@ -397,6 +397,7 @@ private struct WidgetMediumStatsColumn: View {
 private struct WidgetSingleGaugePanel: View {
     let snapshot: WidgetServiceSnapshot?
     let service: ServiceType
+    let emptyLabel: String
     let gaugeSize: CGFloat
 
     var body: some View {
@@ -426,7 +427,7 @@ private struct WidgetSingleGaugePanel: View {
             } else {
                 WidgetEmptyGaugeView(
                     icon: service == .claude ? "logo-claude" : "logo-openai",
-                    label: service == .claude ? "Claude Code" : "Codex",
+                    label: emptyLabel,
                     size: gaugeSize
                 )
             }
@@ -580,26 +581,33 @@ struct WidgetSingleServiceMediumView: View {
     var body: some View {
         let snapshot = entry.snapshot(for: service)
 
-        HStack(spacing: 0) {
-            WidgetSingleGaugePanel(snapshot: snapshot, service: service, gaugeSize: 88)
-                .frame(width: 128)
+        Group {
+            if entry.selectedAccountUnavailable {
+                WidgetMissingSelectionView(label: entry.displayName(for: service))
+            } else {
+                HStack(spacing: 0) {
+                    WidgetSingleGaugePanel(snapshot: snapshot, service: service, emptyLabel: entry.displayName(for: service), gaugeSize: 88)
+                        .frame(width: 128)
 
-            Divider()
-                .padding(.vertical, 22)
+                    Divider()
+                        .padding(.vertical, 22)
 
-            WidgetMediumStatsColumn(
-                snapshot: snapshot,
-                emptyLabel: service == .claude ? "Claude Code" : "Codex"
-            )
-            .padding(.leading, 18)
-            .padding(.trailing, 18)
-            .padding(.top, 18)
-            .padding(.bottom, 14)
-            .frame(maxWidth: .infinity, alignment: .leading)
+                    WidgetMediumStatsColumn(
+                        snapshot: snapshot,
+                        emptyLabel: entry.displayName(for: service)
+                    )
+                    .padding(.leading, 18)
+                    .padding(.trailing, 18)
+                    .padding(.top, 18)
+                    .padding(.bottom, 14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .privacySensitive()
     }
 }
 
@@ -619,6 +627,7 @@ struct WidgetMediumView: View {
         .padding(.horizontal, 4)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .privacySensitive()
     }
 
     private var dualLayout: some View {
@@ -663,10 +672,10 @@ struct WidgetMediumView: View {
                     size: size
                 )
                 } else {
-                    unavailableSlot(icon: "logo-openai", label: "Codex")
+                    unavailableSlot(icon: "logo-openai", label: entry.displayName(for: .codex))
                 }
             } else {
-                emptySlot(icon: "logo-openai", label: "Codex")
+                emptySlot(icon: "logo-openai", label: entry.displayName(for: .codex))
             }
 
         case .claude:
@@ -687,7 +696,7 @@ struct WidgetMediumView: View {
                     size: size
                 )
             } else {
-                emptySlot(icon: "logo-claude", label: "Claude Code")
+                emptySlot(icon: "logo-claude", label: entry.displayName(for: .claude))
             }
         }
     }
@@ -745,7 +754,7 @@ struct WidgetLargeView: View {
                     HStack(alignment: .top, spacing: 0) {
                         WidgetStatsColumn(
                             snapshot: entry.snapshot(for: .codex),
-                            emptyLabel: "Codex",
+                            emptyLabel: entry.displayName(for: .codex),
                             showsFooter: false
                         )
                         .padding(.horizontal, 14)
@@ -757,7 +766,7 @@ struct WidgetLargeView: View {
 
                         WidgetStatsColumn(
                             snapshot: entry.snapshot(for: .claude),
-                            emptyLabel: "Claude Code",
+                            emptyLabel: entry.displayName(for: .claude),
                             showsFooter: false
                         )
                         .padding(.horizontal, 14)
@@ -770,10 +779,11 @@ struct WidgetLargeView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .privacySensitive()
     }
 
     @ViewBuilder
     private func largeGaugeColumn(for service: ServiceType) -> some View {
-        WidgetSingleGaugePanel(snapshot: entry.snapshot(for: service), service: service, gaugeSize: 96)
+        WidgetSingleGaugePanel(snapshot: entry.snapshot(for: service), service: service, emptyLabel: entry.displayName(for: service), gaugeSize: 96)
     }
 }

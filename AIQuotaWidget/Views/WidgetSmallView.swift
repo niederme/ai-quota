@@ -8,7 +8,9 @@ struct WidgetSmallView: View {
 
     var body: some View {
         Group {
-            if showClaude {
+            if entry.selectedAccountUnavailable {
+                WidgetMissingSelectionView(label: entry.displayName(for: entry.selectedService))
+            } else if showClaude {
                 if let u = entry.claudeUsage {
                     WidgetGaugeView(
                         primaryPercent: u.usedPercent,
@@ -26,7 +28,7 @@ struct WidgetSmallView: View {
                         size: 90
                     )
                 } else {
-                    emptyView("Claude Code")
+                    emptyView(entry.displayName(for: .claude))
                 }
             } else {
                 if let u = entry.codexUsage {
@@ -51,10 +53,10 @@ struct WidgetSmallView: View {
                         size: 90
                     )
                     } else {
-                        unavailableView("Codex")
+                        unavailableView(entry.displayName(for: .codex))
                     }
                 } else {
-                    emptyView("Codex")
+                    emptyView(entry.displayName(for: .codex))
                 }
             }
         }
@@ -77,5 +79,23 @@ struct WidgetSmallView: View {
             Text(name).font(.caption2.bold())
             Text("Usage unavailable").font(.system(size: 9)).foregroundStyle(.tertiary)
         }
+    }
+}
+
+struct WidgetMissingSelectionView: View {
+    let label: String
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(systemName: "person.crop.circle.badge.exclamationmark")
+                .font(.title2).foregroundStyle(.secondary)
+            Text(label).font(.caption.bold())
+            Text("Edit widget to choose a connection.")
+                .font(.caption2).foregroundStyle(.secondary)
+        }
+        .multilineTextAlignment(.center)
+        .padding(8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .privacySensitive()
     }
 }
