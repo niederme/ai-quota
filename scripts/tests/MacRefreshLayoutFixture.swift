@@ -12,6 +12,7 @@ import QuartzCore
     var state: AuthState = .authenticated
     var isLoading = false
     var isAuthenticated = true
+    var isCodexRestorationRetryable = false
     var issue: String?
     var codexUsage: CodexUsage?
     var claudeUsage: ClaudeUsage?
@@ -34,6 +35,7 @@ import QuartzCore
     var codexState: AuthState = .authenticated
     var claudeState: AuthState = .authenticated
     var isCodexRecovering = false
+    var isCodexRestorationRetryable = false
     var isClaudeRecovering = false
     var isCodexLoading = false
     var isClaudeLoading = false
@@ -44,8 +46,10 @@ import QuartzCore
     var lastRefreshedAt: Date? = .now
     func recoveryAction(for account: ConnectedAccount) -> AccountRecoveryAction {
         if let session = additionalAccounts.first(where: { $0.id == account.id }) {
+            if account.provider == .codex, session.isCodexRestorationRetryable { return .retry }
             return .resolve(authenticated: session.isAuthenticated, error: nil, hasIssue: session.issue != nil)
         }
+        if account.provider == .codex, isCodexRestorationRetryable { return .retry }
         return .resolve(authenticated: account.provider == .codex ? isCodexAuthenticated : isClaudeAuthenticated,
                         error: nil, hasIssue: (account.provider == .codex ? codexError : claudeError) != nil)
     }

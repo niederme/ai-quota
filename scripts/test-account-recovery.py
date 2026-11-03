@@ -16,6 +16,7 @@ for marker, signature, offset in [
     ('CLAUDE', '    func refreshClaude() async {', 0),
     ('ADDITIONAL', '    func refresh(userInitiated: Bool = false) async {', source.index('final class AdditionalAccountSession')),
     ('ROUTE', '    func reconnect(_ account: ConnectedAccount) async {', 0),
+    ('SIGNOUT_ACCOUNT', '    func signOutAccount(id: String) async {', 0),
 ]:
     start = source.index(signature, offset)
     end = source.index('\n    }', start) + len('\n    }')

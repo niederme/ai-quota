@@ -76,7 +76,7 @@ struct MacAdditionalAccountDetailView: View {
                             if session.provider == .codex { session.refreshUsageHistory(force: true) }
                             Task { await session.refresh(userInitiated: true) }
                         }
-                        .disabled(!session.isAuthenticated || session.isLoading)
+                        .disabled(session.isLoading)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

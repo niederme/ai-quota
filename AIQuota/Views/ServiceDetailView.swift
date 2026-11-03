@@ -28,7 +28,10 @@ struct ServiceDetailView: View {
     }
     private var connected: Bool { isCodex ? viewModel.isCodexAuthenticated : viewModel.isClaudeAuthenticated }
     private var error: NetworkError? { isCodex ? viewModel.codexError : viewModel.claudeError }
-    private var needsReconnect: Bool { AccountRecoveryAction.resolve(authenticated: connected, error: error) == .reconnect }
+    private var needsReconnect: Bool {
+        if isCodex, viewModel.isCodexRestorationRetryable, viewModel.codexState == .unauthenticated { return false }
+        return AccountRecoveryAction.resolve(authenticated: connected, error: error) == .reconnect
+    }
     private var reading: QuotaReading? {
         #if DEMO_MODE
         return MacAnalyticsDemo.reading(service)

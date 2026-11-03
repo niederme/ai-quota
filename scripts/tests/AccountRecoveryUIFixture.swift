@@ -100,6 +100,44 @@ struct CodexAnalyticsView: View {
                 }
             }
         }
+        // Same temporary restoration failure, with and without a last-good
+        // reading. Both Codex accounts must offer retry without a login prompt.
+        model.codexState = .unauthenticated; model.isCodexAuthenticated = false
+        model.isCodexRestorationRetryable = true; model.codexError = .httpError(statusCode: 503)
+        model.claudeError = nil
+        for session in model.additionalAccounts {
+            session.issue = nil; session.issueError = nil
+            if session.provider == .codex {
+                session.state = .unauthenticated; session.isAuthenticated = false
+                session.isCodexRestorationRetryable = true
+                session.issueError = .httpError(statusCode: 503)
+                session.issue = session.issueError?.localizedDescription
+            }
+        }
+        let savedPrimary = model.codexUsage
+        let isolated = model.additionalAccounts.first { $0.provider == .codex }
+        let savedAdditional = isolated?.codexUsage
+        for variant in ["cached", "missing-primary", "missing-additional", "missing-both"] {
+            model.codexUsage = variant == "missing-primary" || variant == "missing-both" ? nil : savedPrimary
+            isolated?.codexUsage = variant == "missing-additional" || variant == "missing-both" ? nil : savedAdditional
+            for appearance in ["dark", "light"] {
+                window.appearance = NSAppearance(named: appearance == "dark" ? .darkAqua : .aqua)
+                let cards = VStack(spacing: 8) {
+                    Text("Temporary Codex restore · Saved readings stay dated").font(.headline).padding()
+                    ForEach(AccountRegistry.fixtures.filter { $0.provider == .codex }) { account in
+                        MacAccountCard(account: account, session: self.model.additionalAccounts.first { $0.id == account.id },
+                            tokenHistory: nil, availableWidth: 416, showsAccountLabel: true,
+                            open: { Calls.opened.append(account.id) }, reconnect: { Calls.reconnected.append(account.id) }, highlighted: false)
+                    }
+                }.padding(16).background(Color.sheetTint)
+                try await render(cards, name: "codex-temporary-\(variant)-\(appearance)", expectedButtons: 0)
+                if let session = model.additionalAccounts.first(where: { $0.provider == .codex }) {
+                    let detail = MacAdditionalAccountDetailView(session: session, height: 820, close: {}, openSettings: {},
+                        reconnect: { Calls.reconnected.append(session.id) }).background(Color.sheetTint)
+                    try await render(detail, name: "codex-temporary-detail-\(variant)-\(appearance)", expectedButtons: 0)
+                }
+            }
+        }
     }
 }
 @main enum App {
