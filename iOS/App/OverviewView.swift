@@ -455,15 +455,17 @@ struct ServiceDetailContent<Account: View>: View {
             ProbeBrowser(url: CodexResetNotice.website)
         }
     }
-    private var planText: String {
-        if let identity { return identity.plan.map { "\($0) plan" } ?? "Plan unavailable" }
+    private var planText: String? {
+        if let identity { return identity.subtitle(for: .fullIdentity) }
         let plan = reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported"
         return accountLabel.map { "\($0) · \(plan)" } ?? plan
     }
-    private var planLabel: some View {
-        Text(planText)
-            .font(.subheadline).foregroundStyle(OverviewStyle.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+    @ViewBuilder private var planLabel: some View {
+        if let planText {
+            Text(planText)
+                .font(.subheadline).foregroundStyle(OverviewStyle.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
 }

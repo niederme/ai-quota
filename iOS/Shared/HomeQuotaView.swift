@@ -135,9 +135,8 @@ struct HomeQuotaView: View {
                 if monochrome && (account.worstPercent ?? 0) >= 85 { Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 12)) }
                 Text(account.compactName(showAccountNames: showAccountNames)).privacySensitive().font(.system(size: 17, weight: .semibold)).lineLimit(2).minimumScaleFactor(0.8)
             }
-            let plan = account.value.reading?.metadata?.displayPlan
-            if plan != nil || !account.label.isEmpty {
-                Text(plan.map { "\($0) plan" } ?? "Plan unavailable")
+            if let subtitle = account.identitySubtitle {
+                Text(subtitle)
                     .font(.system(size: 12, weight: .semibold)).lineLimit(1)
             }
             VStack(alignment: .leading, spacing: 0) {

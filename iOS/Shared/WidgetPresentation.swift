@@ -20,6 +20,11 @@ struct WidgetAccountContent: Identifiable, Sendable {
     func compactName(showAccountNames: Bool) -> String {
         showAccountNames ? name : AccountPresentation.resolve(.init(key: id, service: value.service.name, label: "", plan: value.reading?.metadata?.displayPlan), among: []).notificationTitle
     }
+    var identitySubtitle: String? {
+        guard value.reading != nil || !label.isEmpty else { return nil }
+        return AccountPresentation.resolve(.init(key: id, service: value.service.name, label: "",
+            plan: value.reading?.metadata?.displayPlan), among: []).subtitle(for: .fullIdentity)
+    }
     var url: URL {
         let prefix = value.service.rawValue + ":"
         guard id.hasPrefix(prefix) else { return value.service.url }

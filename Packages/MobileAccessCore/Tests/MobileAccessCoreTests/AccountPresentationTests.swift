@@ -52,3 +52,21 @@ private func item(_ id: String, _ service: String, _ plan: String?, _ label: Str
     #expect(AccountPresentation.resolve(missing, among: []).plan == nil)
     #expect(AccountPresentation.resolve(missing, among: []).subtitle.hasPrefix("Plan unavailable"))
 }
+
+@Test func subtitlesMatchSplitAndFullIdentityHeadings() {
+    for (service, plan) in [("Codex", "Pro"), ("Codex", "Business"), ("Claude", "Max"), ("Claude", "Enterprise")] {
+        for alias in ["", "Research"] {
+            let name = AccountPresentation.resolve(item("a", service, plan, alias, .user), among: [])
+            #expect(name.title == "\(service) \(plan)" + (alias.isEmpty ? "" : " · \(alias)"))
+            #expect(name.subtitle(for: .service) == "\(plan) plan" + (alias.isEmpty ? "" : " · \(alias)"))
+            #expect(name.subtitle(for: .fullIdentity) == nil)
+        }
+    }
+    let unknown = AccountPresentation.resolve(item("a", "Codex", nil, "Research", .user), among: [])
+    #expect(unknown.title == "Codex · Research")
+    #expect(unknown.subtitle(for: .service) == "Plan unavailable · Research")
+    #expect(unknown.subtitle(for: .fullIdentity) == "Plan unavailable")
+    let conflictingAlias = AccountPresentation.resolve(item("a", "Codex", "Business", "Pro plan", .user), among: [])
+    #expect(conflictingAlias.title == "Codex Business · Pro plan")
+    #expect(conflictingAlias.subtitle(for: .fullIdentity) == nil)
+}

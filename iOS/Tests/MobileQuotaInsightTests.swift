@@ -32,6 +32,8 @@ import MobileAccessCore
                 profiles: profiles, readings: readings), name)
             XCTAssertEqual(try JSONDecoder().decode(AccountProfile.self, from: JSONEncoder().encode(profile)), profile)
             XCTAssertFalse(presentation.subtitle.contains("Account"))
+            XCTAssertEqual(presentation.subtitle(for: .service), "\(try XCTUnwrap(presentation.plan)) plan")
+            XCTAssertNil(presentation.subtitle(for: .fullIdentity))
         }
     }
 

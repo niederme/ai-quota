@@ -337,6 +337,26 @@ extension WidgetAccountConfigurationTests {
 }
 
 extension WidgetAccountConfigurationTests {
+    func testFullIdentitySubtitleKeepsOnlyMissingPlanInformation() {
+        for service in QuotaService.allCases {
+            for plan in ["Pro", "Business", "Max", "Enterprise"] {
+                let content = WidgetAccountContent(id: "fixture", value: .init(service: service,
+                    reading: .init(fetchedAt: .now, shortTerm: nil, weekly: nil,
+                        metadata: .init(plan: plan, balanceUSD: nil, usageSpent: nil, usageCurrency: nil)),
+                    needsApp: false), label: "Research")
+                XCTAssertTrue(content.name.contains(plan))
+                XCTAssertTrue(content.name.contains("Research"))
+                XCTAssertNil(content.identitySubtitle)
+                XCTAssertTrue(content.compactName(showAccountNames: false).contains(plan))
+            }
+        }
+        let missing = WidgetAccountContent(id: "fixture", value: .init(service: .codex,
+            reading: .init(fetchedAt: .now, shortTerm: nil, weekly: nil), needsApp: false), label: "Research")
+        XCTAssertEqual(missing.identitySubtitle, "Plan unavailable")
+        let unconnected = WidgetAccountContent(id: "fixture", value: .init(service: .codex, reading: nil, needsApp: false))
+        XCTAssertNil(unconnected.identitySubtitle)
+    }
+
     @MainActor func testTwoRowWidgetRendersReferenceAndAccountStates() throws {
         let now = Date(timeIntervalSince1970: 1793606400)
         func account(_ service: QuotaService, id: String, label: String, short: Double?, week: Double,

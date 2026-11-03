@@ -15,6 +15,7 @@ public struct AccountIdentity: Equatable, Sendable {
 }
 
 public struct AccountPresentation: Equatable, Sendable {
+    public enum HeadingStyle { case service, fullIdentity }
     public let service: String
     public let plan: String?
     public let alias: String?
@@ -24,6 +25,15 @@ public struct AccountPresentation: Equatable, Sendable {
     /// Notifications omit aliases (which may contain private names or emails).
     public let notificationTitle: String
     public var managementHint: String? { requiresName ? "Give matching connections distinct names in Settings" : nil }
+
+    /// Split cards need plan/alias below the service. A full identity already
+    /// includes both; keep only metadata that adds information beneath it.
+    public func subtitle(for heading: HeadingStyle) -> String? {
+        switch heading {
+        case .service: return subtitle
+        case .fullIdentity: return plan == nil ? "Plan unavailable" : nil
+        }
+    }
 
     public static func resolve(_ identity: AccountIdentity, among peers: [AccountIdentity]) -> Self {
         let base = components(identity)
