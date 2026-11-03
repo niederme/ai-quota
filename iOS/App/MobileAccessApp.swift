@@ -296,7 +296,7 @@ struct ProbeView: View {
         }
             .foregroundStyle(OverviewStyle.primary)
             .background(OverviewStyle.base)
-            .navigationTitle("Codex account")
+            .navigationTitle(model.profile.map { AccountRegistry.presentation(for: $0, reading: model.reading).title } ?? "Connect Codex")
             .modifier(DismissAfterAccountConnection(completionID: model.signInCompletionID))
             .navigationBarTitleDisplayMode(.inline)
             .confirmationDialog("Remove this device’s connection?", isPresented: $confirmDisconnect) {

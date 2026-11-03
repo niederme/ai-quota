@@ -309,10 +309,11 @@ enum AccountRegistry {
 
     static func presentation(for profile: AccountProfile, reading: QuotaReading? = nil) -> AccountPresentation {
         let profiles = all()
+        let currentProfile = profiles.first(where: { $0.orderKey == profile.orderKey }) ?? profile
         let readings = Dictionary(uniqueKeysWithValues: profiles.compactMap { p in
             SharedQuotaStore(p).reading().map { (p.orderKey, $0) }
         })
-        return profile.presentation(reading: reading, among: profiles, readings: readings)
+        return currentProfile.presentation(reading: reading, among: profiles, readings: readings)
     }
     static func all() -> [AccountProfile] { store.all() }
     static func orderedProfiles() -> [AccountProfile] { store.orderedProfiles() }
