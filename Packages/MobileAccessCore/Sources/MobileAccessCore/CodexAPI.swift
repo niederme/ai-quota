@@ -140,15 +140,17 @@ public struct QuotaReading: Codable, Sendable, Equatable {
     }
     public let metadata: AccountMetadata?
     public let claudeBreakdown: ClaudeWeeklyBreakdown?
+    public let resetCredits: CodexResetCredits?
     /// Identity verified by the authenticated request, never inferred from cached account labels.
     public let providerIdentity: String?
-    public init(fetchedAt: Date, shortTerm: QuotaWindow?, weekly: QuotaWindow?, metadata: AccountMetadata? = nil, claudeBreakdown: ClaudeWeeklyBreakdown? = nil, monthlyBudget: MonthlyBudget? = nil, providerIdentity: String? = nil) {
+    public init(fetchedAt: Date, shortTerm: QuotaWindow?, weekly: QuotaWindow?, metadata: AccountMetadata? = nil, claudeBreakdown: ClaudeWeeklyBreakdown? = nil, monthlyBudget: MonthlyBudget? = nil, providerIdentity: String? = nil, resetCredits: CodexResetCredits? = nil) {
         self.fetchedAt = fetchedAt; self.shortTerm = shortTerm; self.weekly = weekly; self.metadata = metadata; self.claudeBreakdown = claudeBreakdown; self.monthlyBudget = monthlyBudget
         self.providerIdentity = providerIdentity
+        self.resetCredits = resetCredits
     }
-    public func identifying(_ identity: String?) -> Self {
+    public func identifying(_ identity: String?, resetCreditsAllowed: Bool = true) -> Self {
         Self(fetchedAt: fetchedAt, shortTerm: shortTerm, weekly: weekly, metadata: metadata,
-             claudeBreakdown: claudeBreakdown, monthlyBudget: monthlyBudget, providerIdentity: identity)
+             claudeBreakdown: claudeBreakdown, monthlyBudget: monthlyBudget, providerIdentity: identity, resetCredits: resetCreditsAllowed ? resetCredits : nil)
     }
     public static func decode(_ data: Data, now: Date) throws -> Self {
         let raw = try JSONDecoder().decode(UsageResponse.self, from: data)
@@ -166,7 +168,15 @@ public struct QuotaReading: Codable, Sendable, Equatable {
         let balance = raw.credits?.balance?.value
         let metadata = AccountMetadata(plan: raw.planType, balanceUSD: balance.map { $0 / 25 }, usageSpent: nil, usageCurrency: nil)
         return Self(fetchedAt: now, shortTerm: short, weekly: week, metadata: metadata,
-                    monthlyBudget: monthlyBudget)
+                    monthlyBudget: monthlyBudget, resetCredits: raw.resetCredits)
+    }
+
+    static func responseIdentity(_ data: Data) throws -> String? {
+        try JSONDecoder().decode(UsageResponse.self, from: data).accountID
+    }
+
+    static func resetCredits(_ data: Data) throws -> CodexResetCredits? {
+        try JSONDecoder().decode(UsageResponse.self, from: data).resetCredits
     }
 
     static func metadata(_ data: Data) throws -> AccountMetadata {
@@ -210,10 +220,12 @@ private struct MemberMonthlyUsageResponse: Decodable {
     }
 }
 private struct UsageResponse: Decodable {
+    let accountID: String?
     let rateLimit: UsageLimit?
     let planType: String?
     let credits: Credits?
     let spendControl: SpendControl?
+    let resetCredits: CodexResetCredits?
     struct Credits: Decodable { let balance: MetadataNumber? }
     struct SpendControl: Decodable {
         let individualLimit: IndividualLimit?
@@ -234,17 +246,21 @@ private struct UsageResponse: Decodable {
         }
     }
     enum CodingKeys: String, CodingKey {
+        case accountID = "account_id"
         case rateLimit = "rate_limit"
         case planType = "plan_type"
         case credits
         case spendControl = "spend_control"
+        case resetCredits = "rate_limit_reset_credits"
     }
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
+        accountID = try? c.decode(String.self, forKey: .accountID)
         rateLimit = try c.decodeIfPresent(UsageLimit.self, forKey: .rateLimit)
         planType = try? c.decode(String.self, forKey: .planType)
         credits = try? c.decode(Credits.self, forKey: .credits)
         spendControl = try? c.decode(SpendControl.self, forKey: .spendControl)
+        resetCredits = try? c.decode(CodexResetCredits.self, forKey: .resetCredits)
     }
 }
 private struct UsageLimit: Decodable {
@@ -321,7 +337,7 @@ public struct CodexAPI: Sendable {
         req.setValue("https://chatgpt.com/codex/settings/usage", forHTTPHeaderField: "Referer")
         let r = try await transport.send(req)
         try validate(r)
-        let reading: QuotaReading
+        var reading: QuotaReading
         do {
             reading = try QuotaReading.decode(r.data, now: fetchedAt)
         } catch AccessError.noWindows {
@@ -329,17 +345,22 @@ public struct CodexAPI: Sendable {
                 throw AccessError.noWindows
             }
             reading = QuotaReading(fetchedAt: fetchedAt, shortTerm: nil, weekly: nil,
-                metadata: try QuotaReading.metadata(r.data), monthlyBudget: budget)
+                metadata: try QuotaReading.metadata(r.data), monthlyBudget: budget,
+                resetCredits: try QuotaReading.resetCredits(r.data))
         }
-        guard includeSpending, reading.monthlyBudget == nil else { return reading.identifying(tokens.accountID) }
+        let responseIdentity = try QuotaReading.responseIdentity(r.data)
+        reading = reading.identifying(tokens.accountID, resetCreditsAllowed:
+            responseIdentity == nil || responseIdentity?.isEmpty == true || responseIdentity == tokens.accountID)
+        guard includeSpending, reading.monthlyBudget == nil else { return reading }
         req.url = URL(string: "https://chatgpt.com/backend-api/wham/usage/credit-usage-events")!
         req.timeoutInterval = 5
         // Optional metadata must not turn a successful quota fetch into a failure.
         guard let response = try? await transport.send(req), (200..<300).contains(response.status),
-              let spent = try? Self.decodeSpending(response.data, now: reading.fetchedAt) else { return reading.identifying(tokens.accountID) }
+              let spent = try? Self.decodeSpending(response.data, now: reading.fetchedAt) else { return reading }
         return QuotaReading(fetchedAt: reading.fetchedAt, shortTerm: reading.shortTerm, weekly: reading.weekly,
             metadata: AccountMetadata(plan: reading.metadata?.plan, balanceUSD: reading.metadata?.balanceUSD,
-                usageSpent: spent, usageCurrency: "USD"), monthlyBudget: reading.monthlyBudget, providerIdentity: tokens.accountID)
+                usageSpent: spent, usageCurrency: "USD"), monthlyBudget: reading.monthlyBudget, providerIdentity: tokens.accountID,
+            resetCredits: reading.resetCredits)
     }
     /// Optional overview analytics. This never changes the successful quota reading.
     public func usageHistory(_ tokens: CodexTokens, now: Date = .now) async throws -> CodexUsageHistory {

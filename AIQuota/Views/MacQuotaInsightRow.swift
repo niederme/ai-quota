@@ -23,6 +23,7 @@ struct MacQuotaInsightRow: View {
         let label: String
         let inputs: [QuotaForecastInput]
         let history: QuotaForecastDailyHistory?
+        var bankedResets: CodexBankedResetContext? = nil
     }
     private struct RefreshID: Equatable {
         let queries: [Query]
@@ -83,7 +84,10 @@ struct MacQuotaInsightRow: View {
             if history == nil, let tokenHistory, tokenHistory.isAttributed(toWorkspaceID: identity) {
                 history = .init(values: tokenHistory.tokensByDate, fetchedAt: tokenHistory.fetchedAt)
             }
-            return Query(label: account.presentation(plan: usage.displayPlan).title, inputs: inputs, history: history)
+            return Query(label: account.presentation(plan: usage.displayPlan).title, inputs: inputs, history: history,
+                bankedResets: usage.resetCredits.map {
+                    .init(accountID: account.id, providerIdentity: identity, credits: $0, fetchedAt: usage.fetchedAt)
+                })
         }
         #endif
     }
@@ -112,7 +116,8 @@ struct MacQuotaInsightRow: View {
                         }
                         // A changed reading or reset hides stale content synchronously.
                         if let visible {
-                            MacQuotaInsightBanner(forecast: visible.forecast, accountLabel: visible.query.label, inset: false) {
+                            MacQuotaInsightBanner(forecast: visible.forecast, accountLabel: visible.query.label,
+                                                  bankedResets: visible.query.bankedResets, inset: false) {
                                 withAnimation(reduceMotion ? nil : .default) {
                                     insight = nil
                                     dismissedScopes.insert(visible.forecast.scope)

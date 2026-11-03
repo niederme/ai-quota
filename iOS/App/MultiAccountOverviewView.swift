@@ -112,7 +112,7 @@ struct MultiAccountOverviewView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             let insight = quotaInsights.current(queries: queries, now: context.date)
                             OverviewAlerts(announcement: resetAnnouncement, forecast: insight?.forecast,
-                                accountLabel: insight?.label ?? "", wide: wide,
+                                accountLabel: insight?.label ?? "", bankedResets: insight?.bankedResets, wide: wide,
                                 loading: resetNotice.fetching || accounts.connected(.codex).contains {
                                     accounts.codex($0)?.loading == true
                                 }, openDetails: { showResetDetails = true },

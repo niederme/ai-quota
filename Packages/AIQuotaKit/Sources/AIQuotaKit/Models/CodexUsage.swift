@@ -1,4 +1,5 @@
 import Foundation
+import MobileAccessCore
 
 // MARK: - Raw API response from GET https://chatgpt.com/backend-api/wham/usage
 
@@ -11,6 +12,7 @@ public struct WhamUsageResponse: Decodable, Sendable {
     public let codeReviewRateLimit: RateLimitInfo?
     public let credits: Credits?
     public let spendControl: SpendControl?
+    public let rateLimitResetCredits: CodexResetCredits?
 
     public struct SpendControl: Decodable, Sendable {
         public let reached: Bool?
@@ -170,6 +172,13 @@ public struct CodexUsage: Codable, Sendable, Equatable {
     /// Authentication source of a newly verified fetch; absent on old caches.
     public internal(set) var quotaSource: CodexAuthSource?
     public let fetchedAt: Date
+    public private(set) var resetCredits: CodexResetCredits?
+
+    mutating func validateResetCreditIdentity(_ requestedIdentity: String?) {
+        if let reported = accountID, !reported.isEmpty, reported != requestedIdentity {
+            resetCredits = nil
+        }
+    }
 
     /// Confirmed shape of the reported allowance, not a permanent plan capability.
     /// Nil covers older caches and missing/incomplete provider payloads.
@@ -185,7 +194,10 @@ public struct CodexUsage: Codable, Sendable, Equatable {
         if reportedWindowShape == nil, monthlyBudget == nil,
            let previous, previous.planType == planType,
            previous.reportedWindowShape != nil || previous.displayableMonthlyBudget != nil {
-            return previous
+            var retained = previous
+            // A partial refresh must not resurrect an older reset balance.
+            retained.resetCredits = nil
+            return retained
         }
         return self
     }
@@ -267,6 +279,7 @@ public struct CodexUsage: Codable, Sendable, Equatable {
             monthlyBudget = nil
         }
 
+        self.resetCredits = response.rateLimitResetCredits
         self.accountID = response.accountId
         self.quotaSource = nil
         self.fetchedAt = fetchedAt
@@ -314,10 +327,11 @@ public struct CodexUsage: Codable, Sendable, Equatable {
         fetchedAt: Date, hourlyWindowReported: Bool? = nil,
         monthlyBudget: MonthlyBudget? = nil,
         reportedWindowShape: ReportedWindowShape? = nil, accountID: String? = nil,
-        quotaSource: CodexAuthSource? = nil
+        quotaSource: CodexAuthSource? = nil, resetCredits: CodexResetCredits? = nil
     ) {
         self.accountID = accountID
         self.quotaSource = quotaSource
+        self.resetCredits = resetCredits
         self.reportedWindowShape = reportedWindowShape
         self.hourlyWindowReported = hourlyWindowReported
         self.weeklyUsedPercent = weeklyUsedPercent
@@ -356,7 +370,7 @@ public struct CodexUsage: Codable, Sendable, Equatable {
             approxCloudMessages: approxCloudMessages,
             fetchedAt: fetchedAt, hourlyWindowReported: hourlyWindowReported,
             monthlyBudget: monthlyBudget,
-            reportedWindowShape: reportedWindowShape, accountID: accountID, quotaSource: quotaSource
+            reportedWindowShape: reportedWindowShape, accountID: accountID, quotaSource: quotaSource, resetCredits: resetCredits
         )
     }
 
@@ -379,7 +393,7 @@ public struct CodexUsage: Codable, Sendable, Equatable {
             fetchedAt: fetchedAt,
             hourlyWindowReported: hourlyWindowReported,
             monthlyBudget: budget,
-            reportedWindowShape: reportedWindowShape, accountID: accountID, quotaSource: quotaSource
+            reportedWindowShape: reportedWindowShape, accountID: accountID, quotaSource: quotaSource, resetCredits: resetCredits
         )
     }
 }
