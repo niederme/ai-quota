@@ -62,6 +62,16 @@ public actor CodexAuthCoordinator {
     private var oauthDisabledForSession = false
     private var contextGeneration = 0
 
+    /// A failed restoration is not proof that the saved browser session expired.
+    public private(set) var restorationFailure: NetworkError?
+    public var hasRetryableRestoration: Bool {
+        state == .unauthenticated && restorationFailure.map { !$0.needsReconnect } == true
+    }
+    private var restorationInFlight = false
+    private var restorationRetryCount = 0
+    private var nextRestorationAttempt = Date.distantPast
+    private let now: @Sendable () -> Date
+
     private let logger = Logger(subsystem: "ai.quota", category: "codex-coord")
 
     /// Stable app-owned account identifier. A scoped coordinator uses an
@@ -100,8 +110,10 @@ public actor CodexAuthCoordinator {
         interactiveSessionProvider: InteractiveSessionProvider? = nil,
         sessionCommitter: SessionCommitter? = nil,
         stagedSessionVerifier: StagedSessionVerifier? = nil,
-        sessionClearer: (@Sendable () async -> Void)? = nil
+        sessionClearer: (@Sendable () async -> Void)? = nil,
+        now: @escaping @Sendable () -> Date = { .now }
     ) {
+        self.now = now
         self.accountStorageID = accountStorageID
         self.interactiveSessionProvider = interactiveSessionProvider
         self.stagedSessionVerifier = stagedSessionVerifier ?? { try await Self.verifyStagedSession($0) }
@@ -165,6 +177,11 @@ public actor CodexAuthCoordinator {
 
     private func transition(to newState: AuthState) {
         state = newState
+        if newState == .authenticated || newState == .signedOutByUser {
+            restorationFailure = nil
+            restorationRetryCount = 0
+            nextRestorationAttempt = .distantPast
+        }
         logger.info("[CodexCoord] → \(String(describing: newState), privacy: .public)")
         for c in continuations.values { c.yield(newState) }
     }
@@ -189,9 +206,20 @@ public actor CodexAuthCoordinator {
 
         let operationGeneration = contextGeneration
         let operationExpected = expectedAccountID()
+        defer {
+            // Cancellation must not strand a connection in a busy state. Keep
+            // it unverified and retryable without adopting any canceled result.
+            if Task.isCancelled, state == .restoringSession,
+               operationGeneration == contextGeneration, expectedAccountID() == operationExpected {
+                restorationFailure = .networkUnavailable
+                transition(to: .unauthenticated)
+                scheduleRestorationRetryIfNeeded()
+            }
+        }
         let result = await withProbeTimeout(probe)
         guard state == .restoringSession, operationGeneration == contextGeneration,
-              expectedAccountID() == operationExpected else { return }
+              expectedAccountID() == operationExpected, !Task.isCancelled else { return }
+        if result == nil { restorationFailure = .networkUnavailable }
         if case .found(let token) = result, await restoreFromSessionToken(token) {
             transition(to: .authenticated)
             return
@@ -203,12 +231,16 @@ public actor CodexAuthCoordinator {
         let expected = expectedAccountID()
         if accountStorageID != nil, expected != nil,
            let revived = await headlessSessionReviver(), generation == contextGeneration,
-           expectedAccountID() == expected, state == .restoringSession,
+           expectedAccountID() == expected, state == .restoringSession, !Task.isCancelled,
            restoreFromWebSession(revived) {
             transition(to: .authenticated)
             return
         }
-        if state == .restoringSession { transition(to: .unauthenticated) }
+        if state == .restoringSession, generation == contextGeneration,
+           expectedAccountID() == expected, !Task.isCancelled {
+            transition(to: .unauthenticated)
+            scheduleRestorationRetryIfNeeded()
+        }
     }
 
     // MARK: - signIn()
@@ -334,6 +366,15 @@ public actor CodexAuthCoordinator {
             return false
         }
 
+        guard !Task.isCancelled, !restorationInFlight,
+              !hasRetryableRestoration || now() >= nextRestorationAttempt else { return false }
+        let isRetry = hasRetryableRestoration
+        // Reserve the next slot before suspending so cancellation cannot turn
+        // repeated refresh taps into unbounded restoration attempts.
+        if isRetry { scheduleRestorationRetryIfNeeded() }
+        restorationInFlight = true
+        defer { restorationInFlight = false }
+
         logger.notice("[CodexRecovery] trying Codex OAuth file")
         if restoreFromOAuthCredentialsForRecovery() {
             UserDefaults.standard.removeObject(forKey: signedOutDefaultsKey)
@@ -347,7 +388,8 @@ public actor CodexAuthCoordinator {
         let operationState = state
         let probeResult = await withProbeTimeout(probe)
         guard operationGeneration == contextGeneration, state == operationState,
-              expectedAccountID() == operationExpected else { return false }
+              expectedAccountID() == operationExpected, !Task.isCancelled else { return false }
+        if probeResult == nil { restorationFailure = .networkUnavailable }
         if case .found(let token) = probeResult {
             if await restoreFromSessionToken(token) {
                 logger.notice("[CodexRecovery] WebKit probe restored session")
@@ -371,7 +413,8 @@ public actor CodexAuthCoordinator {
         let generation = contextGeneration
         let expected = expectedAccountID()
         if let headlessResult = await headlessSessionReviver(), generation == contextGeneration,
-           state == operationState, expectedAccountID() == expected, restoreFromWebSession(headlessResult) {
+           state == operationState, expectedAccountID() == expected, !Task.isCancelled,
+           restoreFromWebSession(headlessResult) {
             logger.notice("[CodexRecovery] headless WebKit revival found sessionToken=\(!headlessResult.sessionToken.isEmpty, privacy: .public)")
             UserDefaults.standard.removeObject(forKey: signedOutDefaultsKey)
             transition(to: .authenticated)
@@ -379,7 +422,23 @@ public actor CodexAuthCoordinator {
         }
 
         logger.notice("[CodexRecovery] headless WebKit revival did not find a Codex session")
+        guard generation == contextGeneration, state == operationState,
+              expectedAccountID() == expected, !Task.isCancelled else { return false }
+        if !isRetry { scheduleRestorationRetryIfNeeded() }
         return false
+    }
+
+    /// Only retries an indeterminate restoration, with a single in-flight attempt
+    /// and 30s/60s/120s/240s/300s capped backoff. Never overrides explicit sign-out.
+    public func retryTransientRestorationIfNeeded() async -> Bool {
+        guard hasRetryableRestoration else { return state == .authenticated }
+        return await restoreWithoutPromptIfPossible()
+    }
+
+    private func scheduleRestorationRetryIfNeeded() {
+        guard hasRetryableRestoration else { return }
+        nextRestorationAttempt = now().addingTimeInterval(min(300, 30 * pow(2, Double(min(restorationRetryCount, 4)))))
+        restorationRetryCount = min(restorationRetryCount + 1, 4)
     }
 
     // MARK: - signOut()
@@ -390,6 +449,8 @@ public actor CodexAuthCoordinator {
             if let pendingCookieCommit { _ = try? await pendingCookieCommit.value }
         }
         switch state {
+        case .unauthenticated where hasRetryableRestoration || restorationInFlight:
+            break
         case .unauthenticated, .signedOutByUser:
             return
         case .authenticated, .signingIn:
@@ -414,6 +475,7 @@ public actor CodexAuthCoordinator {
     @discardableResult
     public func revalidateSessionAfterAuthFailure() async -> Bool {
         guard state == .authenticated else { return false }
+        restorationFailure = nil
 
         if restoreFromOAuthCredentials() {
             return true
@@ -424,12 +486,18 @@ public actor CodexAuthCoordinator {
         let result = await withProbeTimeout(probe)
 
         // Re-check: another transition may have run while probe was in flight.
-        guard generation == contextGeneration, state == .authenticated, expectedAccountID() == expected else { return false }
+        guard generation == contextGeneration, state == .authenticated, expectedAccountID() == expected,
+              !Task.isCancelled else { return false }
+        if result == nil { restorationFailure = .networkUnavailable }
 
         if case .found(let token) = result, await restoreFromSessionToken(token) { return true }
-        guard generation == contextGeneration, state == .authenticated else { return false }
+        guard generation == contextGeneration, state == .authenticated, !Task.isCancelled else { return false }
         if await refreshFromAccountBrowser() != nil { return true }
-        guard generation == contextGeneration, state == .authenticated else { return false }
+        guard generation == contextGeneration, state == .authenticated,
+              expectedAccountID() == expected, !Task.isCancelled else { return false }
+        // Preserve the verified identity when restoration has no auth verdict.
+        // The caller presents a retryable error and does not publish fresh usage.
+        if let restorationFailure, !restorationFailure.needsReconnect { return false }
         // A failed or incomplete probe is not permission to erase the saved
         // session. Explicit sign-out/reset own destructive credential cleanup.
         clearTokenCache()
@@ -579,16 +647,25 @@ public actor CodexAuthCoordinator {
         do {
             let refreshed = try await tokenRefresher(sessionToken)
             guard generation == contextGeneration, state == operationState, expectedAccountID() == expected,
-                  matchesExpectedAccount(CodexOAuthCredentialsStore.jwtAccountID(refreshed.token)) else { return false }
+                  !Task.isCancelled else { return false }
+            guard matchesExpectedAccount(CodexOAuthCredentialsStore.jwtAccountID(refreshed.token)) else {
+                restorationFailure = .accountIdentityMismatch
+                return false
+            }
             KeychainStore.save(sessionToken, forKey: sessionTokenKey)
             cachedAccessToken = refreshed.token
             tokenExpiresAt = refreshed.expiresAt ?? Date.now.addingTimeInterval(86400)
             accountID = CodexOAuthCredentialsStore.jwtAccountID(refreshed.token)
             authSource = .webSession
             persistSharedAuthContext(sessionToken: sessionToken)
+            restorationFailure = nil
             return true
         } catch {
-            guard generation == contextGeneration else { return false }
+            guard generation == contextGeneration, state == operationState, expectedAccountID() == expected,
+                  !Task.isCancelled else { return false }
+            // A canceled transport can throw even when its caller is not canceled.
+            // It has no authentication verdict, just like a timeout.
+            restorationFailure = (error as? NetworkError) ?? .networkUnavailable
             // Preserve any existing context on transient restoration failure.
             return false
         }
@@ -597,6 +674,7 @@ public actor CodexAuthCoordinator {
     @discardableResult
     private func restoreFromWebSession(_ result: CodexWebSessionResult) -> Bool {
         guard matchesExpectedAccount(CodexOAuthCredentialsStore.jwtAccountID(result.accessToken)) else {
+            restorationFailure = .accountIdentityMismatch
             logger.notice("[CodexRecovery] Web candidate belongs to another workspace; preserving this account")
             return false
         }
@@ -608,6 +686,7 @@ public actor CodexAuthCoordinator {
         accountID = CodexOAuthCredentialsStore.jwtAccountID(result.accessToken)
         authSource = .webSession
         persistSharedAuthContext(sessionToken: result.sessionToken)
+        restorationFailure = nil
         return true
     }
 
@@ -681,7 +760,7 @@ public actor CodexAuthCoordinator {
         let expected = expectedAccountID()
         let session = try await tokenRefresher(sessionToken)
         guard generation == contextGeneration, state == .authenticated, expectedAccountID() == expected,
-              matchesExpectedAccount(CodexOAuthCredentialsStore.jwtAccountID(session.token)) else {
+              !Task.isCancelled, matchesExpectedAccount(CodexOAuthCredentialsStore.jwtAccountID(session.token)) else {
             throw NetworkError.accountIdentityMismatch
         }
         cachedAccessToken = session.token
@@ -700,7 +779,7 @@ public actor CodexAuthCoordinator {
         let currentUser = cachedAccessToken.flatMap(CodexOAuthCredentialsStore.jwtUserID)
         guard state == .authenticated, let revived = await headlessSessionReviver(),
               generation == contextGeneration, state == .authenticated,
-              expectedAccountID() == expected,
+              expectedAccountID() == expected, !Task.isCancelled,
               Self.acceptsInteractiveSession(revived, expectedAccountID: expected),
               CodexOAuthCredentialsStore.jwtUserID(revived.accessToken) == currentUser,
               restoreFromWebSession(revived) else { return nil }
@@ -708,25 +787,47 @@ public actor CodexAuthCoordinator {
     }
 
     private static func defaultTokenRefresher(_ sessionToken: String) async throws -> (token: String, expiresAt: Date?) {
+        try await refreshSessionToken(sessionToken, session: .shared)
+    }
+
+    static func refreshSessionToken(_ sessionToken: String, session transport: URLSession) async throws -> (token: String, expiresAt: Date?) {
         guard !sessionToken.isEmpty else { throw NetworkError.notAuthenticated }
 
         var req = URLRequest(url: URL(string: "https://chatgpt.com/api/auth/session")!)
+        req.timeoutInterval = 15
+        req.httpShouldHandleCookies = false
         req.setValue("https://chatgpt.com", forHTTPHeaderField: "Referer")
         req.setValue("application/json", forHTTPHeaderField: "Accept")
         req.setValue("https://chatgpt.com", forHTTPHeaderField: "Origin")
         req.setValue("__Secure-next-auth.session-token=\(sessionToken)", forHTTPHeaderField: "Cookie")
 
-        let (data, response) = try await URLSession.shared.data(for: req)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200, !data.isEmpty else {
-            throw NetworkError.refreshFailed
+        let (data, response) = try await transport.data(for: req)
+        try Task.checkCancellation()
+        guard let http = response as? HTTPURLResponse else { throw NetworkError.networkUnavailable }
+        switch http.statusCode {
+        case 200: break
+        case 401: throw NetworkError.tokenExpired
+        case 429: throw NetworkError.rateLimited
+        default: throw NetworkError.httpError(statusCode: http.statusCode)
         }
+        guard !data.isEmpty else { throw NetworkError.requestFailed }
 
-        struct SessionResponse: Decodable { let accessToken: String; let expires: String? }
+        struct SessionResponse: Decodable { let accessToken: String?; let expires: String? }
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
-        let session = try decoder.decode(SessionResponse.self, from: data)
+        let session: SessionResponse
+        do { session = try decoder.decode(SessionResponse.self, from: data) }
+        catch { throw NetworkError.requestFailed }
+        guard let token = session.accessToken, !token.isEmpty else {
+            // An empty session object is the signed-out response. An unexpected
+            // error-shaped payload has no authentication verdict.
+            if let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any], object.isEmpty {
+                throw NetworkError.notAuthenticated
+            }
+            throw NetworkError.requestFailed
+        }
         return (
-            token: session.accessToken,
+            token: token,
             expiresAt: Self.parseExpiryValue(session.expires)
         )
     }

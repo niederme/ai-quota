@@ -40,14 +40,19 @@ struct Logger { func info(_ message: LogMessage) {}; func warning(_ message: Log
 struct PathMonitor { enum Status { case satisfied }; struct Path { var status = Status.satisfied }; var currentPath = Path() }
 actor Client<T: Sendable> {
     var actions: [@Sendable () async throws -> T]
+    private(set) var calls = 0
     init(_ actions: [@Sendable () async throws -> T]) { self.actions = actions }
-    func fetchUsage() async throws -> T { try await actions.removeFirst()() }
+    func fetchUsage() async throws -> T { calls += 1; return try await actions.removeFirst()() }
     func fetchAutoReload() throws -> CodexAutoReload { throw NetworkError.requestFailed }
     func fetchBonusCreditsSpentThisMonth() throws -> Double { throw NetworkError.requestFailed }
     func fetchMemberMonthlyUsage() throws -> CodexMonthlyUsageResponse { throw NetworkError.requestFailed }
 }
 actor Recovery {
     var state: AuthState = .authenticated
+    var restorationFailure: NetworkError?
+    var hasRetryableRestoration = false
+    func setRetryable() { state = .unauthenticated; hasRetryableRestoration = true }
+    func retryTransientRestorationIfNeeded() -> Bool { if hasRetryableRestoration { state = .authenticated; hasRetryableRestoration = false }; return state == .authenticated }
     let recovered: Bool
     private(set) var calls = 0
     init(_ recovered: Bool = true) { self.recovered = recovered }
@@ -70,6 +75,8 @@ actor Gate<T: Sendable> {
     var codexRefreshGeneration = 0, claudeRefreshGeneration = 0
     var codexUsage: CodexUsage?, claudeUsage: ClaudeUsage?
     var codexError: NetworkError?, claudeError: NetworkError?
+    var codexState: AuthState = .authenticated { didSet { isCodexAuthenticated = codexState == .authenticated } }
+    var isCodexRestorationRetryable = false
     var codexAutoReload: CodexAutoReload?
     var lastRefreshedAt: Date?
     var codexClient = Client<CodexUsage>([]), claudeClient = Client<ClaudeUsage>([])
@@ -97,7 +104,12 @@ actor Gate<T: Sendable> {
     var refreshGeneration = 0
     var isLoading = false, isManualRefreshing = false
     var issue: String?, issueError: NetworkError?
-    var recoveryAction: AccountRecoveryAction { .resolve(authenticated: isAuthenticated, error: issueError, hasIssue: issue != nil) }
+    var isCodexRestorationRetryable = false
+    func bindIdentity() async -> Bool { true }
+    var recoveryAction: AccountRecoveryAction {
+        if provider == .codex, state == .unauthenticated, isCodexRestorationRetryable { return .retry }
+        return .resolve(authenticated: isAuthenticated, error: issueError, hasIssue: issue != nil)
+    }
     var codexUsage: CodexUsage?, claudeUsage: ClaudeUsage?
     var codexClient: Client<CodexUsage>?, claudeClient: Client<ClaudeUsage>?
     var codexCoordinator: Recovery?, claudeCoordinator: Recovery?
@@ -111,7 +123,7 @@ actor Gate<T: Sendable> {
     func refreshTokenHistory() {}
     func clearTokenHistory() {}
     func clearUsageHistory() {}
-    func adoptState(_ value: AuthState) { state = value }
+    func adoptState(_ value: AuthState) { state = value; if value == .authenticated || value == .signedOutByUser { isCodexRestorationRetryable = false } }
     // SOURCE_ADDITIONAL
 }
 @MainActor final class Router {
@@ -120,6 +132,20 @@ actor Gate<T: Sendable> {
     func signIn() { routes.append("primary-codex") }
     func signInClaude() { routes.append("primary-claude") }
     // SOURCE_ROUTE
+}
+@MainActor final class ScheduledAccount {
+    let id: String
+    var isAuthenticated = false
+    var isCodexRestorationRetryable = true
+    init(_ id: String) { self.id = id }
+    func signOut() async { isAuthenticated = false; isCodexRestorationRetryable = false }
+}
+@MainActor final class Scheduler {
+    var isCodexAuthenticated = false, isClaudeAuthenticated = false, isCodexRestorationRetryable = false
+    var additionalAccounts = [ScheduledAccount("one"), ScheduledAccount("two")]
+    var stops = 0
+    func stopAutoRefresh() { stops += 1 }
+    // SOURCE_SIGNOUT_ACCOUNT
 }
 func codex(_ fetched: Date = Date(timeIntervalSince1970: 100), resetCredits: CodexResetCredits? = nil, accountID: String? = nil) -> CodexUsage {
     CodexUsage(weeklyUsedPercent: 21, weeklyResetAt: fetched, weeklyResetAfterSeconds: 0,
@@ -135,6 +161,33 @@ func claude(_ fetched: Date = Date(timeIntervalSince1970: 100)) -> ClaudeUsage {
 @main enum Checks {
     @MainActor static func main() async throws {
         var count = 0
+        let scheduler = Scheduler()
+        await scheduler.signOutAccount(id: "one")
+        try check(scheduler.stops == 0, "signing out one account preserves another Codex retry loop")
+        await scheduler.signOutAccount(id: "two")
+        try check(scheduler.stops == 1, "signing out the last retryable account stops its loop")
+        count += 2
+        // Codex renewal must confirm allowance once before clearing Reconnect.
+        for recovered in [true, false] {
+            let a = Additional(.codex); a.codexUsage = codex()
+            a.codexClient = Client([{ throw NetworkError.tokenExpired }, { codex(Date(timeIntervalSince1970: 200)) }])
+            a.codexCoordinator = Recovery(recovered)
+            await a.refresh()
+            try check(a.codexUsage?.fetchedAt == Date(timeIntervalSince1970: recovered ? 200 : 100), "additional Codex retry preserves actual freshness")
+            try check(a.recoveryAction == (recovered ? .none : .reconnect), "additional Codex clears stale authentication error only after allowance success")
+            try check(await a.codexClient!.calls == (recovered ? 2 : 1), "one additional Codex retry after successful revalidation")
+            count += 1
+        }
+        // Startup UI metadata may have been discarded by a manual refresh. The
+        // next primary refresh must reconcile retry eligibility from its owner.
+        let recovering = Primary(); recovering.codexState = .unauthenticated
+        recovering.isCodexRestorationRetryable = false
+        await recovering.codexCoordinator.setRetryable()
+        recovering.codexClient = Client([{ codex(Date(timeIntervalSince1970: 200)) }])
+        await recovering.refreshCodex()
+        try check(recovering.isCodexAuthenticated && recovering.codexError == nil, "primary reconciles a superseded restoration snapshot")
+        try check(recovering.codexUsage?.fetchedAt == Date(timeIntervalSince1970: 200), "primary recovery confirms fresh usage")
+        count += 1
         for provider in [ServiceType.codex, .claude] {
             for failure in [NetworkError.tokenExpired, .notAuthenticated, .refreshFailed, .networkUnavailable, .httpError(statusCode: 503), .rateLimited] {
                 for recovered in [true, false] {
@@ -149,7 +202,7 @@ func claude(_ fetched: Date = Date(timeIntervalSince1970: 100)) -> ClaudeUsage {
                     try check(p.codexUsage?.weeklyUsedPercent == 21 && p.claudeUsage?.sevenDayUtilization == 24, "primary saved usage retained")
                     try check(SharedDefaults.codex["primary"] != nil && SharedDefaults.claude["primary"] != nil, "primary saved persistence retained")
                     let a = Additional(provider); a.codexUsage = codex(); a.claudeUsage = claude()
-                    a.codexClient = Client([{ throw failure }]); a.claudeClient = Client([{ throw failure }])
+                    a.codexClient = Client([{ throw failure }, { throw failure }]); a.claudeClient = Client([{ throw failure }])
                     a.codexCoordinator = Recovery(recovered); a.claudeCoordinator = Recovery(recovered)
                     await a.refresh()
                     try check(a.recoveryAction == (failure.needsReconnect ? .reconnect : .retry), "additional \(provider) recovery")
@@ -232,6 +285,17 @@ func claude(_ fetched: Date = Date(timeIntervalSince1970: 100)) -> ClaudeUsage {
             if cancelled { task.cancel() } else { a.refreshGeneration += 1 }
             await gate.finish(.failure(NetworkError.tokenExpired)); await task.value
             try check(a.issue == nil && a.codexUsage != nil, "obsolete additional error ignored")
+            count += 1
+        }
+        // A successful late response is also stale after cancellation or replacement.
+        for cancelled in [true, false] {
+            let gate = Gate<CodexUsage>(); let a = Additional(.codex)
+            a.codexUsage = codex(); a.codexClient = Client([{ try await gate.wait() }])
+            let task = Task { await a.refresh() }
+            while !(await gate.waiting) { await Task.yield() }
+            if cancelled { task.cancel() } else { a.refreshGeneration += 1 }
+            await gate.finish(.success(codex(Date(timeIntervalSince1970: 200)))); await task.value
+            try check(a.codexUsage?.fetchedAt == Date(timeIntervalSince1970: 100), "obsolete additional success must not publish freshness")
             count += 1
         }
         let router = Router()

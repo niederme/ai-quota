@@ -166,6 +166,7 @@ final class QuotaViewModel {
     var codexAutoReload: CodexAutoReload?
     var isCodexLoading = false
     var codexError: NetworkError?
+    private(set) var isCodexRestorationRetryable = false
 
     let codexCoordinator: CodexAuthCoordinator
     private let codexClient: OpenAIClient
@@ -353,6 +354,7 @@ final class QuotaViewModel {
         if account.connectionKind == .isolated {
             return additionalAccounts.first { $0.id == account.id && $0.provider == account.provider }?.recoveryAction ?? .reconnect
         }
+        if account.provider == .codex, isCodexRestorationRetryable, codexState == .unauthenticated { return .retry }
         return AccountRecoveryAction.resolve(
             authenticated: account.provider == .codex ? isCodexAuthenticated : isClaudeAuthenticated,
             error: account.provider == .codex ? codexError : claudeError)
@@ -373,8 +375,8 @@ final class QuotaViewModel {
     func signOutAccount(id: String) async {
         guard let session = additionalAccounts.first(where: { $0.id == id }) else { return }
         await session.signOut()
-        if !isCodexAuthenticated && !isClaudeAuthenticated &&
-            !additionalAccounts.contains(where: { $0.isAuthenticated }) {
+        if !isCodexAuthenticated && !isClaudeAuthenticated && !isCodexRestorationRetryable &&
+            !additionalAccounts.contains(where: { $0.isAuthenticated || $0.isCodexRestorationRetryable }) {
             stopAutoRefresh()
         }
     }
@@ -390,8 +392,8 @@ final class QuotaViewModel {
             settings.menuBarAccountIDs = selected
             saveSettings()
         }
-        if !isCodexAuthenticated && !isClaudeAuthenticated &&
-            !additionalAccounts.contains(where: { $0.isAuthenticated }) {
+        if !isCodexAuthenticated && !isClaudeAuthenticated && !isCodexRestorationRetryable &&
+            !additionalAccounts.contains(where: { $0.isAuthenticated || $0.isCodexRestorationRetryable }) {
             stopAutoRefresh()
         }
         WidgetCenter.shared.reloadAllTimelines()
@@ -689,6 +691,7 @@ final class QuotaViewModel {
             for await state in codexCoordinator.stateStream {
                 await MainActor.run {
                     self.codexState = state
+                    if state == .authenticated || state == .signedOutByUser { self.isCodexRestorationRetryable = false }
                     if state == .authenticated && !self.enrolledServices.contains(.codex) {
                         self.enrolledServices.insert(.codex)
                         SharedDefaults.enrollService(.codex)
@@ -731,7 +734,7 @@ final class QuotaViewModel {
                 group.addTask { await self.restoreEnrolledCodexIfNeeded() }
                 group.addTask { await self.restoreEnrolledClaudeIfNeeded() }
             }
-            if self.additionalAccounts.contains(where: { $0.isAuthenticated }),
+            if self.additionalAccounts.contains(where: { $0.isAuthenticated || $0.isCodexRestorationRetryable }),
                self.refreshTask == nil {
                 self.startAutoRefresh()
             }
@@ -749,9 +752,22 @@ final class QuotaViewModel {
             logger.notice("[CodexRecovery] viewModel skipped not enrolled")
             return
         }
-        guard await codexCoordinator.restoreWithoutPromptIfPossible(allowSignedOutByUser: true) else {
+        let generation = codexRefreshGeneration
+        let restored = await codexCoordinator.restoreWithoutPromptIfPossible()
+        let state = await codexCoordinator.state
+        let retryable = await codexCoordinator.hasRetryableRestoration
+        let failure = await codexCoordinator.restorationFailure
+        guard generation == codexRefreshGeneration, !Task.isCancelled else { return }
+        codexState = state
+        isCodexRestorationRetryable = retryable
+        guard restored else {
             logger.notice("[CodexRecovery] viewModel restore failed")
-            clearCodexUsageSnapshot(clearPersistedUsage: false)
+            codexError = failure
+            if retryable {
+                if refreshTask == nil { startAutoRefresh(immediateRefresh: false) }
+            } else {
+                clearCodexUsageSnapshot(clearPersistedUsage: false)
+            }
             return
         }
 
@@ -962,14 +978,26 @@ final class QuotaViewModel {
 
     func refreshCodex() async {
         guard !Self.isDemoBuild else { return }
-        guard isCodexAuthenticated else { return }
         guard !isCodexLoading else { return }
-        refreshTokenHistory()
-        let previousPlan = codexUsage?.planType
         let gen = codexRefreshGeneration
         isCodexLoading = true
-        codexError = nil
         defer { if codexRefreshGeneration == gen { isCodexLoading = false } }
+        if !isCodexAuthenticated {
+            // Reconcile from the coordinator: a superseded startup task may
+            // have discarded its UI snapshot while restoration was finishing.
+            _ = await codexCoordinator.retryTransientRestorationIfNeeded()
+            let state = await codexCoordinator.state
+            let retryable = await codexCoordinator.hasRetryableRestoration
+            let failure = await codexCoordinator.restorationFailure
+            guard gen == codexRefreshGeneration, !Task.isCancelled else { return }
+            codexState = state
+            isCodexRestorationRetryable = retryable
+            codexError = failure
+        }
+        guard isCodexAuthenticated, !Task.isCancelled else { return }
+        refreshTokenHistory()
+        let previousPlan = codexUsage?.planType
+        codexError = nil
 
         do {
             async let usageResult      = codexClient.fetchUsage()
@@ -982,11 +1010,11 @@ final class QuotaViewModel {
                 result = result.withMonthlyBudget(budget)
             }
 
-            guard gen == codexRefreshGeneration, isCodexAuthenticated else { return }
+            guard gen == codexRefreshGeneration, isCodexAuthenticated, !Task.isCancelled else { return }
             // Auto-reload fetch: fail-open — errors leave codexAutoReload at its previous value
             // so the credit-warning treatment never regresses due to an auxiliary endpoint hiccup.
             if let reloadData = try? await autoReloadResult {
-                guard gen == codexRefreshGeneration, isCodexAuthenticated else { return }
+                guard gen == codexRefreshGeneration, isCodexAuthenticated, !Task.isCancelled else { return }
                 codexAutoReload = reloadData
             } else {
                 logger.info("[CodexRefresh] auto-reload fetch failed — leaving codexAutoReload unchanged")
@@ -998,7 +1026,7 @@ final class QuotaViewModel {
                 logger.info("[CodexRefresh] bonus spend fetch failed — leaving monthly spend hidden")
             }
 
-            guard gen == codexRefreshGeneration, isCodexAuthenticated else { return }
+            guard gen == codexRefreshGeneration, isCodexAuthenticated, !Task.isCancelled else { return }
             // A partial response may return the last confirmed cached snapshot.
             // Do not relabel its freshness or emit new activity for retained data.
             guard result.fetchedAt > (codexUsage?.fetchedAt ?? .distantPast) else {
@@ -1034,7 +1062,7 @@ final class QuotaViewModel {
         } catch let e as NetworkError {
             guard gen == codexRefreshGeneration, !Task.isCancelled else { return }
             if case .accountIdentityMismatch = e {
-                guard gen == codexRefreshGeneration else { return }
+                guard gen == codexRefreshGeneration, !Task.isCancelled else { return }
                 codexUsage = nil
                 codexAutoReload = nil
                 clearTokenHistory()
@@ -1047,8 +1075,11 @@ final class QuotaViewModel {
                 // Session may have expired — try a forced revalidation before clearing
                 // auth state. Avoids a brief "Connect" flash when cookies are still valid.
                 let recovered = await codexCoordinator.revalidateSessionAfterAuthFailure()
+                let state = await codexCoordinator.state
+                let failure = await codexCoordinator.restorationFailure
                 guard gen == codexRefreshGeneration, !Task.isCancelled else { return }
-                guard recovered, isCodexAuthenticated else { codexError = e; return }
+                codexState = state
+                guard recovered, isCodexAuthenticated else { codexError = failure ?? e; return }
                 // Retry once after successful revalidation
                 do {
                     async let usageResult      = codexClient.fetchUsage()
@@ -1061,7 +1092,7 @@ final class QuotaViewModel {
                     if let spent = try? await bonusSpendResult {
                         result = result.withBonusCreditsSpentThisMonth(spent)
                     }
-                    guard gen == codexRefreshGeneration, isCodexAuthenticated else { return }
+                    guard gen == codexRefreshGeneration, isCodexAuthenticated, !Task.isCancelled else { return }
                     // Retained cached data is not a completed fresh allowance reading.
                     guard result.fetchedAt > (codexUsage?.fetchedAt ?? .distantPast) else {
                         if result.fetchedAt == codexUsage?.fetchedAt,
@@ -1092,7 +1123,7 @@ final class QuotaViewModel {
                         )
                     }
                 } catch NetworkError.accountIdentityMismatch {
-                    guard gen == codexRefreshGeneration else { return }
+                    guard gen == codexRefreshGeneration, !Task.isCancelled else { return }
                     codexUsage = nil
                     codexAutoReload = nil
                     clearTokenHistory()
@@ -1484,8 +1515,8 @@ final class QuotaViewModel {
     }
 
     private func restartAutoRefresh(immediateRefresh: Bool) {
-        guard isCodexAuthenticated || isClaudeAuthenticated ||
-              additionalAccounts.contains(where: { $0.isAuthenticated }) else { return }
+        guard isCodexAuthenticated || isClaudeAuthenticated || isCodexRestorationRetryable ||
+              additionalAccounts.contains(where: { $0.isAuthenticated || $0.isCodexRestorationRetryable }) else { return }
         startAutoRefresh(immediateRefresh: immediateRefresh)
     }
 
@@ -1601,8 +1632,8 @@ final class QuotaViewModel {
             }
         }
 
-        guard isCodexAuthenticated || isClaudeAuthenticated ||
-              additionalAccounts.contains(where: { $0.isAuthenticated }) else { return }
+        guard isCodexAuthenticated || isClaudeAuthenticated || isCodexRestorationRetryable ||
+              additionalAccounts.contains(where: { $0.isAuthenticated || $0.isCodexRestorationRetryable }) else { return }
         guard !isLoading else { return }
         guard shouldRefreshOnPopoverOpen else { return }
 
@@ -1688,6 +1719,8 @@ final class QuotaViewModel {
     }
 
     func signOut() {
+        codexRefreshGeneration += 1
+        isCodexRestorationRetryable = false
         clearTokenHistory()
         clearUsageHistory()
         stopAutoRefresh()
@@ -1711,7 +1744,7 @@ final class QuotaViewModel {
                 self.settings.menuBarService = fallback
                 self.saveSettings()
             }
-            if self.isClaudeAuthenticated || self.additionalAccounts.contains(where: { $0.isAuthenticated }) {
+            if self.isClaudeAuthenticated || self.additionalAccounts.contains(where: { $0.isAuthenticated || $0.isCodexRestorationRetryable }) {
                 self.startAutoRefresh(immediateRefresh: false)
             }
         }
@@ -1733,8 +1766,8 @@ final class QuotaViewModel {
                 self.saveSettings()
             }
             if activeService == .claude { activeService = .codex }
-            if !self.isCodexAuthenticated &&
-                !self.additionalAccounts.contains(where: { $0.isAuthenticated }) {
+            if !self.isCodexAuthenticated && !self.isCodexRestorationRetryable &&
+                !self.additionalAccounts.contains(where: { $0.isAuthenticated || $0.isCodexRestorationRetryable }) {
                 self.stopAutoRefresh()
             }
         }
@@ -1758,8 +1791,8 @@ final class QuotaViewModel {
         }
         AnalyticsClient.shared.setCollectionEnabled(settings.analyticsEnabled)
         lastSavedSettings = settings
-        if isCodexAuthenticated || isClaudeAuthenticated ||
-            additionalAccounts.contains(where: { $0.isAuthenticated }) {
+        if isCodexAuthenticated || isClaudeAuthenticated || isCodexRestorationRetryable ||
+            additionalAccounts.contains(where: { $0.isAuthenticated || $0.isCodexRestorationRetryable }) {
             startAutoRefresh()
         }
     }
@@ -1823,8 +1856,10 @@ final class AdditionalAccountSession: Identifiable {
     private(set) var isManualRefreshing = false
     var issue: String?
     private(set) var issueError: NetworkError?
+    private(set) var isCodexRestorationRetryable = false
     var recoveryAction: AccountRecoveryAction {
-        .resolve(authenticated: isAuthenticated, error: issueError, hasIssue: issue != nil)
+        if provider == .codex, state == .unauthenticated, isCodexRestorationRetryable { return .retry }
+        return .resolve(authenticated: isAuthenticated, error: issueError, hasIssue: issue != nil)
     }
 
     private func clearIssue() { issue = nil; issueError = nil }
@@ -1893,6 +1928,8 @@ final class AdditionalAccountSession: Identifiable {
             }
             await codexCoordinator.bootstrap()
             adoptState(await codexCoordinator.state)
+            isCodexRestorationRetryable = await codexCoordinator.hasRetryableRestoration
+            if let failure = await codexCoordinator.restorationFailure { reportIssue(failure) }
         case .claude:
             guard let claudeCoordinator else { return }
             Task { [weak self] in
@@ -1946,6 +1983,7 @@ final class AdditionalAccountSession: Identifiable {
 
     func signOut() async {
         refreshGeneration += 1
+        isCodexRestorationRetryable = false
         if state == .unknown { await bootstrap() }
         switch provider {
         case .codex:
@@ -1964,8 +2002,6 @@ final class AdditionalAccountSession: Identifiable {
     }
 
     func refresh(userInitiated: Bool = false) async {
-        guard isAuthenticated else { return }
-        if provider == .codex { refreshTokenHistory() }
         guard !isLoading else {
             // A manual request can join an automatic refresh already underway.
             if userInitiated { isManualRefreshing = true }
@@ -1974,7 +2010,6 @@ final class AdditionalAccountSession: Identifiable {
         let generation = refreshGeneration
         isLoading = true
         isManualRefreshing = userInitiated
-        clearIssue()
         defer {
             if generation == refreshGeneration {
                 isLoading = false
@@ -1982,17 +2017,48 @@ final class AdditionalAccountSession: Identifiable {
             }
         }
 
+        if provider == .codex, !isAuthenticated, isCodexRestorationRetryable, let codexCoordinator {
+            _ = await codexCoordinator.retryTransientRestorationIfNeeded()
+            let state = await codexCoordinator.state
+            let retryable = await codexCoordinator.hasRetryableRestoration
+            let failure = await codexCoordinator.restorationFailure
+            guard generation == refreshGeneration, !Task.isCancelled else { return }
+            adoptState(state)
+            isCodexRestorationRetryable = retryable
+            if let failure { reportIssue(failure) }
+            if isAuthenticated {
+                guard await bindIdentity(), generation == refreshGeneration, !Task.isCancelled else { return }
+            }
+        }
+        guard isAuthenticated, !Task.isCancelled else { return }
+        if provider == .codex { refreshTokenHistory() }
+        clearIssue()
+
         do {
             switch provider {
             case .codex:
                 guard let codexClient else { return }
-                var result = try await codexClient.fetchUsage()
+                var result: CodexUsage
+                do {
+                    result = try await codexClient.fetchUsage()
+                } catch let error as NetworkError where error.isAuthError {
+                    guard generation == refreshGeneration, isAuthenticated, !Task.isCancelled,
+                          let codexCoordinator else { return }
+                    let recovered = await codexCoordinator.revalidateSessionAfterAuthFailure()
+                    let state = await codexCoordinator.state
+                    let failure = await codexCoordinator.restorationFailure
+                    guard generation == refreshGeneration, !Task.isCancelled else { return }
+                    adoptState(state)
+                    guard recovered, isAuthenticated else { throw failure ?? error }
+                    // Confirm allowance after renewal before removing the error.
+                    result = try await codexClient.fetchUsage()
+                }
                 if result.monthlyBudget == nil,
                    result.reportedWindowShape == nil,
                    let budget = try? await codexClient.fetchMemberMonthlyUsage().monthlyBudget {
                     result = result.withMonthlyBudget(budget)
                 }
-                guard generation == refreshGeneration, isAuthenticated else { return }
+                guard generation == refreshGeneration, isAuthenticated, !Task.isCancelled else { return }
                 codexUsage = result
                 SharedDefaults.saveUsage(result, forAccountID: id)
             case .claude:
@@ -2013,20 +2079,18 @@ final class AdditionalAccountSession: Identifiable {
             clearUsageHistory()
             reportIssue(NetworkError.accountIdentityMismatch)
         } catch let error as NetworkError where error.isAuthError {
-            guard generation == refreshGeneration, isAuthenticated, !Task.isCancelled else { return }
+            guard generation == refreshGeneration, !Task.isCancelled else { return }
             switch provider {
             case .codex:
-                if let codexCoordinator {
-                    _ = await codexCoordinator.revalidateSessionAfterAuthFailure()
-                    adoptState(await codexCoordinator.state)
-                }
+                break // Already revalidated and retried once above.
             case .claude:
+                guard isAuthenticated else { return }
                 if let claudeCoordinator {
                     _ = await claudeCoordinator.revalidateSessionAfterAuthFailure()
                     adoptState(await claudeCoordinator.state)
                 }
             }
-            guard generation == refreshGeneration else { return }
+            guard generation == refreshGeneration, !Task.isCancelled else { return }
             reportIssue(error)
         } catch {
             guard generation == refreshGeneration, !Task.isCancelled else { return }
@@ -2153,6 +2217,7 @@ final class AdditionalAccountSession: Identifiable {
 
     private func adoptState(_ newState: AuthState) {
         state = newState
+        if newState == .authenticated || newState == .signedOutByUser { isCodexRestorationRetryable = false }
         if provider == .codex, newState != .authenticated {
             clearTokenHistory()
             clearUsageHistory()
@@ -2160,6 +2225,7 @@ final class AdditionalAccountSession: Identifiable {
     }
 
     private func bindIdentity() async -> Bool {
+        let generation = refreshGeneration
         do {
             let identity: String?
             switch provider {
@@ -2168,6 +2234,7 @@ final class AdditionalAccountSession: Identifiable {
             case .claude:
                 identity = try await claudeCoordinator?.requestContext().orgId
             }
+            guard provider != .codex || (generation == refreshGeneration && isAuthenticated && !Task.isCancelled) else { return false }
             guard let identity, !identity.isEmpty else {
                 reportIssue(NetworkError.accountIdentityMismatch, message: "Could not verify this account's identity. Reconnect to try again.")
                 return false
@@ -2188,6 +2255,7 @@ final class AdditionalAccountSession: Identifiable {
             AccountRegistry.save(account)
             return true
         } catch {
+            guard provider != .codex || (generation == refreshGeneration && !Task.isCancelled) else { return false }
             reportIssue(error)
             return false
         }

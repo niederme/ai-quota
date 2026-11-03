@@ -13,9 +13,13 @@ LIB = ROOT / 'output/claude-lifecycle-verification'
 OUT = ROOT / 'output/account-recovery-ui'
 OUT.mkdir(parents=True, exist_ok=True)
 source = (ROOT / 'scripts/tests/MacRefreshLayoutFixture.swift').read_text().split('@MainActor enum FixtureMeasurements')[0]
+source = source.replace('let now = Date.now', 'let now = Date.now.addingTimeInterval(-3600)')
 source = source.replace('var issue: String?', '''var issue: String?
     var issueError: NetworkError?
-    var recoveryAction: AccountRecoveryAction { .resolve(authenticated: isAuthenticated, error: issueError, hasIssue: issue != nil) }
+    var recoveryAction: AccountRecoveryAction {
+        if provider == .codex, isCodexRestorationRetryable { return .retry }
+        return .resolve(authenticated: isAuthenticated, error: issueError, hasIssue: issue != nil)
+    }
     var codexUsageHistory: CodexUsageHistory?
     var usageHistoryFailed = false
     var isUsageHistoryLoading = false

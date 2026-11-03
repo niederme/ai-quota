@@ -67,6 +67,9 @@ struct MacAccountCard: View {
     }
     private var identity: MobileAccessCore.AccountPresentation { account.presentation(plan: plan) }
     private var needsReconnect: Bool { viewModel.recoveryAction(for: account) == .reconnect }
+    private var opensDetails: Bool {
+        connected || hasReading || (account.provider == .codex && viewModel.recoveryAction(for: account) == .retry)
+    }
     private var budget: (used: Double, limit: Double, unit: String, currency: String?, reset: Date?)? {
         if account.provider == .codex, codexUsage?.reportedWindowShape == nil,
            let value = codexUsage?.displayableMonthlyBudget,
@@ -116,7 +119,7 @@ struct MacAccountCard: View {
     }
 
     var body: some View {
-        Button(action: connected || hasReading ? open : reconnect) {
+        Button(action: opensDetails ? open : reconnect) {
             VStack(alignment: .leading, spacing: 0) {
                 HStack(alignment: .top, spacing: 20) {
                     MacAccountDial(icon: icon, primaryPercent: connected || loading ? primaryPercent : nil,
@@ -158,7 +161,7 @@ struct MacAccountCard: View {
         .accessibilityLabel(accessibilitySummary)
         .accessibilityValue(loading ? "Busy, updating allowance" : "")
         .accessibilityAddTraits(loading ? .updatesFrequently : [])
-        .accessibilityHint(connected || hasReading ? "Open account details" : "Reconnect account")
+        .accessibilityHint(opensDetails ? "Open account details" : "Reconnect account")
         // Overlay the secondary control as a sibling of the full-row Button.
         // This keeps its action independent and avoids nesting native buttons.
         .overlayPreferenceValue(MacReconnectButtonAnchor.self) { anchor in
