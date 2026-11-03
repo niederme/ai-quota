@@ -38,10 +38,8 @@ public struct AccountPresentation: Equatable, Sendable {
         let label = clean(i.label)
         let plan = normalizedPlan(i.plan)
         let stem = plan.map { "\(service) \($0)" } ?? service
-        let generated = label.isEmpty || fold(label) == fold(service) || fold(label) == "live" || UUID(uuidString: label) != nil
-            || (i.origin == .generated && fold(label) == "personal")
+        let generated = i.origin == .generated || label.isEmpty || fold(label) == fold(service) || fold(label) == "live" || UUID(uuidString: label) != nil
             || label.range(of: "^(?:(?:codex|claude)\\s+)?(?:account|service)\\s*[0-9]+$", options: [.regularExpression, .caseInsensitive]) != nil
-            || (i.origin == .generated && isGeneratedPlanLabel(label, service: service))
         // Unknown non-default legacy names are retained; only proven default patterns
         // are suppressed. An explicit rename always wins, including “Account 2”.
         let alias = i.origin == .user ? (label.isEmpty ? nil : label) : (generated ? nil : label)
@@ -59,11 +57,5 @@ public struct AccountPresentation: Equatable, Sendable {
         let p = clean(raw)
         guard !p.isEmpty, !["unknown", "not reported", "n/a"].contains(fold(p)) else { return nil }
         return fold(p) == "prolite" ? "Pro" : p.capitalized
-    }
-    private static func isGeneratedPlanLabel(_ label: String, service: String) -> Bool {
-        let prefix = service + " "
-        guard label.lowercased().hasPrefix(prefix.lowercased()) else { return false }
-        let tail = String(label.dropFirst(prefix.count)).lowercased()
-        return tail.range(of: "^(?:pro|prolite|business|enterprise|max|team|teams|free|plus|demo)(?: [0-9]+)?$", options: .regularExpression) != nil
     }
 }
