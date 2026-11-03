@@ -220,7 +220,7 @@ struct MultiAccountSettingsView: View {
     }
 
     private func rename(_ profile: AccountProfile) {
-        labelDraft = profile.label
+        labelDraft = accounts.presentation(for: profile).alias ?? ""
         accountToRename = profile
     }
 

@@ -69,8 +69,11 @@ public enum AccountRegistry {
            var existing = accounts().first(where: {
                $0.provider == provider && $0.workspaceID == workspaceID
            }) {
-            existing.displayLabel = displayLabel
-            if let labelExplicitlyNamed { existing.labelExplicitlyNamed = labelExplicitlyNamed }
+            // A reconnect may carry a generated suggestion; keep an existing alias.
+            if labelExplicitlyNamed != false || existing.labelExplicitlyNamed == false {
+                existing.displayLabel = displayLabel
+                if let labelExplicitlyNamed { existing.labelExplicitlyNamed = labelExplicitlyNamed }
+            }
             existing.authSource = authSource
             existing.connectionKind = connectionKind
             existing.updatedAt = .now

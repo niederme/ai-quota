@@ -404,7 +404,7 @@ private struct SettingsAccountDetail: View {
             }
         }
         .formStyle(.grouped)
-        .onAppear { name = AccountRegistry.account(id: account.id)?.displayLabel ?? account.displayLabel }
+        .onAppear { name = (AccountRegistry.account(id: account.id) ?? account).presentation().alias ?? "" }
         .onDisappear(perform: saveName)
         .confirmationDialog("\(pendingAction ?? "Remove Account")?", isPresented: Binding(get: { pendingAction != nil }, set: { if !$0 { pendingAction = nil } }), titleVisibility: .visible) {
             Button(pendingAction ?? "Remove Account", role: .destructive) {
@@ -757,7 +757,7 @@ struct ConnectedAccountNameSheet: View {
         .padding(20)
         .frame(width: 360)
         .onAppear {
-            name = account.displayLabel
+            name = account.presentation().alias ?? ""
             showInMenuBar = viewModel.settings.menuBarAccountIDs?.contains(account.id) == true
             nameFocused = true
         }

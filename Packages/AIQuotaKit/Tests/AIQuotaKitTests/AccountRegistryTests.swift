@@ -4,6 +4,21 @@ import Testing
 
 @Suite(.serialized)
 struct AccountRegistryTests {
+    @Test("Reconnect plan suggestions retain explicit and uncertain aliases")
+    func reconnectSuggestionPreservesAliases() {
+        for provenance in [true, nil] as [Bool?] {
+            let workspace = "fixture-" + UUID().uuidString
+            let original = AccountRegistry.upsert(provider: .codex, displayLabel: "Research", workspaceID: workspace,
+                authSource: .oauth, labelExplicitlyNamed: provenance)
+            defer { AccountRegistry.remove(id: original.id) }
+            let connected = AccountRegistry.upsert(provider: .codex, displayLabel: "Codex Pro", workspaceID: workspace,
+                authSource: .oauth, labelExplicitlyNamed: false)
+            #expect(connected.id == original.id)
+            #expect(connected.displayLabel == "Research")
+            #expect(connected.labelExplicitlyNamed == provenance)
+        }
+    }
+
     @Test("Mac overview stacks every account and scrolls only on real height overflow")
     func gridGeometry() {
         for width in [280.0, 420.0, 480.0] {

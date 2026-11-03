@@ -17,6 +17,7 @@ public struct AccountIdentity: Equatable, Sendable {
 public struct AccountPresentation: Equatable, Sendable {
     public let service: String
     public let plan: String?
+    public let alias: String?
     public let title: String
     public let subtitle: String
     public let requiresName: Bool
@@ -28,7 +29,7 @@ public struct AccountPresentation: Equatable, Sendable {
         let base = components(identity)
         let matching = peers.filter { $0.key != identity.key && fold(components($0).title) == fold(base.title) }
         let privateMatching = peers.filter { $0.key != identity.key && fold(components($0).notificationTitle) == fold(base.notificationTitle) }
-        return Self(service: base.service, plan: base.plan, title: base.title, subtitle: base.subtitle, requiresName: !matching.isEmpty,
+        return Self(service: base.service, plan: base.plan, alias: base.alias, title: base.title, subtitle: base.subtitle, requiresName: !matching.isEmpty,
                     notificationTitle: privateMatching.isEmpty ? base.notificationTitle : "\(identity.service) usage update")
     }
 
@@ -49,7 +50,7 @@ public struct AccountPresentation: Equatable, Sendable {
             title = plan == nil && alias.lowercased().hasPrefix(service.lowercased() + " ") ? alias : "\(stem) · \(alias)"
         } else { title = stem }
         let subtitle = [plan.map { "\($0) plan" } ?? "Plan unavailable", alias.flatMap { fold($0) == fold(stem) || fold($0) == fold(service) ? nil : $0 }].compactMap { $0 }.joined(separator: " · ")
-        return Self(service: service, plan: plan, title: title, subtitle: subtitle, requiresName: false, notificationTitle: stem)
+        return Self(service: service, plan: plan, alias: alias, title: title, subtitle: subtitle, requiresName: false, notificationTitle: stem)
     }
     private static func clean(_ s: String) -> String { s.split(whereSeparator: \.isWhitespace).joined(separator: " ") }
     private static func fold(_ s: String) -> String { clean(s).folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX")) }

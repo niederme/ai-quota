@@ -283,7 +283,7 @@ struct MultiAccountOverviewView: View {
                 .font(.subheadline).accessibilityHint(identity.managementHint ?? "")
         }
         }.contextMenu {
-            Button("Rename connection") { namingProfile = profile; nameDraft = profile.label; showsNamePrompt = true }
+            Button("Rename connection") { namingProfile = profile; nameDraft = accounts.presentation(for: profile).alias ?? ""; showsNamePrompt = true }
         }
 
     }
