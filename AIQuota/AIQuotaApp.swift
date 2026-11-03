@@ -173,7 +173,7 @@ private struct MenuBarStatusLabel: View {
                     showsUpdateBadge: updaterViewModel.availableUpdateVersion != nil
                 )
                 .help(selected.map {
-                    "\($0.provider == .codex ? "Codex" : "Claude Code") · \($0.displayLabel)"
+                    $0.presentation().title
                 }.joined(separator: "\n"))
             }
         } else if shouldShowBothMenuBarGauges {

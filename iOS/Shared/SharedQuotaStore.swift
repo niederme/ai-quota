@@ -339,11 +339,12 @@ import UserNotifications
 enum MobileResetNotifications {
     static var defaults: UserDefaults { UserDefaults(suiteName: WidgetStore.group) ?? .standard }
     static func displayName(_ service: QuotaService, namespace: String,
-                            profiles: [AccountProfile]? = nil) -> String {
+                            profiles: [AccountProfile]? = nil, readings suppliedReadings: [String: QuotaReading]? = nil) -> String {
         let profiles = profiles ?? AccountRegistry.profiles(for: service)
         guard let profile = profiles.first(where: { $0.service == service && $0.id == namespace })
         else { return service.name }
-        return profile.alertDisplayName
+        let readings = suppliedReadings ?? Dictionary(uniqueKeysWithValues: profiles.compactMap { p in SharedQuotaStore(p).reading().map { (p.orderKey, $0) } })
+        return profile.presentation(among: profiles, readings: readings).notificationTitle
     }
     // An absent preference means enabled; an explicit opt-out must survive re-enabling notifications.
     static func alertEnabled(_ key: String, store: UserDefaults = defaults) -> Bool {

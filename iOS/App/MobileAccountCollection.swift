@@ -117,7 +117,7 @@ final class MobileAccountCollection {
         let pending = trimmed == nil || trimmed?.isEmpty == true
         if fixtureMode {
             let profile = AccountProfile(id: UUID().uuidString, service: service,
-                                         label: name, isLegacy: false, suggestedNamePending: pending)
+                                         label: name, isLegacy: false, suggestedNamePending: pending, labelExplicitlyNamed: !pending)
             profiles.append(profile)
             if service == .codex { codexModels[profile.id] = ProbeModel(isDemo: true, profile: profile) }
             else { claudeModels[profile.id] = ClaudeProbeModel(isDemo: true, profile: profile) }
@@ -128,6 +128,18 @@ final class MobileAccountCollection {
         return profile
     }
 
+    func presentation(for profile: AccountProfile) -> AccountPresentation {
+        let readings = Dictionary(uniqueKeysWithValues: profiles.compactMap { p in
+            (p.service == .codex ? codex(p)?.reading : claude(p)?.reading).map { (p.orderKey, $0) }
+        })
+        return profile.presentation(among: profiles, readings: readings)
+    }
+    func canName(_ profile: AccountProfile?, label: String) -> Bool {
+        guard var profile, !label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        profile.label = label
+        profile.labelExplicitlyNamed = true
+        return !presentation(for: profile).requiresName
+    }
     func updateSuggestedNameIfReady(_ profile: AccountProfile) {
         guard let current = profiles.first(where: { $0.service == profile.service && $0.id == profile.id }),
               current.suggestedNamePending == true else { return }
@@ -137,6 +149,7 @@ final class MobileAccountCollection {
             profiles[index].label = AccountNameSuggestion.make(service: current.service.name, plan: plan,
                 existingLabels: profiles.filter { $0.service == current.service && $0.id != current.id }.map(\.label))
             profiles[index].suggestedNamePending = false
+            profiles[index].labelExplicitlyNamed = false
         } else {
             AccountRegistry.applySuggestedPlan(service: current.service, id: current.id, plan: plan)
             reload()
@@ -149,6 +162,7 @@ final class MobileAccountCollection {
             if let index = profiles.firstIndex(where: { $0.service == profile.service && $0.id == profile.id }) {
                 profiles[index].label = label
                 profiles[index].suggestedNamePending = false
+                profiles[index].labelExplicitlyNamed = true
             }
             return
         }

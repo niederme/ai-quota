@@ -8,9 +8,32 @@ struct QuotaEntry: TimelineEntry {
     let claudeUsage: ClaudeUsage?
     let configuration: ConfigurationAppIntent
     let enrolledServices: Set<ServiceType>
+    // Keep naming and selection checks on the same registry snapshot as this entry.
+    var accounts: [ConnectedAccount] = AccountRegistry.accounts()
 
     var selectedService: ServiceType {
         configuration.account?.provider ?? configuration.service.serviceType
+    }
+
+    var selectedAccountUnavailable: Bool {
+        guard let selected = configuration.account else { return false }
+        return !accounts.contains { $0.id == selected.id && $0.provider == selected.provider }
+    }
+
+    func displayName(for provider: ServiceType) -> String {
+        let plan = provider == .codex ? codexUsage?.displayPlan : claudeUsage?.planDisplayName
+        let account: ConnectedAccount?
+        if let selected = configuration.account {
+            // An installed widget can retain an entity after its connection is removed.
+            // Its label must never fall back to another connection's identity.
+            guard selected.provider == provider,
+                  let match = accounts.first(where: { $0.id == selected.id && $0.provider == provider })
+            else { return "\(provider == .codex ? "Codex" : "Claude") connection unavailable" }
+            account = match
+        } else {
+            account = accounts.first { $0.provider == provider && $0.connectionKind == .legacyPrimary }
+        }
+        return account?.presentation(plan: plan, among: accounts).title ?? ([provider == .codex ? "Codex" : "Claude", plan].compactMap { $0 }.joined(separator: " "))
     }
 
     // Backward-compat alias

@@ -56,7 +56,7 @@ struct MacQuotaInsightRow: View {
                 }
                 // The available Enterprise spend report is organization-scoped;
                 // do not apply it to a personal allowance without verified matching scope.
-                return Query(label: account.alertDisplayName, inputs: inputs, history: nil)
+                return Query(label: account.presentation(plan: usage.planDisplayName).title, inputs: inputs, history: nil)
             }
             if !isolated {
                 guard viewModel.isCodexAuthenticated, viewModel.codexError == nil else { return nil }
@@ -83,7 +83,7 @@ struct MacQuotaInsightRow: View {
             if history == nil, let tokenHistory, tokenHistory.isAttributed(toWorkspaceID: identity) {
                 history = .init(values: tokenHistory.tokensByDate, fetchedAt: tokenHistory.fetchedAt)
             }
-            return Query(label: account.alertDisplayName, inputs: inputs, history: history)
+            return Query(label: account.presentation(plan: usage.displayPlan).title, inputs: inputs, history: history)
         }
         #endif
     }

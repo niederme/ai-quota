@@ -8,7 +8,9 @@ struct WidgetSmallView: View {
 
     var body: some View {
         Group {
-            if showClaude {
+            if entry.selectedAccountUnavailable {
+                WidgetMissingSelectionView(label: entry.displayName(for: entry.selectedService))
+            } else if showClaude {
                 if let u = entry.claudeUsage {
                     WidgetGaugeView(
                         primaryPercent: u.usedPercent,
@@ -17,7 +19,7 @@ struct WidgetSmallView: View {
                         secondaryPercent: Int(u.sevenDayUtilization?.rounded() ?? 0),
                         showsSecondaryMetric: true,
                         icon: "logo-claude",
-                        label: "Claude Code",
+                        label: entry.displayName(for: .claude),
                         primaryLabel: u.primaryMetricLabel,
                         secondaryLabel: "7-day",
                         resetSeconds: u.resetAfterSeconds ?? 0,
@@ -26,12 +28,12 @@ struct WidgetSmallView: View {
                         size: 90
                     )
                 } else {
-                    emptyView("Claude Code")
+                    emptyView(entry.displayName(for: .claude))
                 }
             } else {
                 if let u = entry.codexUsage {
                     if u.reportedWindowShape == nil, let budget = u.displayableMonthlyBudget {
-                        WidgetBudgetView(budget: budget, size: 90)
+                        WidgetBudgetView(budget: budget, size: 90, label: entry.displayName(for: .codex))
                     } else if u.reportedWindowShape != nil {
                     let hasHourlyWindow = u.hasHourlyWindow
                     let weeklyOnly = u.reportsWeeklyOnlyWindow
@@ -42,7 +44,7 @@ struct WidgetSmallView: View {
                         secondaryPercent: u.weeklyUsedPercent,
                         showsSecondaryMetric: !weeklyOnly,
                         icon: "logo-openai",
-                        label: "Codex",
+                        label: entry.displayName(for: .codex),
                         primaryLabel: weeklyOnly ? "7d" : "5h",
                         secondaryLabel: "7-day",
                         resetSeconds: weeklyOnly ? u.weeklyResetAfterSeconds : u.hourlyResetAfterSeconds,
@@ -51,13 +53,14 @@ struct WidgetSmallView: View {
                         size: 90
                     )
                     } else {
-                        unavailableView("Codex")
+                        unavailableView(entry.displayName(for: .codex))
                     }
                 } else {
-                    emptyView("Codex")
+                    emptyView(entry.displayName(for: .codex))
                 }
             }
         }
+        .privacySensitive()
         .padding(8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -76,5 +79,23 @@ struct WidgetSmallView: View {
             Text(name).font(.caption2.bold())
             Text("Usage unavailable").font(.system(size: 9)).foregroundStyle(.tertiary)
         }
+    }
+}
+
+struct WidgetMissingSelectionView: View {
+    let label: String
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(systemName: "person.crop.circle.badge.exclamationmark")
+                .font(.title2).foregroundStyle(.secondary)
+            Text(label).font(.caption.bold())
+            Text("Edit widget to choose a connection.")
+                .font(.caption2).foregroundStyle(.secondary)
+        }
+        .multilineTextAlignment(.center)
+        .padding(8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .privacySensitive()
     }
 }

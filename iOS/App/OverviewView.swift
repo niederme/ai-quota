@@ -364,6 +364,7 @@ struct ServiceDetailContent<Account: View>: View {
     let busy: Bool
     let error: String?
     let failure: SharedQuotaStore.Failure?
+    var identity: AccountPresentation? = nil
     var accountLabel: String? = nil
     var history: CodexUsageHistory? = nil
     var historyUnavailable = false
@@ -429,7 +430,7 @@ struct ServiceDetailContent<Account: View>: View {
         }
         .background { BrandSurfaceBackground().ignoresSafeArea() }
         .toolbarBackground(.hidden, for: .navigationBar)
-        .navigationTitle(name)
+        .navigationTitle(identity?.title ?? name)
         .toolbarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -454,14 +455,17 @@ struct ServiceDetailContent<Account: View>: View {
             ProbeBrowser(url: CodexResetNotice.website)
         }
     }
-    private var planText: String {
+    private var planText: String? {
+        if let identity { return identity.subtitle(for: .fullIdentity) }
         let plan = reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported"
         return accountLabel.map { "\($0) · \(plan)" } ?? plan
     }
-    private var planLabel: some View {
-        Text(planText)
-            .font(.subheadline).foregroundStyle(OverviewStyle.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+    @ViewBuilder private var planLabel: some View {
+        if let planText {
+            Text(planText)
+                .font(.subheadline).foregroundStyle(OverviewStyle.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
 }
@@ -558,6 +562,7 @@ struct ProviderDialCard: View {
     let busy: Bool
     let error: String?
     var failure: SharedQuotaStore.Failure? = nil
+    var identity: AccountPresentation? = nil
     var accountLabel: String? = nil
     var history: CodexUsageHistory? = nil
     var historyUnavailable = false
@@ -569,7 +574,7 @@ struct ProviderDialCard: View {
     var body: some View {
         ProviderDialCardContent(name: name, icon: icon, availableWidth: availableWidth,
             reading: reading, connected: connected, busy: busy, error: error, failure: failure,
-            onOpen: onOpen, onReconnect: onReconnect, accountLabel: accountLabel,
+            onOpen: onOpen, onReconnect: onReconnect, identity: identity, accountLabel: accountLabel,
             history: history, historyUnavailable: historyUnavailable,
             tokenHistory: tokenHistory, tokenHistoryUnavailable: tokenHistoryUnavailable, tokenHistoryLoading: tokenHistoryLoading)
     }
@@ -818,26 +823,6 @@ struct OverviewScrollView<Content: View>: View {
     }
 }
 
-/// Match MacAccountCard's suppression of generated/default account labels.
-func overviewDisplayAccountLabel(_ label: String, serviceName: String, plan: String?,
-                                 showsAccountLabel: Bool) -> String? {
-    let label = label.trimmingCharacters(in: .whitespacesAndNewlines)
-    guard !label.isEmpty else { return nil }
-    if !showsAccountLabel && label.caseInsensitiveCompare("Personal") == .orderedSame { return nil }
-    if label.caseInsensitiveCompare(serviceName) == .orderedSame { return nil }
-    if let plan, plan.caseInsensitiveCompare("Unknown") != .orderedSame {
-        var defaults = ["\(serviceName) \(plan)"]
-        if serviceName == "Codex", ["business", "enterprise"].contains(plan.lowercased()) {
-            defaults += ["Codex Business", "Codex Enterprise"]
-        }
-        if defaults.contains(where: { label.caseInsensitiveCompare($0) == .orderedSame }) { return nil }
-    }
-    let parts = label.split(whereSeparator: \.isWhitespace)
-    if parts.count == 2, ["account", "service"].contains(parts[0].lowercased()),
-       parts[1].allSatisfy(\.isNumber) { return nil }
-    return label
-}
-
 /// Mac row line boxes, scaled with Dynamic Type and native accessibility leading.
 private struct OverviewDetailType: ViewModifier {
     var title = false
@@ -870,6 +855,7 @@ struct ProviderDialCardContent: View {
     var failure: SharedQuotaStore.Failure? = nil
     var onOpen: (() -> Void)? = nil
     var onReconnect: (() -> Void)? = nil
+    var identity: AccountPresentation? = nil
     var accountLabel: String? = nil
     var history: CodexUsageHistory? = nil
     var historyUnavailable = false
@@ -987,14 +973,14 @@ struct ProviderDialCardContent: View {
         VStack(alignment: .leading, spacing: 8) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .center, spacing: 4) {
-                    Text(name).unredacted().modifier(OverviewDetailType(title: true, wide: usesWideLayout)).foregroundStyle(OverviewStyle.primary)
+                    Text(identity?.service ?? name).unredacted().modifier(OverviewDetailType(title: true, wide: usesWideLayout)).foregroundStyle(OverviewStyle.primary)
                     Spacer(minLength: 0)
                     if onOpen != nil {
                         OverviewControlGlyph(symbol: "chevron.right")
                     }
                 }
-                Text(connected ? ((reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported")
-                    + (accountLabel.map { " · \($0)" } ?? "")) : "Not connected")
+                Text(connected ? (identity?.subtitle ?? ((reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported")
+                    + (accountLabel.map { " · \($0)" } ?? ""))) : "Not connected")
                     .modifier(OverviewDetailType(weight: .semibold, wide: usesWideLayout)).foregroundStyle(OverviewStyle.primary)
                     .fixedSize(horizontal: false, vertical: true)
             }

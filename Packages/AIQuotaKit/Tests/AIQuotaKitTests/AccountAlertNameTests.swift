@@ -19,6 +19,6 @@ import Testing
     old.removeValue(forKey: "labelExplicitlyNamed")
     let legacy = try JSONDecoder().decode(ConnectedAccount.self, from: JSONSerialization.data(withJSONObject: old))
     // Older Mac records cannot distinguish an ordinal alias chosen by the owner.
-    #expect(legacy.alertDisplayName == "Codex · Account 2")
+    #expect(legacy.alertDisplayName == "Codex")
     #expect(legacy.id == accounts[0].id)
 }

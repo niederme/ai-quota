@@ -32,6 +32,9 @@ private struct AccountSheetSelection: Identifiable {
 }
 
 struct MultiAccountOverviewView: View {
+    @State private var namingProfile: AccountProfile?
+    @State private var nameDraft = ""
+    @State private var showsNamePrompt = false
     @State private var accounts: MobileAccountCollection
     @State private var onboarding = OnboardingProgress()
     @State private var needsInitialSetup: Bool
@@ -73,6 +76,12 @@ struct MultiAccountOverviewView: View {
                 dashboard
             }
         }
+        .alert("Name this connection", isPresented: $showsNamePrompt) {
+            TextField("Connection name", text: $nameDraft)
+            Button("Save") { if let profile = namingProfile { accounts.rename(profile, to: nameDraft) } }
+                .disabled(!accounts.canName(namingProfile, label: nameDraft))
+            Button("Cancel", role: .cancel) {}
+        } message: { Text("Choose a distinct name for connections with the same service and plan.") }
         .onChange(of: scenePhase) { _, phase in
             if phase == .background { MobileBackgroundRefresh.shared.scheduleNext() }
             if phase == .active {
@@ -245,13 +254,14 @@ struct MultiAccountOverviewView: View {
     }
 
     @ViewBuilder private func accountCard(_ profile: AccountProfile, width: CGFloat) -> some View {
-        let reading = profile.service == .codex ? accounts.codex(profile)?.reading : accounts.claude(profile)?.reading
-        let accountLabel = overviewAccountLabel(profile, plan: reading?.metadata?.displayPlan)
+        let identity = accounts.presentation(for: profile)
+        VStack(spacing: 8) {
+        Group {
         if profile.service == .codex, let model = accounts.codex(profile) {
             ProviderDialCard(name: "Codex", icon: profile.service.logo, availableWidth: width,
                              reading: model.reading, connected: model.connected, busy: model.loading,
                              error: model.error, failure: model.connectionFailure,
-                             accountLabel: accountLabel,
+                             identity: identity, accountLabel: nil,
                              history: model.history, historyUnavailable: model.historyUnavailable,
                              tokenHistory: model.tokenHistory, tokenHistoryUnavailable: model.tokenHistoryUnavailable,
                              tokenHistoryLoading: model.tokenHistoryLoading,
@@ -262,16 +272,20 @@ struct MultiAccountOverviewView: View {
             ProviderDialCard(name: "Claude", icon: profile.service.logo, availableWidth: width,
                              reading: model.reading, connected: model.connected, busy: model.loading,
                              error: model.error, failure: model.connectionFailure,
-                             accountLabel: accountLabel,
+                             identity: identity, accountLabel: nil,
                              onReconnect: { selected = .init(kind: .connection, profile: profile) }) {
                 selected = .init(kind: .detail, profile: profile)
             }
         }
-    }
+        }
+        if identity.requiresName {
+            Button("Name this connection") { namingProfile = profile; nameDraft = ""; showsNamePrompt = true }
+                .font(.subheadline).accessibilityHint(identity.managementHint ?? "")
+        }
+        }.contextMenu {
+            Button("Rename connection") { namingProfile = profile; nameDraft = accounts.presentation(for: profile).alias ?? ""; showsNamePrompt = true }
+        }
 
-    private func overviewAccountLabel(_ profile: AccountProfile, plan: String?) -> String? {
-        overviewDisplayAccountLabel(profile.label, serviceName: profile.service == .codex ? "Codex" : "Claude",
-                                    plan: plan, showsAccountLabel: accounts.connected(profile.service).count > 1)
     }
 
     @ViewBuilder private func sheetContent(_ selection: AccountSheetSelection) -> some View {
@@ -292,14 +306,14 @@ struct MultiAccountOverviewView: View {
                     ServiceDetailContent(name: "Codex", icon: profile.service.logo,
                                          reading: model.reading, connected: model.connected, busy: model.busy,
                                          error: model.error, failure: model.connectionFailure,
-                                         accountLabel: profile.label, history: model.history,
+                                         identity: accounts.presentation(for: profile), accountLabel: nil, history: model.history,
                                          historyUnavailable: model.historyUnavailable,
                                          refresh: { model.refresh() }) { ProbeView(model: model) }
                 } else if let model = accounts.claude(profile) {
                     ServiceDetailContent(name: "Claude", icon: profile.service.logo,
                                          reading: model.reading, connected: model.connected, busy: model.busy,
                                          error: model.error, failure: model.connectionFailure,
-                                         accountLabel: profile.label, claudeAccount: model,
+                                         identity: accounts.presentation(for: profile), accountLabel: nil, claudeAccount: model,
                                          refresh: { model.refresh() }) { ClaudeProbeView(model: model) }
                 }
             }

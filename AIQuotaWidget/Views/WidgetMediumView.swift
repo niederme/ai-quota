@@ -51,7 +51,7 @@ private extension QuotaEntry {
             guard let usage = codexUsage else { return nil }
             if usage.reportedWindowShape == nil, let budget = usage.displayableMonthlyBudget {
                 return WidgetServiceSnapshot(
-                    label: "Codex", icon: "logo-openai",
+                    label: displayName(for: .codex), icon: "logo-openai",
                     primaryPercent: Int(min(100, budget.utilization ?? 0)),
                     primaryLimitReached: (budget.utilization ?? 0) >= 100,
                     showsPrimaryMetric: true,
@@ -71,7 +71,7 @@ private extension QuotaEntry {
             }
             guard usage.reportedWindowShape != nil else {
                 return WidgetServiceSnapshot(
-                    label: "Codex", icon: "logo-openai",
+                    label: displayName(for: .codex), icon: "logo-openai",
                     primaryPercent: 0, primaryLimitReached: false, showsPrimaryMetric: false,
                     secondaryPercent: 0, showsSecondaryMetric: false,
                     primaryLabel: "", secondaryLabel: "", resetSeconds: 0,
@@ -120,7 +120,7 @@ private extension QuotaEntry {
                 )
             }
             return WidgetServiceSnapshot(
-                label: "Codex",
+                label: displayName(for: .codex),
                 icon: "logo-openai",
                 primaryPercent: weeklyOnly ? usage.weeklyUsedPercent : (hasHourlyWindow ? usage.hourlyUsedPercent : 0),
                 primaryLimitReached: weeklyOnly ? usage.isWeeklyExhausted : (hasHourlyWindow && usage.hourlyUsedPercent >= 100),
@@ -170,7 +170,7 @@ private extension QuotaEntry {
                 )
             }
             return WidgetServiceSnapshot(
-                label: "Claude Code",
+                label: displayName(for: .claude),
                 icon: "logo-claude",
                 primaryPercent: usage.usedPercent,
                 primaryLimitReached: usage.limitReached,
@@ -247,7 +247,7 @@ private struct WidgetHeaderView: View {
                     .fill(widgetAccentColor)
                     .frame(width: 5, height: 5)
             }
-            Text(title)
+            Text(title).privacySensitive()
                 .font(.system(size: 13, weight: .semibold))
             Spacer()
             if showsMonthly {
@@ -397,15 +397,16 @@ private struct WidgetMediumStatsColumn: View {
 private struct WidgetSingleGaugePanel: View {
     let snapshot: WidgetServiceSnapshot?
     let service: ServiceType
+    let emptyLabel: String
     let gaugeSize: CGFloat
 
     var body: some View {
         Group {
             if let snapshot {
                 if let budget = snapshot.monthlyBudget {
-                    WidgetBudgetView(budget: budget, size: gaugeSize)
+                    WidgetBudgetView(budget: budget, size: gaugeSize, label: snapshot.label)
                 } else if snapshot.usageUnavailable {
-                    WidgetUnavailableView(size: gaugeSize)
+                    WidgetUnavailableView(size: gaugeSize, label: snapshot.label)
                 } else {
                     WidgetGaugeView(
                     primaryPercent: snapshot.primaryPercent,
@@ -426,7 +427,7 @@ private struct WidgetSingleGaugePanel: View {
             } else {
                 WidgetEmptyGaugeView(
                     icon: service == .claude ? "logo-claude" : "logo-openai",
-                    label: service == .claude ? "Claude Code" : "Codex",
+                    label: emptyLabel,
                     size: gaugeSize
                 )
             }
@@ -486,9 +487,9 @@ private struct WidgetServiceDetailPanel: View {
         HStack(spacing: 14) {
             Group {
                 if let budget = snapshot.monthlyBudget {
-                    WidgetBudgetView(budget: budget, size: gaugeSize)
+                    WidgetBudgetView(budget: budget, size: gaugeSize, label: snapshot.label)
                 } else if snapshot.usageUnavailable {
-                    WidgetUnavailableView(size: gaugeSize)
+                    WidgetUnavailableView(size: gaugeSize, label: snapshot.label)
                 } else {
                     WidgetGaugeView(
                 primaryPercent: snapshot.primaryPercent,
@@ -580,26 +581,33 @@ struct WidgetSingleServiceMediumView: View {
     var body: some View {
         let snapshot = entry.snapshot(for: service)
 
-        HStack(spacing: 0) {
-            WidgetSingleGaugePanel(snapshot: snapshot, service: service, gaugeSize: 88)
-                .frame(width: 128)
+        Group {
+            if entry.selectedAccountUnavailable {
+                WidgetMissingSelectionView(label: entry.displayName(for: service))
+            } else {
+                HStack(spacing: 0) {
+                    WidgetSingleGaugePanel(snapshot: snapshot, service: service, emptyLabel: entry.displayName(for: service), gaugeSize: 88)
+                        .frame(width: 128)
 
-            Divider()
-                .padding(.vertical, 22)
+                    Divider()
+                        .padding(.vertical, 22)
 
-            WidgetMediumStatsColumn(
-                snapshot: snapshot,
-                emptyLabel: service == .claude ? "Claude Code" : "Codex"
-            )
-            .padding(.leading, 18)
-            .padding(.trailing, 18)
-            .padding(.top, 18)
-            .padding(.bottom, 14)
-            .frame(maxWidth: .infinity, alignment: .leading)
+                    WidgetMediumStatsColumn(
+                        snapshot: snapshot,
+                        emptyLabel: entry.displayName(for: service)
+                    )
+                    .padding(.leading, 18)
+                    .padding(.trailing, 18)
+                    .padding(.top, 18)
+                    .padding(.bottom, 14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 6)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .privacySensitive()
     }
 }
 
@@ -619,6 +627,7 @@ struct WidgetMediumView: View {
         .padding(.horizontal, 4)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .privacySensitive()
     }
 
     private var dualLayout: some View {
@@ -643,7 +652,7 @@ struct WidgetMediumView: View {
         case .codex:
             if let u = entry.codexUsage {
                 if u.reportedWindowShape == nil, let budget = u.displayableMonthlyBudget {
-                    WidgetBudgetView(budget: budget, size: size)
+                    WidgetBudgetView(budget: budget, size: size, label: entry.displayName(for: .codex))
                 } else if u.reportedWindowShape != nil {
                 let hasHourlyWindow = u.hasHourlyWindow
                 let weeklyOnly = u.reportsWeeklyOnlyWindow
@@ -654,7 +663,7 @@ struct WidgetMediumView: View {
                     secondaryPercent: u.weeklyUsedPercent,
                     showsSecondaryMetric: !weeklyOnly,
                     icon: "logo-openai",
-                    label: "Codex",
+                    label: entry.displayName(for: .codex),
                     primaryLabel: weeklyOnly ? "7d" : "5h",
                     secondaryLabel: "7-day",
                     resetSeconds: weeklyOnly ? u.weeklyResetAfterSeconds : u.hourlyResetAfterSeconds,
@@ -663,10 +672,10 @@ struct WidgetMediumView: View {
                     size: size
                 )
                 } else {
-                    unavailableSlot(icon: "logo-openai", label: "Codex")
+                    unavailableSlot(icon: "logo-openai", label: entry.displayName(for: .codex))
                 }
             } else {
-                emptySlot(icon: "logo-openai", label: "Codex")
+                emptySlot(icon: "logo-openai", label: entry.displayName(for: .codex))
             }
 
         case .claude:
@@ -678,7 +687,7 @@ struct WidgetMediumView: View {
                     secondaryPercent: Int(u.sevenDayUtilization?.rounded() ?? 0),
                     showsSecondaryMetric: true,
                     icon: "logo-claude",
-                    label: "Claude Code",
+                    label: entry.displayName(for: .claude),
                     primaryLabel: u.primaryMetricLabel,
                     secondaryLabel: "7-day",
                     resetSeconds: u.resetAfterSeconds ?? 0,
@@ -687,7 +696,7 @@ struct WidgetMediumView: View {
                     size: size
                 )
             } else {
-                emptySlot(icon: "logo-claude", label: "Claude Code")
+                emptySlot(icon: "logo-claude", label: entry.displayName(for: .claude))
             }
         }
     }
@@ -745,7 +754,7 @@ struct WidgetLargeView: View {
                     HStack(alignment: .top, spacing: 0) {
                         WidgetStatsColumn(
                             snapshot: entry.snapshot(for: .codex),
-                            emptyLabel: "Codex",
+                            emptyLabel: entry.displayName(for: .codex),
                             showsFooter: false
                         )
                         .padding(.horizontal, 14)
@@ -757,7 +766,7 @@ struct WidgetLargeView: View {
 
                         WidgetStatsColumn(
                             snapshot: entry.snapshot(for: .claude),
-                            emptyLabel: "Claude Code",
+                            emptyLabel: entry.displayName(for: .claude),
                             showsFooter: false
                         )
                         .padding(.horizontal, 14)
@@ -770,10 +779,11 @@ struct WidgetLargeView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .privacySensitive()
     }
 
     @ViewBuilder
     private func largeGaugeColumn(for service: ServiceType) -> some View {
-        WidgetSingleGaugePanel(snapshot: entry.snapshot(for: service), service: service, gaugeSize: 96)
+        WidgetSingleGaugePanel(snapshot: entry.snapshot(for: service), service: service, emptyLabel: entry.displayName(for: service), gaugeSize: 96)
     }
 }

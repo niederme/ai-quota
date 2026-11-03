@@ -188,7 +188,7 @@ private struct AccountsSettingsPane: View {
                     .help("Back to Accounts")
                     .accessibilityLabel("Back to Accounts")
                     .accessibilityIdentifier("settingsAccountsBack")
-                    Text(account.displayLabel).font(.headline)
+                    Text(account.presentation().title).font(.headline)
                     Spacer()
                 }
                 .padding(.horizontal, 20)
@@ -272,9 +272,6 @@ private struct AccountsSettingsPane: View {
 
     private func accountRow(_ account: ConnectedAccount) -> some View {
         let status = AccountConnectionStatus(account: account, viewModel: viewModel)
-        let needsDisambiguation = accounts.filter {
-            $0.provider == account.provider && $0.displayLabel == account.displayLabel
-        }.count > 1
         let shownInMenuBar = viewModel.settings.menuBarAccountIDs?.contains(account.id) == true
         return Button { selected = account.id } label: {
             HStack(spacing: 12) {
@@ -282,12 +279,11 @@ private struct AccountsSettingsPane: View {
                     .resizable().scaledToFit().frame(width: 24, height: 24)
                     .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(account.displayLabel)
+                    Text(account.presentation().title)
                         .fontWeight(.semibold)
                         .lineLimit(1)
-                    if needsDisambiguation {
-                        Text("ID …" + String((account.workspaceID ?? account.id).suffix(6)))
-                            .font(.caption).foregroundStyle(.secondary)
+                    if account.presentation().requiresName {
+                        Text("Choose a distinct connection name").font(.caption).foregroundStyle(.secondary)
                     }
                     if shownInMenuBar {
                         Text("Shown in menu bar")
@@ -308,7 +304,7 @@ private struct AccountsSettingsPane: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(account.provider.displayName), \(account.displayLabel), \(status.summary)\(shownInMenuBar ? ", shown in menu bar" : "")")
+        .accessibilityLabel("\(account.presentation().title), \(status.summary)\(shownInMenuBar ? ", shown in menu bar" : "")")
         .accessibilityHint("Open account settings")
     }
 }
@@ -408,7 +404,7 @@ private struct SettingsAccountDetail: View {
             }
         }
         .formStyle(.grouped)
-        .onAppear { name = AccountRegistry.account(id: account.id)?.displayLabel ?? account.displayLabel }
+        .onAppear { name = (AccountRegistry.account(id: account.id) ?? account).presentation().alias ?? "" }
         .onDisappear(perform: saveName)
         .confirmationDialog("\(pendingAction ?? "Remove Account")?", isPresented: Binding(get: { pendingAction != nil }, set: { if !$0 { pendingAction = nil } }), titleVisibility: .visible) {
             Button(pendingAction ?? "Remove Account", role: .destructive) {
@@ -761,7 +757,7 @@ struct ConnectedAccountNameSheet: View {
         .padding(20)
         .frame(width: 360)
         .onAppear {
-            name = account.displayLabel
+            name = account.presentation().alias ?? ""
             showInMenuBar = viewModel.settings.menuBarAccountIDs?.contains(account.id) == true
             nameFocused = true
         }

@@ -78,7 +78,7 @@ struct ClaudeProbeView: View {
         .foregroundStyle(OverviewStyle.primary)
         .background(OverviewStyle.base)
         .tint(OverviewStyle.accent)
-        .navigationTitle("Claude Code account")
+        .navigationTitle(model.profile.map { AccountRegistry.presentation(for: $0, reading: model.reading).title } ?? "Connect Claude")
         .modifier(DismissAfterAccountConnection(completionID: model.signInCompletionID))
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $browser, onDismiss: {

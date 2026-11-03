@@ -38,7 +38,7 @@ struct WidgetAccount: AppEntity {
         id = "\(profile.service.rawValue):\(profile.id)"
         profileID = profile.id
         service = profile.service
-        label = displayLabel ?? Self.friendlyLabel(profile.label) ?? profile.service.name
+        label = displayLabel ?? AccountRegistry.presentation(for: profile).title
         self.identityHint = identityHint
         isAvailable = true
     }
@@ -57,21 +57,12 @@ struct WidgetAccount: AppEntity {
         isAvailable = false
     }
 
-    static func make(_ profiles: [AccountProfile]) -> [WidgetAccount] {
-        profiles.map { profile in
-            let serviceProfiles = profiles.filter { $0.service == profile.service }
-            let friendly = friendlyLabel(profile.label)
-            let collisions = serviceProfiles.filter {
-                normalizedLabel(friendlyLabel($0.label) ?? "") == normalizedLabel(friendly ?? "")
-            }
-            let email = safeIdentityHint(profile.providerIdentity)
-            let matchingEmails = collisions.compactMap { safeIdentityHint($0.providerIdentity) }
-            let uniqueEmail = email.map { value in matchingEmails.filter { $0.caseInsensitiveCompare(value) == .orderedSame }.count == 1 } ?? false
-            let needsDistinction = collisions.count > 1
-            var option = WidgetAccount(profile, identityHint: needsDistinction && uniqueEmail ? email : nil,
-                displayLabel: serviceProfiles.count > 1 ? friendly ?? profile.service.name : profile.service.name)
-            // Missing metadata cannot safely be replaced with an invented identity.
-            option.needsFriendlyName = needsDistinction && !uniqueEmail
+    static func make(_ profiles: [AccountProfile], readings suppliedReadings: [String: QuotaReading]? = nil) -> [WidgetAccount] {
+        let readings = suppliedReadings ?? Dictionary(uniqueKeysWithValues: profiles.compactMap { p in SharedQuotaStore(p).reading().map { (p.orderKey, $0) } })
+        return profiles.map { profile in
+            let presentation = profile.presentation(among: profiles, readings: readings)
+            var option = WidgetAccount(profile, identityHint: nil, displayLabel: presentation.title)
+            option.needsFriendlyName = presentation.requiresName
             return option
         }
     }
@@ -85,32 +76,10 @@ struct WidgetAccount: AppEntity {
     }
 
     static func headerLabel(for profile: AccountProfile, among profiles: [AccountProfile]) -> String? {
-        guard profiles.count > 1,
-              let option = make(profiles).first(where: { $0.profileID == profile.id && $0.service == profile.service }) else { return nil }
+        guard let option = make(profiles).first(where: { $0.profileID == profile.id && $0.service == profile.service }) else { return nil }
         return [option.label, option.identityHint].compactMap { $0 }.joined(separator: " · ")
     }
 
-    private static func friendlyLabel(_ value: String) -> String? {
-        let cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleaned.isEmpty, !(["live", "codex", "claude"].contains(cleaned.lowercased())), UUID(uuidString: cleaned) == nil,
-              cleaned.range(of: "^(?:(?:codex|claude)\\s+)?account\\s*([0-9]+)?$", options: [.regularExpression, .caseInsensitive]) == nil else { return nil }
-        return cleaned
-    }
-
-    private static func normalizedLabel(_ value: String) -> String {
-        value.trimmingCharacters(in: .whitespacesAndNewlines).folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
-    }
-
-    private static func safeIdentityHint(_ value: String?) -> String? {
-        guard let value else { return nil }
-        let cleaned = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        let pieces = cleaned.split(separator: "@", omittingEmptySubsequences: false)
-        // Provider identities are usually opaque account/organization IDs.
-        // Only an actual email is useful as a human-readable identity hint.
-        guard pieces.count == 2, !pieces[0].isEmpty, !pieces[1].isEmpty,
-              !cleaned.contains(where: { $0.isWhitespace }), cleaned.count <= 254 else { return nil }
-        return cleaned
-    }
 
 }
 
@@ -127,7 +96,7 @@ struct WidgetAccountQuery: EntityQuery {
         }
     }
 
-    func suggestedEntities() async throws -> [WidgetAccount] { accounts }
+    func suggestedEntities() async throws -> [WidgetAccount] { accounts.filter { !$0.needsFriendlyName } }
     func defaultResult() async -> WidgetAccount? { WidgetAccount.soleDefault(in: accounts) }
 
     private var accounts: [WidgetAccount] {
@@ -140,7 +109,7 @@ private struct ServiceWidgetAccountOptionsProvider: DynamicOptionsProvider {
     let service: QuotaService
 
     func results() async throws -> [WidgetAccount] {
-        WidgetAccount.options(for: service, profiles: AccountRegistry.profiles(for: service))
+        WidgetAccount.options(for: service, profiles: AccountRegistry.profiles(for: service)).filter { !$0.needsFriendlyName }
     }
 
     func defaultResult() async -> WidgetAccount? {
@@ -164,7 +133,7 @@ enum AccountsWidgetOrder: String, AppEnum {
 
 struct QuotaConfiguration: WidgetConfigurationIntent {
     static let title: LocalizedStringResource = "Account"
-    static let description = IntentDescription("One chosen account, or the account closest to a limit.")
+    static let description = IntentDescription("Choose a connection, or the one closest to a limit. Name matching connections in AIQuota first.")
     @Parameter(title: "Show", default: .chosenAccount) var show: AccountWidgetShow
     @Parameter(title: "Service", default: .codex) var service: QuotaService
     @Parameter(title: "Account") var account: WidgetAccount?
@@ -239,7 +208,7 @@ private func enriched(_ reading: WidgetReading, selection: WidgetAccount?) -> Wi
     let demo = DemoQuotaData.isEnabled
     return WidgetReading(value: reading.value, accountLabel: reading.accountLabel, namespace: reading.namespace,
         content: WidgetAccountContent(id: selection?.id ?? "\(reading.value.service.rawValue):\(reading.namespace ?? "empty")", value: reading.value,
-            label: profile?.label ?? reading.accountLabel ?? "",
+            label: profile.map { AccountRegistry.presentation(for: $0, reading: reading.value.reading).title } ?? reading.accountLabel ?? "",
             tokenHistory: demo && reading.value.service == .codex ? DemoQuotaData.tokenHistory() : history?.tokens,
             usageHistory: demo && reading.value.service == .codex ? DemoQuotaData.history() : history?.usage))
 }

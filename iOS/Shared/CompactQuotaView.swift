@@ -51,8 +51,9 @@ struct AccountLockView: View {
                 }
             }
         }
+        .privacySensitive()
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(account.accessibility(at: date))
+        .accessibilityLabel(account.accessibility(at: date, showAccountNames: showAccountNames))
         .accessibilityHint("Opens AIQuota")
     }
     // Direct styling baseline: a82fbdb (October 22, 2026), ServiceDetailsView.
@@ -130,7 +131,7 @@ struct AccountsLockView: View {
                     }.frame(maxWidth: .infinity)
                 }
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(account.accessibility(at: date))
+                .accessibilityLabel(account.accessibility(at: date, showAccountNames: showAccountNames))
             }
         }.buttonStyle(.plain)
     }

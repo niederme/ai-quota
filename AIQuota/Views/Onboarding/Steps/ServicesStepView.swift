@@ -87,7 +87,7 @@ struct ServicesStepView: View {
                 let status = AccountConnectionStatus(account: account, viewModel: viewModel)
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
-                        Text(account.displayLabel).fontWeight(.medium)
+                        Text(account.presentation().title).fontWeight(.medium)
                         Spacer()
                         if status.connected {
                             Label("Connected", systemImage: "checkmark.circle.fill")

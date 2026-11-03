@@ -1,5 +1,6 @@
 import SwiftUI
 import AIQuotaKit
+import MobileAccessCore
 
 private struct MacReconnectButtonAnchor: PreferenceKey {
     static var defaultValue: Anchor<CGRect>? { nil }
@@ -17,7 +18,7 @@ struct MacAccountCard: View {
 
     let account: ConnectedAccount
     let session: AdditionalAccountSession?
-    let tokenHistory: CodexTokenHistory?
+    let tokenHistory: AIQuotaKit.CodexTokenHistory?
     let availableWidth: CGFloat
     let showsAccountLabel: Bool
     let open: () -> Void
@@ -64,25 +65,7 @@ struct MacAccountCard: View {
     private var plan: String? {
         account.provider == .codex ? codexUsage?.displayPlan : claudeUsage?.planLabel.displayName
     }
-    private var accountLabel: String? {
-        let label = account.displayLabel.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !label.isEmpty else { return nil }
-        if !showsAccountLabel && label.caseInsensitiveCompare("Personal") == .orderedSame { return nil }
-        if label.caseInsensitiveCompare(serviceName) == .orderedSame { return nil }
-        if let plan, plan.caseInsensitiveCompare("Unknown") != .orderedSame {
-            var defaultLabels = ["\(serviceName) \(plan)"]
-            // Codex reports business for workspaces previously named Enterprise.
-            if account.provider == .codex, ["business", "enterprise"].contains(plan.lowercased()) {
-                defaultLabels += ["Codex Business", "Codex Enterprise"]
-            }
-            if defaultLabels.contains(where: { label.caseInsensitiveCompare($0) == .orderedSame }) { return nil }
-        }
-        let parts = label.split(whereSeparator: \.isWhitespace)
-        if parts.count == 2,
-           ["account", "service"].contains(parts[0].lowercased()),
-           parts[1].allSatisfy(\.isNumber) { return nil }
-        return label
-    }
+    private var identity: MobileAccessCore.AccountPresentation { account.presentation(plan: plan) }
     private var budget: (used: Double, limit: Double, unit: String, currency: String?, reset: Date?)? {
         if account.provider == .codex, codexUsage?.reportedWindowShape == nil,
            let value = codexUsage?.displayableMonthlyBudget,
@@ -195,14 +178,14 @@ struct MacAccountCard: View {
             .controlSize(.regular)
             .tint(Color.overviewAccent)
             .disabled(loading)
-            .accessibilityLabel("Reconnect \(serviceName)" + (accountLabel.map { " · \($0)" } ?? ""))
+            .accessibilityLabel("Reconnect \(identity.title)")
     }
 
     private var details: some View {
         VStack(alignment: .leading, spacing: 8) {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 8) {
-                    Text(serviceName)
+                    Text(identity.service)
                         .font(.system(size: 20, weight: .semibold))
                         .tracking(-0.25)
                         .foregroundStyle(Color.overviewPrimary)
@@ -210,16 +193,13 @@ struct MacAccountCard: View {
                         .minimumScaleFactor(0.85)
                     statusIndicator
                 }
-                if let plan {
-                    Text("\(plan) plan" + (accountLabel.map { " · \($0)" } ?? ""))
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color.overviewPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else if let accountLabel {
-                    Text(accountLabel)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color.overviewPrimary)
-                }
+                Text(identity.subtitle)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.overviewPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            if identity.requiresName {
+                Text("Choose a distinct name in Settings").font(.caption).foregroundStyle(.secondary)
             }
             if let budget {
                 VStack(alignment: .leading, spacing: 0) {
@@ -309,12 +289,11 @@ struct MacAccountCard: View {
     }
 
     private var accessibilitySummary: String {
-        let identity = accountLabel.map { " · \($0)" } ?? ""
         let period = budget == nil ? primaryLabel : CalendarMonthLabel.spoken(containing: readingAt)
         let percentage = primaryPercent.map { ", \($0) percent used, \(period)" } ?? ""
         let secondary = secondaryPercent.map { ", \($0) percent used in 7d" } ?? ""
         let activity = loading ? (hasReading ? "Refreshing saved reading" : "Connecting") : statusExplanation
-        return "\(serviceName)\(identity)\(plan.map { ", \($0) plan" } ?? "")\(percentage)\(secondary)\(activity.map { ", \($0)" } ?? "")"
+        return "\(self.identity.title)\(percentage)\(secondary)\(activity.map { ", \($0)" } ?? "")"
     }
 }
 

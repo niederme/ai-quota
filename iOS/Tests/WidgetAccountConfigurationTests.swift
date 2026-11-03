@@ -26,6 +26,33 @@ final class WidgetAccountConfigurationTests: XCTestCase {
         isLegacy: false
     )
 
+    func testFourConnectionPickerUsesPlansAndRetainsOpaqueKeysOnlyInLinks() throws {
+        let profiles = [
+            AccountProfile(id: "opaque-codex-pro", service: .codex, label: "Account 2", isLegacy: false),
+            AccountProfile(id: "opaque-codex-business", service: .codex, label: "Codex Business", isLegacy: false),
+            AccountProfile(id: "opaque-claude-max", service: .claude, label: "Account 1", isLegacy: false),
+            AccountProfile(id: "opaque-claude-enterprise", service: .claude, label: "Claude Enterprise", isLegacy: false)
+        ]
+        let plans = ["Pro", "Business", "Max", "Enterprise"]
+        let readings = Dictionary(uniqueKeysWithValues: zip(profiles, plans).map { p, plan in
+            (p.orderKey, QuotaReading(fetchedAt: .now, shortTerm: nil, weekly: .init(usedPercent: 30, durationSeconds: 604800, resetsAt: nil),
+                metadata: .init(plan: plan, balanceUSD: nil, usageSpent: nil, usageCurrency: nil)))
+        })
+        let options = WidgetAccount.make(profiles, readings: readings)
+        XCTAssertEqual(options.map(\.pickerTitle), ["Codex Pro", "Codex Business", "Claude Max", "Claude Enterprise"])
+        XCTAssertTrue(options.allSatisfy { $0.identityHint == nil && !$0.needsFriendlyName })
+        for p in profiles {
+            let name = p.presentation(among: profiles, readings: readings)
+            let content = WidgetAccountContent(id: "\(p.service.rawValue):\(p.id)",
+                value: .init(service: p.service, reading: readings[p.orderKey], needsApp: false), label: name.title)
+            XCTAssertEqual(content.name, name.title)
+            let link = try XCTUnwrap(URLComponents(url: content.url, resolvingAgainstBaseURL: false))
+            XCTAssertEqual(link.queryItems?.first(where: { $0.name == "account" })?.value, p.id)
+            XCTAssertFalse(content.name.contains("opaque"))
+        }
+        XCTAssertEqual(WidgetAccount.make(Array(profiles.reversed()), readings: readings).map(\.id), options.reversed().map(\.id))
+    }
+
     func testOptionsAreStrictlyFilteredToSelectedService() {
         let profiles = [codexPersonal, claudeWork, codexWork]
 
@@ -38,16 +65,13 @@ final class WidgetAccountConfigurationTests: XCTestCase {
         XCTAssertTrue(claude.allSatisfy { $0.service == .claude })
     }
 
-    func testDuplicateNicknamesUseFriendlyIdentityOrRequestNaming() {
+    func testDuplicateNicknamesRequireExplicitNamesWithoutUsingProviderIDsAsEmails() {
         let uniqueIdentities = WidgetAccount.make([
             codexWork,
             AccountProfile(id: "codex-other", service: .codex, label: "Work", providerIdentity: "other@example.com", isLegacy: false)
         ])
-        XCTAssertEqual(uniqueIdentities.map(\.label), ["Work", "Work"])
-        XCTAssertEqual(uniqueIdentities.map(\.pickerDetail), [
-            "member@example.com",
-            "other@example.com"
-        ])
+        XCTAssertEqual(uniqueIdentities.map(\.label), ["Codex · Work", "Codex · Work"])
+        XCTAssertTrue(uniqueIdentities.allSatisfy { $0.identityHint == nil && $0.needsFriendlyName })
 
         let sameIdentity = WidgetAccount.make([
             codexWork,
@@ -67,7 +91,7 @@ final class WidgetAccountConfigurationTests: XCTestCase {
 
         XCTAssertEqual(selectedID, "codex:codex-work")
         XCTAssertEqual(refreshed.first?.id, selectedID)
-        XCTAssertEqual(refreshed.first?.label, "Hearst")
+        XCTAssertEqual(refreshed.first?.label, "Codex · Hearst")
     }
 
     func testOnlySoleAccountIsAutoSelected() {
@@ -313,6 +337,26 @@ extension WidgetAccountConfigurationTests {
 }
 
 extension WidgetAccountConfigurationTests {
+    func testFullIdentitySubtitleKeepsOnlyMissingPlanInformation() {
+        for service in QuotaService.allCases {
+            for plan in ["Pro", "Business", "Max", "Enterprise"] {
+                let content = WidgetAccountContent(id: "fixture", value: .init(service: service,
+                    reading: .init(fetchedAt: .now, shortTerm: nil, weekly: nil,
+                        metadata: .init(plan: plan, balanceUSD: nil, usageSpent: nil, usageCurrency: nil)),
+                    needsApp: false), label: "Research")
+                XCTAssertTrue(content.name.contains(plan))
+                XCTAssertTrue(content.name.contains("Research"))
+                XCTAssertNil(content.identitySubtitle)
+                XCTAssertTrue(content.compactName(showAccountNames: false).contains(plan))
+            }
+        }
+        let missing = WidgetAccountContent(id: "fixture", value: .init(service: .codex,
+            reading: .init(fetchedAt: .now, shortTerm: nil, weekly: nil), needsApp: false), label: "Research")
+        XCTAssertEqual(missing.identitySubtitle, "Plan unavailable")
+        let unconnected = WidgetAccountContent(id: "fixture", value: .init(service: .codex, reading: nil, needsApp: false))
+        XCTAssertNil(unconnected.identitySubtitle)
+    }
+
     @MainActor func testTwoRowWidgetRendersReferenceAndAccountStates() throws {
         let now = Date(timeIntervalSince1970: 1793606400)
         func account(_ service: QuotaService, id: String, label: String, short: Double?, week: Double,
@@ -338,7 +382,8 @@ extension WidgetAccountConfigurationTests {
             ("same-service-long-name", [codex, long]), ("single", [codex]),
             ("missing", [missing, codex]), ("empty", [])]
         for (name, accounts) in cases {
-            let entry = QuotaEntry(date: now, values: accounts.map(\.value), accountLabels: [:], accountContents: accounts)
+            let entry = QuotaEntry(date: now, values: accounts.map(\.value), accountLabels: [:], accountContents: accounts,
+                                   showAccountNames: name == "same-service-long-name")
             for dark in name == "reference" ? [false, true] : [true] {
                 let view = HomeEntryView(entry: entry, both: true, previewFamily: .systemLarge, twoRows: true)
                     .frame(width: 338, height: 354)
@@ -365,7 +410,7 @@ extension WidgetAccountConfigurationTests {
         var account = WidgetAccountContent(id: "codex:work-account", value: .init(service: .codex, reading: nil, needsApp: false), label: "Account With A Long Name")
         let destination = account.url
         XCTAssertEqual(account.compactName(showAccountNames: false), "Codex")
-        XCTAssertEqual(account.compactName(showAccountNames: true), "Codex Account With A Long Name")
+        XCTAssertEqual(account.compactName(showAccountNames: true), "Codex · Account With A Long Name")
         XCTAssertTrue(account.accessibility(at: .now).contains("Account With A Long Name"))
         XCTAssertEqual(account.url, destination)
         XCTAssertEqual(account.id, "codex:work-account")

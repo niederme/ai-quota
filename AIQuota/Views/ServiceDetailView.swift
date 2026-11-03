@@ -13,6 +13,13 @@ struct ServiceDetailView: View {
 
     private var isCodex: Bool { service == .codex }
     private var name: String { isCodex ? "Codex" : "Claude" }
+    private var identity: AccountPresentation? {
+        viewModel.primaryAccount(for: service)?.presentation(plan: reading?.metadata?.displayPlan)
+    }
+    private var headingSubtitle: String? {
+        if let identity { return identity.subtitle(for: .fullIdentity) }
+        return reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported"
+    }
     private var busy: Bool {
         isCodex
             ? viewModel.isCodexLoading || viewModel.isUsageHistoryLoading || viewModel.isCodexRecovering
@@ -78,9 +85,11 @@ struct ServiceDetailView: View {
                     .resizable().scaledToFit().frame(width: 22, height: 22)
                     .foregroundStyle(Color.gaugeAccent)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(name).font(.headline)
-                    Text(reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported")
-                        .font(.caption).foregroundStyle(.secondary)
+                    Text(identity?.title ?? name).font(.headline)
+                    if let headingSubtitle {
+                        Text(headingSubtitle)
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 }
                 Spacer()
                 if busy { ProgressView().controlSize(.small) }

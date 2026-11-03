@@ -8,38 +8,119 @@ import MobileAccessCore
         let now = Date.now
         let profiles = [
             AccountProfile(id: "live", service: .codex, label: "Account 2", isLegacy: true),
-            AccountProfile(id: "work", service: .codex, label: "Work", isLegacy: false),
-            AccountProfile(id: "live", service: .claude, label: "Service 2", isLegacy: true),
-            AccountProfile(id: "family", service: .claude, label: "Family", isLegacy: false),
-            AccountProfile(id: "custom", service: .codex, label: "Account 2", isLegacy: false,
-                           suggestedNamePending: false)
+            AccountProfile(id: "business", service: .codex, label: "Codex Pro 2", isLegacy: false, labelExplicitlyNamed: false),
+            AccountProfile(id: "live", service: .claude, label: "Account 1", isLegacy: true),
+            AccountProfile(id: "enterprise", service: .claude, label: "Claude Enterprise", isLegacy: false)
         ]
-        let names = ["Codex", "Codex · Work", "Claude", "Claude · Family", "Codex · Account 2"]
+        let plans = ["Pro", "Business", "Max", "Enterprise"]
+        let names = ["Codex Pro", "Codex Business", "Claude Max", "Claude Enterprise"]
+        let readings = Dictionary(uniqueKeysWithValues: zip(profiles, plans).map { profile, plan in
+            (profile.orderKey, reading(at: now, used: 65, reset: now.addingTimeInterval(86400), plan: plan))
+        })
         for (profile, name) in zip(profiles, names) {
             let reset = now.addingTimeInterval(86400)
             let forecast = QuotaExhaustionForecast(scope: .init(accountID: profile.id,
                 provider: profile.service.rawValue, identity: "identity-\(profile.orderKey)", source: "wham",
-                plan: "pro", window: .weekly, resetAt: reset), basis: .periodAverage,
+                plan: readings[profile.orderKey]?.metadata?.plan ?? "unknown", window: .weekly, resetAt: reset), basis: .periodAverage,
                 projectedUsedPercent: 140, validUntil: reset)
-            let query = MobileQuotaInsightModel.Query(profile: profile,
-                reading: reading(at: now, used: 65, reset: reset), historyFetchedAt: nil, tokensFetchedAt: nil)
-            let insight = MobileQuotaInsightModel.Insight(forecast: forecast, query: query)
-            XCTAssertEqual(insight.label, name)
-            XCTAssertEqual(insight.forecast.scope.accountID, profile.id)
+            let presentation = profile.presentation(among: profiles, readings: readings)
+            let query = MobileQuotaInsightModel.Query(profile: profile, reading: try XCTUnwrap(readings[profile.orderKey]),
+                historyFetchedAt: nil, tokensFetchedAt: nil, accountName: presentation.title)
+            XCTAssertEqual(MobileQuotaInsightModel.Insight(forecast: forecast, query: query).label, name)
+            XCTAssertEqual(forecast.scope.accountID, profile.id)
             XCTAssertEqual(MobileResetNotifications.displayName(profile.service, namespace: profile.id,
-                                                                profiles: profiles), name)
-            XCTAssertEqual(MobileResetNotifications.displayName(profile.service, namespace: profile.id,
-                                                                profiles: [profile]), name)
-            XCTAssertEqual(try JSONDecoder().decode(AccountProfile.self,
-                from: JSONEncoder().encode(profile)), profile)
+                profiles: profiles, readings: readings), name)
+            XCTAssertEqual(try JSONDecoder().decode(AccountProfile.self, from: JSONEncoder().encode(profile)), profile)
+            XCTAssertFalse(presentation.subtitle.contains("Account"))
+            XCTAssertEqual(presentation.subtitle(for: .service), "\(try XCTUnwrap(presentation.plan)) plan")
+            XCTAssertNil(presentation.subtitle(for: .fullIdentity))
         }
-        XCTAssertEqual(MobileResetNotifications.displayName(.codex, namespace: "missing", profiles: profiles), "Codex")
     }
 
-    private func reading(at date: Date, used: Double, reset: Date) -> QuotaReading {
+    func testFourConnectionIdentityVisualReview() async throws {
+        let now = Date.now
+        let profiles = [
+            AccountProfile(id: "pro", service: .codex, label: "Account 2", isLegacy: false),
+            AccountProfile(id: "max", service: .claude, label: "Account 1", isLegacy: false),
+            AccountProfile(id: "enterprise", service: .claude, label: "Claude Enterprise", isLegacy: false),
+            AccountProfile(id: "business", service: .codex, label: "Codex Business", isLegacy: false)
+        ]
+        let plans = ["Pro", "Max", "Enterprise", "Business"]
+        let readings = Dictionary(uniqueKeysWithValues: zip(profiles, plans).map { profile, plan in
+            (profile.orderKey, reading(at: now, used: 73, reset: now.addingTimeInterval(86400), plan: plan))
+        })
+        let forecast = QuotaExhaustionForecast(scope: .init(accountID: "pro", provider: "codex", identity: "fixture",
+            source: "wham", plan: "pro", window: .weekly, resetAt: now.addingTimeInterval(86400)),
+            basis: .periodAverage, projectedUsedPercent: 140, validUntil: now.addingTimeInterval(3600))
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        for (name, scheme, typeSize) in [("dark", ColorScheme.dark, DynamicTypeSize.large),
+                                        ("light", .light, .large), ("accessible", .dark, .accessibility3)] {
+            let content = ScrollView {
+                VStack(spacing: 8) {
+                    OverviewWideHeader(refresh: {}, settings: {})
+                    OverviewAlerts(announcement: nil, forecast: forecast,
+                        accountLabel: profiles[0].presentation(among: profiles, readings: readings).title,
+                        openDetails: {}, dismissAnnouncement: {})
+                    ForEach(profiles, id: \.orderKey) { profile in
+                        ProviderDialCardContent(name: profile.service.name, icon: profile.service.logo, availableWidth: 361,
+                            reading: readings[profile.orderKey], connected: true, busy: false, error: nil,
+                            onOpen: {}, identity: profile.presentation(among: profiles, readings: readings))
+                    }
+                }.padding(16)
+            }.frame(width: 393, height: typeSize.isAccessibilitySize ? 2600 : 1100).background { OverviewBackground() }
+                .environment(\.colorScheme, scheme).environment(\.dynamicTypeSize, typeSize)
+            let host = UIHostingController(rootView: content)
+            let window = UIWindow(windowScene: scene)
+            window.frame = CGRect(x: 0, y: 0, width: 393, height: typeSize.isAccessibilitySize ? 2600 : 1100)
+            window.rootViewController = host; window.makeKeyAndVisible()
+            defer { window.isHidden = true; previous?.makeKey() }
+            try await Task.sleep(for: .milliseconds(400))
+            host.view.frame = window.bounds; host.view.layoutIfNeeded()
+            let image = UIGraphicsImageRenderer(bounds: host.view.bounds).image { _ in host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true) }
+            let path = FileManager.default.temporaryDirectory.appendingPathComponent("identity-four-\(name).png")
+            try image.pngData()?.write(to: path)
+            print("IDENTITY_REVIEW " + path.path)
+        }
+    }
+
+    func testReconnectNeverBorrowsTheFormerIdentityPlan() {
+        let profile = AccountProfile(id: "unchanged", service: .codex, label: "Codex Pro",
+            providerIdentity: "new-workspace", isLegacy: false, labelExplicitlyNamed: false)
+        let old = reading(at: .now, used: 73, reset: .now.addingTimeInterval(86400))
+        XCTAssertNil(profile.presentation(reading: old, among: [profile]).plan)
+        XCTAssertEqual(profile.presentation(reading: old.identifying("new-workspace"), among: [profile]).title, "Codex Pro")
+        XCTAssertEqual(profile.orderKey, "codex\u{0}unchanged")
+    }
+
+    func testIdentityDetailVisualReview() async throws {
+        let profile = AccountProfile(id: "pro", service: .codex, label: "Account 2", isLegacy: false)
+        let current = reading(at: .now, used: 73, reset: .now.addingTimeInterval(86400))
+        let name = profile.presentation(reading: current, among: [profile])
+        let content = ServiceAccountSheet {
+            ServiceDetailContent(name: "Codex", icon: "logo-openai", reading: current,
+                connected: true, busy: false, error: nil, failure: nil, identity: name,
+                refresh: {}) { Text("Manage Codex Pro") }
+        }.environment(\.colorScheme, .dark)
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 393, height: 1000)
+        let host = UIHostingController(rootView: content)
+        window.rootViewController = host; window.makeKeyAndVisible()
+        defer { window.isHidden = true; previous?.makeKey() }
+        try await Task.sleep(for: .milliseconds(500))
+        host.view.frame = window.bounds; host.view.layoutIfNeeded()
+        let image = UIGraphicsImageRenderer(bounds: host.view.bounds).image { _ in host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true) }
+        let path = FileManager.default.temporaryDirectory.appendingPathComponent("identity-detail.png")
+        try image.pngData()?.write(to: path)
+        print("IDENTITY_REVIEW " + path.path)
+    }
+
+    private func reading(at date: Date, used: Double, reset: Date, plan: String = "pro") -> QuotaReading {
         QuotaReading(fetchedAt: date, shortTerm: nil,
             weekly: .init(usedPercent: used, durationSeconds: 604800, resetsAt: reset),
-            metadata: .init(plan: "pro", balanceUSD: nil, usageSpent: nil, usageCurrency: nil), providerIdentity: "fixture-workspace")
+            metadata: .init(plan: plan, balanceUSD: nil, usageSpent: nil, usageCurrency: nil), providerIdentity: "fixture-workspace")
     }
 
     func testFreshAndCachedFetchesNeverCreateObservationHistory() async throws {

@@ -208,7 +208,7 @@ struct MobileNotificationControls: View {
                 ForEach(QuotaService.allCases, id: \.self) { service in
                     ForEach(AccountRegistry.profiles(for: service).filter { $0.id != "live" }, id: \.id) { profile in
                         if let reading = SharedQuotaStore(profile).reading(), !reading.windows.isEmpty {
-                            Section("\(service.name) · \(profile.label)") {
+                            Section(AccountRegistry.presentation(for: profile).title) {
                                 MobileAccountAlertControls(service: service, namespace: profile.id, reading: reading)
                             }.listRowBackground(OverviewStyle.track)
                         }

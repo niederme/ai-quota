@@ -272,7 +272,7 @@ final class QuotaViewModel {
             ensurePrimaryAccount(for: provider)
             guard let account = primaryAccount(for: provider) else { return nil }
             let plan = provider == .codex ? codexUsage?.displayPlan : claudeUsage?.planDisplayName
-            renameAccount(id: account.id, to: nameFromConnectedPlan(for: provider, accountID: account.id, plan: plan))
+            renameAccount(id: account.id, to: nameFromConnectedPlan(for: provider, accountID: account.id, plan: plan), explicitlyNamed: false)
             return AccountRegistry.account(id: account.id)
         } else {
             return await addAccount(for: provider)
@@ -306,7 +306,7 @@ final class QuotaViewModel {
             return nil
         }
         let plan = provider == .codex ? session.codexUsage?.displayPlan : session.claudeUsage?.planDisplayName
-        renameAccount(id: account.id, to: nameFromConnectedPlan(for: provider, accountID: account.id, plan: plan))
+        renameAccount(id: account.id, to: nameFromConnectedPlan(for: provider, accountID: account.id, plan: plan), explicitlyNamed: false)
         startAutoRefresh(immediateRefresh: false)
         return AccountRegistry.account(id: account.id)
     }
@@ -376,11 +376,13 @@ final class QuotaViewModel {
         WidgetCenter.shared.reloadAllTimelines()
     }
 
-    func renameAccount(id: String, to rawName: String) {
+    func renameAccount(id: String, to rawName: String, explicitlyNamed: Bool = true) {
         let name = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty, var account = AccountRegistry.account(id: id) else { return }
+        // Automatic plan suggestions must never become aliases or overwrite one.
+        guard explicitlyNamed || account.labelExplicitlyNamed == false else { return }
         account.displayLabel = name
-        account.labelExplicitlyNamed = true
+        account.labelExplicitlyNamed = explicitlyNamed
         account.updatedAt = .now
         AccountRegistry.save(account)
         additionalAccounts.first { $0.id == id }?.updateAccount(account)
