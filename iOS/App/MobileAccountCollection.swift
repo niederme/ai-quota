@@ -134,6 +134,12 @@ final class MobileAccountCollection {
         })
         return profile.presentation(among: profiles, readings: readings)
     }
+    func canName(_ profile: AccountProfile?, label: String) -> Bool {
+        guard var profile, !label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        profile.label = label
+        profile.labelExplicitlyNamed = true
+        return !presentation(for: profile).requiresName
+    }
     func updateSuggestedNameIfReady(_ profile: AccountProfile) {
         guard let current = profiles.first(where: { $0.service == profile.service && $0.id == profile.id }),
               current.suggestedNamePending == true else { return }

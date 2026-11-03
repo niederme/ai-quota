@@ -199,7 +199,7 @@ public actor NotificationManager {
 
     static func name(provider: ServiceType, providerID: String?, plan: String?) -> String {
         let peers = AccountRegistry.accounts(for: provider)
-        if let providerID, let account = peers.first(where: { $0.workspaceID == providerID && $0.connectionKind == .legacyPrimary }) {
+        if let account = peers.first(where: { $0.connectionKind == .legacyPrimary && (providerID == nil || $0.workspaceID == providerID) }) {
             return account.presentation(plan: plan, among: peers).notificationTitle
         }
         let identity = AccountIdentity(key: "unmatched", service: provider == .codex ? "Codex" : "Claude", label: "", plan: plan)

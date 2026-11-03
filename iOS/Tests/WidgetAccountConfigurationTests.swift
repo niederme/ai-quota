@@ -389,7 +389,7 @@ extension WidgetAccountConfigurationTests {
         var account = WidgetAccountContent(id: "codex:work-account", value: .init(service: .codex, reading: nil, needsApp: false), label: "Account With A Long Name")
         let destination = account.url
         XCTAssertEqual(account.compactName(showAccountNames: false), "Codex")
-        XCTAssertEqual(account.compactName(showAccountNames: true), "Codex Account With A Long Name")
+        XCTAssertEqual(account.compactName(showAccountNames: true), "Codex · Account With A Long Name")
         XCTAssertTrue(account.accessibility(at: .now).contains("Account With A Long Name"))
         XCTAssertEqual(account.url, destination)
         XCTAssertEqual(account.id, "codex:work-account")

@@ -112,7 +112,7 @@ struct MultiAccountSettingsView: View {
                 if let namingAccount { accounts.rename(namingAccount, to: nameDraft) }
                 namingAccount = nil
             }
-            .disabled(nameDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(!accounts.canName(namingAccount, label: nameDraft))
             Button("Not now", role: .cancel) { namingAccount = nil }
         } message: {
             Text("Your account is connected. Save the suggested name or choose your own. You can change it later in Settings.")
@@ -125,7 +125,7 @@ struct MultiAccountSettingsView: View {
             Button("Save") {
                 if let accountToRename { accounts.rename(accountToRename, to: labelDraft) }
                 accountToRename = nil
-            }
+            }.disabled(!accounts.canName(accountToRename, label: labelDraft))
             Button("Cancel", role: .cancel) { accountToRename = nil }
         } message: {
             Text("This name appears on cards and in widget choices.")

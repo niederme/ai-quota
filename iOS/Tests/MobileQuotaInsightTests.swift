@@ -82,6 +82,39 @@ import MobileAccessCore
         }
     }
 
+    func testReconnectNeverBorrowsTheFormerIdentityPlan() {
+        let profile = AccountProfile(id: "unchanged", service: .codex, label: "Codex Pro",
+            providerIdentity: "new-workspace", isLegacy: false, labelExplicitlyNamed: false)
+        let old = reading(at: .now, used: 73, reset: .now.addingTimeInterval(86400))
+        XCTAssertNil(profile.presentation(reading: old, among: [profile]).plan)
+        XCTAssertEqual(profile.presentation(reading: old.identifying("new-workspace"), among: [profile]).title, "Codex Pro")
+        XCTAssertEqual(profile.orderKey, "codex\u{0}unchanged")
+    }
+
+    func testIdentityDetailVisualReview() async throws {
+        let profile = AccountProfile(id: "pro", service: .codex, label: "Account 2", isLegacy: false)
+        let current = reading(at: .now, used: 73, reset: .now.addingTimeInterval(86400))
+        let name = profile.presentation(reading: current, among: [profile])
+        let content = ServiceAccountSheet {
+            ServiceDetailContent(name: "Codex", icon: "logo-openai", reading: current,
+                connected: true, busy: false, error: nil, failure: nil, identity: name,
+                refresh: {}) { Text("Manage Codex Pro") }
+        }.environment(\.colorScheme, .dark)
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
+        let previous = scene.windows.first(where: \.isKeyWindow)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 393, height: 1000)
+        let host = UIHostingController(rootView: content)
+        window.rootViewController = host; window.makeKeyAndVisible()
+        defer { window.isHidden = true; previous?.makeKey() }
+        try await Task.sleep(for: .milliseconds(500))
+        host.view.frame = window.bounds; host.view.layoutIfNeeded()
+        let image = UIGraphicsImageRenderer(bounds: host.view.bounds).image { _ in host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true) }
+        let path = FileManager.default.temporaryDirectory.appendingPathComponent("identity-detail.png")
+        try image.pngData()?.write(to: path)
+        print("IDENTITY_REVIEW " + path.path)
+    }
+
     private func reading(at date: Date, used: Double, reset: Date, plan: String = "pro") -> QuotaReading {
         QuotaReading(fetchedAt: date, shortTerm: nil,
             weekly: .init(usedPercent: used, durationSeconds: 604800, resetsAt: reset),

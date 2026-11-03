@@ -79,6 +79,7 @@ struct MultiAccountOverviewView: View {
         .alert("Name this connection", isPresented: $showsNamePrompt) {
             TextField("Connection name", text: $nameDraft)
             Button("Save") { if let profile = namingProfile { accounts.rename(profile, to: nameDraft) } }
+                .disabled(!accounts.canName(namingProfile, label: nameDraft))
             Button("Cancel", role: .cancel) {}
         } message: { Text("Choose a distinct name for connections with the same service and plan.") }
         .onChange(of: scenePhase) { _, phase in

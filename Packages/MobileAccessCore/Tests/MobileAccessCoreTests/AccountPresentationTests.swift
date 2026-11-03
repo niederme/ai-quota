@@ -34,7 +34,7 @@ private func item(_ id: String, _ service: String, _ plan: String?, _ label: Str
 @Test func aliasesProvenanceAndUnavailablePlansAreHandledConservatively() {
     #expect(AccountPresentation.resolve(item("a", "Codex", "Business", "Codex Pro", .user), among: []).title == "Codex Business · Codex Pro")
     #expect(AccountPresentation.resolve(item("a", "Codex", "Business", "Codex Pro 2", .generated), among: []).title == "Codex Business")
-    #expect(AccountPresentation.resolve(item("a", "Claude", nil, "Claude Enterprise 2", .generated), among: []).title == "Claude Enterprise")
+    #expect(AccountPresentation.resolve(item("a", "Claude", nil, "Claude Enterprise 2", .generated), among: []).title == "Claude")
     #expect(AccountPresentation.resolve(item("a", "Claude", nil, "Research"), among: []).title == "Claude · Research")
     #expect(AccountPresentation.resolve(item("a", "Codex", nil), among: []).subtitle == "Plan unavailable")
     #expect(AccountPresentation.resolve(item("a", "Codex", "Pro", "Account 2", .user), among: []).title == "Codex Pro · Account 2")

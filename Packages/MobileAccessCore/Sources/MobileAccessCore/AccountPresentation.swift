@@ -35,7 +35,7 @@ public struct AccountPresentation: Equatable, Sendable {
     private static func components(_ i: AccountIdentity) -> Self {
         let service = clean(i.service)
         let label = clean(i.label)
-        let plan = normalizedPlan(i.plan) ?? inferredPlan(label, service: service, origin: i.origin)
+        let plan = normalizedPlan(i.plan)
         let stem = plan.map { "\(service) \($0)" } ?? service
         let generated = label.isEmpty || fold(label) == fold(service) || fold(label) == "live" || UUID(uuidString: label) != nil
             || (i.origin == .generated && fold(label) == "personal")
@@ -46,7 +46,7 @@ public struct AccountPresentation: Equatable, Sendable {
         let alias = i.origin == .user ? (label.isEmpty ? nil : label) : (generated ? nil : label)
         let title: String
         if let alias, fold(alias) != fold(stem), fold(alias) != fold(service) {
-            title = "\(stem) · \(alias)"
+            title = plan == nil && alias.lowercased().hasPrefix(service.lowercased() + " ") ? alias : "\(stem) · \(alias)"
         } else { title = stem }
         let subtitle = [plan.map { "\($0) plan" } ?? "Plan unavailable", alias.flatMap { fold($0) == fold(stem) || fold($0) == fold(service) ? nil : $0 }].compactMap { $0 }.joined(separator: " · ")
         return Self(service: service, plan: plan, title: title, subtitle: subtitle, requiresName: false, notificationTitle: stem)
@@ -64,10 +64,5 @@ public struct AccountPresentation: Equatable, Sendable {
         guard label.lowercased().hasPrefix(prefix.lowercased()) else { return false }
         let tail = String(label.dropFirst(prefix.count)).lowercased()
         return tail.range(of: "^(?:pro|prolite|business|enterprise|max|team|teams|free|plus|demo)(?: [0-9]+)?$", options: .regularExpression) != nil
-    }
-    private static func inferredPlan(_ label: String, service: String, origin: AccountIdentity.Origin) -> String? {
-        guard origin == .generated, isGeneratedPlanLabel(label, service: service) else { return nil }
-        let tail = String(label.dropFirst(service.count + 1)).split(separator: " ").first.map(String.init)
-        return normalizedPlan(tail)
     }
 }
