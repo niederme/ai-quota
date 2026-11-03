@@ -127,7 +127,7 @@ struct PopoverView: View {
                             MacAdditionalAccountDetailView(session: session, height: detailSize.height,
                                                            close: closeService, openSettings: openSettingsWindow,
                                                            reconnect: {
-                                                               Task { await viewModel.reconnectAccount(id: session.id) }
+                                                               Task { await viewModel.reconnect(session.account) }
                                                            })
                         } else {
                             ServiceDetailView(service: selectedService, height: detailSize.height,

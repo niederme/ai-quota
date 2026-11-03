@@ -66,6 +66,7 @@ struct MacAccountCard: View {
         account.provider == .codex ? codexUsage?.displayPlan : claudeUsage?.planLabel.displayName
     }
     private var identity: MobileAccessCore.AccountPresentation { account.presentation(plan: plan) }
+    private var needsReconnect: Bool { viewModel.recoveryAction(for: account) == .reconnect }
     private var budget: (used: Double, limit: Double, unit: String, currency: String?, reset: Date?)? {
         if account.provider == .codex, codexUsage?.reportedWindowShape == nil,
            let value = codexUsage?.displayableMonthlyBudget,
@@ -221,7 +222,7 @@ struct MacAccountCard: View {
                     if secondaryPercent != nil { resetCaption("7d", at: usage.sevenDayResetsAt) }
                 }
             }
-            if !connected {
+            if needsReconnect {
                 reconnectButton
                     .hidden()
                     .accessibilityHidden(true)

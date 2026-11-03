@@ -94,7 +94,11 @@ struct MacAccountGridView: View {
                                 destination: account.id, dragging: $dragging, move: move
                             ))
                             .contextMenu {
+                                if viewModel.recoveryAction(for: account) == .reconnect {
+                                    Button("Reconnect") { reconnect(account) }
+                                }
                                 Button("Refresh usage") { refresh(account) }
+                                    .disabled(viewModel.recoveryAction(for: account) == .reconnect)
                                 Button("Manage account in Settings", action: openSettings)
                                 Divider()
                                 Button("Move earlier") { move(account.id, offset: -1) }
@@ -180,13 +184,7 @@ struct MacAccountGridView: View {
     }
 
     private func reconnect(_ account: ConnectedAccount) {
-        if let session = session(for: account) {
-            Task { await viewModel.reconnectAccount(id: session.id) }
-        } else if account.provider == .codex {
-            Task { await viewModel.signIn() }
-        } else {
-            Task { await viewModel.signInClaude() }
-        }
+        Task { await viewModel.reconnect(account) }
     }
 
     private func move(_ source: String, _ destination: String) {
