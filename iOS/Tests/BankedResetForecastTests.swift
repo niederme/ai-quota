@@ -24,6 +24,7 @@ import MobileAccessCore
         XCTAssertNil(context.availableCount(for: forecast(now, account: "business", identity: "workspace-business"), now: now))
         XCTAssertNil(context.availableCount(for: value.forecast, now: now.addingTimeInterval(301)))
         let privateCopy = QuotaForecastTextFormatter.accessibilitySummary(value.forecast, accountLabel: "Codex", bankedResets: context, now: now)
+        XCTAssertTrue(privateCopy.hasPrefix("Codex is on pace to hit its 7d limit early. "))
         XCTAssertTrue(privateCopy.contains("1 banked reset available"))
         XCTAssertFalse(privateCopy.contains("workspace-pro"))
         XCTAssertFalse(privateCopy.contains("Codex Pro"))

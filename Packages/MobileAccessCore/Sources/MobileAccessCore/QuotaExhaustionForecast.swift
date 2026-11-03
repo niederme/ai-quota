@@ -83,10 +83,14 @@ public struct QuotaExhaustionForecast: Equatable, Sendable {
     public let basis: Basis
     public let projectedUsedPercent: Double
     public let validUntil: Date
+    /// Provider-supplied period length, used only to label the forecast.
+    public let windowDuration: TimeInterval?
 
-    public init(scope: QuotaForecastScope, basis: Basis, projectedUsedPercent: Double, validUntil: Date) {
+    public init(scope: QuotaForecastScope, basis: Basis, projectedUsedPercent: Double, validUntil: Date,
+                windowDuration: TimeInterval? = nil) {
         self.scope = scope; self.basis = basis
         self.projectedUsedPercent = projectedUsedPercent; self.validUntil = validUntil
+        self.windowDuration = windowDuration
     }
 
     public static func estimate(_ input: QuotaForecastInput, history: QuotaForecastDailyHistory? = nil,
@@ -128,7 +132,8 @@ public struct QuotaExhaustionForecast: Equatable, Sendable {
         // Leave a margin for rounded readings and modest changes in behavior.
         guard projected.isFinite, projected >= 110 else { return nil }
         return Self(scope: scope, basis: basis, projectedUsedPercent: projected,
-                    validUntil: min(scope.resetAt, input.fetchedAt.addingTimeInterval(scope.window.freshness)))
+                    validUntil: min(scope.resetAt, input.fetchedAt.addingTimeInterval(scope.window.freshness)),
+                    windowDuration: input.duration)
     }
 
     /// Validate on the most recent complete week using only the preceding three.
