@@ -50,23 +50,20 @@ struct CodexAnalyticsView: View {
             try await Task.sleep(for: .milliseconds(150)); all = nodes(host)
         }
         let buttons = all.filter { label($0).hasPrefix("Reconnect ") }
-        guard let preview = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { fatalError("bitmap") }
-        host.cacheDisplay(in: host.bounds, to: preview)
-        try preview.representation(using: .png, properties: [:])!.write(to: output.appendingPathComponent(name + ".png"))
         let nativeAccessibilityAvailable = all.contains { !label($0).isEmpty }
-        if nativeAccessibilityAvailable {
-        guard buttons.count == expectedButtons else { throw NSError(domain: "\(name) reconnect count \(buttons.count), expected \(expectedButtons). Labels: \(all.map(label))", code: 1) }
-        let beforeOpen = Calls.opened.count
         let beforeReconnect = Calls.reconnected.count
-        for button in buttons {
-            let sel = NSSelectorFromString("accessibilityPerformPress")
-            guard button.responds(to: sel) else { throw NSError(domain: "missing native button action", code: 1) }
-            _ = button.perform(sel)
-        }
-        try await Task.sleep(for: .milliseconds(100))
-        guard Calls.opened.count == beforeOpen, Calls.reconnected.count == beforeReconnect + expectedButtons else {
-            throw NSError(domain: "Reconnect must invoke only its own callback", code: 1)
-        }
+        if nativeAccessibilityAvailable {
+            guard buttons.count == expectedButtons else { throw NSError(domain: "\(name) reconnect count \(buttons.count), expected \(expectedButtons). Labels: \(all.map(label))", code: 1) }
+            let beforeOpen = Calls.opened.count
+            for button in buttons {
+                let sel = NSSelectorFromString("accessibilityPerformPress")
+                guard button.responds(to: sel) else { throw NSError(domain: "missing native button action", code: 1) }
+                _ = button.perform(sel)
+            }
+            try await Task.sleep(for: .milliseconds(100))
+            guard Calls.opened.count == beforeOpen, Calls.reconnected.count == beforeReconnect + expectedButtons else {
+                throw NSError(domain: "Reconnect must invoke only its own callback", code: 1)
+            }
         }
         guard let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) else { fatalError("bitmap") }
         host.cacheDisplay(in: host.bounds, to: bitmap)
