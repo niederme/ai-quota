@@ -8,11 +8,17 @@ struct MacQuotaInsightBanner: View {
     let accountLabel: String
     var bankedResets: CodexBankedResetContext? = nil
     var inset = true
+    var indentsForecast = false
+    var separatesAccountName = true
     let onDismiss: () -> Void
 
     private var row: some View {
-        MacAlertRow(title: QuotaForecastTextFormatter.title(forecast, accountLabel: accountLabel),
-                    announcement: false, onDismiss: onDismiss) {
+        MacAlertRow(title: separatesAccountName ? accountLabel : QuotaForecastTextFormatter.title(forecast, accountLabel: accountLabel),
+                    announcement: false, indentsForecast: indentsForecast, onDismiss: onDismiss) {
+            if separatesAccountName {
+                Text(QuotaForecastTextFormatter.sentence(forecast))
+                    .fontWeight(.semibold).foregroundStyle(Color.overviewPrimary)
+            }
             Text(QuotaForecastTextFormatter.detail(forecast, bankedResets: bankedResets))
         }
         .help("Estimate from current quota usage and available service history. Changes in usage can change the forecast.")

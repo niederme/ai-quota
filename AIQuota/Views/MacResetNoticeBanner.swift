@@ -25,19 +25,36 @@ struct MacAlertGroup<Content: View>: View {
 struct MacAlertRow<Detail: View>: View {
     let title: String
     let announcement: Bool
+    var indentsForecast = true
     let onDismiss: () -> Void
     @ViewBuilder let detail: Detail
 
+    @ViewBuilder private var headline: some View {
+        if announcement {
+            Text(title)
+        } else if indentsForecast {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text("🧭").font(.system(size: 12)).frame(width: 14)
+                Text(title)
+            }
+        } else {
+            Text("\(Text("🧭").font(.system(size: 12))) \(title)")
+        }
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: announcement ? "info.circle" : "exclamationmark.triangle.fill")
-                .font(.system(size: 14))
-                .foregroundStyle(announcement ? Color.overviewAccent : Color.overviewWarning)
-                .frame(width: 16, height: 16)
-                .accessibilityHidden(true)
+            if announcement {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.overviewAccent)
+                    .frame(width: 16, height: 16)
+                    .accessibilityHidden(true)
+            }
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).fontWeight(.semibold).foregroundStyle(Color.overviewPrimary)
+                headline.fontWeight(.semibold).foregroundStyle(Color.overviewPrimary)
                 detail.foregroundStyle(Color.overviewSecondary)
+                    .padding(.leading, !announcement && indentsForecast ? 18 : 0)
             }
             .font(.system(size: 13))
             .fixedSize(horizontal: false, vertical: true)

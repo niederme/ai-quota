@@ -79,6 +79,8 @@ struct OverviewAlerts: View {
     var accountLabel = ""
     var bankedResets: CodexBankedResetContext? = nil
     var wide = false
+    var indentsForecast = false
+    var separatesAccountName = true
     var loading = false
     let openDetails: () -> Void
     let dismissAnnouncement: () -> Void
@@ -137,9 +139,10 @@ struct OverviewAlerts: View {
                     announcement: true, wide: wide, loading: loading,
                     openDetails: openDetails, dismiss: { dismiss(id) })
             } else if let forecast {
-                OverviewAlertRow(title: QuotaForecastTextFormatter.title(forecast, accountLabel: accountLabel),
+                OverviewAlertRow(title: separatesAccountName ? accountLabel : QuotaForecastTextFormatter.title(forecast, accountLabel: accountLabel),
                     detail: QuotaForecastTextFormatter.detail(forecast, bankedResets: bankedResets),
-                    announcement: false, wide: wide, dismiss: { dismiss(id) })
+                    forecastSentence: separatesAccountName ? QuotaForecastTextFormatter.sentence(forecast) : nil,
+                    announcement: false, wide: wide, indentsForecast: indentsForecast, dismiss: { dismiss(id) })
                     .accessibilityLabel(QuotaForecastTextFormatter.accessibilitySummary(forecast, accountLabel: accountLabel, bankedResets: bankedResets))
                     .accessibilityHint(bankedResets?.availableCount(for: forecast, now: .now) != nil
                         ? "Banked resets require separate action in Codex. The time shown is the scheduled refresh." : "")
@@ -164,10 +167,14 @@ struct OverviewAlertRow: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .subheadline) private var compactTitleLine = 20.0
     @ScaledMetric(relativeTo: .headline) private var wideTitleLine = 22.0
+    @ScaledMetric(relativeTo: .footnote) private var compactEmojiWidth = 16.0
+    @ScaledMetric(relativeTo: .subheadline) private var wideEmojiWidth = 18.0
     let title: String
     let detail: String
+    var forecastSentence: String? = nil
     let announcement: Bool
     var wide = false
+    var indentsForecast = true
     var loading = false
     var openDetails: () -> Void = {}
     let dismiss: () -> Void
@@ -175,6 +182,21 @@ struct OverviewAlertRow: View {
     private var isWide: Bool { wide && !typeSize.isAccessibilitySize }
     private var titleLine: CGFloat { isWide ? wideTitleLine : compactTitleLine }
     private var dismissalLabel: String { announcement ? "Dismiss reset announcement" : "Dismiss limit forecast" }
+
+    private var emojiWidth: CGFloat { isWide ? wideEmojiWidth : compactEmojiWidth }
+
+    @ViewBuilder private var headline: some View {
+        if announcement {
+            Text(title)
+        } else if indentsForecast {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text("🧭").font(isWide ? .subheadline : .footnote).frame(width: emojiWidth)
+                Text(title)
+            }
+        } else {
+            Text("\(Text("🧭").font(isWide ? .subheadline : .footnote)) \(title)")
+        }
+    }
 
     @ViewBuilder var body: some View {
         if announcement {
@@ -186,15 +208,22 @@ struct OverviewAlertRow: View {
 
     private var content: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(systemName: announcement ? "info.circle" : "exclamationmark.triangle.fill")
-                .font(.system(size: 18))
-                .foregroundStyle(announcement ? OverviewStyle.accent : OverviewStyle.warning)
-                .frame(width: 22, height: titleLine)
-                .accessibilityHidden(true)
+            if announcement {
+                Image(systemName: "info.circle")
+                    .font(.system(size: 18))
+                    .foregroundStyle(OverviewStyle.accent)
+                    .frame(width: 22, height: titleLine)
+                    .accessibilityHidden(true)
+            }
             VStack(alignment: .leading, spacing: 2) {
-                Text(title)
+                headline
                     .font(isWide ? .headline : .subheadline.weight(.semibold))
                     .foregroundStyle(OverviewStyle.primary)
+                if let forecastSentence {
+                    Text(forecastSentence)
+                        .font(isWide ? .headline : .subheadline.weight(.semibold))
+                        .foregroundStyle(OverviewStyle.primary)
+                }
                 if announcement {
                     Button(action: openDetails) {
                         HStack(alignment: .firstTextBaseline, spacing: 4) {
@@ -208,6 +237,7 @@ struct OverviewAlertRow: View {
                     .accessibilityIdentifier("resetAnnouncementDetails")
                 } else {
                     Text(detail).foregroundStyle(OverviewStyle.secondary)
+                        .padding(.leading, indentsForecast ? emojiWidth + 4 : 0)
                 }
             }
             .font(isWide ? .subheadline : .footnote)
@@ -232,7 +262,7 @@ struct OverviewAlertRow: View {
         .padding(.vertical, 11)
         .frame(minHeight: 44)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(title + ". " + detail)
+        .accessibilityLabel(title + ". " + (forecastSentence.map { $0 + ". " } ?? "") + detail)
         .accessibilityAction(named: Text(dismissalLabel), dismiss)
         .modifier(UsageLoadingState(loading: loading, label: "Updating reset announcement"))
     }

@@ -16,8 +16,27 @@ private struct SampleInsightView: View {
     var resetCount: Int? = 1
     var age: TimeInterval = 0
     var longName = false
+    var indentsForecast = true
+    var accountHeading = false
+    var production = false
     private var bankedResets: CodexBankedResetContext? {
         resetCount.map { .init(accountID: "sample", providerIdentity: "sample", credits: .init(availableCount: $0), fetchedAt: sampleNow.addingTimeInterval(-age)) }
+    }
+    private var accountLabel: String {
+        longName ? "Codex Pro · A deliberately long custom connection name" : AccountPresentation.resolve(identities[0], among: identities).title
+    }
+    // Historical comparison with the longer reset wording; production uses the shorter balance.
+    private var suggestedForecastSentence: String {
+        let suffix = QuotaForecastTextFormatter.title(sampleForecast(), accountLabel: "").dropFirst(" is on pace to hit its ".count)
+        return "You’re on pace to hit your " + suffix
+    }
+    private var longerDetail: String {
+        guard let count = bankedResets?.availableCount(for: sampleForecast(), now: sampleNow) else {
+            return QuotaForecastTextFormatter.detail(sampleForecast(), now: sampleNow)
+        }
+        let balance = count == 0 ? "You have no banked resets available"
+            : "You have \(count.formatted()) banked \(count == 1 ? "reset" : "resets") available"
+        return balance + " • Resets " + QuotaForecastTextFormatter.reset(sampleForecast(), now: sampleNow)
     }
     private let identities = [
         AccountIdentity(key: "pro", service: "Codex", label: "Account 2", plan: "Pro"),
@@ -27,7 +46,7 @@ private struct SampleInsightView: View {
     ]
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Sample forecast · Simulated usage")
+            Text("\(production ? "Production account heading" : accountHeading ? "Account heading · ‘your’ suggestion" : (indentsForecast ? "Hanging indent" : "No hanging indent")) · Simulated usage")
                 .font(.caption).foregroundStyle(.secondary).padding(.horizontal, 20).padding(.top, 16)
             if dismissed {
                 Text("Dismissed for this sample window.")
@@ -36,9 +55,20 @@ private struct SampleInsightView: View {
                 MacAlertGroup {
                     MacResetNoticeBanner(title: "Codex reset credit announced", onReadMore: {}, onDismiss: {})
                     Color.overviewTrack.frame(height: 0.5).padding(.leading, 40)
-                    MacQuotaInsightBanner(forecast: sampleForecast(),
-                        accountLabel: longName ? "Codex Pro · A deliberately long custom connection name" : AccountPresentation.resolve(identities[0], among: identities).title,
-                        bankedResets: bankedResets, inset: false) { dismissed = true }
+                    if accountHeading {
+                        MacAlertRow(title: accountLabel, announcement: false, indentsForecast: false, onDismiss: { dismissed = true }) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(suggestedForecastSentence).fontWeight(.semibold).foregroundStyle(Color.overviewPrimary)
+                                Text(longerDetail)
+                            }
+                        }
+                        .accessibilityLabel(accountLabel + ". " + suggestedForecastSentence + ". " + longerDetail.replacingOccurrences(of: " • ", with: ". "))
+                        .accessibilityHint(bankedResets?.availableCount(for: sampleForecast(), now: sampleNow) != nil
+                            ? "Banked resets require separate action in Codex. The time shown is the scheduled refresh." : "")
+                    } else {
+                        MacQuotaInsightBanner(forecast: sampleForecast(), accountLabel: accountLabel,
+                            bankedResets: bankedResets, inset: false, indentsForecast: indentsForecast, separatesAccountName: production) { dismissed = true }
+                    }
                 }.padding(.horizontal, 16)
                 ForEach(identities, id: \.key) { identity in
                     VStack(alignment: .leading) {
@@ -63,16 +93,18 @@ struct QuotaInsightPreview: App {
             try! FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             for width in [320, 420, 480] {
                 for scheme in [ColorScheme.light, .dark] {
-                  for (tag, count, age) in [("unknown", nil, 0.0), ("zero", 0, 0.0), ("one", 1, 0.0), ("three", 3, 0.0), ("stale", 2, 301.0)] as [(String, Int?, TimeInterval)] {
-                    let content = SampleInsightView(resetCount: count, age: age, longName: width == 320).frame(width: CGFloat(width))
-                        .background(scheme == .dark ? Color.black : Color.white)
-                        .environment(\.colorScheme, scheme)
-                    let renderer = ImageRenderer(content: content)
-                    renderer.scale = 2
-                    let data = renderer.nsImage!.tiffRepresentation!
-                    let png = NSBitmapImageRep(data: data)!.representation(using: .png, properties: [:])!
-                    try! png.write(to: folder.appendingPathComponent("insight-\(width)-\(scheme == .dark ? "dark" : "light")-\(tag).png"))
-                  }
+                    for (layout, indentsForecast, accountHeading, production) in [("hanging", true, false, false), ("unindented", false, false, false), ("account-heading-suggested-your", false, true, false), ("production-account-heading", false, false, true)] {
+                        for (tag, count, age) in [("unknown", nil, 0.0), ("zero", 0, 0.0), ("one", 1, 0.0), ("two", 2, 0.0), ("three", 3, 0.0), ("stale", 2, 301.0)] as [(String, Int?, TimeInterval)] {
+                            let content = SampleInsightView(resetCount: count, age: age, longName: width == 320 && count == 3, indentsForecast: indentsForecast, accountHeading: accountHeading, production: production).frame(width: CGFloat(width))
+                                .background(scheme == .dark ? Color.black : Color.white)
+                                .environment(\.colorScheme, scheme)
+                            let renderer = ImageRenderer(content: content)
+                            renderer.scale = 2
+                            let data = renderer.nsImage!.tiffRepresentation!
+                            let png = NSBitmapImageRep(data: data)!.representation(using: .png, properties: [:])!
+                            try! png.write(to: folder.appendingPathComponent("\(layout)-insight-\(width)-\(scheme == .dark ? "dark" : "light")-\(tag).png"))
+                        }
+                    }
                 }
             }
             exit(0)
@@ -80,7 +112,7 @@ struct QuotaInsightPreview: App {
     }
     var body: some Scene {
         WindowGroup("Quota insight preview — simulated data") {
-            SampleInsightView().frame(minWidth: 320, idealWidth: 420, maxWidth: 480)
+            SampleInsightView(indentsForecast: !CommandLine.arguments.contains("--unindented"), accountHeading: CommandLine.arguments.contains("--account-heading")).frame(minWidth: 320, idealWidth: 420, maxWidth: 480)
         }
         .defaultSize(width: 420, height: 180)
         .windowResizability(.contentSize)
