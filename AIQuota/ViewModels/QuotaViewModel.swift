@@ -349,6 +349,27 @@ final class QuotaViewModel {
         if session.isAuthenticated { startAutoRefresh(immediateRefresh: false) }
     }
 
+    func recoveryAction(for account: ConnectedAccount) -> AccountRecoveryAction {
+        if account.connectionKind == .isolated {
+            return additionalAccounts.first { $0.id == account.id && $0.provider == account.provider }?.recoveryAction ?? .reconnect
+        }
+        return AccountRecoveryAction.resolve(
+            authenticated: account.provider == .codex ? isCodexAuthenticated : isClaudeAuthenticated,
+            error: account.provider == .codex ? codexError : claudeError)
+    }
+
+    /// User-invoked only. An additional connection must never fall back to the
+    /// primary provider's sign-in route, even if its session was removed.
+    func reconnect(_ account: ConnectedAccount) async {
+        if account.connectionKind == .isolated {
+            await reconnectAccount(id: account.id)
+        } else if account.provider == .codex {
+            await signIn()
+        } else {
+            await signInClaude()
+        }
+    }
+
     func signOutAccount(id: String) async {
         guard let session = additionalAccounts.first(where: { $0.id == id }) else { return }
         await session.signOut()
@@ -655,8 +676,9 @@ final class QuotaViewModel {
                             self.startAutoRefresh()
                         }
                     }
-                    if state == .signedOutByUser ||
-                        (state == .unauthenticated && !self.isClaudeRecoveryPending) {
+                    // Expiration needs recovery, not deletion of the last reading.
+                    // Explicit sign-out still clears account data as before.
+                    if state == .signedOutByUser {
                         self.clearClaudeUsageSnapshot()
                     }
                 }
@@ -679,9 +701,8 @@ final class QuotaViewModel {
                     if state == .authenticated && self.refreshTask == nil {
                         self.startAutoRefresh()
                     }
-                    if state == .signedOutByUser ||
-                        (state == .unauthenticated && !self.isCodexRecoveryPending) {
-                        self.clearCodexUsageSnapshot(clearPersistedUsage: state == .signedOutByUser)
+                    if state == .signedOutByUser {
+                        self.clearCodexUsageSnapshot()
                     }
                 }
             }
@@ -999,6 +1020,7 @@ final class QuotaViewModel {
                 )
             }
         } catch let e as NetworkError {
+            guard gen == codexRefreshGeneration, !Task.isCancelled else { return }
             if case .accountIdentityMismatch = e {
                 guard gen == codexRefreshGeneration else { return }
                 codexUsage = nil
@@ -1009,10 +1031,12 @@ final class QuotaViewModel {
                 return
             }
             if e.isAuthError {
-                codexUsage = nil
+                guard gen == codexRefreshGeneration, !Task.isCancelled else { return }
                 // Session may have expired — try a forced revalidation before clearing
                 // auth state. Avoids a brief "Connect" flash when cookies are still valid.
-                guard await codexCoordinator.revalidateSessionAfterAuthFailure() else { return }
+                let recovered = await codexCoordinator.revalidateSessionAfterAuthFailure()
+                guard gen == codexRefreshGeneration, !Task.isCancelled else { return }
+                guard recovered, isCodexAuthenticated else { codexError = e; return }
                 // Retry once after successful revalidation
                 do {
                     async let usageResult      = codexClient.fetchUsage()
@@ -1052,8 +1076,12 @@ final class QuotaViewModel {
                     clearTokenHistory()
                     clearUsageHistory()
                     codexError = .accountIdentityMismatch
+                } catch is CancellationError {
+                    return
                 } catch {
-                    // Retry also failed — coordinator already transitioned to unauthenticated
+                    guard gen == codexRefreshGeneration, !Task.isCancelled else { return }
+                    if let urlError = error as? URLError, urlError.code == .cancelled { return }
+                    codexError = (error as? NetworkError) ?? .requestFailed
                 }
                 return
             } else if case .networkUnavailable = e, !pathMonitorReady {
@@ -1075,6 +1103,7 @@ final class QuotaViewModel {
         } catch is CancellationError {
             // Task was cancelled (e.g. a new refresh cycle started) — ignore silently
         } catch {
+            guard gen == codexRefreshGeneration, !Task.isCancelled else { return }
             // URLError.cancelled means the surrounding Task was cancelled — ignore silently
             if let urlError = error as? URLError, urlError.code == .cancelled { return }
             let pathStatus = pathMonitor.currentPath.status
@@ -1117,13 +1146,12 @@ final class QuotaViewModel {
         } catch let e as NetworkError {
             guard gen == claudeRefreshGeneration, isClaudeAuthenticated, !Task.isCancelled else { return }
             if e.isAuthError {
-                claudeUsage = nil
-                SharedDefaults.clearClaudeUsage()
                 // Session may have expired — sync fresh cookies and retry the fetch
                 // once. Using a direct retry (not recursion) avoids an infinite loop
                 // if the session is genuinely invalid.
-                guard await claudeCoordinator.revalidateSessionAfterAuthFailure(),
-                      gen == claudeRefreshGeneration, isClaudeAuthenticated, !Task.isCancelled else { return }
+                let recovered = await claudeCoordinator.revalidateSessionAfterAuthFailure()
+                guard gen == claudeRefreshGeneration, !Task.isCancelled else { return }
+                guard recovered, isClaudeAuthenticated else { claudeError = e; return }
                 do {
                     let result = try await claudeClient.fetchUsage()
                     guard gen == claudeRefreshGeneration, isClaudeAuthenticated, !Task.isCancelled else { return }
@@ -1139,8 +1167,12 @@ final class QuotaViewModel {
                     guard gen == claudeRefreshGeneration, isClaudeAuthenticated, !Task.isCancelled else { return }
                     await NotificationManager.shared.notifyPlanChange(service: "Claude", previous: previousPlan, current: result.planDisplayName,
                         enabled: settings.notifications.enabled && settings.notifications.claudeEnabled)
+                } catch is CancellationError {
+                    return
                 } catch {
-                    // Retry also failed — coordinator already transitioned to unauthenticated
+                    guard gen == claudeRefreshGeneration, !Task.isCancelled else { return }
+                    if let urlError = error as? URLError, urlError.code == .cancelled { return }
+                    claudeError = (error as? NetworkError) ?? .requestFailed
                 }
                 return
             } else if case .networkUnavailable = e, !pathMonitorReady {
@@ -1749,6 +1781,16 @@ final class AdditionalAccountSession: Identifiable {
     var isLoading = false
     private(set) var isManualRefreshing = false
     var issue: String?
+    private(set) var issueError: NetworkError?
+    var recoveryAction: AccountRecoveryAction {
+        .resolve(authenticated: isAuthenticated, error: issueError, hasIssue: issue != nil)
+    }
+
+    private func clearIssue() { issue = nil; issueError = nil }
+    private func reportIssue(_ error: Error, message: String? = nil) {
+        issueError = error as? NetworkError
+        issue = message ?? error.localizedDescription
+    }
     /// Sign-in landed on an identity another account already holds.
     private(set) var isDuplicateIdentity = false
 
@@ -1825,7 +1867,8 @@ final class AdditionalAccountSession: Identifiable {
 
     func signIn() async {
         let previousIssue = issue
-        issue = nil
+        let previousIssueError = issueError
+        clearIssue()
         if state == .unknown { await bootstrap() }
         do {
             switch provider {
@@ -1852,10 +1895,11 @@ final class AdditionalAccountSession: Identifiable {
             if let codexCoordinator { adoptState(await codexCoordinator.state) }
             if let claudeCoordinator { adoptState(await claudeCoordinator.state) }
             issue = previousIssue
+            issueError = previousIssueError
         } catch {
             if let codexCoordinator { adoptState(await codexCoordinator.state) }
             if let claudeCoordinator { adoptState(await claudeCoordinator.state) }
-            issue = error.localizedDescription
+            reportIssue(error)
         }
     }
 
@@ -1875,7 +1919,7 @@ final class AdditionalAccountSession: Identifiable {
         adoptState(.signedOutByUser)
         isLoading = false
         isManualRefreshing = false
-        issue = nil
+        clearIssue()
     }
 
     func refresh(userInitiated: Bool = false) async {
@@ -1889,7 +1933,7 @@ final class AdditionalAccountSession: Identifiable {
         let generation = refreshGeneration
         isLoading = true
         isManualRefreshing = userInitiated
-        issue = nil
+        clearIssue()
         defer {
             if generation == refreshGeneration {
                 isLoading = false
@@ -1926,7 +1970,7 @@ final class AdditionalAccountSession: Identifiable {
             codexUsage = nil
             clearTokenHistory()
             clearUsageHistory()
-            issue = NetworkError.accountIdentityMismatch.localizedDescription
+            reportIssue(NetworkError.accountIdentityMismatch)
         } catch let error as NetworkError where error.isAuthError {
             guard generation == refreshGeneration, isAuthenticated, !Task.isCancelled else { return }
             switch provider {
@@ -1942,10 +1986,11 @@ final class AdditionalAccountSession: Identifiable {
                 }
             }
             guard generation == refreshGeneration else { return }
-            issue = error.localizedDescription
+            reportIssue(error)
         } catch {
-            guard generation == refreshGeneration else { return }
-            issue = error.localizedDescription
+            guard generation == refreshGeneration, !Task.isCancelled else { return }
+            if let urlError = error as? URLError, urlError.code == .cancelled { return }
+            reportIssue(error)
         }
     }
 
@@ -2083,18 +2128,18 @@ final class AdditionalAccountSession: Identifiable {
                 identity = try await claudeCoordinator?.requestContext().orgId
             }
             guard let identity, !identity.isEmpty else {
-                issue = "Could not verify this account's identity. Reconnect to try again."
+                reportIssue(NetworkError.accountIdentityMismatch, message: "Could not verify this account's identity. Reconnect to try again.")
                 return false
             }
             if let expected = account.workspaceID, expected != identity {
-                issue = "This session belongs to a different account. Its connection has been preserved."
+                reportIssue(NetworkError.accountIdentityMismatch, message: "This session belongs to a different account. Its connection has been preserved.")
                 return false
             }
             if AccountRegistry.accounts(for: provider).contains(where: {
                 $0.id != id && $0.workspaceID == identity
             }) {
                 isDuplicateIdentity = true
-                issue = "This identity is already connected to another account. Both connections have been preserved."
+                reportIssue(NetworkError.accountIdentityMismatch, message: "This identity is already connected to another account. Both connections have been preserved.")
                 return false
             }
             account.workspaceID = identity
@@ -2102,7 +2147,7 @@ final class AdditionalAccountSession: Identifiable {
             AccountRegistry.save(account)
             return true
         } catch {
-            issue = error.localizedDescription
+            reportIssue(error)
             return false
         }
     }

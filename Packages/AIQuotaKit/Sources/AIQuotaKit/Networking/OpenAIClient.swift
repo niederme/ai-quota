@@ -423,7 +423,7 @@ public actor OpenAIClient {
             .network
         case .httpError(let statusCode):
             (500...599).contains(statusCode) ? .serverError : .invalidResponse
-        case .unknownEndpoint, .accountIdentityMismatch:
+        case .unknownEndpoint, .accountIdentityMismatch, .requestFailed:
             .invalidResponse
         }
     }

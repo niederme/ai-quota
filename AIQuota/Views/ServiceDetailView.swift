@@ -28,6 +28,7 @@ struct ServiceDetailView: View {
     }
     private var connected: Bool { isCodex ? viewModel.isCodexAuthenticated : viewModel.isClaudeAuthenticated }
     private var error: NetworkError? { isCodex ? viewModel.codexError : viewModel.claudeError }
+    private var needsReconnect: Bool { AccountRecoveryAction.resolve(authenticated: connected, error: error) == .reconnect }
     private var reading: QuotaReading? {
         #if DEMO_MODE
         return MacAnalyticsDemo.reading(service)
@@ -70,7 +71,7 @@ struct ServiceDetailView: View {
             || viewModel.claudeEnterpriseSkills != nil
     }
     private var canFetchClaudeDetails: Bool {
-        connected && viewModel.claudeUsage?.source != nil
+        connected && !needsReconnect && viewModel.claudeUsage?.source != nil
             && viewModel.claudeUsage?.source != .unknown
     }
 
@@ -94,7 +95,7 @@ struct ServiceDetailView: View {
                 Spacer()
                 if busy { ProgressView().controlSize(.small) }
                 Button(action: refresh) { Image(systemName: "arrow.clockwise").frame(width: 16, height: 16) }
-                    .buttonStyle(AnalyticsHoverButtonStyle()).disabled(busy || !connected)
+                    .buttonStyle(AnalyticsHoverButtonStyle()).disabled(busy || needsReconnect)
                     .accessibilityLabel("Refresh \(name) details").help(refreshHelp)
             }.padding(.horizontal, 16).padding(.vertical, 10)
             Divider()
@@ -104,16 +105,18 @@ struct ServiceDetailView: View {
             NavigationStack {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
-                        if !connected {
+                        if needsReconnect {
                             Label("Reconnect to update details. Your last reading is retained.", systemImage: "person.crop.circle.badge.exclamationmark")
                                 .foregroundStyle(Color.warningAmber)
                         }
-                        if isCodex, connected {
+                        if isCodex, connected || reading != nil {
                             CodexAnalyticsView(reading: reading, history: history,
                                 historyUnavailable: viewModel.usageHistoryFailed,
-                                busy: busy || (history == nil && !viewModel.usageHistoryFailed), refresh: refresh)
+                                busy: !needsReconnect && (busy || (history == nil && !viewModel.usageHistoryFailed)), refresh: refresh)
+                                .disabled(needsReconnect)
                         } else if !isCodex, reading?.claudeBreakdown != nil {
-                            ClaudeAnalyticsView(reading: reading, busy: busy, failed: error != nil || !connected, refresh: refresh)
+                            ClaudeAnalyticsView(reading: reading, busy: !needsReconnect && busy, failed: error != nil || !connected, refresh: refresh)
+                                .disabled(needsReconnect)
                         }
                         if showsClaudeEnterpriseDetails {
                             ClaudeEnterpriseSpendView(
@@ -123,7 +126,7 @@ struct ServiceDetailView: View {
                                         && !viewModel.claudeSpendFailed),
                                 failed: viewModel.claudeSpendFailed,
                                 retry: { viewModel.refreshClaudeSpendDetails(force: true) }
-                            )
+                            ).disabled(needsReconnect)
                             ClaudeEnterpriseSkillsView(
                                 snapshot: viewModel.claudeEnterpriseSkills,
                                 currency: viewModel.claudeEnterpriseSpend?.report.currency,
@@ -132,14 +135,14 @@ struct ServiceDetailView: View {
                                         && !viewModel.claudeSkillsFailed),
                                 failed: viewModel.claudeSkillsFailed,
                                 retry: { viewModel.refreshClaudeSkillsDetails(force: true) }
-                            )
+                            ).disabled(needsReconnect)
                         }
                         if let error {
                             Label(error.localizedDescription, systemImage: "exclamationmark.triangle")
                                 .font(.callout).foregroundStyle(Color.warningAmber)
                         }
                         if !connected || isCodex { Divider() }
-                        if !connected || (isCodex && error?.needsReconnect == true) {
+                        if needsReconnect {
                             Button(action: reconnect) {
                                 Label("Reconnect \(name)", systemImage: "person.crop.circle")
                             }
@@ -166,10 +169,10 @@ struct ServiceDetailView: View {
         .frame(height: height, alignment: .top)
         .clipped()
         .accessibilityIdentifier("serviceDetailView")
-        .task(id: connected) {
-            if isCodex, connected {
+        .task(id: needsReconnect) {
+            if isCodex, connected, !needsReconnect {
                 viewModel.refreshUsageHistory()
-            } else if connected, showsClaudeEnterpriseDetails {
+            } else if connected, !needsReconnect, showsClaudeEnterpriseDetails {
                 viewModel.refreshClaudeEnterpriseDetails()
             }
         }

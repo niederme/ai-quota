@@ -42,6 +42,13 @@ import QuartzCore
     var codexError: NSError?
     var claudeError: NSError?
     var lastRefreshedAt: Date? = .now
+    func recoveryAction(for account: ConnectedAccount) -> AccountRecoveryAction {
+        if let session = additionalAccounts.first(where: { $0.id == account.id }) {
+            return .resolve(authenticated: session.isAuthenticated, error: nil, hasIssue: session.issue != nil)
+        }
+        return .resolve(authenticated: account.provider == .codex ? isCodexAuthenticated : isClaudeAuthenticated,
+                        error: nil, hasIssue: (account.provider == .codex ? codexError : claudeError) != nil)
+    }
     func manualRefresh() {}
     func refreshTokenHistory() {}
     func reconnectAccount(id: String) async {}

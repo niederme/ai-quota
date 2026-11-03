@@ -8,6 +8,9 @@ import Foundation
     let provider: ServiceType = .claude
     var state: AuthState = .unauthenticated
     var issue: String? = "previous issue"
+    var issueError: NetworkError?
+    func clearIssue() { issue = nil; issueError = nil }
+    func reportIssue(_ error: Error) { issueError = error as? NetworkError; issue = error.localizedDescription }
     var account: Account
     var refreshCount = 0
     var isAuthenticated: Bool { state == .authenticated }

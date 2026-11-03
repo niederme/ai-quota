@@ -8,6 +8,7 @@ public enum NetworkError: Error, Sendable, LocalizedError {
     case rateLimited
     case decodingError(underlying: any Error)
     case networkUnavailable
+    case requestFailed
     case unknownEndpoint
     case accountIdentityMismatch
 
@@ -33,6 +34,7 @@ public enum NetworkError: Error, Sendable, LocalizedError {
         case .rateLimited: "Rate limited — try again in a moment."
         case .decodingError: "Unexpected response format from server."
         case .networkUnavailable: "No network connection."
+        case .requestFailed: "Couldn’t update allowance. Try again."
         case .unknownEndpoint: "API endpoint not configured."
         case .accountIdentityMismatch: "Could not verify this session for the saved account. Its connection has been preserved."
         }

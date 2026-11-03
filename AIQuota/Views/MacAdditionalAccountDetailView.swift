@@ -11,6 +11,7 @@ struct MacAdditionalAccountDetailView: View {
     let reconnect: () -> Void
 
     private var serviceName: String { session.provider == .codex ? "Codex" : "Claude Code" }
+    private var needsReconnect: Bool { session.recoveryAction == .reconnect }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -42,18 +43,24 @@ struct MacAdditionalAccountDetailView: View {
                             .foregroundStyle(.orange)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    if !session.isAuthenticated {
+                    if needsReconnect {
+                        if session.codexUsage != nil || session.claudeUsage != nil {
+                            Text("Reconnect to update. Your saved reading is retained.")
+                                .font(.callout).foregroundStyle(.secondary)
+                        }
                         Button("Reconnect \(serviceName)", action: reconnect)
                             .disabled(session.isLoading)
+                            .accessibilityLabel("Reconnect \(session.account.presentation().title)")
                     }
                     if let usage = session.codexUsage {
                         codex(usage)
                         if session.isAuthenticated {
                             CodexAnalyticsView(reading: reading(usage), history: session.codexUsageHistory,
                                 historyUnavailable: session.usageHistoryFailed,
-                                busy: session.isUsageHistoryLoading
-                                    || (session.codexUsageHistory == nil && !session.usageHistoryFailed),
+                                busy: !needsReconnect && (session.isUsageHistoryLoading
+                                    || (session.codexUsageHistory == nil && !session.usageHistoryFailed)),
                                 refresh: refreshCodexHistory)
+                                .disabled(needsReconnect)
                         }
                     } else if let usage = session.claudeUsage {
                         claude(usage)
@@ -61,14 +68,16 @@ struct MacAdditionalAccountDetailView: View {
                         ContentUnavailableView(
                             session.isLoading ? "Loading usage" : "Usage unavailable",
                             systemImage: "chart.bar",
-                            description: Text(session.isAuthenticated ? "Refresh this account to try again." : "Reconnect this account in Settings.")
+                            description: Text(needsReconnect ? "Use Reconnect above to update this account." : "Refresh this account to try again.")
                         )
                     }
-                    Button("Refresh this account") {
-                        if session.provider == .codex { session.refreshUsageHistory(force: true) }
-                        Task { await session.refresh(userInitiated: true) }
-                    }
+                    if !needsReconnect {
+                        Button(session.recoveryAction == .retry ? "Retry this account" : "Refresh this account") {
+                            if session.provider == .codex { session.refreshUsageHistory(force: true) }
+                            Task { await session.refresh(userInitiated: true) }
+                        }
                         .disabled(!session.isAuthenticated || session.isLoading)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(20)
@@ -77,8 +86,8 @@ struct MacAdditionalAccountDetailView: View {
         }
         .tint(Color.gaugeAccent)
         .frame(height: height, alignment: .top)
-        .task(id: session.isAuthenticated) {
-            if session.provider == .codex, session.isAuthenticated { session.refreshUsageHistory() }
+        .task(id: needsReconnect) {
+            if session.provider == .codex, session.isAuthenticated, !needsReconnect { session.refreshUsageHistory() }
         }
         .accessibilityIdentifier("additionalAccountDetail")
     }
