@@ -48,7 +48,7 @@ public actor NotificationManager {
         guard enabled, let change = PlanChange(previous: previous, current: current) else { return }
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
-        await send(id: "plan-change.\(service.lowercased())", title: "\(service) plan changed to \(change.current)",
+        await send(id: "plan-change.\(service.lowercased())", title: "\(Self.name(provider: service == "Codex" ? .codex : .claude, providerID: nil, plan: current)) plan changed to \(change.current)",
                    body: "Previously \(change.previous). Connection checked and usage is up to date.")
     }
 
@@ -57,6 +57,7 @@ public actor NotificationManager {
     /// Called after every successful Codex fetch. Fires at most one notification
     /// per threshold per weekly window, and one "reset" notification when the week rolls over.
     public func evaluate(current: CodexUsage, prefs: NotificationPreferences) async {
+        let display = Self.name(provider: .codex, providerID: current.accountID, plan: current.displayPlan)
         guard prefs.enabled, prefs.codexEnabled else { return }
         guard current.reportedWindowShape != nil else { return }
         let center = UNUserNotificationCenter.current()
@@ -69,25 +70,25 @@ public actor NotificationManager {
         if prefs.codexReset && ResetAlertObservation.allows(priorPeak: weeklyResetPeak, minimum: prefs.codexResetMinimum) {
             await send(
                 id: "codexReset",
-                title: "Codex 7-day window reset",
-                body: "Your Codex 7-day window has reset. You're back to full capacity."
+                title: "\(display) 7-day window reset",
+                body: "Your \(display) 7-day window has reset. You're back to full capacity."
             )
         }
         if prefs.codex5hReset && ResetAlertObservation.allows(priorPeak: hourlyResetPeak, minimum: prefs.codex5hResetMinimum) {
             await send(
                 id: "codex5hReset",
-                title: "Codex 5-hour window reset",
-                body: "Your Codex 5-hour window has reset. You're back to full capacity."
+                title: "\(display) 5-hour window reset",
+                body: "Your \(display) 5-hour window has reset. You're back to full capacity."
             )
         }
 
         if current.hasHourlyWindow {
             await evaluateUsage(key: Key.codex5hThresholds, legacyEndKey: Key.codex5hLastResetAt,
-                service: "Codex", window: "5-hour", used: Double(current.hourlyUsedPercent),
+                service: display, window: "5-hour", used: Double(current.hourlyUsedPercent),
                 end: current.hourlyResetAt, enabled: prefs.codex5hThresholdAlerts, threshold: prefs.codexUsageThreshold)
         }
         await evaluateUsage(key: Key.codexThresholds, legacyEndKey: Key.codexLastResetAt,
-            service: "Codex", window: "7-day", used: Double(current.weeklyUsedPercent),
+            service: display, window: "7-day", used: Double(current.weeklyUsedPercent),
             end: current.weeklyResetAt, enabled: prefs.codexWeeklyThresholdAlerts, threshold: prefs.codexUsageThreshold)
     }
 
@@ -105,6 +106,7 @@ public actor NotificationManager {
     /// Always updates the stored balance regardless of whether a notification fires —
     /// including on first launch (where it stores and returns without firing).
     public func evaluateTopUp(currentBalance: Double, autoReload: CodexAutoReload?, prefs: NotificationPreferences) async {
+        let display = AccountRegistry.accounts(for: .codex).first(where: { $0.connectionKind == .legacyPrimary })?.presentation().notificationTitle ?? "Codex"
         let lastBalance = defaults.object(forKey: Key.codexLastBalance) as? Double
         defaults.set(currentBalance, forKey: Key.codexLastBalance)
 
@@ -120,10 +122,10 @@ public actor NotificationManager {
         let title: String
         let body: String
         if autoReload?.isEnabled == true {
-            title = "Codex credits topped up"
+            title = "\(display) credits topped up"
             body  = "Auto-reload added credits. New balance: \(Int(currentBalance))."
         } else {
-            title = "Codex credits added"
+            title = "\(display) credits added"
             body  = "New balance: \(Int(currentBalance))."
         }
         await send(id: "codexTopUp", title: title, body: body)
@@ -134,6 +136,7 @@ public actor NotificationManager {
     /// Called after every successful Claude fetch. Fires once per threshold
     /// per rate-limit window, and once when the window resets.
     public func evaluate(claude: ClaudeUsage, prefs: NotificationPreferences) async {
+        let display = Self.name(provider: .claude, providerID: claude.quotaScopeID, plan: claude.planDisplayName)
         guard prefs.enabled, prefs.claudeEnabled else { return }
         let center = UNUserNotificationCenter.current()
         let settings = await center.notificationSettings()
@@ -148,26 +151,26 @@ public actor NotificationManager {
         if prefs.claude5hReset && ResetAlertObservation.allows(priorPeak: hourlyResetPeak, minimum: prefs.claude5hResetMinimum) {
             await send(
                 id: "claudeReset",
-                title: "Claude 5-hour window reset",
-                body: "Your Claude 5-hour window has reset. You're back to full capacity."
+                title: "\(display) 5-hour window reset",
+                body: "Your \(display) 5-hour window has reset. You're back to full capacity."
             )
         }
         if prefs.claude7dReset && ResetAlertObservation.allows(priorPeak: weeklyResetPeak, minimum: prefs.claude7dResetMinimum) {
             await send(
                 id: "claudeSevenDayReset",
-                title: "Claude 7-day window reset",
-                body: "Your Claude 7-day window has reset. You're back to full capacity."
+                title: "\(display) 7-day window reset",
+                body: "Your \(display) 7-day window has reset. You're back to full capacity."
             )
         }
 
         if let used = claude.fiveHourUtilization, let end = claude.fiveHourResetsAt {
             await evaluateUsage(key: Key.claudeThresholds, legacyEndKey: Key.claudeLastResetAt,
-                service: "Claude", window: "5-hour", used: used, end: end,
+                service: display, window: "5-hour", used: used, end: end,
                 enabled: prefs.claude5hThresholdAlerts, threshold: prefs.claudeUsageThreshold)
         }
         if let used = claude.sevenDayUtilization, let end = claude.sevenDayResetsAt {
             await evaluateUsage(key: Key.claudeSevenDayThresholds, legacyEndKey: Key.claudeSevenDayLastResetAt,
-                service: "Claude", window: "7-day", used: used, end: end,
+                service: display, window: "7-day", used: used, end: end,
                 enabled: prefs.claude7dThresholdAlerts, threshold: prefs.claudeUsageThreshold)
         }
     }
@@ -192,6 +195,15 @@ public actor NotificationManager {
         let delivered = await send(id: key + ".usage", title: "\(service) \(window) usage at \(Int(used.rounded()))%",
             body: "Your \(threshold)% threshold was reached. Resets in \(timeString(max(0, Int(end.timeIntervalSinceNow)))).")
         if !delivered { defaults.removeObject(forKey: stateKey) }
+    }
+
+    static func name(provider: ServiceType, providerID: String?, plan: String?) -> String {
+        let peers = AccountRegistry.accounts(for: provider)
+        if let providerID, let account = peers.first(where: { $0.workspaceID == providerID && $0.connectionKind == .legacyPrimary }) {
+            return account.presentation(plan: plan, among: peers).notificationTitle
+        }
+        let identity = AccountIdentity(key: "unmatched", service: provider == .codex ? "Codex" : "Claude", label: "", plan: plan)
+        return AccountPresentation.resolve(identity, among: []).notificationTitle
     }
 
     // MARK: - Private helpers

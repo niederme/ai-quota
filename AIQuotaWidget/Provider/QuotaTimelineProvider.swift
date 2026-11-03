@@ -13,6 +13,13 @@ struct QuotaEntry: TimelineEntry {
         configuration.account?.provider ?? configuration.service.serviceType
     }
 
+    func displayName(for provider: ServiceType) -> String {
+        let plan = provider == .codex ? codexUsage?.displayPlan : claudeUsage?.planDisplayName
+        let account = configuration.account.flatMap { $0.provider == provider ? AccountRegistry.account(id: $0.id) : nil }
+            ?? AccountRegistry.accounts(for: provider).first(where: { $0.connectionKind == .legacyPrimary })
+        return account?.presentation(plan: plan).title ?? ([provider == .codex ? "Codex" : "Claude", plan].compactMap { $0 }.joined(separator: " "))
+    }
+
     // Backward-compat alias
     var usage: CodexUsage? { codexUsage }
 

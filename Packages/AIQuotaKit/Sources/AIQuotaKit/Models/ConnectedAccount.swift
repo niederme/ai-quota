@@ -29,10 +29,26 @@ public struct ConnectedAccount: Codable, Identifiable, Sendable, Equatable {
     public let createdAt: Date
     public var updatedAt: Date
 
-    public var alertDisplayName: String {
-        AccountAlertName.make(service: provider == .codex ? "Codex" : "Claude", label: displayLabel,
-                              explicitlyNamed: labelExplicitlyNamed != false)
+    public var cachedPlan: String? {
+        if provider == .codex {
+            if let usage = SharedDefaults.loadCachedUsage(forAccountID: id), workspaceID == nil || usage.accountID == workspaceID { return usage.displayPlan }
+            if connectionKind == .legacyPrimary, let usage = SharedDefaults.loadCachedUsage(),
+               let workspaceID, usage.accountID == workspaceID { return usage.displayPlan }
+        } else {
+            if let usage = SharedDefaults.loadCachedClaudeUsage(forAccountID: id), workspaceID == nil || usage.quotaScopeID == workspaceID { return usage.planDisplayName }
+            if connectionKind == .legacyPrimary, let usage = SharedDefaults.loadCachedClaudeUsage(),
+               let workspaceID, usage.quotaScopeID == workspaceID { return usage.planDisplayName }
+        }
+        return nil
     }
+    public func identity(plan: String? = nil) -> AccountIdentity {
+        .init(key: id, service: provider == .codex ? "Codex" : "Claude", label: displayLabel,
+              plan: plan ?? cachedPlan, origin: labelExplicitlyNamed == true ? .user : labelExplicitlyNamed == false ? .generated : .unknown)
+    }
+    public func presentation(plan: String? = nil, among peers: [ConnectedAccount]? = nil) -> AccountPresentation {
+        AccountPresentation.resolve(identity(plan: plan), among: (peers ?? AccountRegistry.accounts()).map { $0.identity() })
+    }
+    public var alertDisplayName: String { presentation().title }
 
     public init(
         id: UUID = UUID(),

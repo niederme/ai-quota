@@ -10,15 +10,17 @@ struct AccountProfile: Codable, Equatable, Identifiable, Sendable {
     var providerIdentity: String?
     let isLegacy: Bool
     var suggestedNamePending: Bool?
+    var labelExplicitlyNamed: Bool?
 
     init(id: String, service: QuotaService, label: String, providerIdentity: String? = nil,
-         isLegacy: Bool, suggestedNamePending: Bool? = nil) {
+         isLegacy: Bool, suggestedNamePending: Bool? = nil, labelExplicitlyNamed: Bool? = nil) {
         self.id = id
         self.service = service
         self.label = label
         self.providerIdentity = providerIdentity
         self.isLegacy = isLegacy
         self.suggestedNamePending = suggestedNamePending
+        self.labelExplicitlyNamed = labelExplicitlyNamed
     }
 
     /// Stable identity used when ordering profiles across services. Profile IDs
@@ -26,10 +28,19 @@ struct AccountProfile: Codable, Equatable, Identifiable, Sendable {
     /// named `live`.
     var orderKey: String { "\(service.rawValue)\u{0}\(id)" }
 
-    var alertDisplayName: String {
-        AccountAlertName.make(service: service.name, label: label,
-                              explicitlyNamed: suggestedNamePending == false)
+    func identity(plan: String?) -> AccountIdentity {
+        .init(key: orderKey, service: service.name, label: label, plan: plan,
+              origin: labelExplicitlyNamed == true ? .user : labelExplicitlyNamed == false || suggestedNamePending == true ? .generated : .unknown)
     }
+    func presentation(reading: QuotaReading? = nil, among profiles: [AccountProfile], readings: [String: QuotaReading] = [:]) -> AccountPresentation {
+        func plan(_ profile: AccountProfile, _ reading: QuotaReading?) -> String? {
+            if let expected = profile.providerIdentity, let actual = reading?.providerIdentity, expected != actual { return nil }
+            return reading?.metadata?.displayPlan
+        }
+        let identity = identity(plan: plan(self, reading ?? readings[orderKey]))
+        return AccountPresentation.resolve(identity, among: profiles.map { $0.identity(plan: plan($0, readings[$0.orderKey])) })
+    }
+    var alertDisplayName: String { AccountRegistry.presentation(for: self).title }
 
     static func ordered(_ profiles: [Self], by keys: [String]) -> [Self] {
         let byKey = Dictionary(profiles.map { ($0.orderKey, $0) }, uniquingKeysWith: { first, _ in first })
@@ -79,6 +90,7 @@ enum AccountRegistry {
             // including when the user explicitly chooses the old generic label.
             for index in profiles.indices where profiles[index].isLegacy
                 && profiles[index].suggestedNamePending == nil
+                && profiles[index].labelExplicitlyNamed != true
                 && profiles[index].label == "Account 1" {
                 let profile = profiles[index]
                 profiles[index].label = AccountNameSuggestion.make(
@@ -149,7 +161,8 @@ enum AccountRegistry {
                     service: service,
                     label: label.flatMap { $0.isEmpty ? nil : $0 } ?? suggested,
                     isLegacy: count == 0,
-                    suggestedNamePending: suggestedNamePending
+                    suggestedNamePending: suggestedNamePending,
+                    labelExplicitlyNamed: !suggestedNamePending
                 )
                 state.profiles.append(profile)
                 if state.defaults[service.rawValue] == nil { state.defaults[service.rawValue] = profile.id }
@@ -163,6 +176,7 @@ enum AccountRegistry {
                 for index in state.profiles.indices where state.profiles[index].id == id {
                     state.profiles[index].label = label
                     state.profiles[index].suggestedNamePending = false
+                    state.profiles[index].labelExplicitlyNamed = true
                 }
             }
         }
@@ -173,6 +187,7 @@ enum AccountRegistry {
                       let index = state.profiles.firstIndex(where: { $0.service == service && $0.id == id }) else { return }
                 state.profiles[index].label = label
                 state.profiles[index].suggestedNamePending = false
+                state.profiles[index].labelExplicitlyNamed = true
             }
         }
         func applySuggestedPlan(service: QuotaService, id: String, plan: String) {
@@ -182,6 +197,7 @@ enum AccountRegistry {
                 guard let index = state.profiles.firstIndex(where: { $0.service == service && $0.id == id }),
                       state.profiles[index].suggestedNamePending == true else { return }
                 let existing = state.profiles.filter { $0.service == service && $0.id != id }.map(\.label)
+                state.profiles[index].labelExplicitlyNamed = false
                 state.profiles[index].label = AccountNameSuggestion.make(
                     service: service.name, plan: plan, existingLabels: existing)
                 state.profiles[index].suggestedNamePending = false
@@ -291,6 +307,13 @@ enum AccountRegistry {
         )
     }
 
+    static func presentation(for profile: AccountProfile, reading: QuotaReading? = nil) -> AccountPresentation {
+        let profiles = all()
+        let readings = Dictionary(uniqueKeysWithValues: profiles.compactMap { p in
+            SharedQuotaStore(p).reading().map { (p.orderKey, $0) }
+        })
+        return profile.presentation(reading: reading, among: profiles, readings: readings)
+    }
     static func all() -> [AccountProfile] { store.all() }
     static func orderedProfiles() -> [AccountProfile] { store.orderedProfiles() }
     static func profiles(for service: QuotaService) -> [AccountProfile] { store.profiles(for: service) }

@@ -13,6 +13,12 @@ private func sampleForecast() -> QuotaExhaustionForecast {
 
 private struct SampleInsightView: View {
     @State private var dismissed = false
+    private let identities = [
+        AccountIdentity(key: "pro", service: "Codex", label: "Account 2", plan: "Pro"),
+        AccountIdentity(key: "business", service: "Codex", label: "Codex Business", plan: "Business"),
+        AccountIdentity(key: "max", service: "Claude", label: "Account 1", plan: "Max"),
+        AccountIdentity(key: "enterprise", service: "Claude", label: "Claude Enterprise", plan: "Enterprise")
+    ]
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Sample forecast · Simulated usage")
@@ -24,8 +30,15 @@ private struct SampleInsightView: View {
                 MacAlertGroup {
                     MacResetNoticeBanner(title: "Codex reset credit announced", onReadMore: {}, onDismiss: {})
                     Color.overviewTrack.frame(height: 0.5).padding(.leading, 40)
-                    MacQuotaInsightBanner(forecast: sampleForecast(), accountLabel: "Personal Codex", inset: false) { dismissed = true }
+                    MacQuotaInsightBanner(forecast: sampleForecast(), accountLabel: AccountPresentation.resolve(identities[0], among: identities).title, inset: false) { dismissed = true }
                 }.padding(.horizontal, 16)
+                ForEach(identities, id: \.key) { identity in
+                    VStack(alignment: .leading) {
+                        Text(AccountPresentation.resolve(identity, among: identities).title).font(.headline)
+                        Text(AccountPresentation.resolve(identity, among: identities).subtitle).font(.subheadline)
+                    }.padding(.horizontal, 20).padding(.vertical, 4)
+                }
+
             }
         }
         .padding(.bottom, 8)

@@ -57,7 +57,7 @@ struct HomeQuotaView: View {
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                         }
                         .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(account.accessibility(at: date))
+                        .accessibilityLabel(account.accessibility(at: date, showAccountNames: showAccountNames))
                     }
                 }
             case .accountsSmall:
@@ -71,7 +71,7 @@ struct HomeQuotaView: View {
                                     status(account, compact: true)
                                 }.frame(maxWidth: .infinity, alignment: .leading)
                             }
-                        }.accessibilityLabel(account.accessibility(at: date))
+                        }.accessibilityLabel(account.accessibility(at: date, showAccountNames: showAccountNames))
                     }
                 }
             case .dualMedium:
@@ -101,7 +101,7 @@ struct HomeQuotaView: View {
             if monochrome && (account.worstPercent ?? 0) >= 85 {
                 Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 9)).accessibilityHidden(true)
             }
-            Text(account.compactName(showAccountNames: showAccountNames)).font(.system(size: min(nameSize, 13), weight: .semibold)).lineLimit(lines, reservesSpace: reservingSpace).truncationMode(.tail)
+            Text(account.compactName(showAccountNames: showAccountNames)).privacySensitive().font(.system(size: min(nameSize, 13), weight: .semibold)).lineLimit(lines, reservesSpace: reservingSpace).truncationMode(.tail)
         }
     }
     private func status(_ account: WidgetAccountContent, compact: Bool = false) -> some View {
@@ -116,7 +116,7 @@ struct HomeQuotaView: View {
         }
         .multilineTextAlignment(.center)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(account.accessibility(at: date))
+        .accessibilityLabel(account.accessibility(at: date, showAccountNames: showAccountNames))
     }
     private func accountSummary(_ account: WidgetAccountContent, size: CGFloat, heatmap: Bool) -> some View {
         HStack(alignment: .center, spacing: 16) {
@@ -133,11 +133,11 @@ struct HomeQuotaView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 4) {
                 if monochrome && (account.worstPercent ?? 0) >= 85 { Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 12)) }
-                Text(account.value.service.name).font(.system(size: 17, weight: .semibold)).lineLimit(1)
+                Text(account.compactName(showAccountNames: showAccountNames)).privacySensitive().font(.system(size: 17, weight: .semibold)).lineLimit(1)
             }
             let plan = account.value.reading?.metadata?.displayPlan
             if plan != nil || !account.label.isEmpty {
-                Text([plan.map { "\($0) plan" }, account.label.isEmpty ? nil : account.label].compactMap { $0 }.joined(separator: " · "))
+                Text(plan.map { "\($0) plan" } ?? "Plan unavailable")
                     .font(.system(size: 12, weight: .semibold)).lineLimit(1)
             }
             VStack(alignment: .leading, spacing: 0) {

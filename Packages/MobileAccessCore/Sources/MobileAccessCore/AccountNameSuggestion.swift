@@ -10,10 +10,7 @@ public enum AccountNameSuggestion {
         } else {
             stem = service
         }
-        let used = Set(existingLabels.map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() })
-        if !used.contains(stem.lowercased()) { return stem }
-        var number = 2
-        while used.contains("\(stem) \(number)".lowercased()) { number += 1 }
-        return "\(stem) \(number)"
+        // Matching plans need an owner-chosen alias, not a generated ordinal.
+        return stem
     }
 }

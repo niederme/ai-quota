@@ -28,12 +28,12 @@ struct WidgetAccount: AppEntity {
     let provider: ServiceType
 
     var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: "\(provider == .codex ? "Codex" : "Claude Code") · \(name)")
+        DisplayRepresentation(title: "\(name)")
     }
 
     init(_ account: ConnectedAccount) {
         id = account.id
-        name = account.displayLabel
+        name = account.presentation().title
         provider = account.provider
     }
 }
@@ -44,7 +44,7 @@ struct WidgetAccountQuery: EntityQuery {
     }
 
     func suggestedEntities() async throws -> [WidgetAccount] {
-        AccountRegistry.orderedAccounts().map(WidgetAccount.init)
+        AccountRegistry.orderedAccounts().filter { !$0.presentation().requiresName }.map(WidgetAccount.init)
     }
 }
 

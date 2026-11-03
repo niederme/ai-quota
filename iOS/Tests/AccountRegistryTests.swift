@@ -102,11 +102,13 @@ final class AccountCardOrderTests: XCTestCase {
 
         let second = registry.add(service: .claude)
         registry.applySuggestedPlan(service: .claude, id: second.id, plan: "Enterprise")
-        XCTAssertEqual(registry.all().last?.label, "Claude Enterprise 2")
+        XCTAssertEqual(registry.all().last?.label, "Claude Enterprise")
+        XCTAssertEqual(registry.all().last?.labelExplicitlyNamed, false)
 
         registry.rename(service: .claude, id: second.id, label: "Work")
         registry.applySuggestedPlan(service: .claude, id: second.id, plan: "Pro")
         XCTAssertEqual(registry.all().last?.label, "Work")
+        XCTAssertEqual(registry.all().last?.labelExplicitlyNamed, true)
 
         let reopened = AccountRegistry.Store(root: root, legacyServices: [])
         XCTAssertEqual(reopened.all().map(\.label), ["Claude Enterprise", "Work"])
@@ -171,7 +173,7 @@ extension AccountCardOrderTests {
         registry.applySuggestedPlan(service: .claude, id: "live", plan: "Max")
         registry.applySuggestedPlan(service: .claude, id: "custom", plan: "Max")
         let reopened = AccountRegistry.Store(root: root, legacyServices: [])
-        XCTAssertEqual(reopened.all().map(\.label), ["Codex Pro 2", "Codex Pro", "Account 1", "Family"])
+        XCTAssertEqual(reopened.all().map(\.label), ["Codex Pro", "Codex Pro", "Account 1", "Family"])
         XCTAssertEqual(reopened.defaultProfile(for: .codex)?.id, "work")
         XCTAssertEqual(reopened.defaultProfile(for: .claude)?.id, "live")
         XCTAssertEqual(reopened.accountOrder(), old["accountOrder"] as? [String])

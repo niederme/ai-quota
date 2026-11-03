@@ -4,6 +4,7 @@ import AIQuotaKit
 struct WidgetBudgetView: View {
     let budget: CodexUsage.MonthlyBudget
     let size: CGFloat
+    var label: String = "Codex"
 
     private var used: Double { budget.used ?? 0 }
     private var limit: Double { budget.limit ?? 1 }
@@ -35,7 +36,7 @@ struct WidgetBudgetView: View {
                 .minimumScaleFactor(0.7)
             }
             .frame(width: size, height: size)
-            Text("Codex")
+            Text(label).privacySensitive()
                 .font(.system(size: size * 0.125, weight: .bold))
             Text("credits this month")
                 .font(.system(size: size * 0.1))
@@ -43,12 +44,13 @@ struct WidgetBudgetView: View {
         }
         .multilineTextAlignment(.center)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Codex, \(used) of \(limit) monthly credits used")
+        .accessibilityLabel("\(label), \(used) of \(limit) monthly credits used")
     }
 }
 
 struct WidgetUnavailableView: View {
     let size: CGFloat
+    var label: String = "Codex"
 
     var body: some View {
         VStack(spacing: 4) {
@@ -56,7 +58,7 @@ struct WidgetUnavailableView: View {
                 .resizable().scaledToFit()
                 .frame(width: size * 0.25, height: size * 0.25)
             Text("—").font(.title.bold()).foregroundStyle(.tertiary)
-            Text("Codex").font(.caption.bold())
+            Text(label).privacySensitive().font(.caption.bold())
             Text("Usage unavailable").font(.system(size: 9)).foregroundStyle(.secondary)
         }
         .frame(width: size + 18, height: size + 18)

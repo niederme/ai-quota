@@ -17,7 +17,7 @@ struct WidgetSmallView: View {
                         secondaryPercent: Int(u.sevenDayUtilization?.rounded() ?? 0),
                         showsSecondaryMetric: true,
                         icon: "logo-claude",
-                        label: "Claude Code",
+                        label: entry.displayName(for: .claude),
                         primaryLabel: u.primaryMetricLabel,
                         secondaryLabel: "7-day",
                         resetSeconds: u.resetAfterSeconds ?? 0,
@@ -31,7 +31,7 @@ struct WidgetSmallView: View {
             } else {
                 if let u = entry.codexUsage {
                     if u.reportedWindowShape == nil, let budget = u.displayableMonthlyBudget {
-                        WidgetBudgetView(budget: budget, size: 90)
+                        WidgetBudgetView(budget: budget, size: 90, label: entry.displayName(for: .codex))
                     } else if u.reportedWindowShape != nil {
                     let hasHourlyWindow = u.hasHourlyWindow
                     let weeklyOnly = u.reportsWeeklyOnlyWindow
@@ -42,7 +42,7 @@ struct WidgetSmallView: View {
                         secondaryPercent: u.weeklyUsedPercent,
                         showsSecondaryMetric: !weeklyOnly,
                         icon: "logo-openai",
-                        label: "Codex",
+                        label: entry.displayName(for: .codex),
                         primaryLabel: weeklyOnly ? "7d" : "5h",
                         secondaryLabel: "7-day",
                         resetSeconds: weeklyOnly ? u.weeklyResetAfterSeconds : u.hourlyResetAfterSeconds,
@@ -58,6 +58,7 @@ struct WidgetSmallView: View {
                 }
             }
         }
+        .privacySensitive()
         .padding(8)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

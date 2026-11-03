@@ -13,12 +13,12 @@ struct WidgetAccountContent: Identifiable, Sendable {
 
     var name: String {
         let service = value.service.name
-        guard !label.isEmpty else { return service }
-        if label.caseInsensitiveCompare(service) == .orderedSame || label.lowercased().hasPrefix(service.lowercased() + " ") { return label }
-        return "\(service) \(label)"
+        if label.hasPrefix(service), label.contains(" · ") { return label }
+        return AccountPresentation.resolve(.init(key: id, service: service, label: label,
+            plan: value.reading?.metadata?.displayPlan), among: []).title
     }
     func compactName(showAccountNames: Bool) -> String {
-        showAccountNames ? name : value.service.name
+        showAccountNames ? name : AccountPresentation.resolve(.init(key: id, service: value.service.name, label: "", plan: value.reading?.metadata?.displayPlan), among: []).notificationTitle
     }
     var url: URL {
         let prefix = value.service.rawValue + ":"
@@ -50,8 +50,8 @@ struct WidgetAccountContent: Identifiable, Sendable {
         guard let window = reading.windows.max(by: { $0.usedPercent < $1.usedPercent }) else { return "No reading yet" }
         return WidgetCopy.reset(window.resetsAt, at: date, compact: compact)
     }
-    func accessibility(at date: Date) -> String {
-        var parts = [name, value.reading?.accessibilitySummary ?? "Allowance unavailable", status(at: date)]
+    func accessibility(at date: Date, showAccountNames: Bool = true) -> String {
+        var parts = [compactName(showAccountNames: showAccountNames), value.reading?.accessibilitySummary ?? "Allowance unavailable", status(at: date)]
         if !value.needsApp, !isSaved(at: date) {
             for window in value.reading?.windows ?? [] {
                 if let reset = window.resetsAt, reset > date {

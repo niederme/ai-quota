@@ -34,7 +34,7 @@ struct MacAdditionalAccountDetailView: View {
             MacQuotaInsightRow(accountID: session.id)
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text(session.account.displayLabel)
+                    Text(session.account.presentation(plan: session.codexUsage?.displayPlan ?? session.claudeUsage?.planDisplayName).title)
                         .font(.title2.bold())
                         .textSelection(.enabled)
                     if let issue = session.issue {

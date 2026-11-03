@@ -54,7 +54,7 @@ struct MultiAccountSettingsView: View {
                                 Image(systemName: "ellipsis.circle")
                                     .frame(width: 44, height: 44)
                             }
-                            .accessibilityLabel("Manage \(service.name) \(profile.label)")
+                            .accessibilityLabel("Manage \(accounts.presentation(for: profile).title)")
                         }
                             .contextMenu {
                                 Button("Rename") { rename(profile) }
@@ -197,10 +197,13 @@ struct MultiAccountSettingsView: View {
         let failure = model?.connectionFailure ?? claude?.connectionFailure
         return VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(profile.label).fontWeight(.semibold)
+                Text(accounts.presentation(for: profile).title).fontWeight(.semibold)
                 Spacer()
                 Text(!connected ? "Connect" : failure == nil ? "Connected" : "Needs attention")
                     .font(.subheadline).foregroundStyle(OverviewStyle.secondary)
+            }
+            if accounts.presentation(for: profile).requiresName {
+                Text("Choose a distinct name using Manage").font(.subheadline).foregroundStyle(.secondary)
             }
             if let plan = reading?.metadata?.displayPlan {
                 Text("\(plan) plan").font(.footnote).foregroundStyle(OverviewStyle.secondary)
@@ -252,10 +255,7 @@ struct AccountOrderSettingsView: View {
             Section {
                 ForEach(ordered, id: \.orderKey) { profile in
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(profile.service.name).fontWeight(.semibold)
-                        if profile.label.caseInsensitiveCompare(profile.service.name) != .orderedSame {
-                            Text(profile.label).font(.subheadline).foregroundStyle(.secondary)
-                        }
+                        Text(AccountRegistry.presentation(for: profile).title).fontWeight(.semibold)
                     }
                     .accessibilityElement(children: .combine)
                     .accessibilityIdentifier("accountOrder-\(profile.service.rawValue):\(profile.id)")

@@ -51,7 +51,7 @@ private extension QuotaEntry {
             guard let usage = codexUsage else { return nil }
             if usage.reportedWindowShape == nil, let budget = usage.displayableMonthlyBudget {
                 return WidgetServiceSnapshot(
-                    label: "Codex", icon: "logo-openai",
+                    label: displayName(for: .codex), icon: "logo-openai",
                     primaryPercent: Int(min(100, budget.utilization ?? 0)),
                     primaryLimitReached: (budget.utilization ?? 0) >= 100,
                     showsPrimaryMetric: true,
@@ -71,7 +71,7 @@ private extension QuotaEntry {
             }
             guard usage.reportedWindowShape != nil else {
                 return WidgetServiceSnapshot(
-                    label: "Codex", icon: "logo-openai",
+                    label: displayName(for: .codex), icon: "logo-openai",
                     primaryPercent: 0, primaryLimitReached: false, showsPrimaryMetric: false,
                     secondaryPercent: 0, showsSecondaryMetric: false,
                     primaryLabel: "", secondaryLabel: "", resetSeconds: 0,
@@ -120,7 +120,7 @@ private extension QuotaEntry {
                 )
             }
             return WidgetServiceSnapshot(
-                label: "Codex",
+                label: displayName(for: .codex),
                 icon: "logo-openai",
                 primaryPercent: weeklyOnly ? usage.weeklyUsedPercent : (hasHourlyWindow ? usage.hourlyUsedPercent : 0),
                 primaryLimitReached: weeklyOnly ? usage.isWeeklyExhausted : (hasHourlyWindow && usage.hourlyUsedPercent >= 100),
@@ -170,7 +170,7 @@ private extension QuotaEntry {
                 )
             }
             return WidgetServiceSnapshot(
-                label: "Claude Code",
+                label: displayName(for: .claude),
                 icon: "logo-claude",
                 primaryPercent: usage.usedPercent,
                 primaryLimitReached: usage.limitReached,
@@ -247,7 +247,7 @@ private struct WidgetHeaderView: View {
                     .fill(widgetAccentColor)
                     .frame(width: 5, height: 5)
             }
-            Text(title)
+            Text(title).privacySensitive()
                 .font(.system(size: 13, weight: .semibold))
             Spacer()
             if showsMonthly {
@@ -403,9 +403,9 @@ private struct WidgetSingleGaugePanel: View {
         Group {
             if let snapshot {
                 if let budget = snapshot.monthlyBudget {
-                    WidgetBudgetView(budget: budget, size: gaugeSize)
+                    WidgetBudgetView(budget: budget, size: gaugeSize, label: snapshot.label)
                 } else if snapshot.usageUnavailable {
-                    WidgetUnavailableView(size: gaugeSize)
+                    WidgetUnavailableView(size: gaugeSize, label: snapshot.label)
                 } else {
                     WidgetGaugeView(
                     primaryPercent: snapshot.primaryPercent,
@@ -486,9 +486,9 @@ private struct WidgetServiceDetailPanel: View {
         HStack(spacing: 14) {
             Group {
                 if let budget = snapshot.monthlyBudget {
-                    WidgetBudgetView(budget: budget, size: gaugeSize)
+                    WidgetBudgetView(budget: budget, size: gaugeSize, label: snapshot.label)
                 } else if snapshot.usageUnavailable {
-                    WidgetUnavailableView(size: gaugeSize)
+                    WidgetUnavailableView(size: gaugeSize, label: snapshot.label)
                 } else {
                     WidgetGaugeView(
                 primaryPercent: snapshot.primaryPercent,
@@ -643,7 +643,7 @@ struct WidgetMediumView: View {
         case .codex:
             if let u = entry.codexUsage {
                 if u.reportedWindowShape == nil, let budget = u.displayableMonthlyBudget {
-                    WidgetBudgetView(budget: budget, size: size)
+                    WidgetBudgetView(budget: budget, size: size, label: entry.displayName(for: .codex))
                 } else if u.reportedWindowShape != nil {
                 let hasHourlyWindow = u.hasHourlyWindow
                 let weeklyOnly = u.reportsWeeklyOnlyWindow
@@ -654,7 +654,7 @@ struct WidgetMediumView: View {
                     secondaryPercent: u.weeklyUsedPercent,
                     showsSecondaryMetric: !weeklyOnly,
                     icon: "logo-openai",
-                    label: "Codex",
+                    label: entry.displayName(for: .codex),
                     primaryLabel: weeklyOnly ? "7d" : "5h",
                     secondaryLabel: "7-day",
                     resetSeconds: weeklyOnly ? u.weeklyResetAfterSeconds : u.hourlyResetAfterSeconds,
@@ -678,7 +678,7 @@ struct WidgetMediumView: View {
                     secondaryPercent: Int(u.sevenDayUtilization?.rounded() ?? 0),
                     showsSecondaryMetric: true,
                     icon: "logo-claude",
-                    label: "Claude Code",
+                    label: entry.displayName(for: .claude),
                     primaryLabel: u.primaryMetricLabel,
                     secondaryLabel: "7-day",
                     resetSeconds: u.resetAfterSeconds ?? 0,

@@ -78,7 +78,7 @@ struct ServiceDetailView: View {
                     .resizable().scaledToFit().frame(width: 22, height: 22)
                     .foregroundStyle(Color.gaugeAccent)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(name).font(.headline)
+                    Text(viewModel.primaryAccount(for: service)?.presentation(plan: reading?.metadata?.displayPlan).title ?? name).font(.headline)
                     Text(reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported")
                         .font(.caption).foregroundStyle(.secondary)
                 }

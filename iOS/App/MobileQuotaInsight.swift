@@ -8,6 +8,7 @@ final class MobileQuotaInsightModel {
         let reading: QuotaReading
         let historyFetchedAt: Date?
         let tokensFetchedAt: Date?
+        var accountName: String? = nil
     }
     struct RefreshID: Equatable {
         let queries: [Query]
@@ -16,7 +17,7 @@ final class MobileQuotaInsightModel {
     struct Insight {
         let forecast: QuotaExhaustionForecast
         let query: Query
-        var label: String { query.profile.alertDisplayName }
+        var label: String { query.accountName ?? AccountRegistry.presentation(for: query.profile, reading: query.reading).title }
     }
     private var insight: Insight?
     private var dismissed: Set<QuotaForecastScope> = []
@@ -37,7 +38,8 @@ final class MobileQuotaInsightModel {
             guard let reading, reading.providerIdentity != nil else { return nil }
             return Query(profile: profile, reading: reading,
                          historyFetchedAt: accounts.codex(profile)?.history?.fetchedAt,
-                         tokensFetchedAt: accounts.codex(profile)?.tokenHistory?.fetchedAt)
+                         tokensFetchedAt: accounts.codex(profile)?.tokenHistory?.fetchedAt,
+                         accountName: accounts.presentation(for: profile).title)
         }
     }
 
