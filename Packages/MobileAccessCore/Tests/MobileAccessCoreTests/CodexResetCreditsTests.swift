@@ -74,8 +74,8 @@ private func resetPayload(_ metadata: String = "") -> Data {
 
 @Test func bankedCopyKeepsScheduledResetAndDoesNotChangeForecastOrPrivacyLabel() {
     let forecast = resetForecast()
-    #expect(QuotaForecastTextFormatter.title(forecast, accountLabel: "Codex Pro") == "Codex Pro • may hit its weekly limit.")
-    #expect(QuotaForecastTextFormatter.title(forecast, accountLabel: "Codex") == "Codex • may hit its weekly limit.")
+    #expect(QuotaForecastTextFormatter.title(forecast, accountLabel: "Codex Pro") == "Codex Pro is on pace to hit its 7d limit early")
+    #expect(QuotaForecastTextFormatter.title(forecast, accountLabel: "Codex") == "Codex is on pace to hit its 7d limit early")
     for (count, phrase) in [(0, "You have no banked resets available"), (1, "You have 1 banked reset available"), (2, "You have 2 banked resets available")] {
         let text = QuotaForecastTextFormatter.detail(forecast, bankedResets: resetContext(count), now: resetNow, locale: Locale(identifier: "en_US"))
         #expect(text.hasPrefix(phrase + " • Resets "))

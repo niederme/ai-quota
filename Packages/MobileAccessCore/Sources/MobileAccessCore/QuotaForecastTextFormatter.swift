@@ -2,10 +2,20 @@ import Foundation
 
 public enum QuotaForecastTextFormatter {
     public static func title(_ forecast: QuotaExhaustionForecast, accountLabel: String) -> String {
-        if forecast.scope.provider == "codex", forecast.scope.window == .weekly {
-            return "\(accountLabel) • may hit its weekly limit."
+        let window: String
+        switch forecast.scope.window {
+        case .fiveHour: window = "5h"
+        case .weekly: window = "7d"
+        case .monthly:
+            // Only name an exact day count when the provider supplied it.
+            if let duration = forecast.windowDuration, (28 * 86400...31 * 86400).contains(duration),
+               duration.truncatingRemainder(dividingBy: 86400) == 0 {
+                window = "\(Int(duration / 86400))d"
+            } else {
+                window = "monthly"
+            }
         }
-        return "\(accountLabel) may hit its \(forecast.scope.window.label) limit"
+        return "\(accountLabel) is on pace to hit its \(window) limit early"
     }
 
     public static func detail(_ forecast: QuotaExhaustionForecast,
