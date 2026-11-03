@@ -4,6 +4,37 @@ import Foundation
 
 @Suite("CodexUsage model")
 struct CodexUsageModelTests {
+    @Test("banked reset counts survive Mac decoding, persistence and enrichment")
+    func bankedResetCounts() throws {
+        let now = Date.now
+        for (field, count) in [("", nil), (",\"rate_limit_reset_credits\":null", nil),
+                               (",\"rate_limit_reset_credits\":false", nil),
+                               (",\"rate_limit_reset_credits\":{\"available_count\":0}", 0),
+                               (",\"rate_limit_reset_credits\":{\"available_count\":2,\"applicable_available_count\":0}", 2)] as [(String, Int?)] {
+            let data = Data("{\"plan_type\":\"pro\",\"rate_limit\":{\"primary_window\":{\"used_percent\":73,\"limit_window_seconds\":604800,\"reset_after_seconds\":86400,\"reset_at\":1800086400},\"secondary_window\":null}\(field)}".utf8)
+            let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase
+            let usage = CodexUsage(from: try decoder.decode(WhamUsageResponse.self, from: data), fetchedAt: now)
+            #expect(usage.resetCredits?.availableCount == count)
+            var mismatched = usage
+            mismatched.accountID = "another-workspace"
+            mismatched.validateResetCreditIdentity("requested-workspace")
+            #expect(mismatched.resetCredits == nil)
+            #expect(mismatched.accountID == "another-workspace")
+            #expect(usage.withBonusCreditsSpentThisMonth(5).resetCredits == usage.resetCredits)
+            #expect(usage.withMonthlyBudget(nil).resetCredits == usage.resetCredits)
+            let encoded = try JSONEncoder().encode(usage)
+            let cached = try JSONDecoder().decode(CodexUsage.self, from: encoded)
+            #expect(cached.resetCredits == usage.resetCredits)
+            var old = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+            old.removeValue(forKey: "resetCredits")
+            #expect(try JSONDecoder().decode(CodexUsage.self, from: JSONSerialization.data(withJSONObject: old)).resetCredits == nil)
+            let partial = CodexUsage(from: try decoder.decode(WhamUsageResponse.self, from: Data("{\"plan_type\":\"pro\"}".utf8)), fetchedAt: now.addingTimeInterval(1))
+            let retained = partial.retainingLastConfirmedWindows(from: usage)
+            #expect(retained.fetchedAt == usage.fetchedAt)
+            #expect(retained.resetCredits == nil)
+        }
+    }
+
     @Test("decodes WHAM usage with newer optional account fields")
     func decodesNewerWhamUsageShape() throws {
         let data = Data("""

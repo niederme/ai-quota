@@ -224,6 +224,7 @@ public actor OpenAIClient {
             throw NetworkError.accountIdentityMismatch
         }
         var usage = CodexUsage(from: raw)
+        usage.validateResetCreditIdentity(context.accountID)
         usage.accountID = context.accountID
         usage.quotaSource = context.source
         if usage.displayableMonthlyBudget == nil, usage.reportedWindowShape == nil,

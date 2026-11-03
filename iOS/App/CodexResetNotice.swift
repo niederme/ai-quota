@@ -77,6 +77,7 @@ struct OverviewAlerts: View {
     let announcement: CodexResetAnnouncement?
     var forecast: QuotaExhaustionForecast? = nil
     var accountLabel = ""
+    var bankedResets: CodexBankedResetContext? = nil
     var wide = false
     var loading = false
     let openDetails: () -> Void
@@ -136,9 +137,12 @@ struct OverviewAlerts: View {
                     announcement: true, wide: wide, loading: loading,
                     openDetails: openDetails, dismiss: { dismiss(id) })
             } else if let forecast {
-                OverviewAlertRow(title: "\(accountLabel) may hit its \(forecast.scope.window.label) limit",
-                    detail: QuotaForecastTextFormatter.detail(forecast),
+                OverviewAlertRow(title: QuotaForecastTextFormatter.title(forecast, accountLabel: accountLabel),
+                    detail: QuotaForecastTextFormatter.detail(forecast, bankedResets: bankedResets),
                     announcement: false, wide: wide, dismiss: { dismiss(id) })
+                    .accessibilityLabel(QuotaForecastTextFormatter.accessibilitySummary(forecast, accountLabel: accountLabel, bankedResets: bankedResets))
+                    .accessibilityHint(bankedResets?.availableCount(for: forecast, now: .now) != nil
+                        ? "Banked resets require separate action in Codex. The time shown is the scheduled refresh." : "")
                     .accessibilityIdentifier("quotaPaceInsight")
             }
             if id != rowIDs.last {

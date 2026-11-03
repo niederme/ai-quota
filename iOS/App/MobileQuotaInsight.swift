@@ -17,6 +17,12 @@ final class MobileQuotaInsightModel {
     struct Insight {
         let forecast: QuotaExhaustionForecast
         let query: Query
+        var bankedResets: CodexBankedResetContext? {
+            guard query.profile.service == .codex, let identity = query.reading.providerIdentity,
+                  let credits = query.reading.resetCredits else { return nil }
+            return .init(accountID: query.profile.id, providerIdentity: identity,
+                         credits: credits, fetchedAt: query.reading.fetchedAt)
+        }
         var label: String { query.accountName ?? AccountRegistry.presentation(for: query.profile, reading: query.reading).title }
     }
     private var insight: Insight?
@@ -69,11 +75,12 @@ final class MobileQuotaInsightModel {
 struct MobileQuotaInsightBanner: View {
     let forecast: QuotaExhaustionForecast
     let accountLabel: String
+    var bankedResets: CodexBankedResetContext? = nil
     var wide = false
     let dismiss: () -> Void
 
     var body: some View {
         OverviewAlerts(announcement: nil, forecast: forecast, accountLabel: accountLabel,
-                       wide: wide, openDetails: {}, dismissAnnouncement: {}, dismissForecast: dismiss)
+                       bankedResets: bankedResets, wide: wide, openDetails: {}, dismissAnnouncement: {}, dismissForecast: dismiss)
     }
 }

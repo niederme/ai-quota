@@ -4,3 +4,6 @@ public typealias QuotaForecastScope = MobileAccessCore.QuotaForecastScope
 public typealias QuotaForecastInput = MobileAccessCore.QuotaForecastInput
 public typealias QuotaForecastDailyHistory = MobileAccessCore.QuotaForecastDailyHistory
 public typealias QuotaExhaustionForecast = MobileAccessCore.QuotaExhaustionForecast
+
+public typealias CodexBankedResetContext = MobileAccessCore.CodexBankedResetContext
+public typealias CodexResetCredits = MobileAccessCore.CodexResetCredits

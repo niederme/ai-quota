@@ -121,12 +121,12 @@ actor Gate<T: Sendable> {
     func signInClaude() { routes.append("primary-claude") }
     // SOURCE_ROUTE
 }
-func codex(_ fetched: Date = Date(timeIntervalSince1970: 100)) -> CodexUsage {
+func codex(_ fetched: Date = Date(timeIntervalSince1970: 100), resetCredits: CodexResetCredits? = nil, accountID: String? = nil) -> CodexUsage {
     CodexUsage(weeklyUsedPercent: 21, weeklyResetAt: fetched, weeklyResetAfterSeconds: 0,
                hourlyUsedPercent: 12, hourlyResetAt: fetched, hourlyResetAfterSeconds: 0,
                hourlyWindowSeconds: 18000, limitReached: false, allowed: true, planType: "pro",
                creditBalance: nil, approxLocalMessages: nil, approxCloudMessages: nil, fetchedAt: fetched,
-               reportedWindowShape: .dual)
+               reportedWindowShape: .dual, accountID: accountID, resetCredits: resetCredits)
 }
 func claude(_ fetched: Date = Date(timeIntervalSince1970: 100)) -> ClaudeUsage {
     ClaudeUsage(fiveHourUtilization: 12, fiveHourResetsAt: nil, sevenDayUtilization: 24,
@@ -165,6 +165,19 @@ func claude(_ fetched: Date = Date(timeIntervalSince1970: 100)) -> ClaudeUsage {
             await a.refresh()
             try check(a.recoveryAction == .none, "success clears recovery")
             try check(provider == .codex ? SharedDefaults.codex[a.id] != nil : SharedDefaults.claude[a.id] != nil, "correct account persistence")
+            count += 1
+        }
+        // Partial responses invalidate optional reset balances even while the
+        // primary view keeps the exact last-good windows and their timestamp.
+        for retry in [false, true] {
+            let p = Primary()
+            let old = codex(resetCredits: .init(availableCount: 2), accountID: "workspace-pro")
+            p.codexUsage = old; SharedDefaults.saveUsage(old)
+            let retained = codex(accountID: "workspace-pro")
+            p.codexClient = Client(retry ? [{ throw NetworkError.tokenExpired }, { retained }] : [{ retained }])
+            await p.refreshCodex()
+            try check(p.codexUsage?.resetCredits == nil && SharedDefaults.codex["primary"]?.resetCredits == nil, "partial primary reset balance remains unknown")
+            try check(p.codexUsage?.fetchedAt == old.fetchedAt && p.lastRefreshedAt == nil, "partial response must not relabel old windows as fresh")
             count += 1
         }
         // Revalidation followed by a successful retry updates normally, without sign-in.

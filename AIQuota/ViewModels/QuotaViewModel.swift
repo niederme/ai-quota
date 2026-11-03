@@ -1001,7 +1001,19 @@ final class QuotaViewModel {
             guard gen == codexRefreshGeneration, isCodexAuthenticated else { return }
             // A partial response may return the last confirmed cached snapshot.
             // Do not relabel its freshness or emit new activity for retained data.
-            guard result.fetchedAt > (codexUsage?.fetchedAt ?? .distantPast) else { return }
+            guard result.fetchedAt > (codexUsage?.fetchedAt ?? .distantPast) else {
+                // Retained windows keep their original freshness, but a partial
+                // response cannot keep presenting an older reset balance.
+                if result.fetchedAt == codexUsage?.fetchedAt,
+                   result.accountID == codexUsage?.accountID, result.resetCredits == nil {
+                    codexUsage = result
+                    SharedDefaults.saveUsage(result)
+                    if let account = primaryAccount(for: .codex) {
+                        SharedDefaults.saveUsage(result, forAccountID: account.id)
+                    }
+                }
+                return
+            }
             recordServiceActivityIfNeeded(from: codexUsage, to: result)
             codexUsage = result
             lastRefreshedAt = .now
@@ -1051,7 +1063,17 @@ final class QuotaViewModel {
                     }
                     guard gen == codexRefreshGeneration, isCodexAuthenticated else { return }
                     // Retained cached data is not a completed fresh allowance reading.
-                    guard result.fetchedAt > (codexUsage?.fetchedAt ?? .distantPast) else { return }
+                    guard result.fetchedAt > (codexUsage?.fetchedAt ?? .distantPast) else {
+                        if result.fetchedAt == codexUsage?.fetchedAt,
+                           result.accountID == codexUsage?.accountID, result.resetCredits == nil {
+                            codexUsage = result
+                            SharedDefaults.saveUsage(result)
+                            if let account = primaryAccount(for: .codex) {
+                                SharedDefaults.saveUsage(result, forAccountID: account.id)
+                            }
+                        }
+                        return
+                    }
                     recordServiceActivityIfNeeded(from: codexUsage, to: result)
                     codexUsage = result
                     lastRefreshedAt = .now
