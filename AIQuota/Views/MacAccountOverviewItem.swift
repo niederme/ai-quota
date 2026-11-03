@@ -66,7 +66,6 @@ struct MacAccountCard: View {
         account.provider == .codex ? codexUsage?.displayPlan : claudeUsage?.planLabel.displayName
     }
     private var identity: MobileAccessCore.AccountPresentation { account.presentation(plan: plan) }
-    private var accountLabel: String? { nil }
     private var budget: (used: Double, limit: Double, unit: String, currency: String?, reset: Date?)? {
         if account.provider == .codex, codexUsage?.reportedWindowShape == nil,
            let value = codexUsage?.displayableMonthlyBudget,
@@ -194,16 +193,10 @@ struct MacAccountCard: View {
                         .minimumScaleFactor(0.85)
                     statusIndicator
                 }
-                if let plan {
-                    Text(identity.subtitle)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color.overviewPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else if let accountLabel {
-                    Text(accountLabel)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color.overviewPrimary)
-                }
+                Text(identity.subtitle)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.overviewPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             if identity.requiresName {
                 Text("Choose a distinct name in Settings").font(.caption).foregroundStyle(.secondary)
