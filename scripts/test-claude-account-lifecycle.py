@@ -19,6 +19,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--primary-source-ref', '--app-source-ref', help='Read primary refresh and additional sign-in bodies from a Git ref; run their 8 checks alone')
+parser.add_argument('--primary-reconnect-only', action='store_true', help='Run only primary Claude reconnect checks; combine with --primary-source-ref for a regression baseline')
 parser.add_argument('--skip-build', action='store_true', help='Reuse libraries already compiled from this working tree')
 args = parser.parse_args()
 OUT = ROOT / 'output' / 'claude-lifecycle-verification'
@@ -72,8 +73,17 @@ end = source.index('\n    }', start) + len('\n    }')
 assert additional.count('// SOURCE_ADDITIONAL_SIGNIN') == 1
 additional = additional.replace('    // SOURCE_ADDITIONAL_SIGNIN', source[start:end])
 (OUT / 'AdditionalClaudeAdapters.swift').write_text(additional)
+primary_signin = (fixtures / 'PrimaryClaudeReconnectAdapters.swift').read_text()
+start = source.index('    func signInClaude() async {')
+end = source.index('\n    }', start) + len('\n    }')
+primary_signin = primary_signin.replace('    // SOURCE_PRIMARY_SIGNIN', source[start:end])
+(OUT / 'PrimaryClaudeReconnectAdapters.swift').write_text(primary_signin)
+
 checks = (fixtures / 'ClaudeLifecycleDummyChecks.swift').read_text()
-if args.primary_source_ref:
+if args.primary_reconnect_only:
+    checks = checks[:checks.index('@main enum ClaudeLifecycleDummyChecks')]
+    checks += '\n@main enum PrimaryReconnectChecks { static func main() async throws { try await runPrimaryReconnectChecks() } }\n'
+elif args.primary_source_ref:
     # Common definitions contain only memory types and injected constructors.
     checks = checks[:checks.index('@main enum ClaudeLifecycleDummyChecks')]
     checks += '''\n@main enum PrimaryBaselineChecks {
@@ -87,7 +97,7 @@ if args.primary_source_ref:
 (OUT / 'DummyChecks.swift').write_text(checks)
 executable = OUT / ('primary-baseline-checks' if args.primary_source_ref else 'dummy-checks')
 command = base + ['-lAIQuotaKit', '-lMobileAccessCore', '-Xlinker', '-rpath', '-Xlinker', OUT,
-                  OUT / 'DummyChecks.swift', OUT / 'PrimaryClaudeAdapters.swift', OUT / 'AdditionalClaudeAdapters.swift', '-o', executable]
+                  OUT / 'DummyChecks.swift', OUT / 'PrimaryClaudeAdapters.swift', OUT / 'AdditionalClaudeAdapters.swift', OUT / 'PrimaryClaudeReconnectAdapters.swift', '-o', executable]
 if run('dummy-compile', command).returncode: sys.exit(1)
 result = run('primary-baseline-run' if args.primary_source_ref else 'dummy-run', [executable], timeout=30)
 print(result.stdout, end='')

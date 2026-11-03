@@ -7,6 +7,7 @@ import Foundation
 // Local names intentionally shadow production persistence/notification types in
 // this executable. AIQuotaKit's separately compiled widget uses its injected Store.
 enum SharedDefaults {
+    static func enrollService(_ provider: ServiceType) {}
     static let usage = Memory<ClaudeUsage?>(nil)
     static func saveClaudeUsage(_ value: ClaudeUsage) { usage.edit { $0 = value } }
     static func saveClaudeUsage(_ value: ClaudeUsage, forAccountID: String) { usage.edit { $0 = value } }
