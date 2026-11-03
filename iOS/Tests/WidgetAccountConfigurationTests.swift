@@ -362,7 +362,8 @@ extension WidgetAccountConfigurationTests {
             ("same-service-long-name", [codex, long]), ("single", [codex]),
             ("missing", [missing, codex]), ("empty", [])]
         for (name, accounts) in cases {
-            let entry = QuotaEntry(date: now, values: accounts.map(\.value), accountLabels: [:], accountContents: accounts)
+            let entry = QuotaEntry(date: now, values: accounts.map(\.value), accountLabels: [:], accountContents: accounts,
+                                   showAccountNames: name == "same-service-long-name")
             for dark in name == "reference" ? [false, true] : [true] {
                 let view = HomeEntryView(entry: entry, both: true, previewFamily: .systemLarge, twoRows: true)
                     .frame(width: 338, height: 354)

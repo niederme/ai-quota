@@ -133,7 +133,7 @@ struct HomeQuotaView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 4) {
                 if monochrome && (account.worstPercent ?? 0) >= 85 { Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 12)) }
-                Text(account.compactName(showAccountNames: showAccountNames)).privacySensitive().font(.system(size: 17, weight: .semibold)).lineLimit(1)
+                Text(account.compactName(showAccountNames: showAccountNames)).privacySensitive().font(.system(size: 17, weight: .semibold)).lineLimit(2).minimumScaleFactor(0.8)
             }
             let plan = account.value.reading?.metadata?.displayPlan
             if plan != nil || !account.label.isEmpty {
