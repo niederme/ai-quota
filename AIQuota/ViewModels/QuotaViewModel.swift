@@ -1627,11 +1627,20 @@ final class QuotaViewModel {
     }
 
     func signInClaude() async {
+        let previousError = claudeError
+        if await claudeCoordinator.state == .unknown { await claudeCoordinator.bootstrap() }
+        let state = await claudeCoordinator.state
+        guard state != .signingIn, state != .restoringSession, state != .signingOut, state != .resetting else { return }
         do {
-            try await claudeCoordinator.signIn()
+            if let account = primaryAccount(for: .claude) {
+                try await claudeCoordinator.reconnectWithWebAuthentication(expectedOrganizationID: account.workspaceID)
+            } else {
+                try await claudeCoordinator.signIn()
+            }
             // Propagate auth state synchronously before refreshClaude() checks isClaudeAuthenticated.
             // The stateStream observer will also fire, but may lag behind by one async hop.
             claudeState = .authenticated
+            claudeError = nil
             claudeRecoveryExhausted = false
             // Mirror the stream-observer enrollment so isClaudeEnrolled is true before the refresh.
             if !enrolledServices.contains(.claude) {
@@ -1641,7 +1650,17 @@ final class QuotaViewModel {
             }
             await refreshClaude()
             if refreshTask == nil { startAutoRefresh() }
+        } catch is CancellationError {
+            claudeState = await claudeCoordinator.state
+            claudeError = previousError
+        } catch ClaudeWebReconnectError.organizationMismatch {
+            claudeState = await claudeCoordinator.state
+            claudeError = .accountIdentityMismatch
+        } catch let error as NetworkError {
+            claudeState = await claudeCoordinator.state
+            claudeError = error
         } catch {
+            claudeState = await claudeCoordinator.state
             claudeError = .notAuthenticated
         }
     }

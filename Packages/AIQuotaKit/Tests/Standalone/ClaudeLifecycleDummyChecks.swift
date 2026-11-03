@@ -117,6 +117,7 @@ func require(_ value: Bool, _ message: String) throws { if !value { throw CheckF
               accessTokenExpiresAt: Date.now.addingTimeInterval(expired ? -100 : 3600), accountID: id)
     }
     static func main() async throws {
+        try await runPrimaryReconnectChecks()
         var checks = 0
         // Reconnect is legal for a saved but currently disconnected card. An
         // unexpected organization is rejected before persistence/authentication.
