@@ -2,6 +2,20 @@
 
 The marketing site lives in `docs/`. Run commands from the repository root.
 
+## Site Structure
+
+The site is plain HTML, CSS, and JavaScript with no build step.
+
+- Pages: `docs/index.html` (Overview), `docs/releases/index.html`, `docs/faq/index.html`, and the legal pages under `docs/privacy/`, `docs/terms/`, and `docs/accessibility/`. Every page shares the same nav and footer markup.
+- `docs/site.css` is layered: the AIQuota design system's `tokens.css` and `bundle.css` verbatim (dark first, `[data-theme="light"]` overrides), then a site layer for page layout. Change colours in the token layer, not in page rules.
+- `docs/site.js` handles the System / Light / Dark picker (stored as `aiquota-theme`; a value saved under the 1.x `aiquota-docs-theme` key is carried over), the narrow-screen menu, quota dial animation, sample notice dismissal, and the one-open-at-a-time FAQ.
+- The pre-paint script in each page's `<head>` sets `data-theme` before first paint, so keep it in sync across pages.
+- "Get the iPhone app" links carry `data-ios-app-link`; point them at the App Store URL once it exists.
+
+### Releases page
+
+The "Latest release" panel must match the newest stable GitHub release (`AIQuota x.y.z`, `Download x.y.z`, the tag URL, and the publish date), and the next three releases appear as `Version x.y.z` cards. `scripts/check-site-pages.sh` fails the deploy when they drift. When a release ships, move the previous latest into the "Previous releases" grid and update the panel.
+
 ## Website Preview
 
 The lightweight website for `aiquota.app` lives in `docs/`.
