@@ -24,8 +24,8 @@ import MobileAccessCore
         XCTAssertNil(context.availableCount(for: forecast(now, account: "business", identity: "workspace-business"), now: now))
         XCTAssertNil(context.availableCount(for: value.forecast, now: now.addingTimeInterval(301)))
         let privateCopy = QuotaForecastTextFormatter.accessibilitySummary(value.forecast, accountLabel: "Codex", bankedResets: context, now: now)
-        XCTAssertTrue(privateCopy.hasPrefix("Codex. You’re on pace to hit your 7d limit early. "))
-        XCTAssertTrue(privateCopy.contains("1 reset available"))
+        XCTAssertTrue(privateCopy.hasPrefix("Codex is overpacing the 7d limit. "))
+        XCTAssertTrue(privateCopy.contains("1 banked reset available"))
         XCTAssertFalse(privateCopy.contains("workspace-pro"))
         XCTAssertFalse(privateCopy.contains("Codex Pro"))
         XCTAssertFalse(privateCopy.contains(".."))
@@ -43,7 +43,7 @@ import MobileAccessCore
         let counts: [Int?] = [nil, 0, 1, 2, 3]
         for width: CGFloat in [320, 375, 393, 430, 720] {
             for typeSize in [DynamicTypeSize.large, .accessibility5] {
-                for (layout, indentsForecast, accountHeading) in [("hanging", true, false), ("unindented", false, false), ("account-heading-suggested-your", false, true), ("production-account-heading", false, false)] {
+                for (layout, indentsForecast, accountHeading) in [("hanging", true, false), ("unindented", false, false), ("account-heading-suggested-your", false, true), ("production-indent", true, false)] {
                     for count in counts {
                         let context = count.map { CodexBankedResetContext(accountID: "pro", providerIdentity: "workspace-pro", credits: .init(availableCount: $0), fetchedAt: now) }
                         let longName = width == 320 && typeSize.isAccessibilitySize
@@ -51,8 +51,7 @@ import MobileAccessCore
                         let content = Group {
                             if accountHeading {
                                 // Suggested “your” grammar belongs only to this exploratory fixture.
-                                let suffix = QuotaForecastTextFormatter.title(forecast(now), accountLabel: "").dropFirst(" is on pace to hit its ".count)
-                                let sentence = "You’re on pace to hit your " + suffix
+                                let sentence = QuotaForecastTextFormatter.sentence(forecast(now))
                                 let detail: String = {
                                     guard let count = context?.availableCount(for: forecast(now), now: now) else {
                                         return QuotaForecastTextFormatter.detail(forecast(now), now: now)
@@ -70,7 +69,7 @@ import MobileAccessCore
                                         ? "Banked resets require separate action in Codex. The time shown is the scheduled refresh." : "")
                             } else {
                                 OverviewAlerts(announcement: nil, forecast: forecast(now), accountLabel: name,
-                                    bankedResets: context, wide: width >= 600, indentsForecast: indentsForecast, separatesAccountName: layout == "production-account-heading", openDetails: {}, dismissAnnouncement: {})
+                                    bankedResets: context, wide: width >= 600, indentsForecast: indentsForecast, separatesAccountName: false, openDetails: {}, dismissAnnouncement: {})
                             }
                         }
                             .frame(width: width - 32).padding(.horizontal, 16)

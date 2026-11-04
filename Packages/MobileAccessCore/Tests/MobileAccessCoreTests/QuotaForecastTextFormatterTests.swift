@@ -16,11 +16,11 @@ import Testing
             let input = QuotaForecastInput(scope: scope, usedPercent: 70, duration: duration, fetchedAt: now)
             let forecast = try #require(QuotaExhaustionForecast.estimate(input, now: now))
             for name in ["Codex Pro", "Claude Enterprise", "Research · Custom account", "Work."] {
-                let title = "\(name) is on pace to hit its \(label) limit early"
+                let title = "\(name) is overpacing the \(label) limit."
                 #expect(QuotaForecastTextFormatter.title(forecast, accountLabel: name) == title)
                 let summary = QuotaForecastTextFormatter.accessibilitySummary(forecast, accountLabel: name, now: now)
                 #expect(QuotaForecastTextFormatter.sentence(forecast) == "You’re on pace to hit your \(label) limit early")
-                #expect(summary.hasPrefix(name + (name.hasSuffix(".") ? " " : ". ") + QuotaForecastTextFormatter.sentence(forecast) + ". "))
+                #expect(summary.hasPrefix(title + " "))
                 #expect(summary.contains("Resets "))
                 #expect(!title.contains("Resets"))
             }
@@ -39,10 +39,10 @@ import Testing
         let forecast = QuotaExhaustionForecast(scope: scope, basis: .periodAverage,
             projectedUsedPercent: 140, validUntil: reset, windowDuration: duration)
         #expect(QuotaForecastTextFormatter.title(forecast, accountLabel: "Claude Enterprise") ==
-                "Claude Enterprise is on pace to hit its monthly limit early")
+                "Claude Enterprise is overpacing the monthly limit.")
         #expect(QuotaForecastTextFormatter.sentence(forecast) == "You’re on pace to hit your monthly limit early")
         let detail = QuotaForecastTextFormatter.detail(forecast, now: now, calendar: calendar, locale: Locale(identifier: "en_US"))
-        #expect(detail.replacingOccurrences(of: "\u{202f}", with: " ") == "At your average pace this period · Resets Sat, Jan 16 9:39 AM")
+        #expect(detail.replacingOccurrences(of: "\u{202f}", with: " ") == "Resets Sat, Jan 16 9:39 AM • At your average pace this period")
     }
 }
 

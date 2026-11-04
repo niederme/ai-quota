@@ -79,8 +79,8 @@ struct OverviewAlerts: View {
     var accountLabel = ""
     var bankedResets: CodexBankedResetContext? = nil
     var wide = false
-    var indentsForecast = false
-    var separatesAccountName = true
+    var indentsForecast = true
+    var separatesAccountName = false
     var loading = false
     let openDetails: () -> Void
     let dismissAnnouncement: () -> Void
@@ -236,7 +236,8 @@ struct OverviewAlertRow: View {
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("resetAnnouncementDetails")
                 } else {
-                    Text(detail).foregroundStyle(OverviewStyle.secondary)
+                    Text(detail).font(isWide ? .headline.weight(.regular) : .subheadline)
+                        .foregroundStyle(OverviewStyle.secondary)
                         .padding(.leading, indentsForecast ? emojiWidth + 4 : 0)
                 }
             }
