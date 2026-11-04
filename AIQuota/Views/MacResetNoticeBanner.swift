@@ -33,17 +33,17 @@ struct MacAlertRow<Detail: View>: View {
         if announcement {
             Text(title)
         } else if indentsForecast {
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text("🧭").font(.system(size: 12)).frame(width: 14)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("⚠️").font(.system(size: 12)).frame(width: 14)
                 Text(title)
             }
         } else {
-            Text("\(Text("🧭").font(.system(size: 12))) \(title)")
+            Text("\(Text("⚠️").font(.system(size: 12))) \(title)")
         }
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: announcement ? 10 : 0) {
             if announcement {
                 Image(systemName: "info.circle")
                     .font(.system(size: 14))
@@ -54,7 +54,7 @@ struct MacAlertRow<Detail: View>: View {
             VStack(alignment: .leading, spacing: 2) {
                 headline.fontWeight(.semibold).foregroundStyle(Color.overviewPrimary)
                 detail.foregroundStyle(Color.overviewSecondary)
-                    .padding(.leading, !announcement && indentsForecast ? 18 : 0)
+                    .padding(.leading, !announcement && indentsForecast ? 22 : 0)
             }
             .font(.system(size: 13))
             .fixedSize(horizontal: false, vertical: true)
