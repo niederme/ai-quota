@@ -51,7 +51,7 @@ struct MobileTokenHistoryView: View {
             .frame(height: graphHeight)
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Token activity, past \(Self.weekCount(for: availableWidth)) weeks")
-            .accessibilityHint("Dim cells have no record. Dates are in UTC. " + CodexTokenActivityScale.explanation)
+            .accessibilityHint("Muted cells show zero usage or no reported record. Dates are in UTC. " + CodexTokenActivityScale.explanation)
         }
     }
     /// Add earlier weeks instead of enlarging cells or leaving a blank trailing strip.
@@ -68,14 +68,8 @@ struct MobileTokenHistoryView: View {
     private var graphHeight: CGFloat { Self.graphHeight(for: availableWidth) }
     private func fill(_ day: CodexTokenHistory.Day, scale: CodexTokenActivityScale) -> Color {
         guard !day.isFuture else { return .clear }
-        guard let tokens = day.tokens else { return tokenHistoryMissingFill(colorScheme) }
-        if tokens == 0 {
-            return colorScheme == .dark
-                ? Color(red: 0x4A / 255.0, green: 0x36 / 255.0, blue: 0x5C / 255.0)
-                : Color(red: 0xE1 / 255.0, green: 0xD3 / 255.0, blue: 0xED / 255.0)
-        }
-        // Lift activity above both resting states in dark appearance; the light
-        // ramp deepens with usage. Keep the existing orchid peak.
+        guard let tokens = day.tokens, tokens != 0 else { return tokenHistoryRestingFill(colorScheme) }
+        // Active-day colors retain the existing platform-matched intensity ramp.
         let colors: [Color] = colorScheme == .dark ? [
             Color(red: 0x60 / 255.0, green: 0x3C / 255.0, blue: 0x79 / 255.0),
             Color(red: 0x7A / 255.0, green: 0x48 / 255.0, blue: 0x9A / 255.0),
@@ -96,10 +90,10 @@ struct MobileTokenHistoryView: View {
     }
 }
 
-// Missing history is a quiet violet surface, distinct from a reported zero.
-// Opaque fills keep its hierarchy stable across the sheet's tinted glass.
-private func tokenHistoryMissingFill(_ colorScheme: ColorScheme) -> Color {
+// Missing and reported-zero days share a quiet purple fill. Their data and
+// accessible descriptions remain distinct; opaque fills read over tinted cards.
+private func tokenHistoryRestingFill(_ colorScheme: ColorScheme) -> Color {
     colorScheme == .dark
-        ? Color(red: 0x3E / 255.0, green: 0x2F / 255.0, blue: 0x4D / 255.0)
-        : Color(red: 0xEE / 255.0, green: 0xE7 / 255.0, blue: 0xF4 / 255.0)
+        ? Color(red: 0x53 / 255.0, green: 0x3A / 255.0, blue: 0x72 / 255.0)
+        : Color(red: 0xCD / 255.0, green: 0xB5 / 255.0, blue: 0xE3 / 255.0)
 }

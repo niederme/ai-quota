@@ -19,8 +19,10 @@ final class TokenHistoryReviewTests: XCTestCase {
                             ProviderDialCardContent(name: "Codex", icon: "logo-openai", availableWidth: width - 32,
                                 reading: DemoQuotaData.reading(.codex), connected: true, busy: false, error: nil,
                                 tokenHistory: history)
-                            ProviderDialCardContent(name: "Claude", icon: "logo-claude", availableWidth: width - 32,
-                                reading: DemoQuotaData.reading(.claude), connected: true, busy: false, error: nil)
+                            // Repeat the graph lower on the gradient to compare resting-cell visibility.
+                            ProviderDialCardContent(name: "Codex", icon: "logo-openai", availableWidth: width - 32,
+                                reading: DemoQuotaData.reading(.codex), connected: true, busy: false, error: nil,
+                                tokenHistory: history)
                         }.padding(.horizontal, 16).padding(.top, 8).padding(.bottom, 16)
                     }.background { OverviewBackground().ignoresSafeArea() }
                         .navigationTitle("AIQuota").toolbarTitleDisplayMode(.inlineLarge)
