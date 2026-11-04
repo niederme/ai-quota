@@ -189,12 +189,12 @@ struct OverviewAlertRow: View {
         if announcement {
             Text(title)
         } else if indentsForecast {
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text("🧭").font(isWide ? .subheadline : .footnote).frame(width: emojiWidth)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("⚠️").font(isWide ? .subheadline : .footnote).frame(width: emojiWidth)
                 Text(title)
             }
         } else {
-            Text("\(Text("🧭").font(isWide ? .subheadline : .footnote)) \(title)")
+            Text("\(Text("⚠️").font(isWide ? .subheadline : .footnote)) \(title)")
         }
     }
 
@@ -207,7 +207,7 @@ struct OverviewAlertRow: View {
     }
 
     private var content: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .top, spacing: announcement ? 12 : 0) {
             if announcement {
                 Image(systemName: "info.circle")
                     .font(.system(size: 18))
@@ -238,13 +238,14 @@ struct OverviewAlertRow: View {
                 } else {
                     Text(detail).font(isWide ? .headline.weight(.regular) : .subheadline)
                         .foregroundStyle(OverviewStyle.secondary)
-                        .padding(.leading, indentsForecast ? emojiWidth + 4 : 0)
+                        .padding(.leading, indentsForecast ? emojiWidth + 8 : 0)
                 }
             }
             .font(isWide ? .subheadline : .footnote)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
-            // Reserve a full target while centering the glyph on the first title line.
+            // The forecast copy ends 12pt from the 20pt glyph inside its full 44pt target.
+            // Center the glyph on the first title line without adding another text gutter.
             Color.clear.frame(width: 44, height: titleLine)
                 .overlay(alignment: .top) {
                     Button(action: dismiss) {
