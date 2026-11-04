@@ -68,16 +68,18 @@ struct MobileTokenHistoryView: View {
     private var graphHeight: CGFloat { Self.graphHeight(for: availableWidth) }
     private func fill(_ day: CodexTokenHistory.Day, scale: CodexTokenActivityScale) -> Color {
         guard !day.isFuture else { return .clear }
-        guard let tokens = day.tokens else { return Color.secondary.opacity(0.18) }
+        guard let tokens = day.tokens else { return tokenHistoryMissingFill(colorScheme) }
         if tokens == 0 {
             return colorScheme == .dark
-                ? Color(red: 0.30, green: 0.28, blue: 0.34)
-                : Color(red: 0.87, green: 0.85, blue: 0.90)
+                ? Color(red: 0x4A / 255.0, green: 0x36 / 255.0, blue: 0x5C / 255.0)
+                : Color(red: 0xE1 / 255.0, green: 0xD3 / 255.0, blue: 0xED / 255.0)
         }
+        // Lift activity above both resting states in dark appearance; the light
+        // ramp deepens with usage. Keep the existing orchid peak.
         let colors: [Color] = colorScheme == .dark ? [
-            Color(red: 0.32, green: 0.19, blue: 0.42),
-            Color(red: 0.47, green: 0.27, blue: 0.61),
-            Color(red: 0.64, green: 0.33, blue: 0.81),
+            Color(red: 0x60 / 255.0, green: 0x3C / 255.0, blue: 0x79 / 255.0),
+            Color(red: 0x7A / 255.0, green: 0x48 / 255.0, blue: 0x9A / 255.0),
+            Color(red: 0x9C / 255.0, green: 0x58 / 255.0, blue: 0xC2 / 255.0),
             Color(red: 0.77, green: 0.42, blue: 0.94)
         ] : [
             Color(red: 0.82, green: 0.67, blue: 0.94),
@@ -87,8 +89,17 @@ struct MobileTokenHistoryView: View {
         ]
         return colors[scale.positiveLevel(for: tokens)]
     }
+
     private func description(_ day: CodexTokenHistory.Day) -> String {
         guard let tokens = day.tokens else { return "\(day.key): no record reported" }
         return "\(day.key): \(tokens.formatted(.number.precision(.fractionLength(0)))) tokens"
     }
+}
+
+// Missing history is a quiet violet surface, distinct from a reported zero.
+// Opaque fills keep its hierarchy stable across the sheet's tinted glass.
+private func tokenHistoryMissingFill(_ colorScheme: ColorScheme) -> Color {
+    colorScheme == .dark
+        ? Color(red: 0x3E / 255.0, green: 0x2F / 255.0, blue: 0x4D / 255.0)
+        : Color(red: 0xEE / 255.0, green: 0xE7 / 255.0, blue: 0xF4 / 255.0)
 }
