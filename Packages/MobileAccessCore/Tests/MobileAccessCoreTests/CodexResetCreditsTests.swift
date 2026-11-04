@@ -74,15 +74,15 @@ private func resetPayload(_ metadata: String = "") -> Data {
 
 @Test func bankedCopyKeepsScheduledResetAndDoesNotChangeForecastOrPrivacyLabel() {
     let forecast = resetForecast()
-    #expect(QuotaForecastTextFormatter.title(forecast, accountLabel: "Codex Pro") == "Codex Pro is on pace to hit its 7d limit early")
-    #expect(QuotaForecastTextFormatter.title(forecast, accountLabel: "Codex") == "Codex is on pace to hit its 7d limit early")
-    for (count, phrase) in [(0, "0 resets available"), (1, "1 reset available"), (2, "2 resets available")] {
+    #expect(QuotaForecastTextFormatter.title(forecast, accountLabel: "Codex Pro") == "Codex Pro is overpacing the 7d limit.")
+    #expect(QuotaForecastTextFormatter.title(forecast, accountLabel: "Codex") == "Codex is overpacing the 7d limit.")
+    for (count, phrase) in [(0, "0 banked resets available"), (1, "1 banked reset available"), (2, "2 banked resets available")] {
         let text = QuotaForecastTextFormatter.detail(forecast, bankedResets: resetContext(count), now: resetNow, locale: Locale(identifier: "en_US"))
-        #expect(text.hasPrefix(phrase + " · Resets "))
+        #expect(text.hasPrefix("Resets ") && text.hasSuffix(" • " + phrase))
         #expect(text.contains(QuotaForecastTextFormatter.reset(forecast, now: resetNow, locale: Locale(identifier: "en_US"))))
         let summary = QuotaForecastTextFormatter.accessibilitySummary(forecast, accountLabel: "Codex Pro", bankedResets: resetContext(count), now: resetNow)
-        #expect(summary.contains(phrase + ". Resets "))
-        #expect(!summary.contains("🧭") && !summary.contains(" · "))
+        #expect(summary.contains(". Resets ") && summary.hasSuffix(". " + phrase))
+        #expect(!summary.contains("🧭") && !summary.contains(" • "))
         #expect(!text.contains("workspace") && !text.contains("automatically"))
     }
     let unknown = QuotaForecastTextFormatter.detail(forecast, now: resetNow)

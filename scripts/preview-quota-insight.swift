@@ -27,8 +27,7 @@ private struct SampleInsightView: View {
     }
     // Historical comparison with the longer reset wording; production uses the shorter balance.
     private var suggestedForecastSentence: String {
-        let suffix = QuotaForecastTextFormatter.title(sampleForecast(), accountLabel: "").dropFirst(" is on pace to hit its ".count)
-        return "You’re on pace to hit your " + suffix
+        return QuotaForecastTextFormatter.sentence(sampleForecast())
     }
     private var longerDetail: String {
         guard let count = bankedResets?.availableCount(for: sampleForecast(), now: sampleNow) else {
@@ -46,7 +45,7 @@ private struct SampleInsightView: View {
     ]
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("\(production ? "Production account heading" : accountHeading ? "Account heading · ‘your’ suggestion" : (indentsForecast ? "Hanging indent" : "No hanging indent")) · Simulated usage")
+            Text("\(production ? "Production hanging indent" : accountHeading ? "Account heading · ‘your’ suggestion" : (indentsForecast ? "Hanging indent" : "No hanging indent")) · Simulated usage")
                 .font(.caption).foregroundStyle(.secondary).padding(.horizontal, 20).padding(.top, 16)
             if dismissed {
                 Text("Dismissed for this sample window.")
@@ -67,7 +66,7 @@ private struct SampleInsightView: View {
                             ? "Banked resets require separate action in Codex. The time shown is the scheduled refresh." : "")
                     } else {
                         MacQuotaInsightBanner(forecast: sampleForecast(), accountLabel: accountLabel,
-                            bankedResets: bankedResets, inset: false, indentsForecast: indentsForecast, separatesAccountName: production) { dismissed = true }
+                            bankedResets: bankedResets, inset: false, indentsForecast: indentsForecast, separatesAccountName: false) { dismissed = true }
                     }
                 }.padding(.horizontal, 16)
                 ForEach(identities, id: \.key) { identity in
@@ -93,7 +92,7 @@ struct QuotaInsightPreview: App {
             try! FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             for width in [320, 420, 480] {
                 for scheme in [ColorScheme.light, .dark] {
-                    for (layout, indentsForecast, accountHeading, production) in [("hanging", true, false, false), ("unindented", false, false, false), ("account-heading-suggested-your", false, true, false), ("production-account-heading", false, false, true)] {
+                    for (layout, indentsForecast, accountHeading, production) in [("hanging", true, false, false), ("unindented", false, false, false), ("account-heading-suggested-your", false, true, false), ("production-indent", true, false, true)] {
                         for (tag, count, age) in [("unknown", nil, 0.0), ("zero", 0, 0.0), ("one", 1, 0.0), ("two", 2, 0.0), ("three", 3, 0.0), ("stale", 2, 301.0)] as [(String, Int?, TimeInterval)] {
                             let content = SampleInsightView(resetCount: count, age: age, longName: width == 320 && count == 3, indentsForecast: indentsForecast, accountHeading: accountHeading, production: production).frame(width: CGFloat(width))
                                 .background(scheme == .dark ? Color.black : Color.white)

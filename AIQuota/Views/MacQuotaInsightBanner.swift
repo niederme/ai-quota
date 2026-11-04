@@ -8,8 +8,8 @@ struct MacQuotaInsightBanner: View {
     let accountLabel: String
     var bankedResets: CodexBankedResetContext? = nil
     var inset = true
-    var indentsForecast = false
-    var separatesAccountName = true
+    var indentsForecast = true
+    var separatesAccountName = false
     let onDismiss: () -> Void
 
     private var row: some View {

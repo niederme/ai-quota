@@ -2,7 +2,7 @@ import Foundation
 
 public enum QuotaForecastTextFormatter {
     public static func title(_ forecast: QuotaExhaustionForecast, accountLabel: String) -> String {
-        "\(accountLabel) is on pace to hit its \(windowLabel(forecast)) limit early"
+        "\(accountLabel) is overpacing the \(windowLabel(forecast)) limit."
     }
 
     public static func sentence(_ forecast: QuotaExhaustionForecast) -> String {
@@ -32,20 +32,20 @@ public enum QuotaForecastTextFormatter {
                               calendar: Calendar = .autoupdatingCurrent,
                               locale: Locale = .autoupdatingCurrent) -> String {
         if let count = bankedResets?.availableCount(for: forecast, now: now) {
-            let balance = "\(count.formatted(.number.locale(locale))) \(count == 1 ? "reset" : "resets") available"
-            return "\(balance) · Resets \(reset(forecast, now: now, calendar: calendar, locale: locale))"
+            let balance = "\(count.formatted(.number.locale(locale))) banked \(count == 1 ? "reset" : "resets") available"
+            return "Resets \(reset(forecast, now: now, calendar: calendar, locale: locale)) • \(balance)"
         }
         let basis = forecast.basis == .weeklyPattern
             ? "Based on your usual weekly pattern" : "At your average pace this period"
-        return "\(basis) · Resets \(reset(forecast, now: now, calendar: calendar, locale: locale))"
+        return "Resets \(reset(forecast, now: now, calendar: calendar, locale: locale)) • \(basis)"
     }
 
     public static func accessibilitySummary(_ forecast: QuotaExhaustionForecast, accountLabel: String,
                                              bankedResets: CodexBankedResetContext? = nil,
                                              now: Date = .now) -> String {
-        let heading = accountLabel + (accountLabel.hasSuffix(".") ? " " : ". ") + sentence(forecast)
+        let heading = title(forecast, accountLabel: accountLabel)
         let separator = heading.hasSuffix(".") ? " " : ". "
-        return heading + separator + detail(forecast, bankedResets: bankedResets, now: now).replacingOccurrences(of: " · ", with: ". ")
+        return heading + separator + detail(forecast, bankedResets: bankedResets, now: now).replacingOccurrences(of: " • ", with: ". ")
     }
 
     public static func reset(_ forecast: QuotaExhaustionForecast, now: Date = .now,
