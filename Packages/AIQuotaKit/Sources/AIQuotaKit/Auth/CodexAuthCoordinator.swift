@@ -88,6 +88,7 @@ public actor CodexAuthCoordinator {
     private let probe: SessionProbe
     private let headlessSessionReviver: HeadlessSessionReviver
     private let tokenRefresher: AccessTokenRefresher
+    private let sessionTokenLoader: @Sendable () -> String?
     private let oauthCredentialsLoader: OAuthCredentialsLoader
     private let expectedAccountID: @Sendable () -> String?
     private let contextWriter: @Sendable (SharedCodexAuthContext) -> Void
@@ -104,6 +105,7 @@ public actor CodexAuthCoordinator {
         probe: SessionProbe? = nil,
         headlessSessionReviver: HeadlessSessionReviver? = nil,
         tokenRefresher: AccessTokenRefresher? = nil,
+        sessionTokenLoader: (@Sendable () -> String?)? = nil,
         oauthCredentialsLoader: OAuthCredentialsLoader? = nil,
         expectedAccountID: (@Sendable () -> String?)? = nil,
         contextWriter: (@Sendable (SharedCodexAuthContext) -> Void)? = nil,
@@ -138,6 +140,10 @@ public actor CodexAuthCoordinator {
         self.probe = probe ?? CodexAuthCoordinator.wkProbe(for: accountStorageID)
         self.headlessSessionReviver = headlessSessionReviver ?? CodexAuthCoordinator.headlessWebSessionReviver(for: accountStorageID)
         self.tokenRefresher = tokenRefresher ?? CodexAuthCoordinator.defaultTokenRefresher
+        self.sessionTokenLoader = sessionTokenLoader ?? {
+            let key = accountStorageID.map { "sessionToken.\($0.uuidString.lowercased())" } ?? "sessionToken"
+            return KeychainStore.load(forKey: key)
+        }
         self.oauthCredentialsLoader = oauthCredentialsLoader ?? {
             // Codex CLI credentials are a process-global identity. Reusing them
             // for every connected account would silently collapse all scoped
@@ -216,6 +222,14 @@ public actor CodexAuthCoordinator {
                 scheduleRestorationRetryIfNeeded()
             }
         }
+        // WebKit may not have restored its cookie jar after app replacement.
+        // Renew the app-owned, account-local saved session before relying on it.
+        if await restorePersistedSession() {
+            transition(to: .authenticated)
+            return
+        }
+        guard state == .restoringSession, operationGeneration == contextGeneration,
+              expectedAccountID() == operationExpected, !Task.isCancelled else { return }
         let result = await withProbeTimeout(probe)
         guard state == .restoringSession, operationGeneration == contextGeneration,
               expectedAccountID() == operationExpected, !Task.isCancelled else { return }
@@ -386,6 +400,12 @@ public actor CodexAuthCoordinator {
         let operationGeneration = contextGeneration
         let operationExpected = expectedAccountID()
         let operationState = state
+        if await restorePersistedSession() {
+            transition(to: .authenticated)
+            return true
+        }
+        guard operationGeneration == contextGeneration, state == operationState,
+              expectedAccountID() == operationExpected, !Task.isCancelled else { return false }
         let probeResult = await withProbeTimeout(probe)
         guard operationGeneration == contextGeneration, state == operationState,
               expectedAccountID() == operationExpected, !Task.isCancelled else { return false }
@@ -483,6 +503,9 @@ public actor CodexAuthCoordinator {
 
         let generation = contextGeneration
         let expected = expectedAccountID()
+        if await restorePersistedSession() { return true }
+        guard generation == contextGeneration, state == .authenticated,
+              expectedAccountID() == expected, !Task.isCancelled else { return false }
         let result = await withProbeTimeout(probe)
 
         // Re-check: another transition may have run while probe was in flight.
@@ -636,6 +659,11 @@ public actor CodexAuthCoordinator {
         default:
             return String(describing: error)
         }
+    }
+
+    private func restorePersistedSession() async -> Bool {
+        guard let token = sessionTokenLoader(), !token.isEmpty else { return false }
+        return await restoreFromSessionToken(token)
     }
 
     private func restoreFromSessionToken(_ sessionToken: String) async -> Bool {
@@ -890,7 +918,8 @@ public actor CodexAuthCoordinator {
             UserDefaults.standard.set(true, forKey: sentinel)
             return
         }
-        KeychainStore.delete(forKey: sessionTokenKey)
+        // Missing defaults or WebKit records do not prove a fresh installation.
+        // Only explicit sign-out/reset may erase the saved account session.
         SharedDefaults.clearUsage()
         SharedDefaults.clearClaudeUsage()
         // Do not clear WebKit cookies here. A misclassified update/archive build

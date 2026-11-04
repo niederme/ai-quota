@@ -137,11 +137,11 @@ public enum SharedAuthContextStore {
     @discardableResult
     private static func withSingletonLock<T>(_ body: () -> T) -> T? {
         let container: URL
-        if Bundle.allBundles.contains(where: { $0.bundlePath.hasSuffix(".xctest") }) {
+        if StorageTestIsolation.isRunningTests {
             // Existing package tests use a process-specific Keychain service and
             // defaults suite. Their lock must not require a signed app-group host.
             container = FileManager.default.temporaryDirectory
-                .appendingPathComponent("aiquota-auth-lock.tests.\(ProcessInfo.processInfo.processIdentifier)")
+                .appendingPathComponent("aiquota-auth-lock.tests.\(StorageTestIsolation.identifier)")
             guard (try? FileManager.default.createDirectory(at: container, withIntermediateDirectories: true)) != nil else { return nil }
         } else {
             guard let group = FileManager.default.containerURL(

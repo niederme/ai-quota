@@ -320,6 +320,7 @@ struct AccountConnectionStatus {
         if account.connectionKind == .isolated { return session?.isAuthenticated == true }
         return account.provider == .codex ? viewModel.isCodexAuthenticated : viewModel.isClaudeAuthenticated
     }
+    var needsReconnect: Bool { viewModel.recoveryAction(for: account) == .reconnect }
     var issue: String? {
         if account.connectionKind == .isolated { return session?.issue }
         return account.provider == .codex ? viewModel.codexError?.localizedDescription : viewModel.claudeError?.localizedDescription
@@ -367,21 +368,20 @@ private struct SettingsAccountDetail: View {
                     }
                 }
                 if busy { ProgressView().controlSize(.small) }
-                else if status.connected {
-                    Button("Refresh Usage") {
-                        if let session = status.session { Task { await session.refresh(userInitiated: true) } }
-                        else { viewModel.manualRefresh() }
-                    }
-                    .settingsAction()
-                    if account.provider == .codex,
-                       (account.connectionKind == .isolated ? status.session?.issue != nil : viewModel.codexError?.needsReconnect == true) {
+                else {
+                    if status.needsReconnect {
                         Button("Reconnect…", action: reconnect).settingsAction()
-                    }
-                    Button("Sign Out…", role: .destructive) { pendingAction = "Sign Out" }
+                    } else {
+                        Button("Refresh Usage") {
+                            if let session = status.session { Task { await session.refresh(userInitiated: true) } }
+                            else { viewModel.manualRefresh() }
+                        }
                         .settingsAction()
-                } else {
-                    Button("Sign In…", action: reconnect)
-                    .settingsAction()
+                    }
+                    if status.connected {
+                        Button("Sign Out…", role: .destructive) { pendingAction = "Sign Out" }
+                            .settingsAction()
+                    }
                 }
                 if account.provider == .claude, account.connectionKind == .legacyPrimary,
                    AppDistribution.allowsHostCredentialDiscovery {

@@ -10,13 +10,13 @@ public enum AccountRegistry {
 
     private static var defaults: UserDefaults {
         let suiteName = isRunningTests
-            ? "\(suite).tests.\(ProcessInfo.processInfo.processIdentifier)"
+            ? "\(suite).tests.\(StorageTestIsolation.identifier)"
             : suite
         return UserDefaults(suiteName: suiteName) ?? .standard
     }
 
     private static var isRunningTests: Bool {
-        Bundle.allBundles.contains { $0.bundlePath.hasSuffix(".xctest") }
+        StorageTestIsolation.isRunningTests
     }
 
     public static func accounts() -> [ConnectedAccount] {

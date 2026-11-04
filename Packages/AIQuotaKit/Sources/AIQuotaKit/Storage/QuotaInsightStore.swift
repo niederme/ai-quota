@@ -4,8 +4,8 @@ import MobileAccessCore
 /// Stores only dismissal preferences. Forecast inputs and service history stay ephemeral.
 public actor QuotaInsightStore {
     public static let shared = QuotaInsightStore(suiteName:
-        Bundle.allBundles.contains { $0.bundlePath.hasSuffix(".xctest") }
-            ? "QuotaInsightTests.clients.\(ProcessInfo.processInfo.processIdentifier)" : nil)
+        StorageTestIsolation.isRunningTests
+            ? "QuotaInsightTests.clients.\(StorageTestIsolation.identifier)" : nil)
     private static let legacyKey = "quotaPaceObservations.v1"
     private static let key = "quotaForecastDismissals.v2"
     private let defaults: UserDefaults

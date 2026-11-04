@@ -8,11 +8,11 @@ public enum KeychainStore {
         guard isRunningTests else {
             return base
         }
-        return "\(base).tests.\(ProcessInfo.processInfo.processIdentifier)"
+        return "\(base).tests.\(StorageTestIsolation.identifier)"
     }
 
     private static var isRunningTests: Bool {
-        Bundle.allBundles.contains { $0.bundlePath.hasSuffix(".xctest") }
+        StorageTestIsolation.isRunningTests
     }
 
     private static var sharedAccessGroup: String? {

@@ -1,6 +1,7 @@
 // Verbatim production refresh/routing bodies, memory-only dependencies. Never
 // constructs the app model, provider coordinators, Keychain or persistent stores.
 import Foundation
+import SwiftUI
 @testable import AIQuotaKit
 
 func check(_ value: Bool, _ message: String) throws {
@@ -77,6 +78,8 @@ actor Gate<T: Sendable> {
     var codexError: NetworkError?, claudeError: NetworkError?
     var codexState: AuthState = .authenticated { didSet { isCodexAuthenticated = codexState == .authenticated } }
     var isCodexRestorationRetryable = false
+    var additionalAccounts: [Additional] = []
+    // SOURCE_RECOVERY_ACTION
     var codexAutoReload: CodexAutoReload?
     var lastRefreshedAt: Date?
     var codexClient = Client<CodexUsage>([]), claudeClient = Client<ClaudeUsage>([])
@@ -97,7 +100,7 @@ actor Gate<T: Sendable> {
 }
 @MainActor final class Additional {
     let provider: ServiceType
-    let id: String
+    var id: String { account.id }
     var account: ConnectedAccount
     var state: AuthState = .authenticated
     var isAuthenticated: Bool { state == .authenticated }
@@ -116,7 +119,6 @@ actor Gate<T: Sendable> {
     init(_ provider: ServiceType) {
         self.provider = provider
         account = ConnectedAccount(provider: provider, displayLabel: "Test", workspaceID: "scope", authSource: .webSession)
-        id = account.id
     }
     func clearIssue() { issue = nil; issueError = nil }
     func reportIssue(_ error: Error) { issueError = error as? NetworkError; issue = error.localizedDescription }
@@ -126,6 +128,10 @@ actor Gate<T: Sendable> {
     func adoptState(_ value: AuthState) { state = value; if value == .authenticated || value == .signedOutByUser { isCodexRestorationRetryable = false } }
     // SOURCE_ADDITIONAL
 }
+typealias QuotaViewModel = Primary
+typealias AdditionalAccountSession = Additional
+// SOURCE_SETTINGS_STATUS
+
 @MainActor final class Router {
     var routes: [String] = []
     func reconnectAccount(id: String) { routes.append(id) }
@@ -146,6 +152,34 @@ actor Gate<T: Sendable> {
     var stops = 0
     func stopAutoRefresh() { stops += 1 }
     // SOURCE_SIGNOUT_ACCOUNT
+}
+// The actual install migration method, with synthetic storage adapters. This
+// verifies the missing-marker branch without reading the user's WebKit stores.
+@MainActor final class InstallMigration {
+    static let freshInstallKey = "app.installedAt.v2"
+    var accountStorageID: UUID?
+    var sessionTokenKey = "sessionToken"
+    @MainActor enum UserDefaults {
+        static let standard = Defaults()
+        final class Defaults {
+            var marker: Any?
+            func object(forKey: String) -> Any? { marker }
+            func set(_ value: Any?, forKey: String) { marker = value }
+        }
+    }
+    @MainActor enum AuthInstallState {
+        static var existing = false
+        static func isExistingInstall() async -> Bool { existing }
+    }
+    @MainActor enum KeychainStore {
+        static var saved = true
+        static func delete(forKey: String) { saved = false }
+    }
+    @MainActor enum SharedDefaults {
+        static func clearUsage() {}
+        static func clearClaudeUsage() {}
+    }
+    // SOURCE_INSTALL_MIGRATION
 }
 func codex(_ fetched: Date = Date(timeIntervalSince1970: 100), resetCredits: CodexResetCredits? = nil, accountID: String? = nil) -> CodexUsage {
     CodexUsage(weeklyUsedPercent: 21, weeklyResetAt: fetched, weeklyResetAfterSeconds: 0,
@@ -297,6 +331,49 @@ func claude(_ fetched: Date = Date(timeIntervalSince1970: 100)) -> ClaudeUsage {
             await gate.finish(.success(codex(Date(timeIntervalSince1970: 200)))); await task.value
             try check(a.codexUsage?.fetchedAt == Date(timeIntervalSince1970: 100), "obsolete additional success must not publish freshness")
             count += 1
+        }
+        for provider in [ServiceType.codex, .claude] {
+            for kind in [AccountConnectionKind.legacyPrimary, .isolated] {
+                let model = Primary(), additional = Additional(provider)
+                let account = ConnectedAccount(provider: provider, displayLabel: "Fixture", authSource: .webSession, connectionKind: kind)
+                additional.account = account
+                // Settings resolves the selected account by its persisted ID.
+                let selected = kind == .isolated ? additional.account : account
+                model.additionalAccounts = [additional]
+                for connected in [false, true] {
+                    for failure: NetworkError? in [nil, .tokenExpired, .networkUnavailable] {
+                        model.codexState = connected ? .authenticated : .unauthenticated
+                        model.isClaudeAuthenticated = connected
+                        model.codexError = failure; model.claudeError = failure
+                        additional.state = connected ? .authenticated : .unauthenticated
+                        additional.issueError = failure; additional.issue = failure?.localizedDescription
+                        let status = AccountConnectionStatus(account: selected, viewModel: model)
+                        try check(status.needsReconnect == (!connected || failure?.needsReconnect == true), "Settings uses same typed reconnect rule for every account")
+                        count += 1
+                    }
+                }
+                if provider == .codex {
+                    model.codexState = .unauthenticated; model.isCodexRestorationRetryable = true
+                    additional.state = .unauthenticated; additional.isCodexRestorationRetryable = true
+                    let status = AccountConnectionStatus(account: selected, viewModel: model)
+                    try check(!status.needsReconnect, "Settings temporary restoration remains noninteractive")
+                    count += 1
+                }
+            }
+        }
+        for scoped in [false, true] {
+            for marker in [false, true] {
+                for existing in [false, true] {
+                    InstallMigration.UserDefaults.standard.marker = marker ? true : nil
+                    InstallMigration.AuthInstallState.existing = existing
+                    InstallMigration.KeychainStore.saved = true
+                    let migration = InstallMigration()
+                    migration.accountStorageID = scoped ? UUID() : nil
+                    await migration.clearStateIfFreshInstall()
+                    try check(InstallMigration.KeychainStore.saved, "install marker migration must preserve saved auth (scoped: \(scoped), marker: \(marker), existing: \(existing))")
+                    count += 1
+                }
+            }
         }
         let router = Router()
         var expectedRoutes: [String] = []
