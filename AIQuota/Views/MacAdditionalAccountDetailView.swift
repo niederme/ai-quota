@@ -44,10 +44,6 @@ struct MacAdditionalAccountDetailView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     if needsReconnect {
-                        if session.codexUsage != nil || session.claudeUsage != nil {
-                            Text("Reconnect to update. Your saved reading is retained.")
-                                .font(.callout).foregroundStyle(.secondary)
-                        }
                         Button("Reconnect \(serviceName)", action: reconnect)
                             .disabled(session.isLoading)
                             .accessibilityLabel("Reconnect \(session.account.presentation().title)")
@@ -68,11 +64,11 @@ struct MacAdditionalAccountDetailView: View {
                         ContentUnavailableView(
                             session.isLoading ? "Loading usage" : "Usage unavailable",
                             systemImage: "chart.bar",
-                            description: Text(needsReconnect ? "Use Reconnect above to update this account." : "Refresh this account to try again.")
+                            description: needsReconnect ? nil : Text("Refresh this account to try again.")
                         )
                     }
                     if !needsReconnect {
-                        Button(session.recoveryAction == .retry ? "Retry this account" : "Refresh this account") {
+                        Button("Refresh this account") {
                             if session.provider == .codex { session.refreshUsageHistory(force: true) }
                             Task { await session.refresh(userInitiated: true) }
                         }

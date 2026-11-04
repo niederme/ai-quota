@@ -108,10 +108,6 @@ struct ServiceDetailView: View {
             NavigationStack {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
-                        if needsReconnect {
-                            Label("Reconnect to update details. Your last reading is retained.", systemImage: "person.crop.circle.badge.exclamationmark")
-                                .foregroundStyle(Color.warningAmber)
-                        }
                         if isCodex, connected || reading != nil {
                             CodexAnalyticsView(reading: reading, history: history,
                                 historyUnavailable: viewModel.usageHistoryFailed,

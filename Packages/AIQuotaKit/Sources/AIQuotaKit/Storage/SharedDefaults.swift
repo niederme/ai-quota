@@ -14,7 +14,7 @@ public enum SharedDefaults {
 
     private static var defaults: UserDefaults {
         let suiteName = isRunningTests
-            ? "\(suite).tests.\(ProcessInfo.processInfo.processIdentifier)"
+            ? "\(suite).tests.\(StorageTestIsolation.identifier)"
             : suite
         if let d = UserDefaults(suiteName: suiteName) { return d }
         print("⚠️ [SharedDefaults] App Group '\(suite)' unavailable — falling back to .standard (widget won't see data)")
@@ -22,7 +22,7 @@ public enum SharedDefaults {
     }
 
     private static var isRunningTests: Bool {
-        Bundle.allBundles.contains { $0.bundlePath.hasSuffix(".xctest") }
+        StorageTestIsolation.isRunningTests
     }
 
     /// WidgetKit can reload before app-group defaults are flushed cross-process.

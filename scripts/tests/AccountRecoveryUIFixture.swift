@@ -84,7 +84,6 @@ struct CodexAnalyticsView: View {
             for appearance in ["dark", "light"] {
                 window.appearance = NSAppearance(named: appearance == "dark" ? .darkAqua : .aqua)
                 let cards = VStack(spacing: 8) {
-                    Text("Saved readings · \(auth ? "Session expired" : "Network unavailable")").font(.headline).padding()
                     ForEach(AccountRegistry.fixtures) { account in
                         let session = self.model.additionalAccounts.first { $0.id == account.id }
                         MacAccountCard(account: account, session: session, tokenHistory: nil, availableWidth: 416,
@@ -123,7 +122,6 @@ struct CodexAnalyticsView: View {
             for appearance in ["dark", "light"] {
                 window.appearance = NSAppearance(named: appearance == "dark" ? .darkAqua : .aqua)
                 let cards = VStack(spacing: 8) {
-                    Text("Temporary Codex restore · Saved readings stay dated").font(.headline).padding()
                     ForEach(AccountRegistry.fixtures.filter { $0.provider == .codex }) { account in
                         MacAccountCard(account: account, session: self.model.additionalAccounts.first { $0.id == account.id },
                             tokenHistory: nil, availableWidth: 416, showsAccountLabel: true,
