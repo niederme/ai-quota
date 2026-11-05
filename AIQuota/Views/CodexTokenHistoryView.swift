@@ -89,8 +89,8 @@ struct CodexTokenHistoryView: View {
 // accessible descriptions remain distinct; opaque fills read over tinted cards.
 private func tokenHistoryRestingFill(_ colorScheme: ColorScheme) -> Color {
     colorScheme == .dark
-        ? Color(red: 0x53 / 255.0, green: 0x3A / 255.0, blue: 0x72 / 255.0)
-        : Color(red: 0xCD / 255.0, green: 0xB5 / 255.0, blue: 0xE3 / 255.0)
+        ? Color(red: 0x4D / 255.0, green: 0x3B / 255.0, blue: 0x5F / 255.0)
+        : Color(red: 0xD4 / 255.0, green: 0xC3 / 255.0, blue: 0xE1 / 255.0)
 }
 
 /// No fabricated readings: empty cells keep the connected heatmap's geometry.
