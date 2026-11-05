@@ -200,8 +200,8 @@ struct WidgetTokenHeatmap: View {
     }
     private func fill(_ day: CodexTokenHistory.Day, scale: CodexTokenActivityScale) -> Color {
         if day.isFuture { return .clear }
-        guard let tokens = day.tokens else { return WidgetPalette.secondary.opacity(0.18) }
-        if tokens == 0 { return Color(red: 77/255, green: 71/255, blue: 87/255) }
+        // Any day without usage shares the dial's empty track; only used days are purple.
+        guard let tokens = day.tokens, tokens > 0 else { return WidgetPalette.track }
         return WidgetPalette.heat[scale.positiveLevel(for: tokens)]
     }
 }
