@@ -60,20 +60,8 @@ struct CodexTokenHistoryView: View {
 
     private func fill(_ day: CodexTokenHistory.Day, scale: CodexTokenActivityScale) -> Color {
         guard !day.isFuture else { return .clear }
-        guard let tokens = day.tokens, tokens != 0 else { return tokenHistoryRestingFill(colorScheme) }
-        // Active-day colors retain the existing platform-matched intensity ramp.
-        let colors: [Color] = colorScheme == .dark ? [
-            Color(red: 0x60 / 255.0, green: 0x3C / 255.0, blue: 0x79 / 255.0),
-            Color(red: 0x7A / 255.0, green: 0x48 / 255.0, blue: 0x9A / 255.0),
-            Color(red: 0x9C / 255.0, green: 0x58 / 255.0, blue: 0xC2 / 255.0),
-            Color(red: 0.77, green: 0.42, blue: 0.94)
-        ] : [
-            Color(red: 0.82, green: 0.67, blue: 0.94),
-            Color(red: 0.68, green: 0.44, blue: 0.86),
-            Color(red: 0.53, green: 0.25, blue: 0.74),
-            Color(red: 0.37, green: 0.12, blue: 0.57)
-        ]
-        return colors[scale.positiveLevel(for: tokens)]
+        guard let tokens = day.tokens, tokens > 0 else { return tokenHistoryRestingFill(colorScheme) }
+        return tokenHistoryActivityFill(level: scale.positiveLevel(for: tokens), colorScheme: colorScheme)
     }
 
     private func description(_ day: CodexTokenHistory.Day) -> String {
@@ -85,12 +73,20 @@ struct CodexTokenHistoryView: View {
     }
 }
 
-// Missing and reported-zero days share a quiet purple fill. Their data and
-// accessible descriptions remain distinct; opaque fills read over tinted cards.
+// Any day without usage (reported zero, no record, or before the account
+// existed) shares the dial's empty-track colour. Only used days are purple.
 private func tokenHistoryRestingFill(_ colorScheme: ColorScheme) -> Color {
-    colorScheme == .dark
-        ? Color(red: 0x4D / 255.0, green: 0x3B / 255.0, blue: 0x5F / 255.0)
-        : Color(red: 0xD4 / 255.0, green: 0xC3 / 255.0, blue: 0xE1 / 255.0)
+    Color.overviewTrack
+}
+
+// Four steps evenly spaced in OKLCH lightness at the dial's hue; the top step
+// is exactly the dial colour, so a bright cell and a full ring agree.
+private func tokenHistoryActivityFill(level: Int, colorScheme: ColorScheme) -> Color {
+    let dark: [UInt32] = [0x6A4080, 0x894EA6, 0xA85CCE, 0xC86CF5]
+    let light: [UInt32] = [0xDDC6F3, 0xC29AE6, 0xA569D5, 0x8530BD]
+    let hex = (colorScheme == .dark ? dark : light)[min(max(level, 0), 3)]
+    return Color(red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255,
+                 blue: Double(hex & 0xFF) / 255)
 }
 
 /// No fabricated readings: empty cells keep the connected heatmap's geometry.
