@@ -85,8 +85,8 @@ private extension QuotaEntry {
             let weeklyOnly = usage.reportsWeeklyOnlyWindow
             var detailRows = [
                 WidgetDetailRowData(
-                    label: "Remaining",
-                    value: "\(usage.weeklyRemaining)%",
+                    label: "Used",
+                    value: "\(usage.weeklyUsedPercent)%",
                     icon: "sparkles",
                     tint: usage.limitReached ? .red : widgetAccentColor
                 ),
@@ -141,8 +141,8 @@ private extension QuotaEntry {
             guard let usage = claudeUsage else { return nil }
             var detailRows = [
                 WidgetDetailRowData(
-                    label: "Remaining",
-                    value: usage.primaryMetric.utilization == nil ? "--" : "\(usage.remainingPercent)%",
+                    label: "Used",
+                    value: usage.primaryMetric.utilization == nil ? "--" : "\(usage.usedPercent)%",
                     icon: "sparkles",
                     tint: usage.limitReached ? .red : widgetAccentColor
                 ),
