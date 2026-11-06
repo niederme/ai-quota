@@ -48,6 +48,32 @@ public enum ClaudePlan: String, CaseIterable, Sendable {
         return nil
     }
 
+    /// Reads the plan claude.ai reports for one organization in the
+    /// `/api/organizations` list. Returns nil when nothing names a plan.
+    public static func fromWebOrganizations(_ data: Data, organizationID: String) -> Self? {
+        struct Organization: Decodable {
+            let uuid: String
+            let capabilities: [String]?
+            let rateLimitTier: String?
+            let billingType: String?
+
+            enum CodingKeys: String, CodingKey {
+                case uuid, capabilities
+                case rateLimitTier = "rate_limit_tier"
+                case billingType = "billing_type"
+            }
+        }
+        guard let organizations = try? JSONDecoder().decode([Organization].self, from: data),
+              let organization = organizations.first(where: {
+                  $0.uuid.caseInsensitiveCompare(organizationID) == .orderedSame
+              })
+        else { return nil }
+        let capabilities = Set((organization.capabilities ?? []).map { $0.lowercased() })
+        if capabilities.contains("claude_max") { return .max }
+        if capabilities.contains("claude_pro") { return .pro }
+        return fromWebAccount(rateLimitTier: organization.rateLimitTier, billingType: organization.billingType)
+    }
+
     public static func fromCompatibilityLabel(_ label: String?) -> Self? {
         let words = normalizedWords(label)
         if words.contains("max") { return .max }

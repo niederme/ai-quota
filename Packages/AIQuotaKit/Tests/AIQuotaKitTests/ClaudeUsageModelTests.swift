@@ -64,7 +64,8 @@ struct ClaudeUsageModelTests {
 
         #expect(usage.primaryMetric.kind == .sevenDay)
         #expect(usage.primaryMetric.resetAt == reset7d)
-        #expect(usage.planLabel == .pro)
+        // Windows are shared by Pro, Max and Team: an unreported plan stays unknown.
+        #expect(usage.planLabel == .unknown)
     }
 
     @Test("spend limit is distinct from Max extra usage")
@@ -91,7 +92,8 @@ struct ClaudeUsageModelTests {
         #expect(enterprise.planLabel == .enterprise)
         #expect(enterprise.extraUsage == nil)
         #expect(max.spendLimit == nil)
-        #expect(max.planLabel == .max)
+        // Pro and Team can buy extra usage too, so it no longer implies Max.
+        #expect(max.planLabel == .unknown)
     }
 
     @Test("missing all usage signals remains unknown")

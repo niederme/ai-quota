@@ -343,6 +343,7 @@ final class DemoDriver {
             sevenDayResetsAt:    now.addingTimeInterval(TimeInterval(f.weeklyResetDays * 86400)),
             extraUsage:          extra,
             bonusUsage:          bonus,
+            planLabel:           extra?.isEnabled == true ? .max : .pro,
             fetchedAt:           now
         )
 
