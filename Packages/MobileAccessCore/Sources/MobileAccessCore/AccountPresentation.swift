@@ -53,12 +53,26 @@ public struct AccountPresentation: Equatable, Sendable {
         // Unknown non-default legacy names are retained; only proven default patterns
         // are suppressed. An explicit rename always wins, including “Account 2”.
         let alias = i.origin == .user ? (label.isEmpty ? nil : label) : (generated ? nil : label)
+        // A name that already starts with the service and plan ("Claude Max • Personal")
+        // only adds what follows it; the heading supplies "Claude Max" once.
+        let shown = alias.map { plan == nil ? $0 : removingPrefix(stem, from: $0) }
         let title: String
-        if let alias, fold(alias) != fold(stem), fold(alias) != fold(service) {
-            title = plan == nil && alias.lowercased().hasPrefix(service.lowercased() + " ") ? alias : "\(stem) · \(alias)"
+        if let shown, fold(shown) != fold(stem), fold(shown) != fold(service) {
+            title = plan == nil && shown.lowercased().hasPrefix(service.lowercased() + " ") ? shown : "\(stem) · \(shown)"
         } else { title = stem }
-        let subtitle = [plan.map { "\($0) plan" } ?? "Plan unavailable", alias.flatMap { fold($0) == fold(stem) || fold($0) == fold(service) ? nil : $0 }].compactMap { $0 }.joined(separator: " · ")
+        let subtitle = [plan.map { "\($0) plan" } ?? "Plan unavailable", shown.flatMap { fold($0) == fold(stem) || fold($0) == fold(service) ? nil : $0 }].compactMap { $0 }.joined(separator: " · ")
         return Self(service: service, plan: plan, alias: alias, title: title, subtitle: subtitle, requiresName: false, notificationTitle: stem)
+    }
+    /// The part of `name` after a leading `prefix` and any separator, or `name`
+    /// itself when it doesn't start with `prefix` as whole words.
+    private static func removingPrefix(_ prefix: String, from name: String) -> String {
+        guard let range = name.range(of: prefix, options: [.anchored, .caseInsensitive, .diacriticInsensitive]) else { return name }
+        let rest = name[range.upperBound...]
+        guard let next = rest.first else { return prefix }
+        let separators = CharacterSet.whitespaces.union(CharacterSet(charactersIn: "·•-–—:|/,()"))
+        guard next.unicodeScalars.allSatisfy({ separators.contains($0) }) else { return name }
+        let trimmed = rest.trimmingCharacters(in: separators)
+        return trimmed.isEmpty ? prefix : clean(trimmed)
     }
     private static func clean(_ s: String) -> String { s.split(whereSeparator: \.isWhitespace).joined(separator: " ") }
     private static func fold(_ s: String) -> String { clean(s).folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX")) }

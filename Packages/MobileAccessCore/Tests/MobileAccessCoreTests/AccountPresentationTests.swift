@@ -70,3 +70,15 @@ private func item(_ id: String, _ service: String, _ plan: String?, _ label: Str
     #expect(conflictingAlias.title == "Codex Business · Pro plan")
     #expect(conflictingAlias.subtitle(for: .fullIdentity) == nil)
 }
+
+@Test func namesThatRepeatTheServiceAndPlanShowItOnce() {
+    for label in ["Claude Max • Personal", "Claude Max · Personal", "claude max - Personal", "Claude Max Personal"] {
+        let name = AccountPresentation.resolve(item("a", "Claude", "Max", label, .user), among: [])
+        #expect(name.title == "Claude Max · Personal")
+        #expect(name.subtitle(for: .service) == "Max plan · Personal")
+        #expect(name.alias == label)
+    }
+    #expect(AccountPresentation.resolve(item("a", "Claude", "Max", "Claude Max", .user), among: []).title == "Claude Max")
+    #expect(AccountPresentation.resolve(item("a", "Claude", "Max", "Claude Maxwell", .user), among: []).title == "Claude Max · Claude Maxwell")
+    #expect(AccountPresentation.resolve(item("a", "Codex", "Business", "Codex Pro • Old", .user), among: []).title == "Codex Business · Codex Pro • Old")
+}
