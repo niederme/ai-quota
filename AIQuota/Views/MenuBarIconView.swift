@@ -135,6 +135,29 @@ struct MultiMenuBarIconView: View {
     }
 }
 
+/// Shown when no accounts are chosen for the menu bar. MenuBarExtra pulls the
+/// raw image out of its label and ignores SwiftUI sizing (`.resizable()`,
+/// `.frame`), so the 128-point asset must be handed over already at menu bar
+/// size. Resizing a copy keeps the asset catalog's light and dark variants,
+/// which still resolve against the menu bar's appearance at draw time.
+struct MenuBarBrandIconView: View {
+    static let size: CGFloat = 20
+
+    var body: some View {
+        Image(nsImage: Self.image())
+            .interpolation(.high)
+            .antialiased(true)
+            .frame(width: Self.size, height: Self.size)
+    }
+
+    static func image() -> NSImage {
+        let image = (NSImage(named: "AppBrandIcon")?.copy() as? NSImage) ?? NSImage()
+        image.size = NSSize(width: size, height: size)
+        image.accessibilityDescription = "AIQuota"
+        return image
+    }
+}
+
 private enum MenuBarUpdateBadge {
     static func draw(in image: NSImage) {
         let diameter: CGFloat = 6
