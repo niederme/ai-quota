@@ -51,7 +51,7 @@ struct MobileTokenHistoryView: View {
             .frame(height: graphHeight)
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Token activity, past \(Self.weekCount(for: availableWidth)) weeks")
-            .accessibilityHint("Neutral cells show days without usage. Dates are in UTC. " + CodexTokenActivityScale.explanation)
+            .accessibilityHint("Faint cells show days without usage. Dates are in UTC. " + CodexTokenActivityScale.explanation)
         }
     }
     /// Add earlier weeks instead of enlarging cells or leaving a blank trailing strip.
@@ -79,16 +79,16 @@ struct MobileTokenHistoryView: View {
 }
 
 // Any day without usage (reported zero, no record, or before the account
-// existed) shares the dial's empty-track colour. Only used days are purple.
+// existed) shares the dial's empty track. Only used days step up.
 private func tokenHistoryRestingFill(_ colorScheme: ColorScheme) -> Color {
-    OverviewStyle.overviewTrack
+    OverviewStyle.overviewEmpty
 }
 
 // Four steps evenly spaced in OKLCH lightness at the dial's hue; the top step
 // is exactly the dial colour, so a bright cell and a full ring agree.
 private func tokenHistoryActivityFill(level: Int, colorScheme: ColorScheme) -> Color {
     let dark: [UInt32] = [0x6A4080, 0x894EA6, 0xA85CCE, 0xC86CF5]
-    let light: [UInt32] = [0xDDC6F3, 0xC29AE6, 0xA569D5, 0x8530BD]
+    let light: [UInt32] = [0xCDAFE8, 0xB88AE0, 0x9F62D0, 0x8530BD]
     let hex = (colorScheme == .dark ? dark : light)[min(max(level, 0), 3)]
     return Color(red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255,
                  blue: Double(hex & 0xFF) / 255)
