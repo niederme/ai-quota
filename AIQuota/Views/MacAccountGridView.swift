@@ -1,21 +1,19 @@
 import SwiftUI
-import UniformTypeIdentifiers
 import AIQuotaKit
 
-private struct AccountCardDropDelegate: DropDelegate {
-    let destination: String
-    @Binding var dragging: String?
-    let move: (String, String) -> Void
+/// A card reorder in progress. Everything is measured once when the drag
+/// begins, so nothing re-lays out under the pointer until the card is dropped.
+private struct CardDrag {
+    let id: String
+    let order: [String]
+    let frames: [String: CGRect]
+    var translation: CGFloat = 0
 
-    func dropEntered(info: DropInfo) {
-        guard let dragging, dragging != destination else { return }
-        move(dragging, destination)
-    }
-
-    func dropUpdated(info: DropInfo) -> DropProposal? { DropProposal(operation: .move) }
-    func performDrop(info: DropInfo) -> Bool {
-        dragging = nil
-        return true
+    var from: Int { order.firstIndex(of: id) ?? 0 }
+    var frame: CGRect { frames[id] ?? .zero }
+    var target: Int {
+        MacAccountGridLayout.reorderTarget(from: from, draggedMidY: Double(frame.midY + translation),
+                                           midYs: order.map { Double(frames[$0]?.midY ?? 0) })
     }
 }
 
@@ -23,6 +21,7 @@ private struct AccountCardDropDelegate: DropDelegate {
 /// and widget choices remain independent, and the list scrolls only when needed.
 struct MacAccountGridView: View {
     @Environment(QuotaViewModel.self) private var viewModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let width: CGFloat
     let maxHeight: CGFloat
     let openAccount: (ConnectedAccount) -> Void
@@ -31,7 +30,9 @@ struct MacAccountGridView: View {
     let connect: (ServiceType) -> Void
 
     @State private var orderIDs: [String] = []
-    @State private var dragging: String?
+    @State private var drag: CardDrag?
+    @State private var cardFrames: [String: CGRect] = [:]
+    @State private var dragEndedAt: Date = .distantPast
     @State private var contentHeight: CGFloat?
     @State private var hoveredRowID: String?
     @FocusState private var focusedRowID: String?
@@ -82,17 +83,24 @@ struct MacAccountGridView: View {
                                        tokenHistory: tokenHistory(for: account),
                                        availableWidth: cardContentWidth,
                                        showsAccountLabel: accounts.filter { $0.provider == account.provider }.count > 1,
-                                       open: { openAccount(account) }, reconnect: { reconnect(account) },
-                                       highlighted: highlight(account.id))
+                                       open: { unlessJustDragged { openAccount(account) } },
+                                       reconnect: { unlessJustDragged { reconnect(account) } },
+                                       highlighted: highlight(account.id) || drag?.id == account.id)
                             .focused($focusedRowID, equals: account.id)
                             .onHover { hover(account.id, $0) }
-                            .onDrag {
-                                dragging = account.id
-                                return NSItemProvider(object: account.id as NSString)
+                            .scaleEffect(drag?.id == account.id ? 1.02 : 1)
+                            .shadow(color: .black.opacity(drag?.id == account.id ? 0.18 : 0), radius: 12, y: 4)
+                            .offset(y: dragOffset(for: account.id))
+                            .zIndex(drag?.id == account.id ? 1 : 0)
+                            // The lifted card tracks the pointer exactly; only the others glide.
+                            .transaction { if drag?.id == account.id { $0.animation = nil } }
+                            .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Self.cardSpace)) } action: { frame in
+                                cardFrames[account.id] = frame
                             }
-                            .onDrop(of: [UTType.plainText], delegate: AccountCardDropDelegate(
-                                destination: account.id, dragging: $dragging, move: move
-                            ))
+                            // A plain SwiftUI drag rather than .onDrag/.onDrop. System
+                            // drag-and-drop never reordered cards in the menu-bar panel.
+                            .simultaneousGesture(reorderGesture(for: account.id),
+                                                 including: accounts.count > 1 ? .all : .subviews)
                             .contextMenu {
                                 if viewModel.recoveryAction(for: account) == .reconnect {
                                     Button("Reconnect") { reconnect(account) }
@@ -110,6 +118,8 @@ struct MacAccountGridView: View {
                             .accessibilityAction(named: "Move later") { move(account.id, offset: 1) }
                     }
                 }
+                .coordinateSpace(.named(Self.cardSpace))
+                .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: drag?.target)
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
@@ -142,9 +152,11 @@ struct MacAccountGridView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UserDefaults.didChangeNotification).receive(on: RunLoop.main)) { _ in
+            // Usage refreshes write defaults too; don't reshuffle under a drag.
+            guard drag == nil else { return }
             orderIDs = AccountRegistry.orderedAccounts().map(\.id)
         }
-        .onDisappear { hoveredRowID = nil; focusedRowID = nil }
+        .onDisappear { hoveredRowID = nil; focusedRowID = nil; drag = nil }
         .onAppear { orderIDs = AccountRegistry.orderedAccounts().map(\.id) }
         .onChange(of: viewModel.additionalAccounts.map(\.id)) { _, _ in
             orderIDs = AccountRegistry.orderedAccounts().map(\.id)
@@ -185,6 +197,50 @@ struct MacAccountGridView: View {
 
     private func reconnect(_ account: ConnectedAccount) {
         Task { await viewModel.reconnect(account) }
+    }
+
+    private static let cardSpace = "MacAccountCards"
+
+    private func dragOffset(for id: String) -> CGFloat {
+        guard let drag else { return 0 }
+        if drag.id == id { return drag.translation }
+        guard let index = drag.order.firstIndex(of: id) else { return 0 }
+        let shift = MacAccountGridLayout.reorderShift(of: index, dragging: drag.from, to: drag.target)
+        return CGFloat(shift) * (drag.frame.height + CGFloat(MacAccountGridLayout.cardSpacing))
+    }
+
+    private func reorderGesture(for id: String) -> some Gesture {
+        DragGesture(minimumDistance: 4, coordinateSpace: .named(Self.cardSpace))
+            .onChanged { value in
+                if drag?.id != id {
+                    drag = CardDrag(id: id, order: accounts.map(\.id), frames: cardFrames)
+                }
+                guard var current = drag else { return }
+                // Keep the lifted card within the list.
+                let ordered = current.order.compactMap { current.frames[$0] }
+                let top = (ordered.first?.minY ?? current.frame.minY) - current.frame.minY
+                let bottom = (ordered.last?.maxY ?? current.frame.maxY) - current.frame.maxY
+                current.translation = min(max(value.translation.height, top), bottom)
+                drag = current
+            }
+            .onEnded { _ in
+                guard let finished = drag, finished.id == id else { return }
+                dragEndedAt = .now
+                let ids = MacAccountGridLayout.reordered(finished.order, from: finished.from, to: finished.target)
+                // Layout moves to the new order as the offsets return to zero, so
+                // the other cards stay put and the dropped card settles into its slot.
+                withAnimation(reduceMotion ? nil : .snappy(duration: 0.2)) {
+                    orderIDs = ids
+                    drag = nil
+                }
+                if ids != finished.order { AccountRegistry.setAccountOrder(ids) }
+            }
+    }
+
+    /// A mouse-up that ends a drag can also land as a tap on the card.
+    private func unlessJustDragged(_ action: () -> Void) {
+        guard drag == nil, Date.now.timeIntervalSince(dragEndedAt) > 0.3 else { return }
+        action()
     }
 
     private func move(_ source: String, _ destination: String) {

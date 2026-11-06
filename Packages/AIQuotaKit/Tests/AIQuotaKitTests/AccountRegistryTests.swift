@@ -39,6 +39,29 @@ struct AccountRegistryTests {
                                                      availableHeight: 300) == 300)
     }
 
+    @Test("Mac card drag lands where the dragged centre crosses its neighbours")
+    func cardReorderTargets() {
+        // Three 156pt cards with 8pt gaps: centres at 78, 242, 406.
+        let mids: [Double] = [78, 242, 406]
+        #expect(MacAccountGridLayout.reorderTarget(from: 0, draggedMidY: 78, midYs: mids) == 0)
+        #expect(MacAccountGridLayout.reorderTarget(from: 0, draggedMidY: 241, midYs: mids) == 0)
+        #expect(MacAccountGridLayout.reorderTarget(from: 0, draggedMidY: 243, midYs: mids) == 1)
+        #expect(MacAccountGridLayout.reorderTarget(from: 0, draggedMidY: 900, midYs: mids) == 2)
+        #expect(MacAccountGridLayout.reorderTarget(from: 2, draggedMidY: 405, midYs: mids) == 2)
+        #expect(MacAccountGridLayout.reorderTarget(from: 2, draggedMidY: 241, midYs: mids) == 1)
+        #expect(MacAccountGridLayout.reorderTarget(from: 2, draggedMidY: -50, midYs: mids) == 0)
+        #expect(MacAccountGridLayout.reorderTarget(from: 5, draggedMidY: 0, midYs: mids) == 5)
+
+        // Dragging the first card into the last slot lifts the others by one.
+        #expect((0..<3).map { MacAccountGridLayout.reorderShift(of: $0, dragging: 0, to: 2) } == [0, -1, -1])
+        #expect((0..<3).map { MacAccountGridLayout.reorderShift(of: $0, dragging: 2, to: 0) } == [1, 1, 0])
+        #expect((0..<3).map { MacAccountGridLayout.reorderShift(of: $0, dragging: 1, to: 1) } == [0, 0, 0])
+
+        #expect(MacAccountGridLayout.reordered(["a", "b", "c"], from: 0, to: 2) == ["b", "c", "a"])
+        #expect(MacAccountGridLayout.reordered(["a", "b", "c"], from: 2, to: 0) == ["c", "a", "b"])
+        #expect(MacAccountGridLayout.reordered(["a", "b", "c"], from: 1, to: 1) == ["a", "b", "c"])
+    }
+
     @Test("Mac account overview never borrows another account's metric")
     func overviewUsageIsAccountScoped() {
         let codex = ConnectedAccount(provider: .codex, displayLabel: "Personal",

@@ -20,4 +20,29 @@ public enum MacAccountGridLayout {
         // Measured content takes over after layout, including token history.
         return min(availableHeight, Double(count * 156 + 24) + Double(count - 1) * cardSpacing)
     }
+
+    /// The slot a dragged card would land in. `midYs` are the cards' resting
+    /// centres in their current order, measured when the drag began; the
+    /// dragged card passes a neighbour once its centre crosses that neighbour's.
+    public static func reorderTarget(from index: Int, draggedMidY: Double, midYs: [Double]) -> Int {
+        guard midYs.indices.contains(index) else { return index }
+        return midYs.indices.filter { $0 != index && midYs[$0] < draggedMidY }.count
+    }
+
+    /// How a resting card makes room while another is dragged: -1 moves it up
+    /// one slot, 1 moves it down one slot, 0 leaves it in place.
+    public static func reorderShift(of index: Int, dragging from: Int, to target: Int) -> Int {
+        if target > from, index > from, index <= target { return -1 }
+        if target < from, index >= target, index < from { return 1 }
+        return 0
+    }
+
+    /// The new order after dropping the card at `from` into slot `target`.
+    public static func reordered<ID>(_ ids: [ID], from: Int, to target: Int) -> [ID] {
+        guard ids.indices.contains(from) else { return ids }
+        var result = ids
+        let moved = result.remove(at: from)
+        result.insert(moved, at: min(max(0, target), result.count))
+        return result
+    }
 }
