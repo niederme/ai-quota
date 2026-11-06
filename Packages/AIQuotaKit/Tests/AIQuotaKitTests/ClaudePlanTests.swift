@@ -40,6 +40,25 @@ struct ClaudePlanTests {
         #expect(ClaudePlan.fromWebOrganizations(Data("not json".utf8), organizationID: "22222222-2222-2222-2222-222222222222") == nil)
     }
 
+    @Test("Account memberships report the plan of the requested organization only")
+    func webAccountReportsRequestedMembershipPlan() {
+        let data = Data("""
+        {
+          "email_address": "someone@example.com",
+          "memberships": [
+            {"seat_tier": null, "organization": {"uuid": "11111111-1111-1111-1111-111111111111", "name": "Work", "rate_limit_tier": "claude_enterprise", "billing_type": "usage_based"}},
+            {"organization": {"uuid": "22222222-2222-2222-2222-222222222222", "name": "Personal", "rate_limit_tier": "default_claude_max_20x", "billing_type": "stripe_subscription"}},
+            {"organization": {"uuid": "33333333-3333-3333-3333-333333333333", "name": "Other", "rate_limit_tier": null}}
+          ]
+        }
+        """.utf8)
+        #expect(ClaudePlan.fromWebAccountResponse(data, organizationID: "22222222-2222-2222-2222-222222222222") == .max)
+        #expect(ClaudePlan.fromWebAccountResponse(data, organizationID: "11111111-1111-1111-1111-111111111111") == .enterprise)
+        // Unreported or unknown organization: no plan, and never a sibling's plan.
+        #expect(ClaudePlan.fromWebAccountResponse(data, organizationID: "33333333-3333-3333-3333-333333333333") == nil)
+        #expect(ClaudePlan.fromWebAccountResponse(data, organizationID: "44444444-4444-4444-4444-444444444444") == nil)
+    }
+
     @Test("Enterprise is not counted as a consumer subscription")
     func subscriptionCounting() {
         #expect(ClaudePlan.max.countsAsSubscription)
