@@ -124,8 +124,8 @@ struct AccountsLockView: View {
                 Link(destination: account.url) {
                     // The ring is open at the bottom, so stacking the label under the
                     // dial's full square left ~12 pt of air. Lift it so the caps sit
-                    // ~5.5 pt below the ring ends and read as one object with the dial.
-                    VStack(spacing: -6) {
+                    // ~5 pt below the ring ends and read as one object with the dial.
+                    VStack(spacing: -6.5) {
                         AccountWidgetDial(account: account, date: date, size: 56, readings: false, compact: true, vibrant: true)
                         HStack(spacing: 2) {
                             if (account.worstPercent ?? 0) >= 85 { Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 8)) }
