@@ -604,7 +604,7 @@ enum OverviewStyle {
     static let overviewEmpty = Color(uiColor: UIColor { traits in
         traits.userInterfaceStyle == .dark
             ? UIColor(red: 0xC8 / 255, green: 0x6C / 255, blue: 0xF5 / 255, alpha: 0.16)
-            : UIColor(red: 0x85 / 255, green: 0x30 / 255, blue: 0xBD / 255, alpha: 0.08)
+            : UIColor(red: 0x85 / 255, green: 0x30 / 255, blue: 0xBD / 255, alpha: 0.12)
     })
 }
 
