@@ -126,7 +126,7 @@ struct AccountsLockView: View {
                         AccountWidgetDial(account: account, date: date, size: 56, readings: false, compact: true, vibrant: true)
                         HStack(spacing: 2) {
                             if (account.worstPercent ?? 0) >= 85 { Image(systemName: "exclamationmark.triangle.fill").font(.system(size: 8)) }
-                            Text(account.compactName(showAccountNames: showAccountNames)).font(.system(size: 11, weight: .medium)).lineLimit(1)
+                            Text(account.lockScreenName(showAccountNames: showAccountNames)).font(.system(size: 11, weight: .medium)).lineLimit(1)
                         }
                     }.frame(maxWidth: .infinity)
                 }
