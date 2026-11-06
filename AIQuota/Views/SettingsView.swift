@@ -757,7 +757,9 @@ struct ConnectedAccountNameSheet: View {
         .padding(20)
         .frame(width: 360)
         .onAppear {
-            name = account.presentation().alias ?? ""
+            // Generated labels have no alias, so fall back to the suggested label.
+            // That way Save (or Return) keeps the default without typing.
+            name = account.presentation().alias ?? account.displayLabel
             showInMenuBar = viewModel.settings.menuBarAccountIDs?.contains(account.id) == true
             nameFocused = true
         }
