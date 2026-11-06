@@ -43,7 +43,25 @@ private final class Fixture: ObservableObject {
             verifyPixels(image)
             print("PASS: \(count) gauges, image width \(expected), button width \(button.bounds.width), badge \(badge)")
         }
+        if !legacy { await verifyEmptyState() }
         NSApp.terminate(nil)
+    }
+
+    /// No accounts chosen: the brand icon must reach the status button at menu
+    /// bar size, not at its 128-point asset size (SwiftUI frames are ignored).
+    private func verifyEmptyState() async {
+        count = 0
+        badge = false
+        try? await Task.sleep(for: .milliseconds(700))
+        let buttons = NSApp.windows.flatMap { buttons(in: $0.contentView) }
+        guard let button = buttons.first, let image = button.image else {
+            fail("No native status button image for the empty state")
+        }
+        let side = MenuBarBrandIconView.size
+        guard image.size == NSSize(width: side, height: side) else {
+            fail("Empty state: native image \(image.size), expected \(side)x\(side)")
+        }
+        print("PASS: empty state, brand icon \(image.size), button width \(button.bounds.width)")
     }
 
     private func verifyPixels(_ image: NSImage) {
@@ -107,6 +125,8 @@ private struct MenuBarIconRegression: App {
                         MenuBarIconView(input: fixture.inputs[index])
                     }
                 }
+            } else if fixture.count == 0 {
+                MenuBarBrandIconView()
             } else {
                 MultiMenuBarIconView(inputs: fixture.inputs, showsUpdateBadge: fixture.badge)
             }

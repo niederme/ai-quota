@@ -165,7 +165,7 @@ private struct MenuBarStatusLabel: View {
     private var content: some View {
         if let selected = viewModel.settings.menuBarAccounts(in: orderedAccounts) {
             if selected.isEmpty {
-                Image("AppBrandIcon").resizable().frame(width: 20, height: 20)
+                MenuBarBrandIconView()
                     .help("AIQuota")
             } else {
                 MultiMenuBarIconView(
