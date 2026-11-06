@@ -25,12 +25,23 @@ public enum NetworkError: Error, Sendable, LocalizedError {
         return isAuthError
     }
 
+    /// A 4xx other than rate limiting means the saved account or organization
+    /// was not found or not accepted. Retrying won't help; signing in again
+    /// captures a fresh identity. UI-only: does not change automatic recovery.
+    public var suggestsReconnect: Bool {
+        if needsReconnect { return true }
+        if case .httpError(let code) = self { return (400...499).contains(code) && code != 429 }
+        return false
+    }
+
     public var errorDescription: String? {
         switch self {
         case .notAuthenticated: "Not signed in."
         case .tokenExpired: "Session expired. Please sign in again."
         case .refreshFailed: "Could not refresh session. Please sign in again."
-        case .httpError(let code): "Server returned error \(code)."
+        case .httpError(let code): (400...499).contains(code)
+            ? "The service didn’t recognize this account (error \(code)). Try reconnecting."
+            : "The service had a problem (error \(code)). AIQuota will try again."
         case .rateLimited: "Rate limited — try again in a moment."
         case .decodingError: "Unexpected response format from server."
         case .networkUnavailable: "No network connection."
