@@ -571,19 +571,37 @@ public actor ClaudeClient {
         var plan: ClaudePlan?
         for path in ["/api/account", "/api/organizations"] where plan == nil {
             let request = makeRequest(path: path, cookies: context.cookies)
-            guard let (data, response) = try? await session.data(for: request),
-                  (response as? HTTPURLResponse)?.statusCode == 200 else { continue }
+            guard let (data, response) = try? await session.data(for: request) else {
+                logger.info("[ClaudeClient] plan lookup \(path, privacy: .public) → network error")
+                continue
+            }
+            let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+            guard status == 200 else {
+                logger.info("[ClaudeClient] plan lookup \(path, privacy: .public) → HTTP \(status)")
+                continue
+            }
             reachedServer = true
             plan = path == "/api/account"
                 ? ClaudePlan.fromWebAccountResponse(data, organizationID: context.orgId)
                 : ClaudePlan.fromWebOrganizations(data, organizationID: context.orgId)
         }
         guard reachedServer else {
-            return webPlanCache?.organizationID == context.orgId ? webPlanCache?.plan : nil
+            // A failed lookup (rate limit, network) must not drop a plan claude.ai
+            // already reported for this organization.
+            if webPlanCache?.organizationID == context.orgId, let cached = webPlanCache?.plan { return cached }
+            return lastReportedPlan(for: context.orgId)
         }
         webPlanCache = (context.orgId, plan?.label, .now)
         logger.info("[ClaudeClient] web plan for organization: \(plan?.rawValue ?? "not reported", privacy: .public)")
         return plan?.label
+    }
+
+    /// The plan saved with this connection's last reading of the same organization.
+    private func lastReportedPlan(for organizationID: String) -> ClaudeUsage.PlanLabel? {
+        let cached = accountStorageID.flatMap { SharedDefaults.loadCachedClaudeUsage(forAccountID: $0) }
+            ?? (isScoped ? nil : SharedDefaults.loadCachedClaudeUsage())
+        guard let cached, cached.quotaScopeID == organizationID, cached.planLabel != .unknown else { return nil }
+        return cached.planLabel
     }
 
     private func oauthOrganizationID(
