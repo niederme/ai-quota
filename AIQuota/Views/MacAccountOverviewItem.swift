@@ -119,52 +119,66 @@ struct MacAccountCard: View {
         return CodexTokenHistoryView.hasVisibleData(tokenHistory)
     }
 
-    var body: some View {
-        Button(action: opensDetails ? open : reconnect) {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(alignment: .top, spacing: 20) {
-                    MacAccountDial(icon: icon, primaryPercent: connected || loading ? primaryPercent : nil,
-                                   primaryLabel: primaryLabel, secondaryPercent: connected || loading ? secondaryPercent : nil,
-                                   loading: loading, connected: connected || (loading && hasReading),
-                                   hasIssue: !loading && issue != nil,
-                                   showsSecondaryPlaceholder: secondaryPercent != nil || !hasReading)
-                        .help(budget == nil ? primaryLabel : "\(CalendarMonthLabel.spoken(containing: readingAt)). Reset uses the provider's date.")
-                    details
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .frame(maxWidth: .infinity, alignment: .topLeading)
+    private func activate() {
+        guard !awaitingConnection else { return }
+        if opensDetails { open() } else { reconnect() }
+    }
 
-                if showsTokenHistory, let tokenHistory {
-                    CodexTokenHistoryView(history: tokenHistory,
-                                          availableWidth: availableWidth + 2 * MacAccountDial.strokeOutset)
-                        .padding(.horizontal, -MacAccountDial.strokeOutset)
-                        .padding(.top, 8)
-                }
+    var body: some View {
+        // Not a native Button: a Button runs its own mouse tracking and can swallow
+        // the drag, so the grid's .onDrag never starts (seen on macOS 26).
+        // Tap, keyboard (Return/Space when focused) and VoiceOver still activate it.
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top, spacing: 20) {
+                MacAccountDial(icon: icon, primaryPercent: connected || loading ? primaryPercent : nil,
+                               primaryLabel: primaryLabel, secondaryPercent: connected || loading ? secondaryPercent : nil,
+                               loading: loading, connected: connected || (loading && hasReading),
+                               hasIssue: !loading && issue != nil,
+                               showsSecondaryPlaceholder: secondaryPercent != nil || !hasReading)
+                    .help(budget == nil ? primaryLabel : "\(CalendarMonthLabel.spoken(containing: readingAt)). Reset uses the provider's date.")
+                details
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 21)
-            .padding(.bottom, showsTokenHistory ? 8 : 21)
             .frame(maxWidth: .infinity, alignment: .topLeading)
-            .contentShape(RoundedRectangle(cornerRadius: 24))
-            .overlay {
-                if showsProgress {
-                    ProgressView()
-                        .controlSize(.regular)
-                        .tint(Color.overviewPrimary)
-                        .accessibilityHidden(true)
-                        .allowsHitTesting(false)
-                }
+
+            if showsTokenHistory, let tokenHistory {
+                CodexTokenHistoryView(history: tokenHistory,
+                                      availableWidth: availableWidth + 2 * MacAccountDial.strokeOutset)
+                    .padding(.horizontal, -MacAccountDial.strokeOutset)
+                    .padding(.top, 8)
             }
         }
-        .buttonStyle(MacAccountRowButtonStyle(highlighted: highlighted))
+        .padding(.horizontal, 16)
+        .padding(.top, 21)
+        .padding(.bottom, showsTokenHistory ? 8 : 21)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .contentShape(RoundedRectangle(cornerRadius: 24))
+        .overlay {
+            if showsProgress {
+                ProgressView()
+                    .controlSize(.regular)
+                    .tint(Color.overviewPrimary)
+                    .accessibilityHidden(true)
+                    .allowsHitTesting(false)
+            }
+        }
+        .background { MacAccountRowSurface(highlighted: highlighted, pressed: false) }
+        .onTapGesture(perform: activate)
+        .focusable(!awaitingConnection, interactions: .activate)
+        .onKeyPress(keys: [.return, .space], phases: .down) { _ in
+            activate()
+            return .handled
+        }
         .focusEffectDisabled()
-        .disabled(awaitingConnection)
+        .accessibilityElement(children: .ignore)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction(.default, activate)
         .accessibilityLabel(accessibilitySummary)
         .accessibilityValue(loading ? "Busy, updating allowance" : "")
         .accessibilityAddTraits(loading ? .updatesFrequently : [])
         .accessibilityHint(opensDetails ? "Open account details" : "Reconnect account")
-        // Overlay the secondary control as a sibling of the full-row Button.
-        // This keeps its action independent and avoids nesting native buttons.
+        // Overlay the secondary control as a sibling of the card surface.
+        // This keeps its action independent of the card's tap.
         .overlayPreferenceValue(MacReconnectButtonAnchor.self) { anchor in
             if let anchor {
                 GeometryReader { geometry in
@@ -328,18 +342,6 @@ struct MacAccountRowSurface: View {
     }
 }
 
-struct MacAccountRowButtonStyle: ButtonStyle {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    let highlighted: Bool
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .background { MacAccountRowSurface(highlighted: highlighted, pressed: configuration.isPressed) }
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: highlighted)
-            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
-    }
-}
-
 /// Keep the empty sheet in the same layout as connected services. The Connect
 /// control is native; the rest of the row offers the same connection action.
 struct MacAccountPlaceholderRow: View {
@@ -395,7 +397,7 @@ struct MacAccountPlaceholderRow: View {
         .simultaneousGesture(DragGesture(minimumDistance: 0).updating($pressed) { _, state, _ in state = true })
         .focusable()
         .focusEffectDisabled()
-        .onKeyPress(keys: [.return, .space]) { _ in connect(); return .handled }
+        .onKeyPress(keys: [.return, .space], phases: .down) { _ in connect(); return .handled }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("\(name), not connected")
         .accessibilityAction(named: "Connect", connect)
