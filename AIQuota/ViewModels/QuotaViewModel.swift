@@ -333,12 +333,15 @@ final class QuotaViewModel {
             identity = try? await claudeCoordinator.requestContext().orgId
         }
         guard let identity, !identity.isEmpty else { return }
-        if provider == .codex {
-            guard account.workspaceID == nil,
-                  !AccountRegistry.accounts(for: provider).contains(where: {
-                      $0.id != account.id && $0.workspaceID == identity
-                  }) else { return }
-        }
+        // Bind only an unbound primary, and never to an identity another
+        // connection already owns. Overwriting a bound Claude primary with the
+        // org its web session happens to resolve to now (lastActiveOrg can
+        // point at a work organization) would rebind the personal account to
+        // another account's data.
+        guard account.workspaceID == nil,
+              !AccountRegistry.accounts(for: provider).contains(where: {
+                  $0.id != account.id && $0.workspaceID == identity
+              }) else { return }
         account.workspaceID = identity
         account.updatedAt = .now
         AccountRegistry.save(account)
