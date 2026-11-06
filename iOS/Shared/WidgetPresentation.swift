@@ -156,21 +156,35 @@ struct AccountWidgetDial: View {
     private var reading: QuotaReading? { account.value.reading }
     private var two: Bool { reading == nil || reading?.shortTerm != nil || (reading?.windows.count ?? 0) > 1 }
     private var ink: Color { vibrant ? .primary : WidgetPalette.tint(account, at: date) }
-    private var caption: String {
-        guard !account.value.needsApp else { return "Reconnect" }
-        guard let reading else { return "Not connected" }
-        if account.isSaved(at: date) { return "Older reading" }
-        guard let worst = reading.windows.max(by: { $0.usedPercent < $1.usedPercent }) ?? reading.primaryDisplayWindow else { return "N/A" }
-        if two { return WidgetCopy.metric(worst) }
-        guard let reset = worst.resetsAt, reset > date else { return WidgetCopy.metric(worst) }
-        return "\(Int(worst.usedPercent.rounded()))% · \(WidgetCopy.key(worst)) \(WidgetCopy.reset(reset, at: date, compact: true))"
+    /// The window the curved label describes: the one closest to its limit.
+    private var captionWindow: QuotaWindow? {
+        reading?.windows.max(by: { $0.usedPercent < $1.usedPercent }) ?? reading?.primaryDisplayWindow
     }
+    /// Curved Lock Screen label: window key, then its reset ("31D NOV 30",
+    /// "5H 3:40P"). No percentage: the ring already shows usage.
+    private var caption: (key: String, rest: String) {
+        guard !account.value.needsApp else { return ("", "RECONNECT") }
+        guard reading != nil else { return ("", "NOT CONNECTED") }
+        if account.isSaved(at: date) { return ("", "OLDER READING") }
+        guard let window = captionWindow else { return ("", "N/A") }
+        let key = WidgetCopy.key(window).uppercased()
+        guard let reset = window.resetsAt, reset > date else { return (key, "") }
+        return (key, WidgetCopy.reset(reset, at: date, compact: true).uppercased())
+    }
+    /// The key takes the brightness of the ring it describes.
+    private var captionKeyOpacity: Double {
+        guard two, let secondary = reading?.secondaryWindow, captionWindow == secondary else { return 1 }
+        return vibrant ? 0.6 : 0.7
+    }
+    /// Inner edge of the innermost ring, as a fraction of the dial size.
+    private var innermostRingEdge: CGFloat { two ? 0.37 - 0.065 / 2 : 0.44 - 0.097 / 2 }
     var body: some View {
         ZStack {
             ring(reading?.primaryDisplayWindow, radius: two ? 0.45 : (compact && size <= 60 ? 0.425 : 0.44), stroke: two ? 0.065 : 0.097)
             if two { ring(reading?.secondaryWindow, radius: 0.37, stroke: 0.065).opacity(vibrant ? 0.6 : 0.7) }
             if curvedCaption {
-                CurvedWidgetText(text: caption, size: size, radius: size * (two ? 0.25 : 0.28))
+                CurvedWidgetText(key: caption.key, keyOpacity: captionKeyOpacity, text: caption.rest,
+                                 size: size, ringEdge: size * innermostRingEdge)
                     .foregroundStyle(ink).accessibilityHidden(true)
             }
             VStack(spacing: size * 0.03) {
@@ -189,7 +203,7 @@ struct AccountWidgetDial: View {
                 }
             }
             .foregroundStyle(ink)
-            .offset(y: readings ? -size * 0.035 : (curvedCaption ? size * 0.04 : 0))
+            .offset(y: readings ? -size * 0.035 : (curvedCaption ? size * 0.09 : 0))
         }
         .frame(width: size, height: size)
         .overlay(alignment: .bottomTrailing) {
@@ -202,7 +216,7 @@ struct AccountWidgetDial: View {
         .accessibilityLabel(account.accessibility(at: date))
     }
     @ViewBuilder private var glyph: some View {
-        let glyphSize = size * (readings ? 0.145 : curvedCaption ? 0.24 : 0.30)
+        let glyphSize = size * (readings ? 0.145 : curvedCaption ? 0.20 : 0.30)
         if account.value.needsApp {
             Image(systemName: "exclamationmark.triangle.fill").font(.system(size: glyphSize))
         } else if reading?.metadata?.plan == "Demo" {
@@ -225,38 +239,67 @@ struct AccountWidgetDial: View {
     }
 }
 
-/// Core Text shaping preserves SF kerning, then positions the shaped glyphs on
-/// a top-centred arc. The entire run scales together to a maximum 160° sweep.
+/// Watch-complication style curved label: caps in heavy condensed SF, set one
+/// glyph at a time on a top-centred arc so letters never collide. The baseline
+/// sits a fixed gap inside the innermost ring; the key ("31D") takes its ring's
+/// brightness. Long labels scale down to a maximum 170° sweep.
 struct CurvedWidgetText: View {
+    var key: String = ""
+    var keyOpacity: Double = 1
     let text: String
     let size: CGFloat
-    let radius: CGFloat
+    let ringEdge: CGFloat
+    private static func font(_ pointSize: CGFloat) -> CTFont {
+        if #available(iOS 16.0, *) {
+            return UIFont.systemFont(ofSize: pointSize, weight: .heavy, width: .condensed) as CTFont
+        }
+        return UIFont.systemFont(ofSize: pointSize, weight: .heavy) as CTFont
+    }
     var body: some View {
         Canvas { context, bounds in
-            let font = CTFontCreateWithName(".AppleSystemUIFont" as CFString, size * 0.115, nil)
-            let attributed = NSAttributedString(string: text, attributes: [
+            let pointSize = size * 0.135
+            let font = Self.font(pointSize)
+            let label = key.isEmpty ? text : (text.isEmpty ? key : "\(key) \(text)")
+            let attributed = NSAttributedString(string: label, attributes: [
                 NSAttributedString.Key(kCTFontAttributeName as String): font,
-                .kern: size * 0.115 * 0.08
+                .kern: pointSize * 0.05
             ])
             let line = CTLineCreateWithAttributedString(attributed)
-            let length = CGFloat(CTLineGetTypographicBounds(line, nil, nil, nil))
+            // Watch-style word gaps: widen each space beyond its natural advance.
+            let wordGap = pointSize * 0.08
+            let spaces = CGFloat(label.filter { $0 == " " }.count)
+            let length = CGFloat(CTLineGetTypographicBounds(line, nil, nil, nil)) + spaces * wordGap
             guard length > 0 else { return }
-            let scale = min(1, radius * .pi * 160 / 180 / length)
+            let radius = ringEdge - size * 0.045 - CTFontGetCapHeight(font)
+            guard radius > 0 else { return }
+            let scale = min(1, radius * .pi * 170 / 180 / length)
+            let ink = Color.primary.resolve(in: context.environment).cgColor
+            let keyLength = key.isEmpty ? 0 : (key as NSString).length
             context.withCGContext { cg in
-                cg.setFillColor(Color.primary.resolve(in: context.environment).cgColor)
+                var gapsBefore: CGFloat = 0
+                var lastSpaceIndex = -1
                 for run in CTLineGetGlyphRuns(line) as! [CTRun] {
                     let count = CTRunGetGlyphCount(run)
                     var glyphs = [CGGlyph](repeating: 0, count: count)
                     var positions = [CGPoint](repeating: .zero, count: count)
                     var advances = [CGSize](repeating: .zero, count: count)
+                    var indices = [CFIndex](repeating: 0, count: count)
                     CTRunGetGlyphs(run, CFRange(location: 0, length: 0), &glyphs)
                     CTRunGetPositions(run, CFRange(location: 0, length: 0), &positions)
                     CTRunGetAdvances(run, CFRange(location: 0, length: 0), &advances)
+                    CTRunGetStringIndices(run, CFRange(location: 0, length: 0), &indices)
                     let runFont = (CTRunGetAttributes(run) as NSDictionary)[kCTFontAttributeName] as! CTFont
                     for index in 0..<count {
-                        let mid = (positions[index].x + advances[index].width / 2 - length / 2) * scale
+                        let character = (label as NSString).character(at: indices[index])
+                        if character == 0x20 {
+                            if indices[index] != lastSpaceIndex { gapsBefore += wordGap }
+                            lastSpaceIndex = indices[index]
+                            continue
+                        }
+                        let mid = (positions[index].x + gapsBefore + advances[index].width / 2 - length / 2) * scale
                         let angle = mid / radius
                         cg.saveGState()
+                        cg.setFillColor(indices[index] < keyLength ? ink.copy(alpha: ink.alpha * keyOpacity) ?? ink : ink)
                         cg.translateBy(x: bounds.width / 2 + sin(angle) * radius, y: bounds.height / 2 - cos(angle) * radius)
                         cg.rotate(by: angle)
                         cg.scaleBy(x: scale, y: -scale)
