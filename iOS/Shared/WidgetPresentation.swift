@@ -193,15 +193,22 @@ struct AccountWidgetDial: View {
         guard two, let secondary = reading?.secondaryWindow, captionWindow == secondary else { return 1 }
         return vibrant ? 0.6 : 0.7
     }
-    /// Inner edge of the innermost ring, as a fraction of the dial size.
-    private var innermostRingEdge: CGFloat { two ? 0.37 - 0.065 / 2 : 0.44 - 0.097 / 2 }
+    /// Ring geometry as fractions of the dial size. With the curved label the
+    /// rings shrink so the label can run around the outside of them.
+    private var rings: (outer: CGFloat, inner: CGFloat, stroke: CGFloat) {
+        if curvedCaption {
+            let edge = CurvedWidgetText.ringOuterEdge(size: size) / size
+            let stroke: CGFloat = two ? 0.062 : 0.088
+            return (edge - stroke / 2, edge - stroke * 1.5 - 0.016, stroke)
+        }
+        return two ? (0.45, 0.37, 0.065) : (compact && size <= 60 ? 0.425 : 0.44, 0.37, 0.097)
+    }
     var body: some View {
         ZStack {
-            ring(reading?.primaryDisplayWindow, radius: two ? 0.45 : (compact && size <= 60 ? 0.425 : 0.44), stroke: two ? 0.065 : 0.097)
-            if two { ring(reading?.secondaryWindow, radius: 0.37, stroke: 0.065).opacity(vibrant ? 0.6 : 0.7) }
+            ring(reading?.primaryDisplayWindow, radius: rings.outer, stroke: rings.stroke)
+            if two { ring(reading?.secondaryWindow, radius: rings.inner, stroke: rings.stroke).opacity(vibrant ? 0.6 : 0.7) }
             if curvedCaption {
-                CurvedWidgetText(key: caption.key, keyOpacity: captionKeyOpacity, text: caption.rest,
-                                 size: size, ringEdge: size * innermostRingEdge)
+                CurvedWidgetText(key: caption.key, keyOpacity: captionKeyOpacity, text: caption.rest, size: size)
                     .foregroundStyle(ink).accessibilityHidden(true)
             }
             VStack(spacing: size * 0.03) {
@@ -220,7 +227,7 @@ struct AccountWidgetDial: View {
                 }
             }
             .foregroundStyle(ink)
-            .offset(y: readings ? -size * 0.035 : (curvedCaption ? size * 0.09 : 0))
+            .offset(y: readings ? -size * 0.035 : 0)
         }
         .frame(width: size, height: size)
         .overlay(alignment: .bottomTrailing) {
@@ -233,7 +240,7 @@ struct AccountWidgetDial: View {
         .accessibilityLabel(account.accessibility(at: date))
     }
     @ViewBuilder private var glyph: some View {
-        let glyphSize = size * (readings ? 0.145 : curvedCaption ? 0.20 : 0.30)
+        let glyphSize = size * (readings ? 0.145 : curvedCaption ? curvedGlyph : 0.30)
         if account.value.needsApp {
             Image(systemName: "exclamationmark.triangle.fill").font(.system(size: glyphSize))
         } else if reading?.metadata?.plan == "Demo" {
@@ -241,6 +248,12 @@ struct AccountWidgetDial: View {
         } else {
             Image(account.value.service.logo, bundle: Bundle(for: WidgetResourceAnchor.self)).renderingMode(.template).resizable().scaledToFit().frame(width: glyphSize, height: glyphSize)
         }
+    }
+    /// Logo inside the shrunken ring: a little wider than the innermost ring's
+    /// open radius, capped so a single ring doesn't get an oversized logo.
+    private var curvedGlyph: CGFloat {
+        let openRadius = (two ? rings.inner : rings.outer) - rings.stroke / 2
+        return min(0.26, openRadius * 1.15)
     }
     private func ring(_ window: QuotaWindow?, radius: CGFloat, stroke: CGFloat) -> some View {
         ZStack {
@@ -257,15 +270,28 @@ struct AccountWidgetDial: View {
 }
 
 /// Watch-complication style curved label: caps in heavy condensed SF, set one
-/// glyph at a time on a top-centred arc so letters never collide. The baseline
-/// sits a fixed gap inside the innermost ring; the key ("31D") takes its ring's
+/// glyph at a time around the top of the widget, outside the rings, so letters
+/// never collide. The caps' tops sit just inside the widget's round edge and
+/// the rings shrink to clear the baseline; the key ("31D") takes its ring's
 /// brightness. Long labels scale down to a maximum 170° sweep.
 struct CurvedWidgetText: View {
     var key: String = ""
     var keyOpacity: Double = 1
     let text: String
     let size: CGFloat
-    let ringEdge: CGFloat
+    static let pointSizeFraction: CGFloat = 0.175
+    /// Space between the caps' tops and the widget's round edge.
+    private static let edgeMarginFraction: CGFloat = 0.02
+    /// Space between the label's baseline and the outer ring's outer edge.
+    private static let ringGapFraction: CGFloat = 0.05
+    /// Radius of the label's baseline, from the dial centre.
+    static func baselineRadius(size: CGFloat) -> CGFloat {
+        size * (0.5 - edgeMarginFraction) - CTFontGetCapHeight(font(size * pointSizeFraction))
+    }
+    /// Where the outer ring's outer edge has to stop to clear the label.
+    static func ringOuterEdge(size: CGFloat) -> CGFloat {
+        baselineRadius(size: size) - size * ringGapFraction
+    }
     private static func font(_ pointSize: CGFloat) -> CTFont {
         if #available(iOS 16.0, *) {
             return UIFont.systemFont(ofSize: pointSize, weight: .heavy, width: .condensed) as CTFont
@@ -274,7 +300,7 @@ struct CurvedWidgetText: View {
     }
     var body: some View {
         Canvas { context, bounds in
-            let pointSize = size * 0.135
+            let pointSize = size * Self.pointSizeFraction
             let font = Self.font(pointSize)
             let label = key.isEmpty ? text : (text.isEmpty ? key : "\(key) \(text)")
             let attributed = NSAttributedString(string: label, attributes: [
@@ -287,7 +313,7 @@ struct CurvedWidgetText: View {
             let spaces = CGFloat(label.filter { $0 == " " }.count)
             let length = CGFloat(CTLineGetTypographicBounds(line, nil, nil, nil)) + spaces * wordGap
             guard length > 0 else { return }
-            let radius = ringEdge - size * 0.045 - CTFontGetCapHeight(font)
+            let radius = Self.baselineRadius(size: size)
             guard radius > 0 else { return }
             let scale = min(1, radius * .pi * 170 / 180 / length)
             let ink = Color.primary.resolve(in: context.environment).cgColor
