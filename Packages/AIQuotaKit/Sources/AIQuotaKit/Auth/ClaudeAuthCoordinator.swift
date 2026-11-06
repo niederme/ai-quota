@@ -81,6 +81,9 @@ public actor ClaudeAuthCoordinator {
     public typealias WebSessionClearer = @Sendable () async -> Void
     public typealias WebSessionRestorer = @Sendable (_ cookies: [HTTPCookie]) async -> Void
     public typealias LoginWindowRunner = @Sendable () async throws -> (orgId: String, cookies: [HTTPCookie])
+    /// Lists every organization a signed-in web session can reach, or nil
+    /// when the server can't say.
+    public typealias OrganizationLister = @Sendable (_ cookies: [HTTPCookie]) async -> [String]?
     private let probe: SessionProbe
     private let headlessSessionReviver: HeadlessSessionReviver
     private let keychainAccessAllowed: @Sendable () -> Bool
@@ -89,6 +92,7 @@ public actor ClaudeAuthCoordinator {
     private let webSessionClearer: WebSessionClearer
     private let webSessionRestorer: WebSessionRestorer
     private let loginWindowRunner: LoginWindowRunner
+    private let organizationLister: OrganizationLister
     private let contextWriter: (@Sendable (SharedClaudeAuthContext?) -> Void)?
     private let signedOutReader: (@Sendable () -> Bool)?
     private let signedOutWriter: (@Sendable (Bool) -> Void)?
@@ -105,6 +109,7 @@ public actor ClaudeAuthCoordinator {
         webSessionClearer: WebSessionClearer? = nil,
         webSessionRestorer: WebSessionRestorer? = nil,
         loginWindowRunner: LoginWindowRunner? = nil,
+        organizationLister: OrganizationLister? = nil,
         contextWriter: (@Sendable (SharedClaudeAuthContext?) -> Void)? = nil,
         signedOutReader: (@Sendable () -> Bool)? = nil,
         signedOutWriter: (@Sendable (Bool) -> Void)? = nil,
@@ -133,6 +138,7 @@ public actor ClaudeAuthCoordinator {
         self.webSessionClearer = webSessionClearer ?? ClaudeAuthCoordinator.clearRejectedWebSession(for: accountStorageID)
         self.webSessionRestorer = webSessionRestorer ?? ClaudeAuthCoordinator.restoreWebSession(for: accountStorageID)
         self.loginWindowRunner = loginWindowRunner ?? ClaudeAuthCoordinator.showLoginWindow(for: accountStorageID)
+        self.organizationLister = organizationLister ?? { await ClaudeAuthCoordinator.listOrganizations(cookies: $0) }
     }
 
     private var signedOutDefaultsKey: String {
@@ -295,9 +301,18 @@ public actor ClaudeAuthCoordinator {
             try checkSignInIsCurrent(generation)
             let (orgId, cookies) = try await loginWindowRunner()
             try checkSignInIsCurrent(generation)
-            let normalizedOrganizationID = try Self.normalizedOrganizationID(orgId)
+            var normalizedOrganizationID = try Self.normalizedOrganizationID(orgId)
             if let expected, normalizedOrganizationID != expected {
-                throw ClaudeWebReconnectError.organizationMismatch
+                // One claude.ai login can belong to several organizations (for
+                // example a personal Max plan and an Enterprise team). The login
+                // window picks one; keep the saved one if this login reaches it.
+                let reachable = await organizationLister(cookies)?
+                    .compactMap { try? Self.normalizedOrganizationID($0) } ?? []
+                try checkSignInIsCurrent(generation)
+                guard reachable.contains(expected) else {
+                    throw ClaudeWebReconnectError.organizationMismatch
+                }
+                normalizedOrganizationID = expected
             }
 
             capturedOrgId = normalizedOrganizationID
@@ -968,6 +983,16 @@ public actor ClaudeAuthCoordinator {
         } catch {
             return .indeterminate
         }
+    }
+
+    private static func listOrganizations(cookies: [HTTPCookie]) async -> [String]? {
+        guard let url = URL(string: "https://claude.ai/api/organizations") else { return nil }
+        let request = organizationsRequest(url: url, cookies: cookies)
+        guard let result = try? await URLSession.shared.data(for: request),
+              (result.1 as? HTTPURLResponse)?.statusCode == 200,
+              let organizations = try? JSONDecoder().decode([ClaudeWebOrganization].self, from: result.0)
+        else { return nil }
+        return organizations.map(\.uuid)
     }
 
     static func isCloudflareChallenge(response: HTTPURLResponse, data: Data) -> Bool {
