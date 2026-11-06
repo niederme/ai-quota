@@ -28,6 +28,11 @@ public actor ClaudeClient {
     private let logger = Logger(subsystem: "app.aiquota", category: "ClaudeClient")
     private var oauthPolicyFailures = 0
     private var oauthDisabledForSession = false
+    /// Organization behind the current Claude Code token, keyed by token so a
+    /// replacement sign-in is looked up again.
+    private var oauthOrganizationCache: (accessToken: String, organizationID: String)?
+    /// Plan reported by claude.ai for the current web organization.
+    private var webPlanCache: (organizationID: String, plan: ClaudeUsage.PlanLabel?, fetchedAt: Date)?
 
     public init(coordinator: ClaudeAuthCoordinator, accountStorageID: String? = nil) {
         self.coordinator = coordinator
@@ -49,9 +54,15 @@ public actor ClaudeClient {
         if !isScoped && !oauthDisabledForSession {
             do {
                 let oauth = try await coordinator.loadOAuthCredentials(allowKeychain: false)
+                // Claude Code's sign-in on this Mac can belong to a different Claude
+                // account than this connection (e.g. a work Enterprise login while
+                // this connection is a personal Max account). Only use it when it is
+                // provably the same organization; otherwise fall through to the web.
+                let oauthScopeID = try await verifiedOAuthScope(for: oauth)
                 do {
-                    let usage = try await fetchOAuthUsage(credentials: oauth)
+                    var usage = try await fetchOAuthUsage(credentials: oauth)
                     try await verifyOAuthContext(oauth)
+                    usage.quotaScopeID = oauthScopeID
                     oauthPolicyFailures = 0
                     recordAttempt(source: .oauth, httpStatus: 200, category: .success)
                     return usage
@@ -95,6 +106,8 @@ public actor ClaudeClient {
                 }
             } catch is CancellationError {
                 throw CancellationError()
+            } catch is ClaudeOAuthAccountMismatch {
+                logger.notice("[ClaudeClient] Claude Code sign-in belongs to another organization; using web session")
             } catch let error as ClaudeOAuthCredentialsError {
                 recordAttempt(source: .oauth, httpStatus: nil, category: Self.errorCategory(for: error))
             } catch {
@@ -105,8 +118,10 @@ public actor ClaudeClient {
         let ctx = try await coordinator.requestContext()
         try verifyAccountBinding(ctx)
         do {
+            let webPlan = await webPlanLabel(for: ctx)
             var usage = try await fetchUsageData(path: "/api/organizations/\(ctx.orgId)/usage",
-                                                  cookies: ctx.cookies)
+                                                  cookies: ctx.cookies,
+                                                  planLabel: webPlan)
             // Bind to the actual request identity, never a label or OAuth/web guess.
             usage.quotaScopeID = ctx.orgId
             try await verifyCurrentContext(ctx)
@@ -360,7 +375,11 @@ public actor ClaudeClient {
         }
     }
 
-    private func fetchUsageData(path: String, cookies: [HTTPCookie]) async throws -> ClaudeUsage {
+    private func fetchUsageData(
+        path: String,
+        cookies: [HTTPCookie],
+        planLabel: ClaudeUsage.PlanLabel? = nil
+    ) async throws -> ClaudeUsage {
         let req = makeRequest(path: path, cookies: cookies)
 
         // Use the async URLSession API so cooperative cancellation works correctly.
@@ -383,7 +402,7 @@ public actor ClaudeClient {
 
         do {
             let raw = try Self.decoder.decode(ClaudeUsageResponse.self, from: data)
-            return Self.buildUsage(from: raw, planLabel: nil, source: .web, weeklyBreakdown: Self.weeklyBreakdown(from: data))
+            return Self.buildUsage(from: raw, planLabel: planLabel, source: .web, weeklyBreakdown: Self.weeklyBreakdown(from: data))
         } catch {
             logger.error("[ClaudeClient] usage response decoding failed")
             throw NetworkError.decodingError(underlying: error)
@@ -491,6 +510,68 @@ public actor ClaudeClient {
             reason: .webAuthenticationRequired,
             expectedOrganizationID: verifiedOrganizationID
         )
+    }
+
+    /// Returns the organization the Claude Code token belongs to when it is safe
+    /// to use for this connection, or throws `ClaudeOAuthAccountMismatch`.
+    ///
+    /// - The connection has a known web organization (bound workspace or a live
+    ///   claude.ai session): the token must belong to that same organization.
+    /// - No web organization is known (OAuth-only setup): the token is the only
+    ///   source and is used as before.
+    private func verifiedOAuthScope(for credentials: ClaudeOAuthCredentials) async throws -> String? {
+        let tokenOrganizationID: String?
+        if let cached = oauthOrganizationCache, cached.accessToken == credentials.accessToken {
+            tokenOrganizationID = cached.organizationID
+        } else if let fetched = try? await oauthOrganizationID(credentials: credentials),
+                  let validated = try? Self.validatedEnterpriseOrganizationID(fetched) {
+            oauthOrganizationCache = (credentials.accessToken, validated)
+            tokenOrganizationID = validated
+        } else {
+            tokenOrganizationID = nil
+        }
+        try Task.checkCancellation()
+
+        guard let connectionOrganizationID = await connectionOrganizationID() else {
+            return tokenOrganizationID
+        }
+        guard let tokenOrganizationID,
+              tokenOrganizationID.caseInsensitiveCompare(connectionOrganizationID) == .orderedSame
+        else { throw ClaudeOAuthAccountMismatch() }
+        return connectionOrganizationID
+    }
+
+    /// The claude.ai organization this connection is bound to, if any.
+    private func connectionOrganizationID() async -> String? {
+        let accounts = AccountRegistry.accounts(for: .claude)
+        let account = accountStorageID.flatMap { id in accounts.first { $0.id == id } }
+            ?? accounts.first { $0.connectionKind == .legacyPrimary }
+        // Returned verbatim: it becomes the reading's quotaScopeID, which is
+        // compared exactly against the account's workspaceID.
+        if let bound = account?.workspaceID, (try? Self.validatedEnterpriseOrganizationID(bound)) != nil {
+            return bound
+        }
+        guard await coordinator.state == .authenticated,
+              let orgId = try? await coordinator.requestContext().orgId,
+              (try? Self.validatedEnterpriseOrganizationID(orgId)) != nil
+        else { return nil }
+        return orgId
+    }
+
+    /// The plan claude.ai reports for this web organization. Optional: a failure
+    /// leaves the plan unreported rather than blocking usage.
+    private func webPlanLabel(for context: ClaudeRequestContext) async -> ClaudeUsage.PlanLabel? {
+        if let cached = webPlanCache, cached.organizationID == context.orgId,
+           Date.now.timeIntervalSince(cached.fetchedAt) < 3600 {
+            return cached.plan
+        }
+        let request = makeRequest(path: "/api/organizations", cookies: context.cookies)
+        guard let (data, response) = try? await session.data(for: request),
+              (response as? HTTPURLResponse)?.statusCode == 200
+        else { return webPlanCache?.organizationID == context.orgId ? webPlanCache?.plan : nil }
+        let plan = ClaudePlan.fromWebOrganizations(data, organizationID: context.orgId)?.label
+        webPlanCache = (context.orgId, plan, .now)
+        return plan
     }
 
     private func oauthOrganizationID(
@@ -902,3 +983,7 @@ private extension NetworkError {
         }
     }
 }
+
+/// Claude Code's OAuth sign-in belongs to a different organization than the
+/// connection being refreshed, so its usage must not be shown for it.
+struct ClaudeOAuthAccountMismatch: Error {}

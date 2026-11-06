@@ -108,6 +108,12 @@ public actor WidgetRefreshService {
             var usage = try await fetchClaudeUsage(orgId: context.orgId, cookies: context.httpCookies, now: now)
             try Task.checkCancellation()
             usage.quotaScopeID = context.orgId
+            // The widget does not look up the plan; keep the one the app read
+            // for this same organization instead of dropping it to unknown.
+            if usage.planLabel == .unknown, let cached = SharedDefaults.loadCachedClaudeUsage(),
+               cached.quotaScopeID == context.orgId {
+                usage.planLabel = cached.planLabel
+            }
             _ = store.commitClaude(context, usage)
         } catch let error as NetworkError {
             if !Task.isCancelled, error.isAuthError { store.clearClaude(context) }

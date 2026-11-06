@@ -10,7 +10,7 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
     public let bonusUsage: BonusUsage?
     public let usageCredits: UsageCredits?
     public let spendLimit: SpendLimit?
-    public let planLabel: PlanLabel
+    public internal(set) var planLabel: PlanLabel
     public let primaryMetric: Metric
     public let source: Source
     /// Verified web organization of this fetch; absent for OAuth and old caches.
@@ -297,15 +297,17 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
         return Metric(kind: .unknown, utilization: nil, resetAt: nil)
     }
 
+    /// Used only when Anthropic did not report a plan. A usage-based spend limit
+    /// with no 5-hour or 7-day windows is the Enterprise billing shape. Anything
+    /// else (windows, extra usage) is shared by Pro, Max and Team, so the plan is
+    /// left unknown rather than guessed.
     public static func inferPlanLabel(
         extraUsage: ExtraUsage?,
         spendLimit: SpendLimit?,
         hasWindowUsage: Bool = true
     ) -> PlanLabel {
         if spendLimit != nil { return .enterprise }
-        if extraUsage?.isEnabled == true { return .max }
-        if !hasWindowUsage { return .unknown }
-        return .pro
+        return .unknown
     }
 
     public static let placeholder = ClaudeUsage(
