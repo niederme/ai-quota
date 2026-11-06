@@ -15,6 +15,7 @@ private struct MacReconnectButtonAnchor: PreferenceKey {
 struct MacAccountCard: View {
     @Environment(QuotaViewModel.self) private var viewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var colorScheme
 
     let account: ConnectedAccount
     let session: AdditionalAccountSession?
@@ -176,13 +177,22 @@ struct MacAccountCard: View {
         }
     }
 
+    // On the light glass a tinted bordered fill reads pale, so light mode uses
+    // a solid deep-purple fill (white label, ~7:1). Dark mode keeps the tinted
+    // fill: white text on the bright dark-mode purple would fail contrast.
+    @ViewBuilder
     private var reconnectButton: some View {
-        Button("Reconnect", action: reconnect)
-            .buttonStyle(.bordered)
-            .controlSize(.regular)
-            .tint(Color.overviewAccent)
-            .disabled(loading)
-            .accessibilityLabel("Reconnect \(identity.title)")
+        let button = Button("Reconnect", action: reconnect)
+        Group {
+            if colorScheme == .light {
+                button.buttonStyle(.borderedProminent).tint(Color.gaugeAccent)
+            } else {
+                button.buttonStyle(.bordered).tint(Color.overviewAccent)
+            }
+        }
+        .controlSize(.regular)
+        .disabled(loading)
+        .accessibilityLabel("Reconnect \(identity.title)")
     }
 
     private var details: some View {
