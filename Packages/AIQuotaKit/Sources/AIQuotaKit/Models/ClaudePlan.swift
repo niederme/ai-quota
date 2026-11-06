@@ -48,6 +48,41 @@ public enum ClaudePlan: String, CaseIterable, Sendable {
         return nil
     }
 
+    /// Reads the plan claude.ai reports for one organization from `/api/account`
+    /// (`memberships[].organization.rate_limit_tier` / `billing_type`, the
+    /// fields CodexBar reads). Only the membership for `organizationID` counts:
+    /// another membership (for example a work organization) never lends its plan.
+    public static func fromWebAccountResponse(_ data: Data, organizationID: String) -> Self? {
+        struct Account: Decodable {
+            let memberships: [Membership]?
+        }
+        struct Membership: Decodable {
+            let organization: Organization
+        }
+        struct Organization: Decodable {
+            let uuid: String?
+            let capabilities: [String]?
+            let rateLimitTier: String?
+            let billingType: String?
+
+            enum CodingKeys: String, CodingKey {
+                case uuid, capabilities
+                case rateLimitTier = "rate_limit_tier"
+                case billingType = "billing_type"
+            }
+        }
+        guard let account = try? JSONDecoder().decode(Account.self, from: data),
+              let organization = account.memberships?.first(where: {
+                  $0.organization.uuid?.caseInsensitiveCompare(organizationID) == .orderedSame
+              })?.organization
+        else { return nil }
+        return fromWebOrganization(
+            capabilities: organization.capabilities,
+            rateLimitTier: organization.rateLimitTier,
+            billingType: organization.billingType
+        )
+    }
+
     /// Reads the plan claude.ai reports for one organization in the
     /// `/api/organizations` list. Returns nil when nothing names a plan.
     public static func fromWebOrganizations(_ data: Data, organizationID: String) -> Self? {
@@ -68,10 +103,18 @@ public enum ClaudePlan: String, CaseIterable, Sendable {
                   $0.uuid.caseInsensitiveCompare(organizationID) == .orderedSame
               })
         else { return nil }
-        let capabilities = Set((organization.capabilities ?? []).map { $0.lowercased() })
+        return fromWebOrganization(
+            capabilities: organization.capabilities,
+            rateLimitTier: organization.rateLimitTier,
+            billingType: organization.billingType
+        )
+    }
+
+    private static func fromWebOrganization(capabilities: [String]?, rateLimitTier: String?, billingType: String?) -> Self? {
+        let capabilities = Set((capabilities ?? []).map { $0.lowercased() })
         if capabilities.contains("claude_max") { return .max }
         if capabilities.contains("claude_pro") { return .pro }
-        return fromWebAccount(rateLimitTier: organization.rateLimitTier, billingType: organization.billingType)
+        return fromWebAccount(rateLimitTier: rateLimitTier, billingType: billingType)
     }
 
     public static func fromCompatibilityLabel(_ label: String?) -> Self? {

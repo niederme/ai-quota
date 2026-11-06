@@ -565,13 +565,25 @@ public actor ClaudeClient {
            Date.now.timeIntervalSince(cached.fetchedAt) < 3600 {
             return cached.plan
         }
-        let request = makeRequest(path: "/api/organizations", cookies: context.cookies)
-        guard let (data, response) = try? await session.data(for: request),
-              (response as? HTTPURLResponse)?.statusCode == 200
-        else { return webPlanCache?.organizationID == context.orgId ? webPlanCache?.plan : nil }
-        let plan = ClaudePlan.fromWebOrganizations(data, organizationID: context.orgId)?.label
-        webPlanCache = (context.orgId, plan, .now)
-        return plan
+        // /api/account carries each membership's rate_limit_tier and billing_type;
+        // the organizations list is a fallback for sessions where it doesn't.
+        var reachedServer = false
+        var plan: ClaudePlan?
+        for path in ["/api/account", "/api/organizations"] where plan == nil {
+            let request = makeRequest(path: path, cookies: context.cookies)
+            guard let (data, response) = try? await session.data(for: request),
+                  (response as? HTTPURLResponse)?.statusCode == 200 else { continue }
+            reachedServer = true
+            plan = path == "/api/account"
+                ? ClaudePlan.fromWebAccountResponse(data, organizationID: context.orgId)
+                : ClaudePlan.fromWebOrganizations(data, organizationID: context.orgId)
+        }
+        guard reachedServer else {
+            return webPlanCache?.organizationID == context.orgId ? webPlanCache?.plan : nil
+        }
+        webPlanCache = (context.orgId, plan?.label, .now)
+        logger.info("[ClaudeClient] web plan for organization: \(plan?.rawValue ?? "not reported", privacy: .public)")
+        return plan?.label
     }
 
     private func oauthOrganizationID(
