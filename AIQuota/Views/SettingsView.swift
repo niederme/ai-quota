@@ -241,7 +241,12 @@ private struct AccountsSettingsPane: View {
         .onChange(of: viewModel.additionalAccounts.map(\.id)) { reloadAccounts() }
         .onChange(of: viewModel.enrolledServices) { reloadAccounts() }
         .onChange(of: selected) { _, id in if id == nil { reloadAccounts() } }
-        .onAppear(perform: reloadAccounts)
+        .onAppear {
+            // Settings keeps this pane alive after its window closes, so a
+            // reopened Accounts tab would otherwise land on the last account.
+            selected = nil
+            reloadAccounts()
+        }
         .sheet(item: $connectedAccount) { account in
             ConnectedAccountNameSheet(account: account, dismiss: { connectedAccount = nil }) { name, showInMenuBar in
                 viewModel.saveConnectedAccount(id: account.id, name: name, showInMenuBar: showInMenuBar)
@@ -757,7 +762,9 @@ struct ConnectedAccountNameSheet: View {
         .padding(20)
         .frame(width: 360)
         .onAppear {
-            name = account.presentation().alias ?? ""
+            // Generated labels have no alias, so fall back to the suggested label.
+            // That way Save (or Return) keeps the default without typing.
+            name = account.presentation().alias ?? account.displayLabel
             showInMenuBar = viewModel.settings.menuBarAccountIDs?.contains(account.id) == true
             nameFocused = true
         }
