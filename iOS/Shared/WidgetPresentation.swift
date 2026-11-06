@@ -20,6 +20,23 @@ struct WidgetAccountContent: Identifiable, Sendable {
     func compactName(showAccountNames: Bool) -> String {
         showAccountNames ? name : AccountPresentation.resolve(.init(key: id, service: value.service.name, label: "", plan: value.reading?.metadata?.displayPlan), among: []).notificationTitle
     }
+    /// Lock Screen dials already show the service logo, so the label is only
+    /// the account's own name, falling back to its plan ("Pro", "Max") when the
+    /// name is hidden or was never set.
+    func lockScreenName(showAccountNames: Bool) -> String {
+        let service = value.service.name
+        let presentation = AccountPresentation.resolve(.init(key: id, service: service, label: label,
+            plan: value.reading?.metadata?.displayPlan), among: [])
+        if showAccountNames, var alias = presentation.alias {
+            for prefix in ["\(service) · ", "\(service) "] where alias.hasPrefix(prefix) {
+                alias = String(alias.dropFirst(prefix.count))
+                break
+            }
+            let trimmed = alias.trimmingCharacters(in: .whitespaces)
+            if !trimmed.isEmpty { return trimmed }
+        }
+        return presentation.plan ?? service
+    }
     var identitySubtitle: String? {
         guard value.reading != nil || !label.isEmpty else { return nil }
         return AccountPresentation.resolve(.init(key: id, service: value.service.name, label: "",

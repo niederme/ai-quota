@@ -424,6 +424,18 @@ extension WidgetAccountConfigurationTests {
         XCTAssertFalse(CompactConfiguration().showAccountNames)
     }
 
+    func testLockScreenNamesLeaveServiceToTheLogo() {
+        func account(_ service: QuotaService, label: String) -> WidgetAccountContent {
+            WidgetAccountContent(id: "\(service.rawValue):work", value: .init(service: service, reading: nil, needsApp: false), label: label)
+        }
+        XCTAssertEqual(account(.codex, label: "Personal").lockScreenName(showAccountNames: true), "Personal")
+        XCTAssertEqual(account(.codex, label: "Codex · Work").lockScreenName(showAccountNames: true), "Work")
+        XCTAssertEqual(account(.claude, label: "Claude Work").lockScreenName(showAccountNames: true), "Work")
+        // Hidden or missing names fall back to the plan, then the service.
+        XCTAssertEqual(account(.codex, label: "Personal").lockScreenName(showAccountNames: false), "Codex")
+        XCTAssertEqual(account(.claude, label: "").lockScreenName(showAccountNames: true), "Claude")
+    }
+
     @MainActor func testNamePreferenceRendersAcrossCompactFamilies() throws {
         let now = Date.now
         let reading = QuotaReading(fetchedAt: now,
