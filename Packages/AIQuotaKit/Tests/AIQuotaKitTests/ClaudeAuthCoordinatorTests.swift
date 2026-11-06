@@ -25,7 +25,8 @@ struct ClaudeAuthCoordinatorTests {
         sessionValidator: ClaudeAuthCoordinator.SessionValidator? = nil,
         webSessionClearer: ClaudeAuthCoordinator.WebSessionClearer? = nil,
         webSessionRestorer: ClaudeAuthCoordinator.WebSessionRestorer? = nil,
-        loginWindowRunner: ClaudeAuthCoordinator.LoginWindowRunner? = nil
+        loginWindowRunner: ClaudeAuthCoordinator.LoginWindowRunner? = nil,
+        organizationLister: ClaudeAuthCoordinator.OrganizationLister? = nil
     ) -> ClaudeAuthCoordinator {
         ClaudeAuthCoordinator(
             accountStorageID: accountStorageID,
@@ -36,7 +37,8 @@ struct ClaudeAuthCoordinatorTests {
             sessionValidator: sessionValidator ?? { _ in .valid(orgId: "validated-org") },
             webSessionClearer: webSessionClearer ?? {},
             webSessionRestorer: webSessionRestorer ?? { _ in },
-            loginWindowRunner: loginWindowRunner
+            loginWindowRunner: loginWindowRunner,
+            organizationLister: organizationLister ?? { _ in nil }
         )
     }
 
@@ -518,6 +520,23 @@ struct ClaudeAuthCoordinatorTests {
         await #expect(throws: NetworkError.self) {
             _ = try await sut.requestContext()
         }
+    }
+
+    @Test("a login that also reaches the saved organization reconnects to it")
+    func reconnectKeepsSavedOrganizationWhenLoginReachesIt() async throws {
+        let picked = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa"
+        let saved = "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb"
+        let sut = makeSUT(
+            probe: { .notFound },
+            loginWindowRunner: { (picked, []) },
+            organizationLister: { _ in [picked, saved.uppercased()] }
+        )
+
+        await sut.bootstrap()
+        try await sut.reconnectWithWebAuthentication(expectedOrganizationID: saved)
+
+        #expect(await sut.state == .authenticated)
+        #expect(try await sut.requestContext().orgId == saved)
     }
 
     @Test("expired OAuth can be replaced by a verified web connection")

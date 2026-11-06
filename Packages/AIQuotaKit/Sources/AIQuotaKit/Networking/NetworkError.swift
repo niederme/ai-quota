@@ -47,7 +47,7 @@ public enum NetworkError: Error, Sendable, LocalizedError {
         case .networkUnavailable: "No network connection."
         case .requestFailed: "Couldn’t update allowance. Try again."
         case .unknownEndpoint: "API endpoint not configured."
-        case .accountIdentityMismatch: "Could not verify this session for the saved account. Its connection has been preserved."
+        case .accountIdentityMismatch: "That sign-in is for a different account than the one saved here, so nothing changed. Reconnect with the original account."
         }
     }
 }
