@@ -109,13 +109,13 @@ struct MacAccountGridView: View {
                                     .disabled(viewModel.recoveryAction(for: account) == .reconnect)
                                 Button("Manage account in Settings", action: openSettings)
                                 Divider()
-                                Button("Move earlier") { move(account.id, offset: -1) }
+                                Button("Move up") { move(account.id, offset: -1) }
                                     .disabled(accounts.first?.id == account.id)
-                                Button("Move later") { move(account.id, offset: 1) }
+                                Button("Move down") { move(account.id, offset: 1) }
                                     .disabled(accounts.last?.id == account.id)
                             }
-                            .accessibilityAction(named: "Move earlier") { move(account.id, offset: -1) }
-                            .accessibilityAction(named: "Move later") { move(account.id, offset: 1) }
+                            .accessibilityAction(named: "Move up") { move(account.id, offset: -1) }
+                            .accessibilityAction(named: "Move down") { move(account.id, offset: 1) }
                     }
                 }
                 .coordinateSpace(.named(Self.cardSpace))
