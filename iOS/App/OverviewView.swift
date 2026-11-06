@@ -599,6 +599,13 @@ enum OverviewStyle {
     static let overviewTrack = Color(uiColor: UIColor { traits in
         (traits.userInterfaceStyle == .dark ? UIColor.white : UIColor.black).withAlphaComponent(0.10)
     })
+    /// Unused capacity: the empty dial track and token-grid days without usage.
+    /// The dial colour at low opacity keeps it purple instead of gray.
+    static let overviewEmpty = Color(uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark
+            ? UIColor(red: 0xC8 / 255, green: 0x6C / 255, blue: 0xF5 / 255, alpha: 0.16)
+            : UIColor(red: 0x85 / 255, green: 0x30 / 255, blue: 0xBD / 255, alpha: 0.08)
+    })
 }
 
 /// Align wide-window navigation with the same centered column as the account cards.
@@ -1084,7 +1091,7 @@ struct ProviderDialCardContent: View {
     private func arc(_ window: QuotaWindow?, lineWidth: CGFloat, opacity: Double) -> some View {
         ZStack {
             Circle().trim(from: 0, to: 0.75)
-                .stroke(OverviewStyle.overviewTrack, style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt))
+                .stroke(OverviewStyle.overviewEmpty, style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt))
             if connected, let window {
                 Circle().trim(from: 0, to: 0.75 * min(100, max(0, window.usedPercent)) / 100)
                     .stroke(tint.opacity(opacity), style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt))

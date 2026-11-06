@@ -26,6 +26,10 @@ extension Color {
     static let overviewGlass = overviewAccent.opacity(0.06)
     static let overviewGlassHighlight = overviewAccent.opacity(0.10)
     static let overviewTrack = Color(light: (0, 0, 0, 0.10), dark: (255, 255, 255, 0.10))
+    /// Unused capacity: the empty dial track and token-grid days without usage.
+    /// The Mac glass card is much lighter than iOS's, so dark mode deepens it
+    /// with plum; white lifted it to gray and crowded the first heat step.
+    static let overviewEmpty = Color(light: (0x85, 0x30, 0xbd, 0.08), dark: (0x1a, 0x0a, 0x28, 0.35))
 
     // Tinted glass sheet (see prototypes/sheet-material)
     static let sheetTint = Color(light: (246, 241, 251, 0.66), dark: (26, 21, 36, 0.53))

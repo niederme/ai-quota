@@ -71,7 +71,7 @@ struct MacAccountDial: View {
     private func arc(percent: Int?, lineWidth: CGFloat, opacity: Double) -> some View {
         ZStack {
             Circle().trim(from: 0, to: 0.75)
-                .stroke(Color.overviewTrack, style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt,
+                .stroke(Color.overviewEmpty, style: StrokeStyle(lineWidth: lineWidth, lineCap: .butt,
                                                            dash: []))
             if connected, let percent {
                 Circle().trim(from: 0, to: 0.75 * Double(max(0, min(100, percent))) / 100)

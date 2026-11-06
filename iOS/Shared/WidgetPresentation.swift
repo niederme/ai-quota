@@ -131,7 +131,9 @@ enum WidgetPalette {
     static let accent = Color(red: 191/255, green: 90/255, blue: 242/255)
     static let reset = Color(red: 215/255, green: 126/255, blue: 247/255)
     static let secondary = Color(red: 154/255, green: 152/255, blue: 162/255)
-    static let track = Color(red: 118/255, green: 118/255, blue: 128/255).opacity(0.30)
+    /// Unused capacity (empty dial track and token-grid days without usage),
+    /// matching the iOS app's dark empty colour.
+    static let track = Color(red: 0xC8/255, green: 0x6C/255, blue: 0xF5/255).opacity(0.16)
     /// Matches the app's dark token grid: OKLCH-even steps ending on the dial colour.
     static let heat: [Color] = [Color(red: 0x6A/255, green: 0x40/255, blue: 0x80/255), Color(red: 0x89/255, green: 0x4E/255, blue: 0xA6/255), Color(red: 0xA8/255, green: 0x5C/255, blue: 0xCE/255), Color(red: 0xC8/255, green: 0x6C/255, blue: 0xF5/255)]
     static func tint(_ account: WidgetAccountContent, at date: Date) -> Color {
