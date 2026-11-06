@@ -979,60 +979,26 @@ struct PopoverView: View {
         let signIn: (() -> Void)?
     }
 
+    /// Account problems live on that account's card (warning, reason and
+    /// Reconnect). The banner is only for problems that affect the whole app.
     private var errorBanners: [ErrorBanner] {
-        var banners: [ErrorBanner] = []
-
-        if viewModel.isCodexEnrolled, let error = viewModel.codexError {
-            banners.append(ErrorBanner(
-                id: "codex",
-                message: error.localizedDescription,
-                dismiss: { viewModel.codexError = nil },
+        let errors = [
+            viewModel.isCodexEnrolled ? viewModel.codexError : nil,
+            viewModel.isClaudeEnrolled ? viewModel.claudeError : nil,
+        ].compactMap { $0 }
+        guard !errors.isEmpty, errors.allSatisfy(\.isNetworkUnavailable) else { return [] }
+        return [
+            ErrorBanner(
+                id: "network",
+                message: "No network connection. Showing saved data.",
+                dismiss: {
+                    viewModel.codexError = nil
+                    viewModel.claudeError = nil
+                },
                 retry: { viewModel.manualRefresh() },
-                signIn: error.needsReconnect ? { Task { await viewModel.signIn() } } : nil
-            ))
-        }
-
-        if viewModel.isClaudeEnrolled, let error = viewModel.claudeError {
-            banners.append(ErrorBanner(
-                id: "claude",
-                message: error.localizedDescription,
-                dismiss: { viewModel.claudeError = nil },
-                retry: { viewModel.manualRefresh() },
-                signIn: error.isAuthError ? { Task { await viewModel.signInClaude() } } : nil
-            ))
-        }
-
-        if viewModel.codexError?.isNetworkUnavailable == true,
-           viewModel.claudeError?.isNetworkUnavailable == true,
-           viewModel.isCodexEnrolled,
-           viewModel.isClaudeEnrolled {
-            return [
-                ErrorBanner(
-                    id: "network",
-                    message: "No network connection. Showing cached data.",
-                    dismiss: {
-                        viewModel.codexError = nil
-                        viewModel.claudeError = nil
-                    },
-                    retry: { viewModel.manualRefresh() },
-                    signIn: nil
-                )
-            ]
-        }
-
-        let shouldPrefixService = viewModel.isCodexEnrolled && viewModel.isClaudeEnrolled
-        guard shouldPrefixService else { return banners }
-
-        return banners.map { banner in
-            let serviceName = banner.id == "codex" ? "Codex" : "Claude Code"
-            return ErrorBanner(
-                id: banner.id,
-                message: "\(serviceName): \(banner.message)",
-                dismiss: banner.dismiss,
-                retry: banner.retry,
-                signIn: banner.signIn
+                signIn: nil
             )
-        }
+        ]
     }
 
     private func errorBanner(_ banner: ErrorBanner) -> some View {

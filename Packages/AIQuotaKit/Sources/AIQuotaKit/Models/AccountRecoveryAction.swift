@@ -8,7 +8,7 @@ public enum AccountRecoveryAction: Equatable, Sendable {
     case reconnect
 
     public static func resolve(authenticated: Bool, error: NetworkError?, hasIssue: Bool = false) -> Self {
-        if !authenticated || error?.needsReconnect == true { return .reconnect }
+        if !authenticated || error?.suggestsReconnect == true { return .reconnect }
         return error != nil || hasIssue ? .retry : .none
     }
 }

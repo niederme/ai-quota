@@ -105,16 +105,16 @@ struct PopoverTypographyTests {
         #expect(!widgetSource.contains("else if let extra = usage.extraUsage"))
     }
 
-    @Test("duplicate network errors collapse into one banner")
-    func duplicateNetworkErrorsCollapseIntoOneBanner() throws {
+    @Test("only app-wide errors use the banner; account errors stay on cards")
+    func onlyAppWideErrorsUseBanner() throws {
         let popoverSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/PopoverView.swift"), encoding: .utf8)
 
         #expect(popoverSource.contains(#"id: "network""#))
-        #expect(popoverSource.contains(#"message: "No network connection. Showing cached data.""#))
-        #expect(popoverSource.contains("viewModel.codexError?.isNetworkUnavailable == true"))
-        #expect(popoverSource.contains("viewModel.claudeError?.isNetworkUnavailable == true"))
-        #expect(popoverSource.contains(#"message: "\(serviceName): \(banner.message)""#))
-        #expect(popoverSource.contains("let shouldPrefixService = viewModel.isCodexEnrolled && viewModel.isClaudeEnrolled"))
+        #expect(popoverSource.contains(#"message: "No network connection. Showing saved data.""#))
+        #expect(popoverSource.contains(#"errors.allSatisfy(\.isNetworkUnavailable)"#))
+        #expect(!popoverSource.contains(#"id: "codex""#))
+        #expect(!popoverSource.contains(#"id: "claude""#))
+        #expect(!popoverSource.contains("shouldPrefixService"))
     }
 
     @Test("Sequoia popover uses a controlled adaptive surface")
