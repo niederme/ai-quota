@@ -522,6 +522,37 @@ struct ClaudeAuthCoordinatorTests {
         }
     }
 
+    @Test("reconnect clears the stored web session before opening the login window")
+    func reconnectClearsStoredSessionBeforeLogin() async throws {
+        let organizationID = "123e4567-e89b-12d3-a456-426614174000"
+        let events = Events()
+        let sut = ClaudeAuthCoordinator(
+            probe: { .notFound },
+            headlessSessionReviver: { .notFound },
+            oauthCredentialsLoader: { _ in throw ClaudeOAuthCredentialsError.notFound },
+            keychainAccessAllowed: { false },
+            sessionValidator: { _ in .valid(orgId: organizationID) },
+            webSessionClearer: { await events.append("rejected-clear") },
+            interactiveSignInClearer: { await events.append("full-clear") },
+            webSessionRestorer: { _ in },
+            loginWindowRunner: {
+                await events.append("login")
+                return (organizationID, [])
+            },
+            organizationLister: { _ in nil }
+        )
+
+        await sut.bootstrap()
+        try await sut.reconnectWithWebAuthentication(expectedOrganizationID: organizationID)
+
+        #expect(await events.all == ["full-clear", "login"])
+    }
+
+    private actor Events {
+        private(set) var all: [String] = []
+        func append(_ event: String) { all.append(event) }
+    }
+
     @Test("a login that also reaches the saved organization reconnects to it")
     func reconnectKeepsSavedOrganizationWhenLoginReachesIt() async throws {
         let picked = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa"

@@ -90,6 +90,7 @@ public actor ClaudeAuthCoordinator {
     private let oauthCredentialsLoader: OAuthCredentialsLoader
     private let sessionValidator: SessionValidator
     private let webSessionClearer: WebSessionClearer
+    private let interactiveSignInClearer: WebSessionClearer
     private let webSessionRestorer: WebSessionRestorer
     private let loginWindowRunner: LoginWindowRunner
     private let organizationLister: OrganizationLister
@@ -107,6 +108,7 @@ public actor ClaudeAuthCoordinator {
         keychainAccessAllowed: @escaping @Sendable () -> Bool = { ClaudeOAuthKeychainReader.isAccessAllowed() },
         sessionValidator: SessionValidator? = nil,
         webSessionClearer: WebSessionClearer? = nil,
+        interactiveSignInClearer: WebSessionClearer? = nil,
         webSessionRestorer: WebSessionRestorer? = nil,
         loginWindowRunner: LoginWindowRunner? = nil,
         organizationLister: OrganizationLister? = nil,
@@ -136,6 +138,9 @@ public actor ClaudeAuthCoordinator {
         self.keychainAccessAllowed = keychainAccessAllowed
         self.sessionValidator = sessionValidator ?? ClaudeAuthCoordinator.liveSessionValidator
         self.webSessionClearer = webSessionClearer ?? ClaudeAuthCoordinator.clearRejectedWebSession(for: accountStorageID)
+        // Injected test clearers keep covering both paths unless a test opts in.
+        self.interactiveSignInClearer = interactiveSignInClearer
+            ?? (webSessionClearer ?? ClaudeAuthCoordinator.clearAllClaudeWebData(for: accountStorageID))
         self.webSessionRestorer = webSessionRestorer ?? ClaudeAuthCoordinator.restoreWebSession(for: accountStorageID)
         self.loginWindowRunner = loginWindowRunner ?? ClaudeAuthCoordinator.showLoginWindow(for: accountStorageID)
         self.organizationLister = organizationLister ?? { await ClaudeAuthCoordinator.listOrganizations(cookies: $0) }
@@ -297,10 +302,14 @@ public actor ClaudeAuthCoordinator {
         transition(to: .signingIn)
 
         do {
-            await webSessionClearer()
+            // Reconnect is the person choosing which login to use. Clear every
+            // trace of the stored claude.ai session (cookies and site storage),
+            // or the window can adopt that session and close before they type.
+            await interactiveSignInClearer()
             try checkSignInIsCurrent(generation)
             let (orgId, cookies) = try await loginWindowRunner()
             try checkSignInIsCurrent(generation)
+            logger.notice("[ClaudeReconnect] signed in org=\(orgId, privacy: .public) expected=\(expected ?? "none", privacy: .public)")
             var normalizedOrganizationID = try Self.normalizedOrganizationID(orgId)
             if let expected, normalizedOrganizationID != expected {
                 // One claude.ai login can belong to several organizations (for
@@ -724,6 +733,29 @@ public actor ClaudeAuthCoordinator {
             await clearWebKitCookies(for: accountStorageID, where: shouldClearBeforeSignIn)
             if accountStorageID == nil {
                 clearURLSessionCookies(where: shouldClearBeforeSignIn)
+            }
+        }
+    }
+
+    /// Removes all claude.ai website data (cookies, local storage, IndexedDB,
+    /// caches) from the account's web store, so the next login window starts
+    /// signed out. The previous session is restored on cancel by the caller.
+    private static func clearAllClaudeWebData(for accountStorageID: UUID?) -> WebSessionClearer {
+        {
+            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
+                Task { @MainActor in
+                    let store = websiteDataStore(for: accountStorageID)
+                    let types = WKWebsiteDataStore.allWebsiteDataTypes()
+                    store.fetchDataRecords(ofTypes: types) { records in
+                        let claude = records.filter { $0.displayName.contains("claude.ai") }
+                        guard !claude.isEmpty else { cont.resume(); return }
+                        store.removeData(ofTypes: types, for: claude) { cont.resume() }
+                    }
+                }
+            }
+            await clearWebKitCookies(for: accountStorageID) { $0.domain.contains("claude.ai") }
+            if accountStorageID == nil {
+                clearURLSessionCookies { $0.domain.contains("claude.ai") }
             }
         }
     }
