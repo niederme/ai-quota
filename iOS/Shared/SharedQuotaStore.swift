@@ -175,14 +175,22 @@ struct SharedQuotaStore: Sendable {
         let path = root.appendingPathComponent(namespacedFile("\(service.rawValue)-session.lock")).path
         let fd = open(path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)
         guard fd >= 0 else { throw AccessError.storage }
-        defer { close(fd) }
+        // iOS kills a process that is suspended while holding a lock in the shared
+        // App Group container (RunningBoard 0xdead10cc). Keep the process awake for
+        // the lease, and give the lock back if that background time runs out.
+        let lease = SharedLeaseFile(fd: fd, reason: "AIQuota \(service.rawValue) lease")
+        defer { lease.finish() }
         try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: path)
         let deadline = ContinuousClock.now.advanced(by: .seconds(35))
-        while flock(fd, LOCK_EX | LOCK_NB) != 0 {
-            guard errno == EWOULDBLOCK, ContinuousClock.now < deadline else { throw AccessError.storage }
-            try await Task.sleep(for: .milliseconds(100))
+        while true {
+            switch lease.tryLock() {
+            case .locked: break
+            case .busy where ContinuousClock.now < deadline:
+                try await Task.sleep(for: .milliseconds(100)); continue
+            case .busy, .unavailable: throw AccessError.storage
+            }
+            break
         }
-        defer { flock(fd, LOCK_UN) }
         try Task.checkCancellation()
         try? migrateForecastHistory()
         return try await action()
@@ -496,5 +504,56 @@ enum MobileResetNotifications {
                 )
             }
         }
+    }
+}
+
+/// Owns one lease's lock file descriptor and the background time that covers it.
+/// The expiration handler runs on another thread, so every lock change is guarded.
+final class SharedLeaseFile: @unchecked Sendable {
+    private let state = NSLock()
+    private let activityDone = DispatchSemaphore(value: 0)
+    private var fd: Int32
+    private var expired = false
+
+    init(fd: Int32, reason: String) {
+        self.fd = fd
+        // Works in the app and in the widget extension. The first call keeps the
+        // assertion while it waits; a second call with `expired` true means iOS is
+        // about to suspend the process.
+        ProcessInfo.processInfo.performExpiringActivity(withReason: reason) { [self] expired in
+            if expired { expire() } else { activityDone.wait() }
+        }
+    }
+
+    enum Attempt { case locked, busy, unavailable }
+
+    /// Non-blocking. `unavailable` covers lock errors and leases whose background time already ran out.
+    func tryLock() -> Attempt {
+        state.lock()
+        defer { state.unlock() }
+        guard !expired, fd >= 0 else { return .unavailable }
+        if flock(fd, LOCK_EX | LOCK_NB) == 0 { return .locked }
+        return errno == EWOULDBLOCK ? .busy : .unavailable
+    }
+
+    func finish() {
+        release()
+        activityDone.signal()
+    }
+
+    private func expire() {
+        state.withLock { expired = true }
+        release()
+        activityDone.signal()
+    }
+
+    /// Unlocks and closes once. Closing the descriptor drops the flock as well.
+    private func release() {
+        state.lock()
+        defer { state.unlock() }
+        guard fd >= 0 else { return }
+        flock(fd, LOCK_UN)
+        close(fd)
+        fd = -1
     }
 }
