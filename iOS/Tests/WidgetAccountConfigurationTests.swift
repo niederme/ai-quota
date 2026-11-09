@@ -26,7 +26,7 @@ final class WidgetAccountConfigurationTests: XCTestCase {
         isLegacy: false
     )
 
-    func testFourConnectionPickerUsesPlansAndRetainsOpaqueKeysOnlyInLinks() throws {
+    func testFourConnectionPickerUsesPlansAndOpensOverview() throws {
         let profiles = [
             AccountProfile(id: "opaque-codex-pro", service: .codex, label: "Account 2", isLegacy: false),
             AccountProfile(id: "opaque-codex-business", service: .codex, label: "Codex Business", isLegacy: false),
@@ -47,7 +47,9 @@ final class WidgetAccountConfigurationTests: XCTestCase {
                 value: .init(service: p.service, reading: readings[p.orderKey], needsApp: false), label: name.title)
             XCTAssertEqual(content.name, name.title)
             let link = try XCTUnwrap(URLComponents(url: content.url, resolvingAgainstBaseURL: false))
-            XCTAssertEqual(link.queryItems?.first(where: { $0.name == "account" })?.value, p.id)
+            XCTAssertEqual(link.scheme, "aiquota-probe")
+            XCTAssertEqual(link.host, "overview")
+            XCTAssertNil(link.queryItems)
             XCTAssertFalse(content.name.contains("opaque"))
         }
         XCTAssertEqual(WidgetAccount.make(Array(profiles.reversed()), readings: readings).map(\.id), options.reversed().map(\.id))
@@ -275,7 +277,7 @@ extension WidgetAccountConfigurationTests {
         XCTAssertEqual(models.denominator, 100)
         XCTAssertEqual(models.parts.first { $0.label == "Unattributed" }?.value, 40)
         XCTAssertEqual(models.coverage, "1/4 days")
-        XCTAssertEqual(URLComponents(url: account.url, resolvingAgainstBaseURL: false)?.queryItems?.first?.value, "work")
+        XCTAssertEqual(account.url.absoluteString, "aiquota-probe://overview")
     }
 }
 

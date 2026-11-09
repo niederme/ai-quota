@@ -351,8 +351,10 @@ Widget content scales from the approved 158×158, 338×158 and 338×354 canvases
 preserve the dial and inset proportions across device widget sizes.
 Compact widget labels default to **Codex** or **Claude**. Enable **Use account
 names** in a widget's configuration to use the longer account label instead.
-This applies to Home Screen tiles and Lock Screen labels; account selection,
-links and the full account identity in accessibility descriptions are preserved.
+This applies to Home Screen tiles and Lock Screen labels; account selection
+and the full account identity in accessibility descriptions are preserved.
+Tapping any widget opens the app overview, including individual account tiles
+and all Lock Screen widgets.
 The rectangular single-account Lock Screen widget copies the styling in
 October 22's `a82fbdb`: 14pt regular service title, 14pt medium usage/reset
 text, 60pt dial frame, 2pt gap and the historical 1pt final-row offset.
