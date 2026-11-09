@@ -181,7 +181,12 @@ struct MultiAccountOverviewView: View {
             .onOpenURL { url in
                 guard url.scheme == "aiquota-probe" else { return }
                 accounts.reload()
-                if url.host == "overview" { accounts.refreshOnOpen(); return }
+                if url.host == "overview" {
+                    selected = nil
+                    showResetDetails = false
+                    accounts.refreshOnOpen()
+                    return
+                }
                 guard let service = QuotaService(rawValue: url.host ?? "") else { return }
                 let requestedID = URLComponents(url: url, resolvingAgainstBaseURL: false)?
                     .queryItems?.first(where: { $0.name == "account" })?.value

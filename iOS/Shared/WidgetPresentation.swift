@@ -3,6 +3,10 @@ import WidgetKit
 import MobileAccessCore
 import CoreText
 
+enum WidgetDestination {
+    static let app = URL(string: "aiquota-probe://overview")!
+}
+
 /// Stable identity is an account, not a service: several dials may be Codex.
 struct WidgetAccountContent: Identifiable, Sendable {
     let id: String
@@ -42,15 +46,8 @@ struct WidgetAccountContent: Identifiable, Sendable {
         return AccountPresentation.resolve(.init(key: id, service: value.service.name, label: "",
             plan: value.reading?.metadata?.displayPlan), among: []).subtitle(for: .fullIdentity)
     }
-    var url: URL {
-        let prefix = value.service.rawValue + ":"
-        guard id.hasPrefix(prefix) else { return value.service.url }
-        let profileID = String(id.dropFirst(prefix.count))
-        guard !profileID.isEmpty, profileID != "empty" else { return value.service.url }
-        var components = URLComponents(url: value.service.url, resolvingAgainstBaseURL: false)!
-        components.queryItems = [URLQueryItem(name: "account", value: profileID)]
-        return components.url ?? value.service.url
-    }
+    // Every widget opens the overview, regardless of the displayed account.
+    var url: URL { WidgetDestination.app }
     var worstPercent: Double? {
         let percentages = (value.reading?.windows.map(\.usedPercent) ?? []) + (value.reading?.monthlyBudget.map { [$0.usedPercent] } ?? [])
         return percentages.max()

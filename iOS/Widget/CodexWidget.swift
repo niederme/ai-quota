@@ -407,7 +407,7 @@ struct SingleLockScreenWidget: Widget {
         AppIntentConfiguration(kind: "CodexLockScreen", intent: QuotaConfiguration.self, provider: CodexProvider()) { entry in
             if let account = entry.accounts.first {
                 AccountLockView(account: account, date: entry.date, circular: true, showAccountNames: entry.showAccountNames)
-                    .widgetURL(account.url).containerBackground(for: .widget) { Color.clear }
+                    .widgetURL(WidgetDestination.app).containerBackground(for: .widget) { Color.clear }
             }
         }
         .configurationDisplayName("Account")
@@ -418,7 +418,7 @@ struct SingleLockScreenWidget: Widget {
 struct BothLockScreenWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "BothLockScreen", intent: BothConfiguration.self, provider: BothProvider()) { entry in
-            AccountsLockView(accounts: entry.accounts, date: entry.date, showAccountNames: entry.showAccountNames).containerBackground(for: .widget) { Color.clear }
+            AccountsLockView(accounts: entry.accounts, date: entry.date, showAccountNames: entry.showAccountNames).widgetURL(WidgetDestination.app).containerBackground(for: .widget) { Color.clear }
         }
         .configurationDisplayName("Accounts")
         .description("Several accounts at a glance. Existing Lock Screen widget.")
@@ -460,7 +460,7 @@ struct CompactProvider: AppIntentTimelineProvider {
 struct CompactLockScreenWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "CompactLockScreen", intent: CompactConfiguration.self, provider: CompactProvider()) { entry in
-            AccountsLockView(accounts: entry.accounts, date: entry.date, showAccountNames: entry.showAccountNames).containerBackground(for: .widget) { Color.clear }
+            AccountsLockView(accounts: entry.accounts, date: entry.date, showAccountNames: entry.showAccountNames).widgetURL(WidgetDestination.app).containerBackground(for: .widget) { Color.clear }
         }
         .configurationDisplayName("Accounts")
         .description("Existing two-service configuration.")
@@ -479,7 +479,7 @@ struct ServiceDetailsWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "ServiceDetails", intent: QuotaConfiguration.self, provider: CodexProvider()) { entry in
             if let account = entry.accounts.first {
-                AccountLockView(account: account, date: entry.date, showAccountNames: entry.showAccountNames).widgetURL(account.url)
+                AccountLockView(account: account, date: entry.date, showAccountNames: entry.showAccountNames).widgetURL(WidgetDestination.app)
                     .containerBackground(for: .widget) { Color.clear }
             }
         }
@@ -524,7 +524,7 @@ struct SingleHomeScreenWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "AIQuotaHomeSingle", intent: QuotaConfiguration.self, provider: CodexProvider()) { entry in
             HomeEntryView(entry: entry, both: false)
-                .widgetURL(entry.accounts.first?.url)
+                .widgetURL(WidgetDestination.app)
                 .containerBackground(for: .widget) { Color.clear }
         }
         .configurationDisplayName("Account")
@@ -537,7 +537,7 @@ struct BothHomeScreenWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "AIQuotaHomeBoth", intent: BothConfiguration.self, provider: BothProvider()) { entry in
             HomeEntryView(entry: entry, both: true)
-                .widgetURL(URL(string: "aiquota-probe://overview"))
+                .widgetURL(WidgetDestination.app)
                 .containerBackground(for: .widget) { Color.clear }
         }
         .configurationDisplayName("Accounts")
@@ -552,7 +552,7 @@ struct TwoRowHomeScreenWidget: Widget {
     var body: some WidgetConfiguration {
         AppIntentConfiguration(kind: "AIQuotaHomeTwoRows", intent: BothConfiguration.self, provider: BothProvider()) { entry in
             HomeEntryView(entry: entry, both: true, twoRows: true)
-                .widgetURL(URL(string: "aiquota-probe://overview"))
+                .widgetURL(WidgetDestination.app)
                 .containerBackground(for: .widget) { Color.clear }
         }
         .configurationDisplayName("Accounts · Two rows")

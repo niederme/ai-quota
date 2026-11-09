@@ -146,6 +146,7 @@ struct OverviewView: View {
             .onOpenURL { url in
                 guard url.scheme == "aiquota-probe" else { return }
                 if url.host == "overview" {
+                    showResetDetails = false
                     selectedService = nil
                     navigationID = UUID()
                     codex.refreshOnOpen()
