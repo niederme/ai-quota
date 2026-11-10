@@ -590,23 +590,27 @@ private struct ReconnectButtonAnchor: PreferenceKey {
     }
 }
 
-/// The Reconnect action shown on account cards and in the detail sheet.
-/// Amber marks it as a problem to fix, apart from the purple used for
-/// informational text. On light glass the system orange fails contrast as
-/// text, so light mode tints with a deeper amber (~5:1 on the tinted fill).
+/// The Reconnect action shown on account cards and in the detail sheet,
+/// matching the Mac card button. On light glass a tinted bordered fill reads
+/// pale, so light mode uses a solid deep-purple fill (white label, ~7:1).
+/// Dark mode keeps the tinted fill: white on the bright purple fails contrast.
 struct OverviewReconnectButton: View {
     let accountName: String
     var disabled = false
     /// Cards use a small button with 13 pt text to match their detail lines.
     var compact = false
     let action: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        Button(action: action) {
-            Label("Reconnect", systemImage: "exclamationmark.triangle.fill")
+        let button = Button("Reconnect", action: action)
+        Group {
+            if colorScheme == .light {
+                button.buttonStyle(.borderedProminent).tint(OverviewStyle.reconnectFill)
+            } else {
+                button.buttonStyle(.bordered).tint(OverviewStyle.accent)
+            }
         }
-        .buttonStyle(.bordered)
-        .tint(OverviewStyle.reconnectTint)
         .font(compact ? Font.footnote.weight(.semibold) : nil)
         .controlSize(compact ? .small : .regular)
         .disabled(disabled)
@@ -630,13 +634,8 @@ enum OverviewStyle {
     static let glass = accent.opacity(0.06)
     static let glassHighlight = accent.opacity(0.10)
     static let controlLavender = Color(red: 0.74, green: 0.61, blue: 0.84)
-    /// Reconnect button tint: the warning amber, deepened in light mode so
-    /// its label stays legible on the tinted fill.
-    static let reconnectTint = Color(uiColor: UIColor { traits in
-        traits.userInterfaceStyle == .dark
-            ? UIColor(red: 1.0, green: 0x9F / 255, blue: 0x0A / 255, alpha: 1)
-            : UIColor(red: 0xB2 / 255, green: 0x50 / 255, blue: 0x00, alpha: 1)
-    })
+    /// Light-mode Reconnect fill; the Mac gauge accent (#8530BD).
+    static let reconnectFill = Color(red: 0x85 / 255, green: 0x30 / 255, blue: 0xBD / 255)
     static let overviewTrack = Color(uiColor: UIColor { traits in
         (traits.userInterfaceStyle == .dark ? UIColor.white : UIColor.black).withAlphaComponent(0.10)
     })
@@ -1034,6 +1033,15 @@ struct ProviderDialCardContent: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .center, spacing: 4) {
                     Text(identity?.service ?? name).unredacted().modifier(OverviewDetailType(title: true, wide: usesWideLayout)).foregroundStyle(OverviewStyle.primary)
+                    if hasIssue {
+                        // Matches the Mac card: amber says what's wrong, the
+                        // purple Reconnect button below is how to fix it.
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .modifier(OverviewDetailType(wide: usesWideLayout))
+                            .foregroundStyle(OverviewStyle.warning)
+                            .padding(.leading, 4)
+                            .accessibilityHidden(true)
+                    }
                     Spacer(minLength: 0)
                     if onOpen != nil {
                         OverviewControlGlyph(symbol: "chevron.right")
@@ -1077,6 +1085,7 @@ struct ProviderDialCardContent: View {
             }
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
+    private var hasIssue: Bool { connected && (failure != nil || error != nil) }
     private var showsReconnectButton: Bool {
         (failure == .reconnect || failure == .renewal) && onReconnect != nil
     }
