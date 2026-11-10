@@ -193,15 +193,19 @@ struct MacAccountCard: View {
 
     // On the light glass a tinted bordered fill reads pale, so light mode uses
     // a solid deep-purple fill (white label, ~7:1). Dark mode keeps the tinted
-    // fill: white text on the bright dark-mode purple would fail contrast.
+    // fill with a near-white label, matching iOS: the purple label was 3.5:1
+    // on the pill and read as disabled; the caption ink is ~9:1.
     @ViewBuilder
     private var reconnectButton: some View {
-        let button = Button("Reconnect", action: reconnect)
         Group {
             if colorScheme == .light {
-                button.buttonStyle(.borderedProminent).tint(Color.gaugeAccent)
+                Button("Reconnect", action: reconnect)
+                    .buttonStyle(.borderedProminent).tint(Color.gaugeAccent)
             } else {
-                button.buttonStyle(.bordered).tint(Color.overviewAccent)
+                Button(action: reconnect) {
+                    Text("Reconnect").foregroundStyle(Color.gaugeAccentInk)
+                }
+                .buttonStyle(.bordered).tint(Color.overviewAccent)
             }
         }
         .controlSize(.regular)

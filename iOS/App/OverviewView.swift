@@ -593,7 +593,8 @@ private struct ReconnectButtonAnchor: PreferenceKey {
 /// The Reconnect action shown on account cards and in the detail sheet,
 /// matching the Mac card button. On light glass a tinted bordered fill reads
 /// pale, so light mode uses a solid deep-purple fill (white label, ~7:1).
-/// Dark mode keeps the tinted fill: white on the bright purple fails contrast.
+/// Dark mode keeps the tinted fill but with a near-white label: the purple
+/// label was 3.5:1 on the pill and read as disabled; #EAD2FF is ~9:1.
 struct OverviewReconnectButton: View {
     let accountName: String
     var disabled = false
@@ -603,12 +604,15 @@ struct OverviewReconnectButton: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        let button = Button("Reconnect", action: action)
         Group {
             if colorScheme == .light {
-                button.buttonStyle(.borderedProminent).tint(OverviewStyle.reconnectFill)
+                Button("Reconnect", action: action)
+                    .buttonStyle(.borderedProminent).tint(OverviewStyle.reconnectFill)
             } else {
-                button.buttonStyle(.bordered).tint(OverviewStyle.accent)
+                Button(action: action) {
+                    Text("Reconnect").foregroundStyle(OverviewStyle.reconnectInk)
+                }
+                .buttonStyle(.bordered).tint(OverviewStyle.accent)
             }
         }
         .font(compact ? Font.footnote.weight(.semibold) : nil)
@@ -636,6 +640,8 @@ enum OverviewStyle {
     static let controlLavender = Color(red: 0.74, green: 0.61, blue: 0.84)
     /// Light-mode Reconnect fill; the Mac gauge accent (#8530BD).
     static let reconnectFill = Color(red: 0x85 / 255, green: 0x30 / 255, blue: 0xBD / 255)
+    /// Dark-mode Reconnect label; the Mac's near-white caption ink (#EAD2FF).
+    static let reconnectInk = Color(red: 0xEA / 255, green: 0xD2 / 255, blue: 0xFF / 255)
     static let overviewTrack = Color(uiColor: UIColor { traits in
         (traits.userInterfaceStyle == .dark ? UIColor.white : UIColor.black).withAlphaComponent(0.10)
     })
