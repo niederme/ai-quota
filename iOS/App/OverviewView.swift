@@ -1033,6 +1033,15 @@ struct ProviderDialCardContent: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .center, spacing: 4) {
                     Text(identity?.service ?? name).unredacted().modifier(OverviewDetailType(title: true, wide: usesWideLayout)).foregroundStyle(OverviewStyle.primary)
+                    if hasIssue {
+                        // Matches the Mac card: amber says what's wrong, the
+                        // purple Reconnect button below is how to fix it.
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .modifier(OverviewDetailType(wide: usesWideLayout))
+                            .foregroundStyle(OverviewStyle.warning)
+                            .padding(.leading, 4)
+                            .accessibilityHidden(true)
+                    }
                     Spacer(minLength: 0)
                     if onOpen != nil {
                         OverviewControlGlyph(symbol: "chevron.right")
@@ -1067,6 +1076,7 @@ struct ProviderDialCardContent: View {
                         .accessibilityHidden(true)
                         .anchorPreference(key: ReconnectButtonAnchor.self, value: .bounds) { $0 }
                         .padding(.top, 4)
+                        .padding(.bottom, 4)
                 } else if failure != nil || error != nil || reading == nil || worst >= 100 {
                     Text(statusText).modifier(OverviewDetailType(weight: .regular, wide: usesWideLayout))
                         .foregroundStyle(failure != nil || error != nil ? OverviewStyle.warning : OverviewStyle.secondary)
@@ -1075,6 +1085,7 @@ struct ProviderDialCardContent: View {
             }
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
+    private var hasIssue: Bool { connected && (failure != nil || error != nil) }
     private var showsReconnectButton: Bool {
         (failure == .reconnect || failure == .renewal) && onReconnect != nil
     }
