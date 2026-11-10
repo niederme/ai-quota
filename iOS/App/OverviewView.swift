@@ -389,10 +389,16 @@ struct ServiceDetailContent<Account: View>: View {
                         }
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading)
-                if failure == .reconnect || failure == .renewal {
-                    Label("Reconnect to update details. Your last reading is retained.",
-                          systemImage: "person.crop.circle.badge.exclamationmark")
-                        .font(.callout).foregroundStyle(OverviewStyle.warning)
+                if needsReconnect {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label("Reconnect to update details. Your last reading is retained.",
+                              systemImage: "person.crop.circle.badge.exclamationmark")
+                            .font(.callout).foregroundStyle(OverviewStyle.warning)
+                        OverviewReconnectButton(accountName: identity?.title ?? name, disabled: busy) {
+                            showAccount = true
+                        }
+                        .accessibilityIdentifier("detailReconnectButton")
+                    }
                 } else if failure != nil, error == nil {
                     Label("Couldn’t update details. Your last reading is retained.",
                           systemImage: "exclamationmark.triangle")
@@ -409,17 +415,12 @@ struct ServiceDetailContent<Account: View>: View {
                 if name == "Claude", reading?.monthlyBudget != nil, let claudeAccount, !claudeAccount.isDemo {
                     ClaudeEnterpriseDetailView(account: claudeAccount)
                 }
-                if error != nil || failure == .reconnect || failure == .renewal || name == "Codex" {
+                if error != nil || name == "Codex" {
                     Divider()
                 }
                 if let error {
                     Label(error, systemImage: "exclamationmark.triangle")
                         .font(.callout).foregroundStyle(OverviewStyle.warning)
-                }
-                if failure == .reconnect || failure == .renewal {
-                    Button { showAccount = true } label: {
-                        Label("Reconnect \(name)", systemImage: "person.crop.circle")
-                    }
                 }
                 if name == "Codex" {
                     Button { showResetWebsite = true } label: {
@@ -456,6 +457,7 @@ struct ServiceDetailContent<Account: View>: View {
             ProbeBrowser(url: CodexResetNotice.website)
         }
     }
+    private var needsReconnect: Bool { failure == .reconnect || failure == .renewal }
     private var planText: String? {
         if let identity { return identity.subtitle(for: .fullIdentity) }
         let plan = reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported"
@@ -581,6 +583,38 @@ struct ProviderDialCard: View {
     }
 }
 
+private struct ReconnectButtonAnchor: PreferenceKey {
+    static var defaultValue: Anchor<CGRect>? { nil }
+    static func reduce(value: inout Anchor<CGRect>?, nextValue: () -> Anchor<CGRect>?) {
+        value = nextValue() ?? value
+    }
+}
+
+/// The Reconnect action shown on account cards and in the detail sheet,
+/// matching the Mac card button. On light glass a tinted bordered fill reads
+/// pale, so light mode uses a solid deep-purple fill (white label, ~7:1).
+/// Dark mode keeps the tinted fill: white on the bright purple fails contrast.
+struct OverviewReconnectButton: View {
+    let accountName: String
+    var disabled = false
+    let action: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        let button = Button("Reconnect", action: action)
+        Group {
+            if colorScheme == .light {
+                button.buttonStyle(.borderedProminent).tint(OverviewStyle.reconnectFill)
+            } else {
+                button.buttonStyle(.bordered).tint(OverviewStyle.accent)
+            }
+        }
+        .controlSize(.regular)
+        .disabled(disabled)
+        .accessibilityLabel("Reconnect \(accountName)")
+    }
+}
+
 /// Shared semantic colors; overview cards mirror the Mac highlighted row surface.
 enum OverviewStyle {
     static let accent = Color("OverviewAccent")
@@ -597,6 +631,8 @@ enum OverviewStyle {
     static let glass = accent.opacity(0.06)
     static let glassHighlight = accent.opacity(0.10)
     static let controlLavender = Color(red: 0.74, green: 0.61, blue: 0.84)
+    /// Light-mode Reconnect fill; the Mac gauge accent (#8530BD).
+    static let reconnectFill = Color(red: 0x85 / 255, green: 0x30 / 255, blue: 0xBD / 255)
     static let overviewTrack = Color(uiColor: UIColor { traits in
         (traits.userInterfaceStyle == .dark ? UIColor.white : UIColor.black).withAlphaComponent(0.10)
     })
@@ -915,6 +951,18 @@ struct ProviderDialCardContent: View {
                         Button("Reconnect", action: onReconnect)
                     }
                 }
+                // Overlay the Reconnect control as a sibling of the card button,
+                // not inside its label, so its tap never also opens the details.
+                .overlayPreferenceValue(ReconnectButtonAnchor.self) { anchor in
+                    if let anchor, let onReconnect {
+                        GeometryReader { geometry in
+                            let bounds = geometry[anchor]
+                            reconnectButton(onReconnect)
+                                .frame(width: bounds.width, height: bounds.height)
+                                .position(x: bounds.midX, y: bounds.midY)
+                        }
+                    }
+                }
         } else {
             cardContent.background { OverviewAccountSurface() }
         }
@@ -1008,13 +1056,28 @@ struct ProviderDialCardContent: View {
                         }
                     }
                 }
-                if failure != nil || error != nil || reading == nil || worst >= 100 {
+                if showsReconnectButton, let onReconnect {
+                    // Placeholder that reserves the layout slot; the live button
+                    // is overlaid outside the card's own Button in `body`.
+                    reconnectButton(onReconnect)
+                        .hidden()
+                        .accessibilityHidden(true)
+                        .anchorPreference(key: ReconnectButtonAnchor.self, value: .bounds) { $0 }
+                        .padding(.top, 4)
+                } else if failure != nil || error != nil || reading == nil || worst >= 100 {
                     Text(statusText).modifier(OverviewDetailType(weight: .regular, wide: usesWideLayout))
                         .foregroundStyle(failure != nil || error != nil ? OverviewStyle.warning : OverviewStyle.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }.frame(maxWidth: .infinity, alignment: .leading)
+    }
+    private var showsReconnectButton: Bool {
+        (failure == .reconnect || failure == .renewal) && onReconnect != nil
+    }
+    private func reconnectButton(_ action: @escaping () -> Void) -> some View {
+        OverviewReconnectButton(accountName: identity?.title ?? name, disabled: busy, action: action)
+            .accessibilityIdentifier(name == "Codex" ? "codexReconnectButton" : "claudeReconnectButton")
     }
     private var statusText: String {
         if failure == .reconnect || failure == .renewal { return "Reconnect to update" }
