@@ -227,7 +227,8 @@ struct MultiAccountOverviewView: View {
                 needsInitialSetup = true
             }
         }) { selection in
-            ServiceAccountSheet {
+            // The detail view supplies its own Close next to Refresh.
+            ServiceAccountSheet(showsClose: selection.kind != .detail) {
                 sheetContent(selection)
             }
         }
