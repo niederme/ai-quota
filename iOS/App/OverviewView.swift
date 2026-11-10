@@ -597,6 +597,8 @@ private struct ReconnectButtonAnchor: PreferenceKey {
 struct OverviewReconnectButton: View {
     let accountName: String
     var disabled = false
+    /// Cards use a small button with 13 pt text to match their detail lines.
+    var compact = false
     let action: () -> Void
     @Environment(\.colorScheme) private var colorScheme
 
@@ -609,7 +611,8 @@ struct OverviewReconnectButton: View {
                 button.buttonStyle(.bordered).tint(OverviewStyle.accent)
             }
         }
-        .controlSize(.regular)
+        .font(compact ? Font.footnote.weight(.semibold) : nil)
+        .controlSize(compact ? .small : .regular)
         .disabled(disabled)
         .accessibilityLabel("Reconnect \(accountName)")
     }
@@ -1076,7 +1079,7 @@ struct ProviderDialCardContent: View {
         (failure == .reconnect || failure == .renewal) && onReconnect != nil
     }
     private func reconnectButton(_ action: @escaping () -> Void) -> some View {
-        OverviewReconnectButton(accountName: identity?.title ?? name, disabled: busy, action: action)
+        OverviewReconnectButton(accountName: identity?.title ?? name, disabled: busy, compact: true, action: action)
             .accessibilityIdentifier(name == "Codex" ? "codexReconnectButton" : "claudeReconnectButton")
     }
     private var statusText: String {
