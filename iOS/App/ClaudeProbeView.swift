@@ -3,6 +3,10 @@ import MobileAccessCore
 
 struct ClaudeProbeView: View {
     let model: ClaudeProbeModel
+    /// Set when the user tapped Reconnect elsewhere: open Claude sign-in
+    /// straight away instead of showing this page's own Reconnect row.
+    var startsSignIn = false
+    @State private var startedSignIn = false
     @State private var pastedCode = ""
     @State private var confirmDisconnect = false
     @State private var browser: ClaudeAuthorizationBrowser?
@@ -103,6 +107,13 @@ struct ClaudeProbeView: View {
             Button("Disconnect", role: .destructive) { model.disconnect() }
         } message: {
             Text("Removes the local connection and reading. It does not revoke authorization at Claude.")
+        }
+        .task {
+            guard startsSignIn, !startedSignIn, !model.isDemo, model.connected, !model.busy else { return }
+            startedSignIn = true
+            // Let this sheet finish presenting before stacking the sign-in sheet.
+            try? await Task.sleep(for: .milliseconds(450))
+            startSignIn()
         }
         .onChange(of: model.signInCompletionID) { _, completion in
             if completion != nil { browser = nil }

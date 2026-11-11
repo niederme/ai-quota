@@ -131,6 +131,14 @@ final class ProbeModel {
         message = "Couldn’t connect this account."
     }
     private func finishSignIn(_ newTokens: CodexTokens) async throws {
+        // Reconnecting a card must not swap in another ChatGPT account.
+        if let profile, let identity = newTokens.accountID,
+           let conflict = AccountRegistry.identityConflict(for: profile, signingInAs: identity) {
+            challenge = nil
+            error = AccountRegistry.message(for: conflict, profile: profile)
+            message = "Nothing was changed."
+            return
+        }
         let migrateLegacy = usesLegacyStorage
         try await shared.withLease { [shared] in
             try shared.clearForecastHistory()

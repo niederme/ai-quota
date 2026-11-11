@@ -334,6 +334,58 @@ enum AccountRegistry {
     static func setProviderIdentity(service: QuotaService, id: String, identity: String) {
         store.setProviderIdentity(service: service, id: id, identity: identity)
     }
+    /// Why a sign-in must not be saved to a card, so reconnecting one card can
+    /// never quietly take over another account.
+    enum IdentityConflict: Equatable {
+        /// The card already belongs to a different provider account.
+        case differentAccount
+        /// Another card already shows this provider account; carries its title.
+        case alreadyConnected(String)
+    }
+
+    /// Checks a fresh sign-in against the card it is meant for. Signing back in
+    /// as the card's own account is always allowed. Otherwise it is refused if
+    /// another card already holds that account, or if the card has a known,
+    /// different account. A card whose stored account is shared with another
+    /// card (an earlier mix-up) accepts any account no other card holds, so it
+    /// can be repaired by signing in with the right one.
+    static func identityConflict(for profile: AccountProfile, signingInAs identity: String,
+                                 among profiles: [AccountProfile],
+                                 title: (AccountProfile) -> String) -> IdentityConflict? {
+        let new = identity.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !new.isEmpty else { return nil }
+        let sameService = profiles.filter { $0.service == profile.service }
+        let current = sameService.first(where: { $0.orderKey == profile.orderKey }) ?? profile
+        let others = sameService.filter { $0.orderKey != profile.orderKey }
+        let stored = current.providerIdentity?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if stored == new { return nil }
+        if let other = others.first(where: { $0.providerIdentity == new }) {
+            return .alreadyConnected(title(other))
+        }
+        if let stored, !stored.isEmpty, !others.contains(where: { $0.providerIdentity == stored }) {
+            return .differentAccount
+        }
+        return nil
+    }
+
+    static func identityConflict(for profile: AccountProfile, signingInAs identity: String) -> IdentityConflict? {
+        identityConflict(for: profile, signingInAs: identity, among: all(),
+                         title: { presentation(for: $0).title })
+    }
+
+    /// User-facing explanation for a refused sign-in. Nothing is saved.
+    static func message(for conflict: IdentityConflict, profile: AccountProfile) -> String {
+        let provider = profile.service == .codex ? "ChatGPT" : "Claude"
+        switch conflict {
+        case .differentAccount:
+            return "That’s a different \(provider) account from the one on \(presentation(for: profile).title), so nothing was changed. "
+                + "Sign in with that card’s account, or disconnect the card to switch accounts."
+        case .alreadyConnected(let other):
+            return "That \(provider) account is already connected as \(other), so nothing was changed. "
+                + "Sign in with the account for this card."
+        }
+    }
+
     static func serviceOrder() -> [QuotaService] { store.serviceOrder() }
     static func setServiceOrder(_ order: [QuotaService]) { store.setServiceOrder(order) }
     static func accountOrder() -> [String] { store.accountOrder() }

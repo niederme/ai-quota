@@ -301,9 +301,9 @@ struct MultiAccountOverviewView: View {
         case .connection:
             if let profile = selection.profile {
                 if profile.service == .codex, let model = accounts.codex(profile) {
-                    ProbeView(model: model)
+                    ProbeView(model: model, startsSignIn: true)
                 } else if let model = accounts.claude(profile) {
-                    ClaudeProbeView(model: model)
+                    ClaudeProbeView(model: model, startsSignIn: true)
                 }
             }
         case .detail:
@@ -314,13 +314,13 @@ struct MultiAccountOverviewView: View {
                                          error: model.error, failure: model.connectionFailure,
                                          identity: accounts.presentation(for: profile), accountLabel: nil, history: model.history,
                                          historyUnavailable: model.historyUnavailable,
-                                         refresh: { model.refresh() }) { ProbeView(model: model) }
+                                         refresh: { model.refresh() }) { ProbeView(model: model, startsSignIn: true) }
                 } else if let model = accounts.claude(profile) {
                     ServiceDetailContent(name: "Claude", icon: profile.service.logo,
                                          reading: model.reading, connected: model.connected, busy: model.busy,
                                          error: model.error, failure: model.connectionFailure,
                                          identity: accounts.presentation(for: profile), accountLabel: nil, claudeAccount: model,
-                                         refresh: { model.refresh() }) { ClaudeProbeView(model: model) }
+                                         refresh: { model.refresh() }) { ClaudeProbeView(model: model, startsSignIn: true) }
                 }
             }
         }

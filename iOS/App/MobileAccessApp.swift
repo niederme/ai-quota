@@ -271,6 +271,10 @@ struct CodexSignInContent: View {
 
 struct ProbeView: View {
     let model: ProbeModel
+    /// Set when the user tapped Reconnect elsewhere: open ChatGPT sign-in
+    /// straight away instead of showing this page's own Reconnect row.
+    var startsSignIn = false
+    @State private var startedSignIn = false
     @Environment(\.openURL) private var openURL
     @State private var requestedSignIn = false
     @State private var confirmDisconnect = false
@@ -310,6 +314,13 @@ struct ProbeView: View {
             if model.challenge != nil && requestedSignIn { presentSignIn() }
             if model.challenge == nil { requestedSignIn = false }
         }.onDisappear { requestedSignIn = false }
+        .task {
+            guard startsSignIn, !startedSignIn, !model.isDemo, model.connected else { return }
+            startedSignIn = true
+            // Let this sheet finish presenting before stacking the sign-in sheet.
+            try? await Task.sleep(for: .milliseconds(450))
+            beginSignIn()
+        }
         .sheet(item: $signInPresentation) { presentation in
             CodexSignInSheet(session: presentation.session, code: presentation.code)
         }

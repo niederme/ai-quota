@@ -96,6 +96,16 @@ final class ClaudeProbeModel {
         run { [self] in
             let newTokens = try await api.exchange(pasted, challenge: pending)
             try Task.checkCancellation()
+            let organizationID = try? await api.organizationID(newTokens)
+            try Task.checkCancellation()
+            // Reconnecting a card must not swap in another Claude organization.
+            if let profile, let organizationID,
+               let conflict = AccountRegistry.identityConflict(for: profile, signingInAs: organizationID) {
+                challenge = nil
+                error = AccountRegistry.message(for: conflict, profile: profile)
+                message = "Nothing was changed."
+                return
+            }
             let migrateLegacy = usesLegacyStorage
             try await shared.withLease { [shared] in
                         try shared.clearForecastHistory()
@@ -108,7 +118,6 @@ final class ClaudeProbeModel {
             challenge = nil
             message = "Signed in on this device. Checking quota…"
             try await fetch(forceRenewal: false)
-            let organizationID = try? await api.organizationID(newTokens)
             await afterSuccessfulSignIn(organizationID)
             signInCompletionID = UUID()
         }

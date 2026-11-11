@@ -197,22 +197,22 @@ struct OverviewView: View {
         .sheet(item: $selectedService) { service in
             ServiceAccountSheet(showsClose: service == .settings || service == .codexAccount || service == .claudeAccount || (service == .codex ? !codex.connected : !claude.connected)) {
                 switch service {
-                case .codexAccount: ProbeView(model: codex)
-                case .claudeAccount: ClaudeProbeView(model: claude)
+                case .codexAccount: ProbeView(model: codex, startsSignIn: true)
+                case .claudeAccount: ClaudeProbeView(model: claude, startsSignIn: true)
                 case .settings:
                     MobileSettingsView(codex: codex, claude: claude, onboarding: onboarding)
                 case .codex:
                     if !codex.connected { ProbeView(model: codex) } else {
                     ServiceDetailContent(name: "Codex", icon: "logo-openai", reading: codex.reading,
                         connected: codex.connected, busy: codex.busy, error: codex.error,
-                        failure: codex.connectionFailure, history: codex.history, historyUnavailable: codex.historyUnavailable, refresh: { codex.refresh() }) { ProbeView(model: codex) }
+                        failure: codex.connectionFailure, history: codex.history, historyUnavailable: codex.historyUnavailable, refresh: { codex.refresh() }) { ProbeView(model: codex, startsSignIn: true) }
                     }
                 case .claude:
                     if !claude.connected { ClaudeProbeView(model: claude) } else {
                     ServiceDetailContent(name: "Claude", icon: "logo-claude", reading: claude.reading,
                         connected: claude.connected, busy: claude.busy, error: claude.error,
                         failure: claude.connectionFailure, claudeAccount: claude,
-                        refresh: { claude.refresh() }) { ClaudeProbeView(model: claude) }
+                        refresh: { claude.refresh() }) { ClaudeProbeView(model: claude, startsSignIn: true) }
                     }
                 }
             }
