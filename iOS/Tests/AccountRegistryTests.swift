@@ -212,3 +212,50 @@ final class MobileAccountNamingTests: XCTestCase {
         XCTAssertTrue(accounts.profiles.isEmpty)
     }
 }
+
+final class AccountIdentityConflictTests: XCTestCase {
+    private func profile(_ id: String, _ identity: String?, service: QuotaService = .codex) -> AccountProfile {
+        AccountProfile(id: id, service: service, label: id, providerIdentity: identity, isLegacy: false)
+    }
+    private func conflict(_ card: AccountProfile, _ identity: String, _ profiles: [AccountProfile])
+        -> AccountRegistry.IdentityConflict? {
+        AccountRegistry.identityConflict(for: card, signingInAs: identity, among: profiles, title: { $0.label })
+    }
+
+    func testSigningBackInAsTheSameAccountIsAllowed() {
+        let business = profile("business", "acct-business")
+        XCTAssertNil(conflict(business, "acct-business", [profile("pro", "acct-pro"), business]))
+    }
+
+    func testReconnectingWithAnotherCardsAccountIsRefused() {
+        let pro = profile("pro", "acct-pro")
+        let business = profile("business", "acct-business")
+        XCTAssertEqual(conflict(business, "acct-pro", [pro, business]), .alreadyConnected("pro"))
+    }
+
+    func testReconnectingWithAnUnknownDifferentAccountIsRefused() {
+        let business = profile("business", "acct-business")
+        XCTAssertEqual(conflict(business, "acct-other", [profile("pro", "acct-pro"), business]), .differentAccount)
+    }
+
+    func testANewCardAcceptsAnyAccountNotAlreadyConnected() {
+        let fresh = profile("fresh", nil)
+        XCTAssertNil(conflict(fresh, "acct-new", [profile("pro", "acct-pro"), fresh]))
+        XCTAssertEqual(conflict(fresh, "acct-pro", [profile("pro", "acct-pro"), fresh]), .alreadyConnected("pro"))
+    }
+
+    func testACardMixedUpWithAnotherCanBeRepairedWithTheRightAccount() {
+        // An earlier reconnect saved the Pro account onto the Business card.
+        let pro = profile("pro", "acct-pro")
+        let business = profile("business", "acct-pro")
+        XCTAssertNil(conflict(business, "acct-business", [pro, business]))
+        XCTAssertNil(conflict(pro, "acct-pro", [pro, business]))
+    }
+
+    func testOtherServicesAreIgnored() {
+        let codex = profile("work", "shared-id")
+        let claude = profile("work", "shared-id", service: .claude)
+        XCTAssertNil(conflict(codex, "shared-id", [codex, claude]))
+        XCTAssertEqual(conflict(profile("new", nil), "shared-id", [claude, profile("new", nil)]), nil)
+    }
+}
