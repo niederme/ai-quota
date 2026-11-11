@@ -87,7 +87,7 @@ the details beside the dial. The page title and controls align with the centered
 720pt content column in both connected and demo dashboards. Narrow windows retain native
 navigation; accessibility text sizes retain the stacked layout.
 
-Each Codex card shows at least 42 weeks of activity built from Codex's
+Each Codex card shows at least 52 weeks (one year, like the Mac) of activity built from Codex's
 server-side daily history, without a title or month labels. Its light, dark,
 zero, and missing states match the Mac palette. Claude does not report daily
 history, so Claude cards have no graph. The graph sits below the summary in
