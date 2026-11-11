@@ -265,7 +265,7 @@ struct BudgetGaugeView: View {
                         .scaledToFit()
                         .frame(width: 15, height: 15)
                         .foregroundStyle(statusColor)
-                    Text("\(Int((fraction * 100).rounded()))%")
+                    Text("\(UsagePercentage.roundedForDisplay(fraction * 100))%")
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundStyle(statusColor)
                         .contentTransition(.numericText())
@@ -316,7 +316,7 @@ struct BudgetGaugeView: View {
         }
         .multilineTextAlignment(.center)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(label), \(Int((fraction * 100).rounded())) percent, \(CalendarMonthLabel.spoken(containing: readingAt)), \(usedText) of \(limitText) \(unitLabel)")
+        .accessibilityLabel("\(label), \(UsagePercentage.roundedForDisplay(fraction * 100)) percent, \(CalendarMonthLabel.spoken(containing: readingAt)), \(usedText) of \(limitText) \(unitLabel)")
     }
 }
 

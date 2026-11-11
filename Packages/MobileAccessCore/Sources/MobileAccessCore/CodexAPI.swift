@@ -99,7 +99,7 @@ public struct QuotaWindow: Codable, Sendable, Equatable, Identifiable {
     public static func allAwaitConfirmation(_ windows: [QuotaWindow], at date: Date = .now) -> Bool {
         windows.count > 1 && windows.allSatisfy { $0.awaitsConfirmation(at: date) }
     }
-    public var accessibilitySummary: String { "\(label): \(Int(usedPercent.rounded())) percent used" }
+    public var accessibilitySummary: String { "\(label): \(displayPercent) percent used" }
     public func resetDescription(relativeTo date: Date = .now, compact: Bool = false) -> String {
         guard let reset = resetsAt else { return "reset unavailable" }
         guard reset > date else { return "reset awaiting confirmation" }

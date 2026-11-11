@@ -87,7 +87,7 @@ struct MacAccountCard: View {
         return nil
     }
     private var primaryPercent: Int? {
-        if let budget { return Int((budget.used / budget.limit * 100).rounded()) }
+        if let budget { return UsagePercentage.roundedForDisplay(budget.used / budget.limit * 100) }
         if let usage = codexUsage {
             switch usage.reportedWindowShape {
             case .dual: return usage.hourlyUsedPercent
@@ -100,7 +100,7 @@ struct MacAccountCard: View {
     private var secondaryPercent: Int? {
         if codexUsage?.reportedWindowShape == .dual { return codexUsage?.weeklyUsedPercent }
         if let usage = claudeUsage, usage.primaryMetric.kind != .sevenDay,
-           let weekly = usage.sevenDayUtilization { return Int(weekly.rounded()) }
+           let weekly = usage.sevenDayUtilization { return UsagePercentage.roundedForDisplay(weekly) }
         return nil
     }
     private var primaryLabel: String {

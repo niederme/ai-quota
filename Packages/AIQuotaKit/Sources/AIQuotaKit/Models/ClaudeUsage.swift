@@ -202,7 +202,7 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
         }
     }
 
-    public var usedPercent: Int { Int((primaryMetric.utilization ?? 0).rounded()) }
+    public var usedPercent: Int { UsagePercentage.roundedForDisplay(primaryMetric.utilization ?? 0) }
     public var limitReached: Bool { (primaryMetric.utilization ?? 0) >= 100 }
     public var percentFraction: Double { ((primaryMetric.utilization ?? 0) / 100.0).clamped(to: 0...1) }
     public var remainingPercent: Int { max(0, 100 - usedPercent) }

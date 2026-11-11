@@ -1144,7 +1144,7 @@ struct ProviderDialCardContent: View {
                     if let budget = budgetOnly {
                         // One line, "44% 30d", like the Mac dial: the key is the
                         // calendar month's length and takes the ring's tint.
-                        Text("\(Int(budget.usedPercent.rounded()))% \(MonthlyBudget.periodLabel(containing: reading?.fetchedAt ?? .now))")
+                        Text("\(budget.displayPercent)% \(MonthlyBudget.periodLabel(containing: reading?.fetchedAt ?? .now))")
                             .font(.system(size: 16 * scale, weight: .semibold).monospacedDigit())
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
@@ -1168,7 +1168,7 @@ struct ProviderDialCardContent: View {
         .accessibilityValue(reading?.accessibilitySummary ?? "Allowance unavailable")
     }
     private func dialValue(_ window: QuotaWindow?, label: String) -> some View {
-        Text(window.map { "\(Int($0.usedPercent.rounded()))% \(label)" } ?? "— \(label)")
+        Text(window.map { "\($0.displayPercent)% \(label)" } ?? "— \(label)")
             .font(.system(size: 16 * dialScale, weight: .semibold).monospacedDigit())
             .lineLimit(1)
             .minimumScaleFactor(0.85)

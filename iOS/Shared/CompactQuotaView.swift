@@ -60,7 +60,7 @@ struct AccountLockView: View {
     // Preserve its 14pt typography, 60pt dial, 2pt gap and final-row offset.
     private func accessoryMetric(_ window: QuotaWindow?) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 3) {
-            Text(window.map { "\(Int($0.usedPercent.rounded()))%" } ?? "N/A").monospacedDigit()
+            Text(window.map { "\($0.displayPercent)%" } ?? "N/A").monospacedDigit()
             Text(window?.compactLabel ?? "")
         }.font(.system(size: 14, weight: .medium)).lineLimit(1)
     }

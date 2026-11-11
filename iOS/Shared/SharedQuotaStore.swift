@@ -476,7 +476,7 @@ enum MobileResetNotifications {
             let content = UNMutableNotificationContent()
             content.title = "\(displayName(service, namespace: namespace)) \(window.resetLabel) "
                 + (level == 100 ? "limit reached" : "usage high")
-            content.body = "\(Int(window.usedPercent.rounded()))% used. Open AIQuota for current usage."
+            content.body = "\(window.displayPercent)% used. Open AIQuota for current usage."
             content.sound = .default
             try await UNUserNotificationCenter.current().add(UNNotificationRequest(
                 identifier: usageIdentifier(service, label, namespace: namespace), content: content, trigger: nil

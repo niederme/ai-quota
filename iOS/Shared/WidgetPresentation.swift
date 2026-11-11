@@ -107,7 +107,7 @@ enum WidgetCopy {
     }
     static func metric(_ window: QuotaWindow?) -> String {
         guard let window else { return "N/A" }
-        return "\(Int(window.usedPercent.rounded()))% \(key(window))"
+        return "\(window.displayPercent)% \(key(window))"
     }
     static func reset(_ reset: Date?, at date: Date, compact: Bool = false,
                       calendar: Calendar = .autoupdatingCurrent) -> String {
@@ -216,7 +216,7 @@ struct AccountWidgetDial: View {
                             Text(reading?.primaryWindow.map(WidgetCopy.metric) ?? "N/A 5h")
                             Text(reading?.secondaryWindow.map(WidgetCopy.metric) ?? "N/A 7d").opacity(0.7)
                         } else {
-                            Text(reading?.primaryDisplayWindow.map { "\(Int($0.usedPercent.rounded()))%" } ?? "N/A")
+                            Text(reading?.primaryDisplayWindow.map { "\($0.displayPercent)%" } ?? "N/A")
                             Text(WidgetCopy.key(reading?.primaryDisplayWindow)).opacity(0.7)
                         }
                     }
