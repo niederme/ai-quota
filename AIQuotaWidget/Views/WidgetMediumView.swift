@@ -235,7 +235,8 @@ private func widgetCreditAmount(_ amount: Double) -> String {
 
 private struct WidgetHeaderView: View {
     let title: String
-    let showsMonthly: Bool
+    /// Calendar-month key ("30d") when the ring shows a monthly budget.
+    let monthlyLabel: String?
 
     var body: some View {
         HStack(spacing: 8) {
@@ -250,8 +251,8 @@ private struct WidgetHeaderView: View {
             Text(title).privacySensitive()
                 .font(.system(size: 13, weight: .semibold))
             Spacer()
-            if showsMonthly {
-                ringKey(label: "Monthly", opacity: 1.0)
+            if let monthlyLabel {
+                ringKey(label: monthlyLabel, opacity: 1.0)
             } else {
                 ringKey(label: "5h", opacity: 1.0)
                 ringKey(label: "7d", opacity: 0.5)
@@ -727,7 +728,10 @@ struct WidgetLargeView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            WidgetHeaderView(title: "AIQuota", showsMonthly: entry.codexUsage?.reportedWindowShape == nil && entry.codexUsage?.displayableMonthlyBudget != nil)
+            WidgetHeaderView(title: "AIQuota", monthlyLabel: entry.codexUsage.flatMap {
+                $0.reportedWindowShape == nil && $0.displayableMonthlyBudget != nil
+                    ? CalendarMonthLabel.compact(containing: $0.fetchedAt) : nil
+            })
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
                 .padding(.bottom, 12)

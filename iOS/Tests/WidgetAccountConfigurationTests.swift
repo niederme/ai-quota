@@ -193,7 +193,7 @@ extension WidgetAccountConfigurationTests {
         """.utf8), now: now)
         let budget = WidgetAccountContent(id: "budget", value: .init(service: .codex, reading: reading, needsApp: false))
         XCTAssertEqual(budget.worstPercent, 66)
-        XCTAssertEqual(WidgetCopy.key(reading.primaryDisplayWindow), "31d")
+        XCTAssertEqual(WidgetCopy.key(reading.primaryDisplayWindow), MonthlyBudget.periodLabel(containing: now))
         let reconnect = WidgetAccountContent(id: "reconnect", value: .init(service: .codex, reading: reading, needsApp: true))
         XCTAssertEqual(reconnect.status(at: now), "Reconnect to update")
         XCTAssertFalse(reconnect.accessibility(at: now).contains(" resets "))
