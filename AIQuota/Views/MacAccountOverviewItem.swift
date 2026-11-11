@@ -244,12 +244,14 @@ struct MacAccountCard: View {
                 }
             } else if let usage = codexUsage, usage.reportedWindowShape != nil {
                 VStack(alignment: .leading, spacing: 0) {
-                    resetCaption(at: usage.reportedWindowShape == .dual ? usage.hourlyResetAt : usage.weeklyResetAt)
+                    resetCaption(primaryLabel, at: usage.reportedWindowShape == .dual ? usage.hourlyResetAt : usage.weeklyResetAt)
                     if usage.reportedWindowShape == .dual { resetCaption("7d", at: usage.weeklyResetAt) }
                 }
             } else if let usage = claudeUsage {
                 VStack(alignment: .leading, spacing: 0) {
-                    resetCaption(at: usage.resetAt)
+                    // Spend limits and unknown metrics aren't time windows, so they stay unprefixed.
+                    let isTimeWindow = usage.primaryMetric.kind == .fiveHour || usage.primaryMetric.kind == .sevenDay
+                    resetCaption(isTimeWindow ? usage.primaryMetricLabel : nil, at: usage.resetAt)
                     if secondaryPercent != nil { resetCaption("7d", at: usage.sevenDayResetsAt) }
                 }
             }
