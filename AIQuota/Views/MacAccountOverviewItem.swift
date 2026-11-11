@@ -239,17 +239,17 @@ struct MacAccountCard: View {
                         .font(.system(size: 13).monospacedDigit())
                         .foregroundStyle(Color.overviewResetAccent)
                     if let reset = budget.reset {
-                        resetCaption(at: reset)
+                        resetCaption("Monthly", at: reset)
                     }
                 }
             } else if let usage = codexUsage, usage.reportedWindowShape != nil {
                 VStack(alignment: .leading, spacing: 0) {
-                    resetCaption(at: usage.reportedWindowShape == .dual ? usage.hourlyResetAt : usage.weeklyResetAt)
+                    resetCaption(primaryLabel, at: usage.reportedWindowShape == .dual ? usage.hourlyResetAt : usage.weeklyResetAt)
                     if usage.reportedWindowShape == .dual { resetCaption("7d", at: usage.weeklyResetAt) }
                 }
             } else if let usage = claudeUsage {
                 VStack(alignment: .leading, spacing: 0) {
-                    resetCaption(at: usage.resetAt)
+                    resetCaption(primaryLabel, at: usage.resetAt)
                     if secondaryPercent != nil { resetCaption("7d", at: usage.sevenDayResetsAt) }
                 }
             }
@@ -290,22 +290,27 @@ struct MacAccountCard: View {
         return nil
     }
 
-    private func resetCaption(_ window: String? = nil, at date: Date?) -> some View {
+    private func resetCaption(_ window: String, at date: Date?) -> some View {
         Text(resetText(window, at: date))
             .font(.system(size: 13).monospacedDigit())
             .foregroundStyle(Color.overviewResetAccent)
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    private func resetText(_ window: String?, at date: Date?) -> String {
-        let prefix = window.map { "\($0) " } ?? ""
+    // Every caption names its window ("5h resets Wed 3:00 AM"), worded like
+    // the iOS card's QuotaWindow.resetDescription so both platforms read the same.
+    private func resetText(_ window: String, at date: Date?) -> String {
         guard let date, date != .distantFuture, date != .distantPast else {
-            return "\(prefix)Reset time unavailable"
+            return "\(window) reset unavailable"
         }
-        guard date > .now else { return "\(prefix)Reset unconfirmed" }
-        let day = date.formatted(.dateTime.weekday(.abbreviated))
-        let time = date.formatted(.dateTime.hour().minute())
-        return "\(prefix)Resets \(day) at \(time)"
+        let now = Date.now
+        guard date > now else { return "\(window) reset unconfirmed" }
+        let format: Date.FormatStyle = Calendar.current.isDate(date, inSameDayAs: now)
+            ? .dateTime.hour().minute()
+            : window == "Monthly" || date.timeIntervalSince(now) >= 6 * 86400
+                ? .dateTime.month(.abbreviated).day().hour().minute()
+                : .dateTime.weekday(.abbreviated).hour().minute()
+        return "\(window) resets \(date.formatted(format))"
     }
 
     private func amount(_ value: Double, currency: String?) -> String {
