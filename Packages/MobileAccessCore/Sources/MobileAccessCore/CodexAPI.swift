@@ -89,10 +89,20 @@ public struct QuotaWindow: Codable, Sendable, Equatable, Identifiable {
             ? "\(durationSeconds / 86400)d" : "\(durationSeconds / 3600)h"
     }
     public var resetLabel: String { compactLabel }
+    /// The reset time has passed but no reading has confirmed the new window yet.
+    /// The app never assumes 0% for that window; it keeps the last reading.
+    public func awaitsConfirmation(at date: Date = .now) -> Bool {
+        resetsAt.map { $0 <= date } ?? false
+    }
+    /// Shown once in place of one line per window when every window has passed.
+    public static let combinedAwaitingConfirmation = "Reset awaiting confirmation"
+    public static func allAwaitConfirmation(_ windows: [QuotaWindow], at date: Date = .now) -> Bool {
+        windows.count > 1 && windows.allSatisfy { $0.awaitsConfirmation(at: date) }
+    }
     public var accessibilitySummary: String { "\(label): \(Int(usedPercent.rounded())) percent used" }
     public func resetDescription(relativeTo date: Date = .now, compact: Bool = false) -> String {
         guard let reset = resetsAt else { return "reset unavailable" }
-        guard reset > date else { return "reset unconfirmed" }
+        guard reset > date else { return "reset awaiting confirmation" }
         if compact, label == "Monthly" {
             return "resets \(reset.formatted(.dateTime.month(.abbreviated).day()))"
         }

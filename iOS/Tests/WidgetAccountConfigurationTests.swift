@@ -207,7 +207,7 @@ extension WidgetAccountConfigurationTests {
         XCTAssertEqual(WidgetCopy.reset(now.addingTimeInterval(3600), at: now, compact: true, calendar: calendar), "1P")
         XCTAssertEqual(WidgetCopy.reset(now.addingTimeInterval(86400), at: now, calendar: calendar), "Thu 12:00 PM")
         XCTAssertEqual(WidgetCopy.reset(now.addingTimeInterval(7 * 86400), at: now, calendar: calendar), "Nov 4")
-        XCTAssertEqual(WidgetCopy.reset(now, at: now), "Reset unconfirmed")
+        XCTAssertEqual(WidgetCopy.reset(now, at: now), "Awaiting confirmation")
         XCTAssertEqual(WidgetCopy.reset(nil, at: now), "Reset unavailable")
     }
 

@@ -1,6 +1,17 @@
 import Foundation
 
 public enum ResetTimeTextFormatter {
+    /// Shown once in place of one caption per window when every window's reset
+    /// time has passed without a fresh reading (for example a full Codex reset).
+    public static let combinedAwaitingCaption = "Reset awaiting confirmation"
+
+    public static func allAwaitingConfirmation(_ resets: [Date?], now: Date = .now) -> Bool {
+        resets.count > 1 && resets.allSatisfy { reset in
+            guard let reset, reset != .distantFuture, reset != .distantPast else { return false }
+            return reset <= now
+        }
+    }
+
     public static func windowCaption(
         _ windowLabel: String,
         resetAt: Date?,
@@ -27,7 +38,7 @@ public enum ResetTimeTextFormatter {
         guard let resetAt, resetAt != .distantFuture, resetAt != .distantPast else {
             return "\(label) reset unavailable"
         }
-        return resetAt <= now ? "\(label) reset unconfirmed" : nil
+        return resetAt <= now ? "\(label) reset awaiting confirmation" : nil
     }
 
     private static func resetPhrase(

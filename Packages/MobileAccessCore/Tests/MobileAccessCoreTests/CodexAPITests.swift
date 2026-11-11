@@ -194,7 +194,23 @@ private let now = Date(timeIntervalSince1970: 1_800_000_000)
     let monthly = QuotaWindow(usedPercent: 4, durationSeconds: 2592000, resetsAt: reset)
     #expect(monthly.resetDescription(relativeTo: now) == "resets \(reset.formatted(.dateTime.month(.abbreviated).day().hour().minute()))")
     #expect(monthly.resetDescription(relativeTo: now, compact: true) == "resets \(reset.formatted(.dateTime.month(.abbreviated).day()))")
-    #expect(monthly.resetDescription(relativeTo: reset) == "reset unconfirmed")
+    #expect(monthly.resetDescription(relativeTo: reset) == "reset awaiting confirmation")
     let unavailable = QuotaWindow(usedPercent: 4, durationSeconds: 2592000, resetsAt: nil)
     #expect(unavailable.resetDescription(relativeTo: now) == "reset unavailable")
+}
+
+@Test func passedResetsCollapseToOneLineOnlyWhenEveryWindowHasPassed() {
+    let shortTerm = QuotaWindow(usedPercent: 40, durationSeconds: 18000, resetsAt: now.addingTimeInterval(-60))
+    let weeklyPassed = QuotaWindow(usedPercent: 70, durationSeconds: 604800, resetsAt: now)
+    let weeklyFuture = QuotaWindow(usedPercent: 70, durationSeconds: 604800, resetsAt: now.addingTimeInterval(86400))
+    let unknown = QuotaWindow(usedPercent: 70, durationSeconds: 604800, resetsAt: nil)
+    #expect(shortTerm.awaitsConfirmation(at: now))
+    #expect(!weeklyFuture.awaitsConfirmation(at: now))
+    #expect(!unknown.awaitsConfirmation(at: now))
+    #expect(QuotaWindow.allAwaitConfirmation([shortTerm, weeklyPassed], at: now))
+    #expect(!QuotaWindow.allAwaitConfirmation([shortTerm, weeklyFuture], at: now))
+    #expect(!QuotaWindow.allAwaitConfirmation([shortTerm, unknown], at: now))
+    // A single window keeps its own key ("7d reset awaiting confirmation").
+    #expect(!QuotaWindow.allAwaitConfirmation([weeklyPassed], at: now))
+    #expect(QuotaWindow.combinedAwaitingConfirmation == "Reset awaiting confirmation")
 }

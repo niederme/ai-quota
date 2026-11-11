@@ -244,13 +244,23 @@ struct MacAccountCard: View {
                 }
             } else if let usage = codexUsage, usage.reportedWindowShape != nil {
                 VStack(alignment: .leading, spacing: 0) {
-                    resetCaption(primaryLabel, at: usage.reportedWindowShape == .dual ? usage.hourlyResetAt : usage.weeklyResetAt)
-                    if usage.reportedWindowShape == .dual { resetCaption("7d", at: usage.weeklyResetAt) }
+                    if usage.reportedWindowShape == .dual,
+                       ResetTimeTextFormatter.allAwaitingConfirmation([usage.hourlyResetAt, usage.weeklyResetAt]) {
+                        awaitingCaption
+                    } else {
+                        resetCaption(primaryLabel, at: usage.reportedWindowShape == .dual ? usage.hourlyResetAt : usage.weeklyResetAt)
+                        if usage.reportedWindowShape == .dual { resetCaption("7d", at: usage.weeklyResetAt) }
+                    }
                 }
             } else if let usage = claudeUsage {
                 VStack(alignment: .leading, spacing: 0) {
-                    resetCaption(primaryLabel, at: usage.resetAt)
-                    if secondaryPercent != nil { resetCaption("7d", at: usage.sevenDayResetsAt) }
+                    if secondaryPercent != nil,
+                       ResetTimeTextFormatter.allAwaitingConfirmation([usage.resetAt, usage.sevenDayResetsAt]) {
+                        awaitingCaption
+                    } else {
+                        resetCaption(primaryLabel, at: usage.resetAt)
+                        if secondaryPercent != nil { resetCaption("7d", at: usage.sevenDayResetsAt) }
+                    }
                 }
             }
             if needsReconnect {
@@ -290,6 +300,14 @@ struct MacAccountCard: View {
         return nil
     }
 
+    // Every window passed at once (a full reset): one line instead of repeating it per window.
+    private var awaitingCaption: some View {
+        Text(ResetTimeTextFormatter.combinedAwaitingCaption)
+            .font(.system(size: 13).monospacedDigit())
+            .foregroundStyle(Color.overviewResetAccent)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
     private func resetCaption(_ window: String, at date: Date?, monthly: Bool = false) -> some View {
         Text(resetText(window, at: date, monthly: monthly))
             .font(.system(size: 13).monospacedDigit())
@@ -304,7 +322,7 @@ struct MacAccountCard: View {
             return "\(window) reset unavailable"
         }
         let now = Date.now
-        guard date > now else { return "\(window) reset unconfirmed" }
+        guard date > now else { return "\(window) reset awaiting confirmation" }
         let format: Date.FormatStyle = Calendar.current.isDate(date, inSameDayAs: now)
             ? .dateTime.hour().minute()
             : monthly || date.timeIntervalSince(now) >= 6 * 86400

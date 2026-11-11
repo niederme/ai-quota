@@ -1060,8 +1060,16 @@ struct ProviderDialCardContent: View {
             }
             if connected {
                 VStack(alignment: .leading, spacing: 0) {
-                    ForEach(reading?.windows ?? []) { window in
-                        resetCaption(window, label: window.resetLabel)
+                    if let windows = reading?.windows, QuotaWindow.allAwaitConfirmation(windows) {
+                        // Every window passed at once (a full reset): one line, not one per window.
+                        Text(QuotaWindow.combinedAwaitingConfirmation)
+                            .modifier(OverviewDetailType(weight: .regular, wide: usesWideLayout))
+                            .foregroundStyle(resetTextColor)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else {
+                        ForEach(reading?.windows ?? []) { window in
+                            resetCaption(window, label: window.resetLabel)
+                        }
                     }
                     if let budget = reading?.monthlyBudget {
                         // Same purple as the reset captions, matching the Mac card's budget line.

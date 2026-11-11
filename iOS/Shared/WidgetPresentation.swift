@@ -113,7 +113,7 @@ enum WidgetCopy {
                       calendar: Calendar = .autoupdatingCurrent) -> String {
         guard let reset, reset.timeIntervalSince1970.isFinite,
               reset.timeIntervalSince1970 < 253402300800 else { return "Reset unavailable" }
-        guard reset > date else { return "Reset unconfirmed" }
+        guard reset > date else { return "Awaiting confirmation" }
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.calendar = calendar
