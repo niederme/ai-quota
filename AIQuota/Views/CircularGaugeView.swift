@@ -182,7 +182,11 @@ struct CircularGaugeView: View {
                 .foregroundStyle(.foreground)
 
             VStack(spacing: 0) {
-                if showsPrimaryMetric {
+                if showsPrimaryMetric && showsSecondaryMetric && bothAwaitConfirmation {
+                    Text(ResetTimeTextFormatter.combinedAwaitingCaption)
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(primaryCaptionStyle)
+                } else if showsPrimaryMetric {
                     Text(primaryCountdownText)
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(primaryCaptionStyle)
@@ -192,13 +196,17 @@ struct CircularGaugeView: View {
                         .foregroundStyle(.tertiary)
                 }
 
-                if !isLoading && showsSecondaryMetric {
+                if !isLoading && showsSecondaryMetric && !(showsPrimaryMetric && bothAwaitConfirmation) {
                     Text(secondaryCountdownText)
                         .font(.caption2.monospacedDigit())
                         .foregroundStyle(secondaryCaptionStyle)
                 }
             }
         }
+    }
+
+    private var bothAwaitConfirmation: Bool {
+        ResetTimeTextFormatter.allAwaitingConfirmation([resetAt, weeklyResetAt])
     }
 
     private var primaryCountdownText: String {

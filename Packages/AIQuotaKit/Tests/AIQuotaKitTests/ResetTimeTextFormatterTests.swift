@@ -73,9 +73,20 @@ struct ResetTimeTextFormatterTests {
     @Test("expired dates do not promise a reset")
     func expiredResetNeedsConfirmation() {
         let now = Date()
-        #expect(ResetTimeTextFormatter.windowCaption("7d", resetAt: now, now: now) == "7d reset unconfirmed")
-        #expect(ResetTimeTextFormatter.compactWindowCaption("7d", resetAt: now.addingTimeInterval(-60), now: now) == "7d reset unconfirmed")
+        #expect(ResetTimeTextFormatter.windowCaption("7d", resetAt: now, now: now) == "7d reset awaiting confirmation")
+        #expect(ResetTimeTextFormatter.compactWindowCaption("7d", resetAt: now.addingTimeInterval(-60), now: now) == "7d reset awaiting confirmation")
         #expect(ResetTimeTextFormatter.compactWindowCaption("5h", resetAt: nil) == "5h reset unavailable")
+    }
+
+    @Test("a full reset shows one awaiting-confirmation line")
+    func allPassedResetsCollapse() {
+        let now = Date()
+        #expect(ResetTimeTextFormatter.allAwaitingConfirmation([now.addingTimeInterval(-60), now], now: now))
+        #expect(!ResetTimeTextFormatter.allAwaitingConfirmation([now.addingTimeInterval(-60), now.addingTimeInterval(60)], now: now))
+        #expect(!ResetTimeTextFormatter.allAwaitingConfirmation([now.addingTimeInterval(-60), nil], now: now))
+        #expect(!ResetTimeTextFormatter.allAwaitingConfirmation([now.addingTimeInterval(-60), .distantPast], now: now))
+        #expect(!ResetTimeTextFormatter.allAwaitingConfirmation([now.addingTimeInterval(-60)], now: now))
+        #expect(ResetTimeTextFormatter.combinedAwaitingCaption == "Reset awaiting confirmation")
     }
 
     @Test("next week's same weekday includes the calendar date")

@@ -56,7 +56,7 @@ public struct MonthlyBudget: Codable, Sendable, Equatable {
     public func resetDescription(readingAt: Date, relativeTo date: Date = .now) -> String {
         let period = Self.periodLabel(containing: readingAt)
         guard let resetsAt else { return "\(period) reset unavailable" }
-        guard resetsAt > date else { return "\(period) reset unconfirmed" }
+        guard resetsAt > date else { return "\(period) reset awaiting confirmation" }
         return "\(period) resets \(resetsAt.formatted(.dateTime.month(.abbreviated).day().hour().minute()))"
     }
 
