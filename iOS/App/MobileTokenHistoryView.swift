@@ -43,7 +43,6 @@ struct MobileTokenHistoryView: View {
                         }
                     }
                 }
-                .frame(minHeight: 44, alignment: .top)
                 .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("tokenActivityGrid")
             }
@@ -54,7 +53,8 @@ struct MobileTokenHistoryView: View {
             .accessibilityHint("Faint cells show days without usage. Dates are in UTC. " + CodexTokenActivityScale.explanation)
         }
     }
-    /// Add earlier weeks instead of enlarging cells or leaving a blank trailing strip.
+    /// At least a year, like the Mac. Wider cards add earlier weeks instead of
+    /// enlarging cells or leaving a blank trailing strip.
     static func weekCount(for width: CGFloat) -> Int {
         max(CodexTokenHistory.visibleWeeks, Int(ceil((width + cellGap) / (maximumCellSide + cellGap))))
     }
@@ -63,7 +63,7 @@ struct MobileTokenHistoryView: View {
         return min(maximumCellSide, max(1, (width - CGFloat(weeks - 1) * cellGap) / CGFloat(weeks)))
     }
     static func graphHeight(for width: CGFloat) -> CGFloat {
-        max(44, 7 * cellSide(for: width) + 6 * cellGap)
+        7 * cellSide(for: width) + 6 * cellGap
     }
     private var graphHeight: CGFloat { Self.graphHeight(for: availableWidth) }
     private func fill(_ day: CodexTokenHistory.Day, scale: CodexTokenActivityScale) -> Color {

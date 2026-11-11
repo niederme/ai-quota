@@ -56,7 +56,9 @@ public struct CodexTokenHistory: Codable, Sendable {
         return formatter
     }
 
-    public static let visibleWeeks = 42
+    /// One year, matching the Mac grid. OpenAI returns the account's whole history,
+    /// so earlier weeks fill in as the account ages.
+    public static let visibleWeeks = 52
 
     /// Sunday-first columns; the current week is always the rightmost.
     public func days(now: Date = .now, weeks: Int = Self.visibleWeeks) -> [Day] {

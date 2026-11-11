@@ -8,7 +8,7 @@ final class TokenHistoryReviewTests: XCTestCase {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
         let previous = scene.windows.first(where: \.isKeyWindow)
         let history = try XCTUnwrap(DemoQuotaData.tokenHistory())
-        XCTAssertEqual(history.days().count, 294)
+        XCTAssertEqual(history.days().count, 364)
         for (width, textSize) in [(320.0, DynamicTypeSize.large), (440.0, .large), (669.0, .large), (780.0, .large), (780.0, .accessibility1)] {
             for (name, scheme) in [("light", ColorScheme.light), ("dark", .dark)] {
                 let content = NavigationStack {
@@ -64,13 +64,14 @@ final class TokenHistoryReviewTests: XCTestCase {
         XCTAssertNil(zero.tokensByDate["2026-10-07"])
     }
 
-    @MainActor func testFortyTwoWeekGridFillsCardWithSquareCells() {
+    @MainActor func testOneYearGridFillsCardWithSquareCells() {
         for width: CGFloat in [256, 288, 329, 376] {
             let side = MobileTokenHistoryView.cellSide(for: width)
             let gap = MobileTokenHistoryView.cellGap
-            XCTAssertEqual(42 * side + 41 * gap, width, accuracy: 0.01)
-            XCTAssertEqual(MobileTokenHistoryView.graphHeight(for: width), max(44, 7 * side + 6 * gap), accuracy: 0.01)
-            XCTAssertGreaterThan(side, 4)
+            XCTAssertEqual(MobileTokenHistoryView.weekCount(for: width), 52)
+            XCTAssertEqual(52 * side + 51 * gap, width, accuracy: 0.01)
+            XCTAssertEqual(MobileTokenHistoryView.graphHeight(for: width), 7 * side + 6 * gap, accuracy: 0.01)
+            XCTAssertGreaterThan(side, 3.5)
             XCTAssertLessThan(side, 9)
         }
     }
