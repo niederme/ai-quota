@@ -667,7 +667,7 @@ struct PopoverView: View {
 
     private func claudeAccessibilitySummary(_ u: ClaudeUsage) -> String {
         var lines = [
-            "\(u.primaryMetricLabel) usage: \(u.primaryMetric.utilization.map { "\(Int($0.rounded()))% used" } ?? "unknown")",
+            "\(u.primaryMetricLabel) usage: \(u.primaryMetric.utilization.map { "\(UsagePercentage.roundedForDisplay($0))% used" } ?? "unknown")",
         ]
         if u.primaryMetric.kind != .sevenDay, let sevenDay = u.sevenDayUtilization {
             lines.append("7-day window: \(Int(sevenDay.rounded()))% used")

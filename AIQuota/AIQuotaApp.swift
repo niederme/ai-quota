@@ -198,9 +198,9 @@ private struct MenuBarStatusLabel: View {
         if account.provider == .codex {
             let usage = session?.codexUsage ?? (primary ? viewModel.codexUsage : nil)
             if let budget = usage?.displayableMonthlyBudget, let percent = budget.utilization {
-                let used = Int(percent.rounded())
+                let used = UsagePercentage.roundedForDisplay(percent)
                 return MenuBarGaugeInput(usedPercent: used, secondaryPercent: 0,
-                                         limitReached: used >= 100, isLoading: loading,
+                                         limitReached: percent >= 100, isLoading: loading,
                                          worstPercent: used, showsSecondaryMetric: false)
             }
             let dual = usage?.reportedWindowShape == .dual
@@ -212,7 +212,7 @@ private struct MenuBarStatusLabel: View {
         }
         let usage = session?.claudeUsage ?? (primary ? viewModel.claudeUsage : nil)
         let used = usage?.usedPercent ?? 0
-        let weekly = Int(usage?.sevenDayUtilization?.rounded() ?? 0)
+        let weekly = UsagePercentage.roundedForDisplay(usage?.sevenDayUtilization ?? 0)
         return MenuBarGaugeInput(usedPercent: used, secondaryPercent: weekly,
                                  limitReached: usage?.limitReached ?? false, isLoading: loading,
                                  worstPercent: max(used, weekly),

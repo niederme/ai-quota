@@ -62,7 +62,7 @@ struct BudgetStripView: View {
                     .font(.caption2.monospacedDigit().bold())
                     .foregroundStyle(.foreground)
                 Spacer(minLength: 4)
-                Text("\(Int(extra.utilization.rounded()))%")
+                Text("\(UsagePercentage.roundedForDisplay(extra.utilization))%")
                     .font(.caption2.monospacedDigit().bold())
                     .foregroundStyle(color)
             }
