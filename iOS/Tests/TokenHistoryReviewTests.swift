@@ -4,7 +4,7 @@ import MobileAccessCore
 @testable import AIQuota_iOS
 
 final class TokenHistoryReviewTests: XCTestCase {
-    @MainActor func testFortyTwoWeekGridNarrowLargeLightDark() async throws {
+    @MainActor func testOneYearGridNarrowLargeLightDark() async throws {
         let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.first as? UIWindowScene)
         let previous = scene.windows.first(where: \.isKeyWindow)
         let history = try XCTUnwrap(DemoQuotaData.tokenHistory())
