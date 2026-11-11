@@ -168,7 +168,7 @@ private let now = Date(timeIntervalSince1970: 1_800_000_000)
     #expect(reading.shortTerm == nil)
     #expect(reading.windows.count == 1)
     #expect(reading.primaryWindow?.label == "Monthly")
-    #expect(reading.primaryWindow?.compactLabel == "m")
+    #expect(reading.primaryWindow?.compactLabel == "30d")
     #expect(reading.primaryWindow?.usedPercent == 4)
     #expect(reading.secondaryWindow == nil)
     #expect(reading.accessibilitySummary == "Monthly: 4 percent used")
@@ -180,7 +180,7 @@ private let now = Date(timeIntervalSince1970: 1_800_000_000)
 
 @Test func labelsFollowDurationsRatherThanPlanNames() throws {
     for (seconds, label, compact) in [(18000, "5 hours", "5h"), (604800, "Weekly", "7d"),
-                                      (2592000, "Monthly", "m"), (1209600, "14 days", "14d")] {
+                                      (2592000, "Monthly", "30d"), (2678400, "Monthly", "31d"), (2419200, "Monthly", "28d"), (1209600, "14 days", "14d")] {
         let data = Data("{\"plan_type\":\"free\",\"rate_limit\":{\"primary_window\":{\"used_percent\":0,\"limit_window_seconds\":\(seconds)}}}".utf8)
         let reading = try QuotaReading.decode(data, now: now)
         #expect(reading.primaryWindow?.label == label)

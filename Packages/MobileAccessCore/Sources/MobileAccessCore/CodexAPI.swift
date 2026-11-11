@@ -83,11 +83,12 @@ public struct CodexTokens: Codable, Sendable {
 public struct QuotaWindow: Codable, Sendable, Equatable, Identifiable {
     public var id: Int { durationSeconds }
     public var compactLabel: String {
-        if label == "Monthly" { return "m" }
+        // Month-long windows show their length in days ("30d"), like 5h and 7d.
+        if label == "Monthly" { return "\(Int((Double(durationSeconds) / 86400).rounded()))d" }
         return durationSeconds.isMultiple(of: 86400)
             ? "\(durationSeconds / 86400)d" : "\(durationSeconds / 3600)h"
     }
-    public var resetLabel: String { label == "Monthly" ? label : compactLabel }
+    public var resetLabel: String { compactLabel }
     public var accessibilitySummary: String { "\(label): \(Int(usedPercent.rounded())) percent used" }
     public func resetDescription(relativeTo date: Date = .now, compact: Bool = false) -> String {
         guard let reset = resetsAt else { return "reset unavailable" }
@@ -131,7 +132,9 @@ public struct QuotaReading: Codable, Sendable, Equatable {
     public var budgetOnly: MonthlyBudget? { windows.isEmpty ? monthlyBudget : nil }
     public var primaryDisplayWindow: QuotaWindow? {
         primaryWindow ?? budgetOnly.map {
-            QuotaWindow(usedPercent: $0.usedPercent, durationSeconds: 30 * 86400, resetsAt: $0.resetsAt)
+            QuotaWindow(usedPercent: $0.usedPercent,
+                        durationSeconds: MonthlyBudget.periodDays(containing: fetchedAt) * 86400,
+                        resetsAt: $0.resetsAt)
         }
     }
     public var accessibilitySummary: String {

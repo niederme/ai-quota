@@ -239,7 +239,7 @@ struct MacAccountCard: View {
                         .font(.system(size: 13).monospacedDigit())
                         .foregroundStyle(Color.overviewResetAccent)
                     if let reset = budget.reset {
-                        resetCaption("Monthly", at: reset)
+                        resetCaption(primaryLabel, at: reset, monthly: true)
                     }
                 }
             } else if let usage = codexUsage, usage.reportedWindowShape != nil {
@@ -290,8 +290,8 @@ struct MacAccountCard: View {
         return nil
     }
 
-    private func resetCaption(_ window: String, at date: Date?) -> some View {
-        Text(resetText(window, at: date))
+    private func resetCaption(_ window: String, at date: Date?, monthly: Bool = false) -> some View {
+        Text(resetText(window, at: date, monthly: monthly))
             .font(.system(size: 13).monospacedDigit())
             .foregroundStyle(Color.overviewResetAccent)
             .fixedSize(horizontal: false, vertical: true)
@@ -299,7 +299,7 @@ struct MacAccountCard: View {
 
     // Every caption names its window ("5h resets Wed 3:00 AM"), worded like
     // the iOS card's QuotaWindow.resetDescription so both platforms read the same.
-    private func resetText(_ window: String, at date: Date?) -> String {
+    private func resetText(_ window: String, at date: Date?, monthly: Bool) -> String {
         guard let date, date != .distantFuture, date != .distantPast else {
             return "\(window) reset unavailable"
         }
@@ -307,7 +307,7 @@ struct MacAccountCard: View {
         guard date > now else { return "\(window) reset unconfirmed" }
         let format: Date.FormatStyle = Calendar.current.isDate(date, inSameDayAs: now)
             ? .dateTime.hour().minute()
-            : window == "Monthly" || date.timeIntervalSince(now) >= 6 * 86400
+            : monthly || date.timeIntervalSince(now) >= 6 * 86400
                 ? .dateTime.month(.abbreviated).day().hour().minute()
                 : .dateTime.weekday(.abbreviated).hour().minute()
         return "\(window) resets \(date.formatted(format))"

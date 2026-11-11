@@ -106,7 +106,7 @@ final class MultiAccountFlowTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Business plan"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["credits this month"].exists)
         XCTAssertTrue(app.staticTexts.matching(
-            NSPredicate(format: "label BEGINSWITH %@", "Monthly resets")
+            NSPredicate(format: "label MATCHES %@", "(28|29|30|31)d resets .*")
         ).firstMatch.exists)
         let overview = XCTAttachment(screenshot: app.screenshot())
         overview.name = "Business monthly reset and credits"

@@ -146,7 +146,7 @@ extension HomeWidgetTests {
                 name: "history-\(count)", width: 370, height: 260)
         }
         XCTAssertEqual(monthly.windows.count, 1)
-        XCTAssertEqual(monthly.primaryWindow?.compactLabel, "m")
+        XCTAssertEqual(monthly.primaryWindow?.compactLabel, "30d")
     }
 }
 

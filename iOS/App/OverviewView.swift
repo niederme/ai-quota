@@ -1069,7 +1069,7 @@ struct ProviderDialCardContent: View {
                             .modifier(OverviewDetailType(wide: usesWideLayout)).foregroundStyle(resetTextColor)
                         Text(budget.unitLabel).modifier(OverviewDetailType(wide: usesWideLayout))
                             .foregroundStyle(resetTextColor)
-                        if let reset = budget.confirmedResetDescription() {
+                        if let reading, let reset = budget.confirmedResetDescription(readingAt: reading.fetchedAt) {
                             Text(reset).modifier(OverviewDetailType(wide: usesWideLayout))
                                 .foregroundStyle(resetTextColor)
                         }
@@ -1134,10 +1134,12 @@ struct ProviderDialCardContent: View {
                 Image(icon).resizable().scaledToFit().frame(width: 18 * scale, height: 18 * scale)
                 VStack(spacing: 2 * scale) {
                     if let budget = budgetOnly {
-                        Text("\(Int(budget.usedPercent.rounded()))%")
+                        // One line, "44% 30d", like the Mac dial: the key is the
+                        // calendar month's length and takes the ring's tint.
+                        Text("\(Int(budget.usedPercent.rounded()))% \(MonthlyBudget.periodLabel(containing: reading?.fetchedAt ?? .now))")
                             .font(.system(size: 16 * scale, weight: .semibold).monospacedDigit())
-                        // The period label keys the ring, so it takes the ring's tint (as on Mac).
-                        Text("Monthly").font(.system(size: 13 * scale))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
                     } else {
                         dialValue(primary, label: primary?.compactLabel ?? "5h")
                     }

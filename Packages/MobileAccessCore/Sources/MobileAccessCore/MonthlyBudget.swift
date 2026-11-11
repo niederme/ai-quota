@@ -36,15 +36,28 @@ public struct MonthlyBudget: Codable, Sendable, Equatable {
         }
     }
 
-    public func confirmedResetDescription(relativeTo date: Date = .now) -> String? {
-        guard let resetsAt, resetsAt > date else { return nil }
-        return "Monthly resets \(resetsAt.formatted(.dateTime.month(.abbreviated).day().hour().minute()))"
+    /// Budgets run for a calendar month, so the key is that month's length
+    /// ("28d", "30d", "31d"), anchored to the reading like the Mac's CalendarMonthLabel.
+    public static func periodDays(containing readingAt: Date) -> Int {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        return calendar.range(of: .day, in: .month, for: readingAt)?.count ?? 30
     }
 
-    public func resetDescription(relativeTo date: Date = .now) -> String {
-        guard let resetsAt else { return "Monthly reset unavailable" }
-        guard resetsAt > date else { return "Monthly reset unconfirmed" }
-        return "Monthly resets \(resetsAt.formatted(.dateTime.month(.abbreviated).day().hour().minute()))"
+    public static func periodLabel(containing readingAt: Date) -> String {
+        "\(periodDays(containing: readingAt))d"
+    }
+
+    public func confirmedResetDescription(readingAt: Date, relativeTo date: Date = .now) -> String? {
+        guard let resetsAt, resetsAt > date else { return nil }
+        return "\(Self.periodLabel(containing: readingAt)) resets \(resetsAt.formatted(.dateTime.month(.abbreviated).day().hour().minute()))"
+    }
+
+    public func resetDescription(readingAt: Date, relativeTo date: Date = .now) -> String {
+        let period = Self.periodLabel(containing: readingAt)
+        guard let resetsAt else { return "\(period) reset unavailable" }
+        guard resetsAt > date else { return "\(period) reset unconfirmed" }
+        return "\(period) resets \(resetsAt.formatted(.dateTime.month(.abbreviated).day().hour().minute()))"
     }
 
     public var accessibilitySummary: String {

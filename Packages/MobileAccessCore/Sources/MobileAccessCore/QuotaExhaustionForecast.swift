@@ -59,7 +59,7 @@ public struct QuotaForecastInput: Equatable, Sendable {
               let plan = reading.metadata?.plan, !plan.isEmpty, plan.lowercased() != "unknown",
               provider == "codex" || provider == "claude" else { return [] }
         // Budget-only responses supply no period start/duration. Do not invent a
-        // calendar month, including the synthetic 30-day primaryDisplayWindow.
+        // calendar month, including the synthetic calendar-month primaryDisplayWindow.
         return reading.windows.compactMap { value in
             guard let reset = value.resetsAt else { return nil }
             let window: QuotaForecastScope.Window

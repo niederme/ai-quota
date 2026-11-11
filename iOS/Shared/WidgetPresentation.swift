@@ -103,7 +103,7 @@ enum WidgetCopy {
     }
     static func key(_ window: QuotaWindow?) -> String {
         guard let window else { return "" }
-        return window.label == "Monthly" ? "31d" : window.compactLabel
+        return window.compactLabel
     }
     static func metric(_ window: QuotaWindow?) -> String {
         guard let window else { return "N/A" }
