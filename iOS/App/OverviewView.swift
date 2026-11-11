@@ -1064,10 +1064,11 @@ struct ProviderDialCardContent: View {
                         resetCaption(window, label: window.resetLabel)
                     }
                     if let budget = reading?.monthlyBudget {
+                        // Same purple as the reset captions, matching the Mac card's budget line.
                         Text("\(budget.amountText(budget.used)) of \(budget.amountText(budget.limit))")
-                            .modifier(OverviewDetailType(wide: usesWideLayout)).foregroundStyle(supportingTextColor)
+                            .modifier(OverviewDetailType(wide: usesWideLayout)).foregroundStyle(resetTextColor)
                         Text(budget.unitLabel).modifier(OverviewDetailType(wide: usesWideLayout))
-                            .foregroundStyle(supportingTextColor)
+                            .foregroundStyle(resetTextColor)
                         if let reset = budget.confirmedResetDescription() {
                             Text(reset).modifier(OverviewDetailType(wide: usesWideLayout))
                                 .foregroundStyle(resetTextColor)
@@ -1135,8 +1136,8 @@ struct ProviderDialCardContent: View {
                     if let budget = budgetOnly {
                         Text("\(Int(budget.usedPercent.rounded()))%")
                             .font(.system(size: 16 * scale, weight: .semibold).monospacedDigit())
+                        // The period label keys the ring, so it takes the ring's tint (as on Mac).
                         Text("Monthly").font(.system(size: 13 * scale))
-                            .foregroundStyle(OverviewStyle.secondary)
                     } else {
                         dialValue(primary, label: primary?.compactLabel ?? "5h")
                     }
