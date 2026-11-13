@@ -35,7 +35,7 @@ extension Color {
     static let sheetTint = Color(light: (246, 241, 251, 0.66), dark: (26, 21, 36, 0.53))
     static let sheetGlow = Color(light: (191, 120, 242, 0.34), dark: (150, 86, 214, 0.40))
     static let sheetGlowTrailing = Color(light: (175, 82, 222, 0.10), dark: (110, 60, 170, 0.18))
-    static let sheetRim = Color(light: (255, 255, 255, 1), dark: (255, 255, 255, 0.55))
+    static let sheetRim = Color(light: (255, 255, 255, 0.7), dark: (255, 255, 255, 0.25))
 
     private init(light: (Int, Int, Int, Double), dark: (Int, Int, Int, Double)) {
         let light = NSColor(srgbRed: CGFloat(light.0) / 255, green: CGFloat(light.1) / 255,
