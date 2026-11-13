@@ -22,6 +22,7 @@ struct PopoverView: View {
     @State private var navigationPhase: PopoverNavigationPhase = .overview
     @State private var presentationID = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.displayScale) private var displayScale
 
     @State private var resetNotice = CodexResetNotice()
     @AppStorage(CodexResetNotice.dismissalKey) private var dismissedResetID = ""
@@ -244,6 +245,9 @@ struct PopoverView: View {
     }
 
     // Specular edge, brightest at the top-leading corner, for the Liquid Glass read.
+    // The window's own glass already draws an edge on macOS 26+, so this stays a
+    // one-pixel hairline that fades out quickly: a 1pt stroke at full strength
+    // stacked on the system edge and read as a hard white line on the top and left.
     @ViewBuilder
     private var sheetRim: some View {
         if #available(macOS 26.0, *) {
@@ -251,11 +255,12 @@ struct PopoverView: View {
                 .strokeBorder(
                     LinearGradient(stops: [
                         .init(color: .sheetRim, location: 0),
-                        .init(color: .sheetRim.opacity(0.15), location: 0.35),
-                        .init(color: .clear, location: 0.6),
-                        .init(color: .sheetRim.opacity(0.35), location: 1),
+                        .init(color: .sheetRim.opacity(0.3), location: 0.15),
+                        .init(color: .clear, location: 0.35),
+                        .init(color: .clear, location: 0.75),
+                        .init(color: .sheetRim.opacity(0.3), location: 1),
                     ], startPoint: .topLeading, endPoint: .bottomTrailing),
-                    lineWidth: 1
+                    lineWidth: 1 / displayScale
                 )
         }
     }

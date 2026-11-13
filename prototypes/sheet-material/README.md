@@ -25,6 +25,8 @@ translucency is easy to judge. Option B shipped in
 - The tint is 60% in dark and 72% in light. At 48% captions fell below 4.5:1
   over a white desktop.
 - A specular rim runs along the window edge, brightest at the top-leading corner.
+  It was later cut to a faint one-pixel hairline because, stacked on the
+  system's own glass edge, a 1pt rim read as a hard white line.
 - Reset captions are near-white (#ead2ff) in dark and deep plum (#5c1688) in
   light, because purple captions dropped to about 3.6:1 once the desktop showed
   through. Purple stays on the rings.
