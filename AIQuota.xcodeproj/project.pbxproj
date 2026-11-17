@@ -1750,7 +1750,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuota/Resources/AIQuota-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 475;
+				CURRENT_PROJECT_VERSION = 476;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuota/Resources/Info-TestFlight.plist";
@@ -1838,7 +1838,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuotaWidget/Resources/AIQuotaWidget-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 475;
+				CURRENT_PROJECT_VERSION = 476;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuotaWidget/Resources/Info-TestFlight.plist";
@@ -1907,7 +1907,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuota/Resources/AIQuota-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 475;
+				CURRENT_PROJECT_VERSION = 476;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuota/Resources/Info-TestFlight.plist";
@@ -1950,7 +1950,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuotaWidget/Resources/AIQuotaWidget-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 475;
+				CURRENT_PROJECT_VERSION = 476;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuotaWidget/Resources/Info-TestFlight.plist";
@@ -1996,7 +1996,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuota/Resources/AIQuota-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 475;
+				CURRENT_PROJECT_VERSION = 476;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuota/Resources/Info-TestFlight.plist";
@@ -2124,7 +2124,7 @@
 				CODE_SIGN_ENTITLEMENTS = "AIQuotaWidget/Resources/AIQuotaWidget-TestFlight.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 475;
+				CURRENT_PROJECT_VERSION = 476;
 				DEVELOPMENT_TEAM = 289GY9L343;
 				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = "AIQuotaWidget/Resources/Info-TestFlight.plist";
