@@ -43,6 +43,22 @@ public struct CodexAccessContext: Sendable, Equatable {
     }
 }
 
+/// An access token read from chatgpt.com/api/auth/session, plus the session
+/// cookie the server re-issued with it, when it sent one.
+public struct CodexSessionRefresh: Sendable, Equatable {
+    public let token: String
+    public let expiresAt: Date?
+    /// ChatGPT renews its session cookie on session reads. Keep this value, not
+    /// the one sent, or the saved session can stop working after a relaunch.
+    public let renewedSessionToken: String?
+
+    public init(token: String, expiresAt: Date?, renewedSessionToken: String? = nil) {
+        self.token = token
+        self.expiresAt = expiresAt
+        self.renewedSessionToken = renewedSessionToken
+    }
+}
+
 // MARK: - CodexAuthCoordinator
 
 public actor CodexAuthCoordinator {
@@ -61,6 +77,11 @@ public actor CodexAuthCoordinator {
     private var authSource: CodexAuthSource?
     private var oauthDisabledForSession = false
     private var contextGeneration = 0
+    /// When ChatGPT last answered a session read for the saved cookie.
+    private var lastSessionRenewal: Date?
+    /// A running app keeps its access token for a long time. Renew the saved
+    /// session cookie at least this often so a relaunch can still use it.
+    static let sessionRenewalInterval: TimeInterval = 12 * 60 * 60
 
     /// A failed restoration is not proof that the saved browser session expired.
     public private(set) var restorationFailure: NetworkError?
@@ -81,13 +102,14 @@ public actor CodexAuthCoordinator {
     public typealias SessionProbe = @Sendable () async -> CodexProbeResult
     public typealias HeadlessSessionReviver = @Sendable () async -> CodexWebSessionResult?
     public typealias AccessTokenRefresher = @Sendable (_ sessionToken: String) async throws -> (token: String, expiresAt: Date?)
+    public typealias SessionRefresher = @Sendable (_ sessionToken: String) async throws -> CodexSessionRefresh
     public typealias OAuthCredentialsLoader = @Sendable () throws -> CodexOAuthCredentials
     public typealias InteractiveSessionProvider = @Sendable (_ expectedAccountID: String?) async throws -> CodexWebSessionResult
     public typealias SessionCommitter = @Sendable (_ cookies: [HTTPCookie], _ isCurrent: @escaping @Sendable () -> Bool) async throws -> Void
     public typealias StagedSessionVerifier = @Sendable (_ session: CodexWebSessionResult) async throws -> CodexWebSessionResult
     private let probe: SessionProbe
     private let headlessSessionReviver: HeadlessSessionReviver
-    private let tokenRefresher: AccessTokenRefresher
+    private let tokenRefresher: SessionRefresher
     private let sessionTokenLoader: @Sendable () -> String?
     private let oauthCredentialsLoader: OAuthCredentialsLoader
     private let expectedAccountID: @Sendable () -> String?
@@ -105,6 +127,7 @@ public actor CodexAuthCoordinator {
         probe: SessionProbe? = nil,
         headlessSessionReviver: HeadlessSessionReviver? = nil,
         tokenRefresher: AccessTokenRefresher? = nil,
+        sessionRefresher: SessionRefresher? = nil,
         sessionTokenLoader: (@Sendable () -> String?)? = nil,
         oauthCredentialsLoader: OAuthCredentialsLoader? = nil,
         expectedAccountID: (@Sendable () -> String?)? = nil,
@@ -139,7 +162,16 @@ public actor CodexAuthCoordinator {
         }
         self.probe = probe ?? CodexAuthCoordinator.wkProbe(for: accountStorageID)
         self.headlessSessionReviver = headlessSessionReviver ?? CodexAuthCoordinator.headlessWebSessionReviver(for: accountStorageID)
-        self.tokenRefresher = tokenRefresher ?? CodexAuthCoordinator.defaultTokenRefresher
+        if let sessionRefresher {
+            self.tokenRefresher = sessionRefresher
+        } else if let tokenRefresher {
+            self.tokenRefresher = { session in
+                let refreshed = try await tokenRefresher(session)
+                return CodexSessionRefresh(token: refreshed.token, expiresAt: refreshed.expiresAt)
+            }
+        } else {
+            self.tokenRefresher = CodexAuthCoordinator.defaultTokenRefresher
+        }
         self.sessionTokenLoader = sessionTokenLoader ?? {
             let key = accountStorageID.map { "sessionToken.\($0.uuidString.lowercased())" } ?? "sessionToken"
             return KeychainStore.load(forKey: key)
@@ -349,6 +381,7 @@ public actor CodexAuthCoordinator {
             tokenExpiresAt = result.expiresAt ?? Date.now.addingTimeInterval(86400)
             accountID = CodexOAuthCredentialsStore.jwtAccountID(result.accessToken)
             authSource = .webSession
+            lastSessionRenewal = now()
             if preserveExistingSession { oauthDisabledForSession = true }
             persistSharedAuthContext(sessionToken: result.sessionToken)
             UserDefaults.standard.removeObject(forKey: signedOutDefaultsKey)
@@ -579,6 +612,9 @@ public actor CodexAuthCoordinator {
 
         if let token = cachedAccessToken, let exp = tokenExpiresAt, exp.addingTimeInterval(-60) > .now,
            matchesExpectedAccount(accountID) {
+            if let renewed = await renewSavedSessionIfDue() {
+                return CodexAccessContext(accessToken: renewed, accountID: accountID, source: .webSession)
+            }
             return CodexAccessContext(accessToken: token, accountID: accountID, source: authSource ?? .webSession)
         }
         let token = try await refreshAccessToken()
@@ -606,6 +642,7 @@ public actor CodexAuthCoordinator {
         tokenExpiresAt = nil
         accountID = nil
         authSource = nil
+        lastSessionRenewal = nil
     }
 
     private func restoreFromOAuthCredentials() -> Bool {
@@ -680,12 +717,12 @@ public actor CodexAuthCoordinator {
                 restorationFailure = .accountIdentityMismatch
                 return false
             }
-            KeychainStore.save(sessionToken, forKey: sessionTokenKey)
+            let savedSession = adoptRenewedSession(refreshed, sent: sessionToken)
             cachedAccessToken = refreshed.token
             tokenExpiresAt = refreshed.expiresAt ?? Date.now.addingTimeInterval(86400)
             accountID = CodexOAuthCredentialsStore.jwtAccountID(refreshed.token)
             authSource = .webSession
-            persistSharedAuthContext(sessionToken: sessionToken)
+            persistSharedAuthContext(sessionToken: savedSession)
             restorationFailure = nil
             return true
         } catch {
@@ -713,6 +750,7 @@ public actor CodexAuthCoordinator {
         tokenExpiresAt = result.expiresAt ?? Date.now.addingTimeInterval(86400)
         accountID = CodexOAuthCredentialsStore.jwtAccountID(result.accessToken)
         authSource = .webSession
+        lastSessionRenewal = now()
         persistSharedAuthContext(sessionToken: result.sessionToken)
         restorationFailure = nil
         return true
@@ -791,12 +829,44 @@ public actor CodexAuthCoordinator {
               !Task.isCancelled, matchesExpectedAccount(CodexOAuthCredentialsStore.jwtAccountID(session.token)) else {
             throw NetworkError.accountIdentityMismatch
         }
+        let savedSession = adoptRenewedSession(session, sent: sessionToken)
         cachedAccessToken = session.token
         tokenExpiresAt = session.expiresAt ?? Date.now.addingTimeInterval(86400)
         accountID = CodexOAuthCredentialsStore.jwtAccountID(session.token)
         authSource = .webSession
-        persistSharedAuthContext(sessionToken: sessionToken)
+        persistSharedAuthContext(sessionToken: savedSession)
         return session.token
+    }
+
+    /// Saves the session cookie ChatGPT re-issued, or the one sent when it
+    /// re-issued none. Returns the value now saved.
+    private func adoptRenewedSession(_ refresh: CodexSessionRefresh, sent sessionToken: String) -> String {
+        let saved: String
+        lastSessionRenewal = now()
+        if let renewed = refresh.renewedSessionToken, !renewed.isEmpty {
+            saved = renewed
+            if renewed != sessionToken {
+                logger.notice("[CodexRefresh] saved the renewed ChatGPT session cookie")
+            }
+        } else {
+            saved = sessionToken
+        }
+        KeychainStore.save(saved, forKey: sessionTokenKey)
+        return saved
+    }
+
+    /// While the app runs it reuses its access token for days, so it never asks
+    /// ChatGPT for a renewed session cookie. Ask now and then, so the saved one
+    /// still works after a relaunch. Failure keeps the current access token.
+    private func renewSavedSessionIfDue() async -> String? {
+        guard authSource == .webSession else { return nil }
+        if let lastSessionRenewal, now().timeIntervalSince(lastSessionRenewal) < Self.sessionRenewalInterval {
+            return nil
+        }
+        // One attempt per interval, whatever the outcome.
+        lastSessionRenewal = now()
+        guard let saved = KeychainStore.load(forKey: sessionTokenKey), !saved.isEmpty else { return nil }
+        return try? await refreshAccessToken()
     }
 
     /// The account-local browser jar can remain valid when a provider changes
@@ -814,11 +884,16 @@ public actor CodexAuthCoordinator {
         return cachedAccessToken
     }
 
-    private static func defaultTokenRefresher(_ sessionToken: String) async throws -> (token: String, expiresAt: Date?) {
-        try await refreshSessionToken(sessionToken, session: .shared)
+    private static func defaultTokenRefresher(_ sessionToken: String) async throws -> CodexSessionRefresh {
+        try await refreshSession(sessionToken, session: .shared)
     }
 
     static func refreshSessionToken(_ sessionToken: String, session transport: URLSession) async throws -> (token: String, expiresAt: Date?) {
+        let refreshed = try await refreshSession(sessionToken, session: transport)
+        return (token: refreshed.token, expiresAt: refreshed.expiresAt)
+    }
+
+    static func refreshSession(_ sessionToken: String, session transport: URLSession) async throws -> CodexSessionRefresh {
         guard !sessionToken.isEmpty else { throw NetworkError.notAuthenticated }
 
         var req = URLRequest(url: URL(string: "https://chatgpt.com/api/auth/session")!)
@@ -854,10 +929,45 @@ public actor CodexAuthCoordinator {
             }
             throw NetworkError.requestFailed
         }
-        return (
+        return CodexSessionRefresh(
             token: token,
-            expiresAt: Self.parseExpiryValue(session.expires)
+            expiresAt: Self.parseExpiryValue(session.expires),
+            renewedSessionToken: renewedSessionToken(from: http)
         )
+    }
+
+    /// Session cookies (whole or chunked) that a chatgpt.com response sets.
+    /// Deletions and empty values are left out.
+    static func renewedSessionCookies(from response: HTTPURLResponse, now: Date = .now) -> [HTTPCookie] {
+        guard let url = response.url else { return [] }
+        var headers: [String: String] = [:]
+        for (key, value) in response.allHeaderFields {
+            guard let key = key as? String, let value = value as? String else { continue }
+            // HTTP/2 and HTTP/3 send lowercase names; HTTPCookie expects "Set-Cookie".
+            headers[key.caseInsensitiveCompare("Set-Cookie") == .orderedSame ? "Set-Cookie" : key] = value
+        }
+        let name = "__Secure-next-auth.session-token"
+        return HTTPCookie.cookies(withResponseHeaderFields: headers, for: url).filter { cookie in
+            (cookie.name == name || cookie.name.hasPrefix(name + "."))
+                && !cookie.value.isEmpty
+                && (cookie.expiresDate.map { $0 > now } ?? true)
+        }
+    }
+
+    static func renewedSessionToken(from response: HTTPURLResponse, now: Date = .now) -> String? {
+        sessionToken(from: renewedSessionCookies(from: response, now: now))
+    }
+
+    /// Replaces the session cookies in a staged jar with the ones a response renewed.
+    static func mergingRenewedSessionCookies(_ renewed: [HTTPCookie], into cookies: [HTTPCookie]) -> [HTTPCookie] {
+        guard let token = sessionToken(from: renewed), !token.isEmpty else { return cookies }
+        let name = "__Secure-next-auth.session-token"
+        let kept = cookies.filter { cookie in
+            let domain = cookie.domain.trimmingCharacters(in: CharacterSet(charactersIn: ".")).lowercased()
+            let isChatGPT = domain == "chatgpt.com" || domain.hasSuffix(".chatgpt.com")
+            return !(isChatGPT && (cookie.name == name || cookie.name.hasPrefix(name + ".")))
+        }
+        return kept + renewed
     }
 
     private static func parseExpiryValue(_ string: String?) -> Date? {
@@ -966,6 +1076,15 @@ public actor CodexAuthCoordinator {
               CodexOAuthCredentialsStore.jwtAccountID(verified.accessToken) == workspace,
               CodexOAuthCredentialsStore.jwtUserID(candidate.accessToken) == CodexOAuthCredentialsStore.jwtUserID(verified.accessToken)
         else { throw NetworkError.accountIdentityMismatch }
+        // The check itself can renew the session cookie. Commit the renewed one,
+        // or the saved session may already be stale when sign-in finishes.
+        let renewed = renewedSessionCookies(from: http)
+        if let renewedToken = sessionToken(from: renewed), !renewedToken.isEmpty {
+            let committed = mergingRenewedSessionCookies(renewed, into: cookies)
+            guard sessionToken(from: committed) == renewedToken else { throw NetworkError.accountIdentityMismatch }
+            return .init(sessionToken: renewedToken, accessToken: verified.accessToken,
+                         expiresAt: parseExpiryValue(verified.expires), cookiesToCommit: committed)
+        }
         return .init(sessionToken: candidate.sessionToken, accessToken: verified.accessToken,
                      expiresAt: parseExpiryValue(verified.expires), cookiesToCommit: cookies)
     }
