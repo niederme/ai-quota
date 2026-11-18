@@ -95,6 +95,7 @@ public actor ClaudeAuthCoordinator {
     private let loginWindowRunner: LoginWindowRunner
     private let organizationLister: OrganizationLister
     private let contextWriter: (@Sendable (SharedClaudeAuthContext?) -> Void)?
+    private let contextLoader: @Sendable () -> SharedClaudeAuthContext?
     private let signedOutReader: (@Sendable () -> Bool)?
     private let signedOutWriter: (@Sendable (Bool) -> Void)?
     private let webSessionResetter: WebSessionClearer?
@@ -113,6 +114,7 @@ public actor ClaudeAuthCoordinator {
         loginWindowRunner: LoginWindowRunner? = nil,
         organizationLister: OrganizationLister? = nil,
         contextWriter: (@Sendable (SharedClaudeAuthContext?) -> Void)? = nil,
+        contextLoader: (@Sendable () -> SharedClaudeAuthContext?)? = nil,
         signedOutReader: (@Sendable () -> Bool)? = nil,
         signedOutWriter: (@Sendable (Bool) -> Void)? = nil,
         webSessionResetter: WebSessionClearer? = nil,
@@ -121,6 +123,14 @@ public actor ClaudeAuthCoordinator {
         self.webSessionResetter = webSessionResetter
         self.webSessionVerifier = webSessionVerifier
         self.contextWriter = contextWriter
+        // An injected writer means the real Keychain snapshot is not this
+        // coordinator's to read; tests opt in by injecting a loader too.
+        self.contextLoader = contextLoader ?? (contextWriter != nil ? { nil } : {
+            if let accountStorageID {
+                return SharedAuthContextStore.loadClaude(forAccountID: accountStorageID.uuidString)
+            }
+            return SharedAuthContextStore.loadClaude()
+        })
         self.signedOutReader = signedOutReader
         self.signedOutWriter = signedOutWriter
         self.accountStorageID = accountStorageID
@@ -198,18 +208,98 @@ public actor ClaudeAuthCoordinator {
             return
         }
 
+        let generation = authGeneration
         let result = await withProbeTimeout(probe)
-        switch result {
-        case .found(let orgId, let cookies):
+        guard state == .restoringSession, generation == authGeneration else { return }
+        if case .found(let orgId, let cookies) = result {
             cachedOAuthCredentials = nil
             capturedOrgId = orgId
             capturedCookies = cookies
             injectCookies(cookies)
             persistSharedAuthContext()
             transition(to: .authenticated)
-        case .notFound, .none:
-            transition(to: .unauthenticated)
+            return
         }
+        logger.notice("[ClaudeRestore] \(self.logScope, privacy: .public) WebKit probe \(result == nil ? "timed out" : "found no session", privacy: .public)")
+
+        // After an app update WebKit can come back without this account's
+        // cookies (or too slowly for the probe). The app saved the same
+        // session in its own Keychain snapshot, so try that before asking the
+        // user to reconnect. It is only adopted if the server accepts it.
+        if await restoreFromSavedWebSession(writeBackToWebKit: result != nil, generation: generation) {
+            transition(to: .authenticated)
+            return
+        }
+        guard state == .restoringSession, generation == authGeneration else { return }
+
+        // Scoped accounts get the same page-context recovery the primary gets
+        // from restoreWithoutPromptIfPossible, using only their own store.
+        if accountStorageID != nil, case .found(let revivedOrgId, let cookies) = await headlessSessionReviver() {
+            guard state == .restoringSession, generation == authGeneration else { return }
+            let orgId = await savedOrganization(reachableWith: cookies) ?? revivedOrgId
+            guard state == .restoringSession, generation == authGeneration else { return }
+            logger.notice("[ClaudeRestore] \(self.logScope, privacy: .public) headless WebKit revival restored the session")
+            cachedOAuthCredentials = nil
+            capturedOrgId = orgId
+            capturedCookies = cookies
+            injectCookies(cookies)
+            persistSharedAuthContext()
+            transition(to: .authenticated)
+            return
+        }
+        guard state == .restoringSession, generation == authGeneration else { return }
+        logger.notice("[ClaudeRestore] \(self.logScope, privacy: .public) no usable session; reconnect needed")
+        transition(to: .unauthenticated)
+    }
+
+    private var logScope: String {
+        accountStorageID.map { "account=\($0.uuidString.prefix(8).lowercased())" } ?? "account=primary"
+    }
+
+    /// Adopts the app-owned Keychain snapshot of this account's web session if,
+    /// and only if, claude.ai still accepts it. A rejected or unverifiable
+    /// snapshot is left in place untouched so a later launch can try again.
+    private func restoreFromSavedWebSession(writeBackToWebKit: Bool, generation: Int) async -> Bool {
+        guard let saved = contextLoader() else {
+            logger.notice("[ClaudeRestore] \(self.logScope, privacy: .public) no saved web session")
+            return false
+        }
+        let cookies = saved.httpCookies
+        guard Self.hasWebSessionCookies(cookies) else {
+            logger.notice("[ClaudeRestore] \(self.logScope, privacy: .public) saved web session has no session cookie")
+            return false
+        }
+        let validation = await sessionValidator(cookies)
+        guard state == .restoringSession, generation == authGeneration else { return false }
+        switch validation {
+        case .valid:
+            break
+        case .invalid:
+            logger.notice("[ClaudeRestore] \(self.logScope, privacy: .public) saved web session rejected by claude.ai")
+            return false
+        case .indeterminate:
+            logger.notice("[ClaudeRestore] \(self.logScope, privacy: .public) saved web session could not be checked")
+            return false
+        }
+        // Repopulate WebKit only when it came back empty, so a slow-but-intact
+        // store never has newer cookies overwritten by the snapshot.
+        if writeBackToWebKit { await webSessionRestorer(cookies) }
+        guard state == .restoringSession, generation == authGeneration else { return false }
+        logger.notice("[ClaudeRestore] \(self.logScope, privacy: .public) restored the saved web session")
+        cachedOAuthCredentials = nil
+        capturedOrgId = saved.orgId
+        capturedCookies = cookies
+        injectCookies(cookies)
+        persistSharedAuthContext()
+        return true
+    }
+
+    /// A revived page reports whichever organization claude.ai last opened. Keep
+    /// the account on its saved organization while the session can still reach it.
+    private func savedOrganization(reachableWith cookies: [HTTPCookie]) async -> String? {
+        guard let saved = contextLoader()?.orgId else { return nil }
+        guard let reachable = await organizationLister(cookies), reachable.contains(saved) else { return nil }
+        return saved
     }
 
     private func clearStateIfFreshInstall() async {
