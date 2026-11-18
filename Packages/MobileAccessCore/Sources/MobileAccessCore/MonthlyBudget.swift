@@ -18,9 +18,27 @@ public struct MonthlyBudget: Codable, Sendable, Equatable {
 
     public var usedPercent: Double { min(100, max(0, used / limit * 100)) }
 
+    /// Whole currency amounts drop their cents ("$1,000", not "$1,000.00");
+    /// fractional ones keep both digits ("$654.50"). Credits show up to two decimals.
     public func amountText(_ value: Double) -> String {
-        if let code = currencyCode { return value.formatted(.currency(code: code)) }
+        if let code = currencyCode {
+            let digits = value == value.rounded() ? 0 : 2
+            return value.formatted(.currency(code: code).precision(.fractionLength(digits)))
+        }
         return value.formatted(.number.precision(.fractionLength(0...2)))
+    }
+
+    /// One-line card copy: "434.19 of 7,000 credits" or "$654.98 of $1,000".
+    /// The period is left to the reset line ("30d resets Nov 30") under it.
+    public var usageText: String {
+        "\(amountText(used)) of \(amountText(limit))\(isCredits ? " credits" : "")"
+    }
+
+    private var isCredits: Bool {
+        switch unit?.lowercased() {
+        case "credit", "credits": true
+        default: false
+        }
     }
 
     private var currencyCode: String? {

@@ -447,6 +447,7 @@ struct PopoverView: View {
                         limitText: budgetValue(limit, unit: budget.unit),
                         unitLabel: budget.unit?.lowercased() == "credit" ? "credits this month"
                             : (budget.unit?.lowercased() == "usd" ? "monthly spend" : "monthly allowance"),
+                        amountSuffix: budget.unit?.lowercased() == "credit" ? " credits" : "",
                         icon: "logo-openai", label: "Codex", resetAt: budget.resetAt,
                         readingAt: u.fetchedAt,
                         isRefreshing: viewModel.isCodexLoading,

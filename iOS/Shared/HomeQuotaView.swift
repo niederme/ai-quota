@@ -147,7 +147,7 @@ struct HomeQuotaView: View {
                         Text("\(WidgetCopy.key(window)) resets \(WidgetCopy.reset(window.resetsAt, at: date))").lineLimit(1)
                     }
                     if let budget = reading.monthlyBudget {
-                        Text("Spent \(WidgetCopy.amount(budget.used, budget: budget)) of \(WidgetCopy.amount(budget.limit, budget: budget))").lineLimit(1)
+                        Text(budget.usageText).lineLimit(1).minimumScaleFactor(0.8)
                     } else if let spent = reading.metadata?.usageSpent, spent > 0 {
                         Text("Spent \(spent.formatted(.currency(code: reading.metadata?.usageCurrency ?? "USD")))").lineLimit(1)
                     }

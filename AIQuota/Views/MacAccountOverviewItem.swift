@@ -238,6 +238,7 @@ struct MacAccountCard: View {
                     Text(budgetSummary(budget))
                         .font(.system(size: 13).monospacedDigit())
                         .foregroundStyle(Color.overviewResetAccent)
+                        .lineLimit(1).minimumScaleFactor(0.8)
                     if let reset = budget.reset {
                         resetCaption(primaryLabel, at: reset, monthly: true)
                     }
@@ -331,16 +332,21 @@ struct MacAccountCard: View {
         return "\(window) resets \(date.formatted(format))"
     }
 
+    /// Matches iOS: whole currency amounts drop their cents ("$1,000"), fractional keep two.
     private func amount(_ value: Double, currency: String?) -> String {
-        if let currency { return value.formatted(.currency(code: currency)) }
+        if let currency {
+            let digits = value == value.rounded() ? 0 : 2
+            return value.formatted(.currency(code: currency).precision(.fractionLength(digits)))
+        }
         return value.formatted(.number.precision(.fractionLength(0...2)))
     }
 
+    /// One line, same as iOS: "434.19 of 7,000 credits" or "$654.98 of $1,000".
     private func budgetSummary(_ budget: (used: Double, limit: Double, unit: String,
                                            currency: String?, reset: Date?)) -> String {
-        let verb = account.provider == .claude || budget.currency != nil ? "Spent" : "Used"
-        let suffix = budget.currency == nil && budget.unit.lowercased() == "credit" ? " credits" : ""
-        return "\(verb) \(amount(budget.used, currency: budget.currency)) of \(amount(budget.limit, currency: budget.currency))\(suffix)"
+        let unit = budget.unit.lowercased()
+        let suffix = budget.currency == nil && (unit == "credit" || unit == "credits") ? " credits" : ""
+        return "\(amount(budget.used, currency: budget.currency)) of \(amount(budget.limit, currency: budget.currency))\(suffix)"
     }
 
     private var accessibilitySummary: String {
