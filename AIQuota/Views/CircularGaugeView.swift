@@ -226,6 +226,8 @@ struct BudgetGaugeView: View {
     let usedText: String
     let limitText: String
     let unitLabel: String
+    /// Appended to the amounts so they read on one line ("434.19 of 7,000 credits").
+    var amountSuffix: String = ""
     let icon: String
     let label: String
     let resetAt: Date?
@@ -298,14 +300,11 @@ struct BudgetGaugeView: View {
             Text(label)
                 .font(.headline.bold())
                 .lineLimit(1)
-            Text("\(usedText) of \(limitText)")
+            Text("\(usedText) of \(limitText)\(amountSuffix)")
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
-            Text(unitLabel)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
             if let resetAt, resetAt > .now {
                 Text(ResetTimeTextFormatter.compactWindowCaption("", resetAt: resetAt).trimmingCharacters(in: .whitespaces))
                     .font(.caption2.monospacedDigit())

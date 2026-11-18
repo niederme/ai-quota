@@ -311,3 +311,11 @@ private actor ChangingClaudeProfile: HTTPTransport {
     #expect(reading.metadata?.plan == "Pro")
     #expect(reading.claudeBreakdown?.rows.first?.percent == 0)
 }
+@Test func monthlyBudgetUsageTextFitsOneLine() throws {
+    let credits = try #require(MonthlyBudget(used: 434.19, limit: 7_000, unit: "credits"))
+    #expect(credits.usageText == "434.19 of 7,000 credits")
+    let spend = try #require(MonthlyBudget(used: 654.98, limit: 1_000, unit: "USD"))
+    #expect(spend.usageText == "$654.98 of $1,000")
+    let halfDollar = try #require(MonthlyBudget(used: 654.5, limit: 1_000, unit: "USD"))
+    #expect(halfDollar.amountText(halfDollar.used) == "$654.50")
+}

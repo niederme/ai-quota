@@ -64,7 +64,7 @@ struct WidgetAccountContent: Identifiable, Sendable {
         if let budget = reading.budgetOnly {
             let used = WidgetCopy.amount(budget.used, budget: budget)
             let limit = WidgetCopy.amount(budget.limit, budget: budget)
-            return compact ? "\(used)\nof \(limit)" : "Spent \(used) of \(limit)"
+            return compact ? "\(used)\nof \(limit)" : budget.usageText
         }
         guard let window = reading.windows.max(by: { $0.usedPercent < $1.usedPercent }) else { return "No reading yet" }
         return WidgetCopy.reset(window.resetsAt, at: date, compact: compact)
@@ -96,10 +96,7 @@ enum WidgetAccountOrdering {
 
 enum WidgetCopy {
     static func amount(_ value: Double, budget: MonthlyBudget) -> String {
-        if let code = budget.unit?.uppercased(), code.count == 3, code.allSatisfy({ $0 >= "A" && $0 <= "Z" }) {
-            return value.formatted(.currency(code: code).precision(.fractionLength(0...2)))
-        }
-        return budget.amountText(value)
+        budget.amountText(value)
     }
     static func key(_ window: QuotaWindow?) -> String {
         guard let window else { return "" }

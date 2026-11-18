@@ -1074,11 +1074,11 @@ struct ProviderDialCardContent: View {
                     if let budget = reading?.monthlyBudget {
                         // Same purple and regular weight as the reset captions,
                         // matching the Mac card's budget line (13pt regular, tabular digits).
-                        Text("\(budget.amountText(budget.used)) of \(budget.amountText(budget.limit))")
+                        // One line: the reset caption below already names the period.
+                        Text(budget.usageText)
                             .modifier(OverviewDetailType(weight: .regular, wide: usesWideLayout)).monospacedDigit()
                             .foregroundStyle(resetTextColor)
-                        Text(budget.unitLabel).modifier(OverviewDetailType(weight: .regular, wide: usesWideLayout))
-                            .foregroundStyle(resetTextColor)
+                            .lineLimit(1).minimumScaleFactor(0.8)
                         if let reading, let reset = budget.confirmedResetDescription(readingAt: reading.fetchedAt) {
                             Text(reset).modifier(OverviewDetailType(weight: .regular, wide: usesWideLayout)).monospacedDigit()
                                 .foregroundStyle(resetTextColor)
