@@ -1072,14 +1072,17 @@ struct ProviderDialCardContent: View {
                         }
                     }
                     if let budget = reading?.monthlyBudget {
-                        // Same purple as the reset captions, matching the Mac card's budget line.
+                        // Same purple and regular weight as the reset captions,
+                        // matching the Mac card's budget line (13pt regular, tabular digits).
                         Text("\(budget.amountText(budget.used)) of \(budget.amountText(budget.limit))")
-                            .modifier(OverviewDetailType(wide: usesWideLayout)).foregroundStyle(resetTextColor)
-                        Text(budget.unitLabel).modifier(OverviewDetailType(wide: usesWideLayout))
+                            .modifier(OverviewDetailType(weight: .regular, wide: usesWideLayout)).monospacedDigit()
+                            .foregroundStyle(resetTextColor)
+                        Text(budget.unitLabel).modifier(OverviewDetailType(weight: .regular, wide: usesWideLayout))
                             .foregroundStyle(resetTextColor)
                         if let reading, let reset = budget.confirmedResetDescription(readingAt: reading.fetchedAt) {
-                            Text(reset).modifier(OverviewDetailType(wide: usesWideLayout))
+                            Text(reset).modifier(OverviewDetailType(weight: .regular, wide: usesWideLayout)).monospacedDigit()
                                 .foregroundStyle(resetTextColor)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                 }
@@ -1118,7 +1121,8 @@ struct ProviderDialCardContent: View {
         let value = reading?.metadata?.usageCurrency.map { amount.formatted(.currency(code: $0)) }
             ?? amount.formatted(.number.precision(.fractionLength(0...2))) + " credits"
         return Text("Credits used  \(value)")
-            .modifier(OverviewDetailType(wide: usesWideLayout)).foregroundStyle(supportingTextColor)
+            .modifier(OverviewDetailType(weight: .regular, wide: usesWideLayout)).monospacedDigit()
+            .foregroundStyle(supportingTextColor)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityLabel("Credits used: \(value)")
     }
