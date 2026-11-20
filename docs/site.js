@@ -85,11 +85,15 @@ if (nav) {
 const menuToggle = document.querySelector("[data-menu-toggle]");
 const menu = menuToggle ? document.getElementById(menuToggle.getAttribute("aria-controls")) : null;
 
+let closeMenu = () => {};
+
 if (menuToggle && menu) {
   const setMenuOpen = (open) => {
     menuToggle.setAttribute("aria-expanded", String(open));
     menu.hidden = !open;
   };
+
+  closeMenu = () => setMenuOpen(false);
 
   menuToggle.addEventListener("click", () => {
     setMenuOpen(menuToggle.getAttribute("aria-expanded") !== "true");
@@ -110,7 +114,7 @@ if (menuToggle && menu) {
 }
 
 // Quota dials sweep in the first time they scroll into view.
-const dials = Array.from(document.querySelectorAll(".aq-dial"));
+const dials = Array.from(document.querySelectorAll(".aq-dial, .aq-adial"));
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 if (reducedMotion || !("IntersectionObserver" in window)) {
@@ -171,3 +175,29 @@ document.querySelectorAll("[data-faq]").forEach((list) => {
     });
   });
 });
+
+// Get AIQuota: the nav Download button opens a dialog with the store badges.
+// Without <dialog> support the button falls back to the download band.
+const getDialog = document.getElementById("get-aiquota");
+
+if (getDialog && typeof getDialog.showModal === "function") {
+  const closeButton = getDialog.querySelector("[data-get-close]");
+
+  document.querySelectorAll("[data-get-open]").forEach((opener) => {
+    opener.addEventListener("click", (event) => {
+      event.preventDefault();
+      closeMenu();
+      getDialog.showModal();
+      closeButton.focus();
+    });
+  });
+
+  closeButton.addEventListener("click", () => getDialog.close());
+
+  // A click on the blurred backdrop lands on the dialog element itself.
+  getDialog.addEventListener("click", (event) => {
+    if (event.target === getDialog) {
+      getDialog.close();
+    }
+  });
+}

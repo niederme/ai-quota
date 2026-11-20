@@ -350,14 +350,109 @@ a:not(.aq-btn):hover { color: var(--accent-ink); text-decoration: underline; }
 @media (prefers-reduced-motion: no-preference) { .aq-dial__fill { transition: stroke-dasharray 600ms ease-out; } }
 .aq-dial--small .aq-dial__values { font-size: 12px; line-height: 16px; }
 
+/* Matched to the apps (Nov 2026): empty capacity is the dial colour at low alpha, not grey,
+   and token history steps evenly up to the dial colour (MobileTokenHistoryView, AdaptiveColors). */
+:root, [data-theme="dark"] { --dial-empty: rgba(200, 108, 245, 0.16); --data-0: rgba(200, 108, 245, 0.16); --data-1: #6a4080; --data-2: #894ea6; --data-3: #a85cce; --data-4: #c86cf5; }
+[data-theme="light"] { --dial-empty: rgba(133, 48, 189, 0.12); --data-0: rgba(133, 48, 189, 0.12); --data-1: #cdafe8; --data-2: #b88ae0; --data-3: #9f62d0; --data-4: #8530bd; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --dial-empty: rgba(133, 48, 189, 0.12); --data-0: rgba(133, 48, 189, 0.12); --data-1: #cdafe8; --data-2: #b88ae0; --data-3: #9f62d0; --data-4: #8530bd; } }
+.aq-heat i.gap { background: transparent; box-shadow: none; }
+
+/* Account dial: the shipping MacAccountDial / iOS ProviderDialCard. Service mark on top,
+   one "38% 5h" line per window, 7pt rings (10pt single), purple-tinted empty track.
+   Every measure scales with --size from the app's 118pt dial. */
+.aq-adial { --size: 124px; --tint: var(--accent); position: relative; flex: none; width: var(--size); height: var(--size); }
+.aq-adial--warning { --tint: var(--warning); }
+.aq-adial--critical { --tint: var(--critical); }
+.aq-adial > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.aq-adial__track { fill: none; stroke: var(--dial-empty); }
+.aq-adial__fill { fill: none; stroke: var(--tint); }
+.aq-adial__fill--secondary { stroke-opacity: 0.7; }
+.aq-adial__values { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: calc(var(--size) * 5 / 118); color: var(--tint); font: 600 calc(var(--size) * 16 / 118)/1.2 var(--font-sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.aq-adial__values--dual { transform: translateY(calc(var(--size) * -5 / 118)); }
+.aq-adial__logo { display: block; width: calc(var(--size) * 18 / 118); height: calc(var(--size) * 18 / 118); fill: currentColor; }
+.aq-adial__lines { display: flex; flex-direction: column; align-items: center; gap: calc(var(--size) * 2 / 118); }
+.aq-adial__lines span + span { opacity: 0.7; }
+.js .aq-adial:not(.is-shown) .aq-adial__fill { stroke-dasharray: 0 100; }
+@media (prefers-reduced-motion: no-preference) { .aq-adial__fill { transition: stroke-dasharray 600ms ease-out; } }
+
+/* Account card: the iOS card's resting surface (OverviewAccountSurface), 24pt corners. */
+.aq-acct { position: relative; border-radius: 24px; padding: 16px 20px 20px 16px; background: color-mix(in srgb, var(--accent) 6%, transparent); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent) 10%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--accent) 8%, transparent); color: var(--ink); }
+.aq-acct--heat { padding-bottom: 16px; }
+.aq-acct__row { display: flex; gap: 20px; align-items: flex-start; }
+.aq-acct__body { flex: 1; min-width: 0; padding-top: 8px; display: flex; flex-direction: column; }
+.aq-acct__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.aq-acct__name { margin: 0; font: 600 22px/26px var(--font-sans); letter-spacing: -0.012em; color: var(--ink); }
+.aq-acct__sub { margin: 4px 0 8px; font: 600 15px/20px var(--font-sans); color: var(--ink); }
+.aq-acct__cap { margin: 0; font: 400 15px/20px var(--font-sans); font-variant-numeric: tabular-nums; color: var(--accent-ink); }
+.aq-acct--sm { padding: 12px 14px 14px 12px; }
+.aq-acct--sm .aq-acct__row { gap: 14px; }
+.aq-acct--sm .aq-acct__name { font-size: 20px; line-height: 24px; }
+.aq-acct--sm .aq-acct__sub { margin: 4px 0 6px; font-size: 13px; line-height: 16px; }
+.aq-acct--sm .aq-acct__cap { font-size: 13px; line-height: 16px; }
+.aq-acct__chev { flex: none; width: 15px; height: 15px; border-radius: 50%; background: color-mix(in srgb, var(--ink) 32%, transparent); display: grid; place-items: center; }
+.aq-acct__chev svg { width: 7px; height: 7px; fill: none; stroke: var(--canvas); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.acct-heat { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.acct-heat .aq-heat { grid-template-rows: repeat(7, auto); grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 1px; }
+.acct-heat .aq-heat i { aspect-ratio: 1; border-radius: 1px; }
+.acct-heat__months { display: flex; justify-content: space-between; font: 400 11px/14px var(--font-sans); color: var(--ink-2); }
+
+/* Store badges: official Apple artwork on a liquid-glass chip. App Store first, Mac App Store second. */
+.badges { display: flex; flex-wrap: nowrap; gap: clamp(10px, 3vw, 16px); padding-top: 8px; }
+.badges--center { justify-content: center; }
+.badges--single { flex-wrap: wrap; gap: 8px; }
+.aq-badge { flex: 0 1 156px; min-width: 0; display: block; line-height: 0; transition: filter 150ms ease; }
+.aq-badge--mac { flex-basis: 204px; }
+.aq-badge:hover { filter: brightness(0.88); }
+.aq-badge:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 10px; }
+.aq-badge__chip { display: block; width: 100%; aspect-ratio: 120 / 40; border-radius: 9px; box-shadow: inset 0 0 0 1px var(--glass-edge); }
+.aq-badge--mac .aq-badge__chip { aspect-ratio: 157 / 40; }
+.aq-badge__t { display: block; width: 100%; height: 100%; }
+.aq-badge__t--light { display: none; }
+[data-theme="light"] .aq-badge__chip { background: rgba(60, 60, 67, 0.1); box-shadow: inset 0 0 0 1px rgba(60, 60, 67, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 1px 2px rgba(20, 10, 30, 0.06); -webkit-backdrop-filter: blur(20px) saturate(160%); backdrop-filter: blur(20px) saturate(160%); }
+[data-theme="light"] .aq-badge__t--dark { display: none; }
+[data-theme="light"] .aq-badge__t--light { display: block; }
+/* Dark islands inside a light page (the download band). */
+[data-theme="light"] [data-theme="dark"] .aq-badge__chip { background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-edge); }
+[data-theme="light"] [data-theme="dark"] .aq-badge__t--dark { display: block; }
+[data-theme="light"] [data-theme="dark"] .aq-badge__t--light { display: none; }
+
+/* Direct download: a text link under the badges. */
+.direct-link { margin: 0; font: 400 17px/24px var(--font-sans); color: var(--ink-2); }
+.direct-link--center { text-align: center; }
+.aq-direct, .aq-direct:not(.aq-btn):hover { font-weight: 600; color: var(--accent-ink); text-decoration: none; transition: color 150ms ease; }
+.aq-direct:not(.aq-btn):hover { color: var(--accent); }
+
+/* Get AIQuota: the nav Download button opens this. */
+.get-dialog { width: calc(100% - 32px); max-width: 520px; max-height: calc(100% - 32px); margin: auto; padding: 0; border: 0; border-radius: 32px; background: var(--surface); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line), 0 30px 80px rgba(0, 0, 0, 0.35); }
+.get-dialog::backdrop { background: rgba(24, 14, 36, 0.32); -webkit-backdrop-filter: blur(24px) saturate(120%); backdrop-filter: blur(24px) saturate(120%); }
+.get-dialog__panel { position: relative; padding: 44px clamp(24px, 5vw, 48px) 40px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; }
+.get-dialog__panel > img { display: block; width: 80px; height: 80px; margin-bottom: 4px; }
+.get-dialog h2 { margin: 0; font: 700 34px/40px var(--font-sans); letter-spacing: -0.025em; }
+.get-dialog__panel > p:not(.direct-link) { margin: 0; font: 400 17px/24px var(--font-sans); color: var(--ink-2); }
+.get-dialog .badges { align-self: stretch; padding: 16px 0 8px; }
+.get-dialog__close { position: absolute; top: 14px; right: 14px; width: 48px; height: 48px; padding: 0; border-radius: 50%; border: 1.5px solid var(--accent); background: transparent; color: var(--ink); display: grid; place-items: center; cursor: pointer; }
+.get-dialog__close svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; }
+.get-dialog__close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+html:has(.get-dialog[open]) { overflow: hidden; }
+
 /* Hero */
 .hero { min-height: 720px; padding: clamp(120px, 14vw, 168px) 0 clamp(64px, 8vw, 112px); }
 .hero-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: clamp(40px, 5vw, 64px); align-items: center; }
 .hero-copy { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
 .hero h1 { font-size: clamp(40px, 4.9vw, 58px); text-wrap: initial; }
 .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; padding-top: 8px; }
-.hero-visual { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
-.hero-visual .aq-notice { background: var(--notice); }
+.hero-visual { width: 100%; max-width: 460px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.hero-download { display: flex; flex-direction: column; gap: 10px; }
+
+/* Hero reset notice: the iOS banner above the cards. */
+.hero-notice { display: flex; align-items: flex-start; gap: 8px; padding: 14px 16px 14px 20px; border-radius: 24px; background: color-mix(in srgb, var(--accent) 22%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 42%, transparent); }
+.hero-notice[hidden] { display: none; }
+.hero-notice__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.hero-notice__title { margin: 0; font: 600 17px/22px var(--font-sans); color: var(--ink); }
+.hero-notice__link, .hero-notice__link:hover { font: 400 17px/22px var(--font-sans); color: var(--accent); text-decoration: none; }
+.hero-notice__close { flex: none; width: 20px; height: 20px; margin-top: 1px; padding: 0; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--ink) 32%, transparent); display: grid; place-items: center; cursor: pointer; }
+.hero-notice__close svg { width: 8px; height: 8px; fill: none; stroke: var(--canvas); stroke-width: 1.8; stroke-linecap: round; }
+.hero-notice__close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Features bento */
 .features { display: flex; flex-direction: column; gap: clamp(32px, 4vw, 48px); }
@@ -374,12 +469,13 @@ a:not(.aq-btn):hover { color: var(--accent-ink); text-decoration: underline; }
 .tile--iphone { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px 32px; padding: clamp(24px, 3vw, 36px) clamp(24px, 3vw, 36px) 0; }
 .tile--iphone .tile__text { gap: 12px; padding-bottom: clamp(24px, 3vw, 36px); align-self: center; }
 .tile--iphone .tile__body { line-height: 26px; }
-.tile--iphone .hero-actions { gap: 8px; }
+.tile--iphone .badges .aq-badge { flex: none; width: 156px; }
 .phone-stage { display: flex; justify-content: center; align-items: flex-end; min-width: 0; }
 .phone { width: 300px; max-width: 100%; height: 500px; margin-bottom: -40px; border-radius: 52px; padding: 10px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); }
 .phone__screen { position: relative; height: 100%; border-radius: 42px; background: var(--canvas); overflow: hidden; padding: 56px 14px 0; display: flex; flex-direction: column; gap: 12px; }
 .phone__island { position: absolute; top: 12px; left: 50%; width: 88px; height: 26px; margin-left: -44px; border-radius: 13px; background: #000; }
 .phone__title { margin: 0 0 4px 6px; font: 700 28px/34px var(--font-sans); letter-spacing: -0.02em; }
+.phone .aq-acct--sm .aq-acct__row { gap: 12px; }
 .phone__note { margin: 4px 0 0; text-align: center; font: 400 12px/16px var(--font-sans); color: var(--ink-2); }
 .aq-card--mini { padding: 14px; gap: 0; border-radius: 22px; }
 .aq-card--mini .aq-card__top { gap: 14px; }
@@ -493,10 +589,10 @@ a:not(.aq-btn):hover { color: var(--accent-ink); text-decoration: underline; }
 .faq-pointer p { max-width: 1056px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 8px; font: 400 17px/24px var(--font-sans); color: var(--ink-2); }
 .download-band { padding: 0 clamp(16px, 4vw, 32px) clamp(64px, 8vw, 96px); }
 .download-band__card { max-width: 1056px; margin: 0 auto; border-radius: var(--radius-card); background: var(--icon-ground); color: var(--ink); padding: clamp(48px, 7vw, 88px) clamp(24px, 4vw, 48px); display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center; }
-.download-band__card img { display: block; width: 112px; height: 112px; }
+.download-band__card > img { display: block; width: 112px; height: 112px; }
 .download-band__card .section-title { color: var(--ink); }
-.download-band__card > p:not(.fine-print) { margin: 0; max-width: 30em; font: 400 19px/28px var(--font-sans); color: var(--ink-2); }
-.download-band__card .hero-actions { justify-content: center; }
+.download-band__card > p:not(.fine-print):not(.direct-link) { margin: 0; max-width: 30em; font: 400 19px/28px var(--font-sans); color: var(--ink-2); }
+.download-band__card .badges { align-self: stretch; }
 
 /* FAQ page */
 .faq-hero { min-height: 720px; padding: clamp(120px, 14vw, 160px) 0 clamp(64px, 8vw, 112px); }
@@ -529,6 +625,8 @@ a:not(.aq-btn):hover { color: var(--accent-ink); text-decoration: underline; }
 .release-feature ul { margin: 0; padding: 0 0 0 20px; display: flex; flex-direction: column; gap: 10px; font: 400 17px/24px var(--font-sans); color: var(--ink-2); }
 .release-feature li strong { color: var(--ink); font-weight: 600; }
 .release-feature .hero-actions { align-items: center; }
+.release-links { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font: 400 15px/20px var(--font-sans); }
+.release-links a { font-weight: 500; }
 .release-feature--current { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
 .release-feature--current img { display: block; width: 100%; height: auto; border-radius: 16px; }
 .release-list { padding: clamp(48px, 6vw, 80px) 0 clamp(64px, 8vw, 112px); }
@@ -554,3 +652,14 @@ a:not(.aq-btn):hover { color: var(--accent-ink); text-decoration: underline; }
 .policy-card p, .policy-card ul { margin: 0 0 16px; }
 .policy-card li + li { margin-top: 6px; }
 .policy-card .policy-lede { font-size: 19px; line-height: 28px; color: var(--ink); }
+
+/* Phones: smaller account dials so reset times keep to one line, and the desktop
+   widgets stack instead of overflowing the tile. Dials set --size inline, hence !important. */
+@media (max-width: 519px) {
+  .aq-acct { padding: 14px 16px 16px 14px; }
+  .aq-acct__row { gap: 14px; }
+  .aq-acct .aq-adial { --size: 104px !important; }
+  .aq-acct--sm .aq-adial { --size: 76px !important; }
+  .desktop-widgets { flex-wrap: wrap; }
+  .widget--medium { flex-basis: 100%; max-width: none; }
+}

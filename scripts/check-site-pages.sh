@@ -143,6 +143,10 @@ check_status "/assets/aiquota-video-poster.png"
 check_status "/assets/ios-lockscreen.webp"
 check_status "/assets/ios-overview-dark.webp"
 check_status "/assets/mac-popover-2.webp"
+check_status "/assets/badges/app-store-type-on-dark.png"
+check_status "/assets/badges/app-store-type-on-light.png"
+check_status "/assets/badges/mac-app-store-type-on-dark.png"
+check_status "/assets/badges/mac-app-store-type-on-light.png"
 
 video_size="$(wc -c < "$SITE_DIR/assets/aiquota-demo-inline.mp4" | tr -d '[:space:]')"
 if (( video_size > 1048576 )); then
@@ -169,6 +173,8 @@ grep -Fq 'Strict-Transport-Security "max-age=31536000; includeSubDomains"' "$SIT
 for page in "/" "/releases/" "/faq/" "/privacy/" "/terms/" "/accessibility/"; do
   check_contains "$page" "class=\"aq-nav aq-glass\""
   check_contains "$page" "data-theme-picker"
+  check_contains "$page" "data-get-open>Download</a>"
+  check_contains "$page" "id=\"get-aiquota\""
   check_contains "$page" "Need help? Email"
   check_contains "$page" "mailto:help@aiquota.app"
   check_contains "$page" "localStorage.getItem(\"aiquota-theme\")"
@@ -184,6 +190,13 @@ check_contains "/" "Your allowance, wherever you’re working."
 check_contains "/" "One look, on every screen."
 check_contains "/" "href=\"./faq/\">Read the FAQ</a>"
 check_contains "/" "Get AIQuota 2.0"
+check_contains "/" "aria-label=\"Download on the App Store\""
+check_contains "/" "aria-label=\"Download on the Mac App Store\""
+check_contains "/" "download directly for Mac</a>."
+check_contains "/" "<dialog class=\"get-dialog\" id=\"get-aiquota\""
+check_contains "/" "data-get-open>Download</a>"
+check_contains "/" "<p class=\"aq-acct__cap\">\$65.57 of \$100</p>"
+check_contains "/" "66% 30d used"
 
 # FAQ page: one accordion, first answer open.
 check_contains "/faq/" "The quick answers on tracking, sign-in, privacy, widgets, and getting set up on your Mac, iPhone or iPad."
