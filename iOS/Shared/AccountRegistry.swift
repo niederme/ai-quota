@@ -345,24 +345,32 @@ enum AccountRegistry {
 
     /// Checks a fresh sign-in against the card it is meant for. Signing back in
     /// as the card's own account is always allowed. Otherwise it is refused if
-    /// another card already holds that account, or if the card has a known,
-    /// different account. A card whose stored account is shared with another
-    /// card (an earlier mix-up) accepts any account no other card holds, so it
-    /// can be repaired by signing in with the right one.
+    /// another signed-in card already holds that account, or if the card is
+    /// signed in to a known, different account. A card whose stored account is
+    /// shared with another card (an earlier mix-up) accepts any account no other
+    /// card holds, so it can be repaired by signing in with the right one.
+    ///
+    /// Only cards that still hold a saved sign-in count. A card without one
+    /// (disconnected, or carried to a new phone by a device transfer or backup,
+    /// which moves the app-group registry but never this-device-only Keychain
+    /// items) keeps its old account ID, but that account isn't connected
+    /// anywhere, so it must not block the sign-in.
     static func identityConflict(for profile: AccountProfile, signingInAs identity: String,
                                  among profiles: [AccountProfile],
+                                 isSignedIn: (AccountProfile) -> Bool = { _ in true },
                                  title: (AccountProfile) -> String) -> IdentityConflict? {
         let new = identity.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !new.isEmpty else { return nil }
         let sameService = profiles.filter { $0.service == profile.service }
         let current = sameService.first(where: { $0.orderKey == profile.orderKey }) ?? profile
-        let others = sameService.filter { $0.orderKey != profile.orderKey }
+        let others = sameService.filter { $0.orderKey != profile.orderKey && isSignedIn($0) }
         let stored = current.providerIdentity?.trimmingCharacters(in: .whitespacesAndNewlines)
         if stored == new { return nil }
         if let other = others.first(where: { $0.providerIdentity == new }) {
             return .alreadyConnected(title(other))
         }
-        if let stored, !stored.isEmpty, !others.contains(where: { $0.providerIdentity == stored }) {
+        if let stored, !stored.isEmpty, isSignedIn(current),
+           !others.contains(where: { $0.providerIdentity == stored }) {
             return .differentAccount
         }
         return nil
@@ -370,7 +378,22 @@ enum AccountRegistry {
 
     static func identityConflict(for profile: AccountProfile, signingInAs identity: String) -> IdentityConflict? {
         identityConflict(for: profile, signingInAs: identity, among: all(),
+                         isSignedIn: hasSavedSignIn,
                          title: { presentation(for: $0).title })
+    }
+
+    /// Whether this card still has a sign-in saved on this device. The first
+    /// card of each service may also hold one in the pre-registry store.
+    static func hasSavedSignIn(_ profile: AccountProfile) -> Bool {
+        let shared = SharedQuotaStore(profile)
+        switch profile.service {
+        case .codex:
+            return sharedCredentials(CodexTokens.self, store: shared)
+                || (profile.isLegacy && legacyPrivateCredentials(CodexTokens.self, service: .codex))
+        case .claude:
+            return sharedCredentials(ClaudeTokens.self, store: shared)
+                || (profile.isLegacy && legacyPrivateCredentials(ClaudeTokens.self, service: .claude))
+        }
     }
 
     /// User-facing explanation for a refused sign-in. Nothing is saved.

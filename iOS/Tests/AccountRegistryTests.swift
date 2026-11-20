@@ -217,9 +217,11 @@ final class AccountIdentityConflictTests: XCTestCase {
     private func profile(_ id: String, _ identity: String?, service: QuotaService = .codex) -> AccountProfile {
         AccountProfile(id: id, service: service, label: id, providerIdentity: identity, isLegacy: false)
     }
-    private func conflict(_ card: AccountProfile, _ identity: String, _ profiles: [AccountProfile])
-        -> AccountRegistry.IdentityConflict? {
-        AccountRegistry.identityConflict(for: card, signingInAs: identity, among: profiles, title: { $0.label })
+    private func conflict(_ card: AccountProfile, _ identity: String, _ profiles: [AccountProfile],
+                          signedIn: Set<String>? = nil) -> AccountRegistry.IdentityConflict? {
+        AccountRegistry.identityConflict(for: card, signingInAs: identity, among: profiles,
+                                         isSignedIn: { signedIn?.contains($0.id) ?? true },
+                                         title: { $0.label })
     }
 
     func testSigningBackInAsTheSameAccountIsAllowed() {
@@ -250,6 +252,28 @@ final class AccountIdentityConflictTests: XCTestCase {
         let business = profile("business", "acct-pro")
         XCTAssertNil(conflict(business, "acct-business", [pro, business]))
         XCTAssertNil(conflict(pro, "acct-pro", [pro, business]))
+    }
+
+    func testCardsWithoutASavedSignInDoNotBlockANewCard() {
+        // A new phone set up from the old one: the registry came across with every
+        // card's account ID, but none of the this-device-only sign-ins did.
+        let personal = profile("live", nil)
+        let business = profile("business", "acct-enterprise")
+        let enterprise = profile("enterprise", "acct-enterprise")
+        let added = profile("added", nil)
+        let cards = [personal, business, enterprise, added]
+        XCTAssertNil(conflict(added, "acct-enterprise", cards, signedIn: ["live", "added"]))
+        // Once one of them is signed in again, it counts.
+        XCTAssertEqual(conflict(added, "acct-enterprise", cards, signedIn: ["live", "business", "added"]),
+                       .alreadyConnected("business"))
+    }
+
+    func testASignedOutCardCanSwitchAccounts() {
+        let business = profile("business", "acct-business")
+        let pro = profile("pro", "acct-pro")
+        XCTAssertNil(conflict(business, "acct-other", [pro, business], signedIn: ["pro"]))
+        // It still can't take an account another signed-in card holds.
+        XCTAssertEqual(conflict(business, "acct-pro", [pro, business], signedIn: ["pro"]), .alreadyConnected("pro"))
     }
 
     func testOtherServicesAreIgnored() {
