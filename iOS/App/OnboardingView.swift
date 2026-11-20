@@ -98,81 +98,26 @@ struct OnboardingView: View {
                     // Sized to the screen: the steps must never sit under the Back/Continue bar.
                     LockScreenSetupContent(fitsToScreen: true)
                 } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 24) {
-                            switch progress.step {
-                            case .welcome:
-                                OnboardingWelcome()
-                            case .services:
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Connect your services").font(.title.bold())
-                                    Text("Sign in to the services you use.").foregroundStyle(OverviewStyle.secondary)
-                                }
-                                service("Codex", subtitle: accountSubtitle(.codex, fallback: "ChatGPT / OpenAI"), logo: "logo-openai", connected: accounts?.connected(.codex).isEmpty == false || codex.connected, error: codex.error) {
-                                    openAccount(.codex)
-                                }
-                                service("Claude Code", subtitle: accountSubtitle(.claude, fallback: "Anthropic / claude.ai"), logo: "logo-claude", connected: accounts?.connected(.claude).isEmpty == false || claude.connected, error: claude.error ?? (claude.connectionFailure != nil ? String(localized: "Needs attention") : nil)) {
-                                    openAccount(.claude)
-                                }
-                                if accounts?.hasConnection == true || codex.connected || claude.connected {
-                                    if let accounts {
-                                        Menu("Add another account", systemImage: "plus") {
-                                            Button("Codex") { addAccount(.codex, to: accounts) }
-                                            Button("Claude") { addAccount(.claude, to: accounts) }
-                                        }
-                                    }
-                                    Divider()
-                                    VStack(alignment: .leading, spacing: 10) {
-                                        Text("How often should AIQuota refresh?").font(.subheadline.weight(.medium))
-                                        Picker("Refresh every", selection: refreshSelection) {
-                                            Text("Auto").tag(0)
-                                            ForEach([1, 5, 10, 30], id: \.self) { Text("\($0) min").tag($0) }
-                                        }.pickerStyle(.menu)
-                                        Text("Auto checks every 5 minutes while the app is open, or every minute near a limit.")
-                                            .font(.footnote).foregroundStyle(OverviewStyle.secondary)
-                                    }
-                                }
-                                Text("You can add accounts or services later in Settings.").font(.footnote).foregroundStyle(OverviewStyle.secondary)
-                            case .notifications, .widgets:
-                                EmptyView()
-                            case .complete:
-                                VStack(spacing: 24) {
-                                    Image(systemName: "checkmark.circle.fill").font(.system(size: 64)).foregroundStyle(OverviewStyle.accent)
-                                    Text("You’re all set!").font(.title.bold())
-                                    VStack(alignment: .leading, spacing: 12) {
-                                        MobileAnalyticsConsentControls(surface: .onboarding, isDemo: codex.isDemo)
-                                    }
-                                        .padding(18)
-                                        .background(OverviewStyle.track, in: RoundedRectangle(cornerRadius: OverviewStyle.radius))
-                                    VStack(spacing: 6) {
-                                        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
-                                        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
-                                        Text("AIQuota \(version) (\(build))").fontWeight(.medium)
-                                        Text("Made by John Niedermeyer, with a little help from Claude, Codex, and friends.")
-                                        Text("Need help?").padding(.top, 8)
-                                        ViewThatFits(in: .horizontal) {
-                                            HStack(spacing: 12) { supportLinks }
-                                            VStack(spacing: 8) { supportLinks }
-                                        }
-                                    }.font(.footnote).foregroundStyle(OverviewStyle.secondary)
-                                        .multilineTextAlignment(.center).padding(.top, 24)
-
-                                }.frame(maxWidth: .infinity).padding(.vertical, 16)
-                            }
-                        }
-                        .padding(24)
-                        .frame(maxWidth: 600, alignment: .leading)
-                        .frame(maxWidth: .infinity)
+                    // Full size if it fits above the bar, then tighter spacing, and only
+                    // then scrolling (short screens, long languages).
+                    ViewThatFits(in: .vertical) {
+                        stepPage(compact: false)
+                        stepPage(compact: true)
+                        ScrollView { stepPage(compact: true) }
                     }
+                    .frame(maxHeight: .infinity, alignment: .top)
                 }
             }
             .onboardingBottomBar {
                 // Buttons keep their natural width (no wrapping). Dots stay centred while
                 // both sides fit; long labels (German "Demo ausprobieren") drop the dots,
-                // then stack.
+                // then Back shrinks to its chevron, then the buttons stack.
                 ViewThatFits(in: .horizontal) {
                     OnboardingBalancedBar(spacing: 12) { leadingBarButton; pageDots; trailingBarButton }
                     HStack(spacing: 12) { leadingBarButton; Spacer(minLength: 0); trailingBarButton }
+                    if progress.step != .welcome {
+                        HStack(spacing: 12) { iconBackButton; Spacer(minLength: 0); trailingBarButton }
+                    }
                     VStack(spacing: 10) { trailingBarButton; leadingBarButton }
                 }
                 .padding(20)
@@ -273,6 +218,73 @@ struct OnboardingView: View {
         .fixedSize(horizontal: true, vertical: false)
     }
 
+    private func stepPage(compact: Bool) -> some View {
+        VStack(alignment: .leading, spacing: compact ? 14 : 24) {
+            switch progress.step {
+            case .welcome:
+                OnboardingWelcome()
+            case .services:
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Connect your services").font(.title.bold())
+                    Text("Sign in to the services you use.").foregroundStyle(OverviewStyle.secondary)
+                }
+                service("Codex", subtitle: accountSubtitle(.codex, fallback: "ChatGPT / OpenAI"), logo: "logo-openai", connected: accounts?.connected(.codex).isEmpty == false || codex.connected, error: codex.error) {
+                    openAccount(.codex)
+                }
+                service("Claude Code", subtitle: accountSubtitle(.claude, fallback: "Anthropic / claude.ai"), logo: "logo-claude", connected: accounts?.connected(.claude).isEmpty == false || claude.connected, error: claude.error ?? (claude.connectionFailure != nil ? String(localized: "Needs attention") : nil)) {
+                    openAccount(.claude)
+                }
+                if accounts?.hasConnection == true || codex.connected || claude.connected {
+                    if let accounts {
+                        Menu("Add another account", systemImage: "plus") {
+                            Button("Codex") { addAccount(.codex, to: accounts) }
+                            Button("Claude") { addAccount(.claude, to: accounts) }
+                        }
+                    }
+                    Divider()
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("How often should AIQuota refresh?").font(.subheadline.weight(.medium))
+                        Picker("Refresh every", selection: refreshSelection) {
+                            Text("Auto").tag(0)
+                            ForEach([1, 5, 10, 30], id: \.self) { Text("\($0) min").tag($0) }
+                        }.pickerStyle(.menu)
+                        Text("Auto checks every 5 minutes while the app is open, or every minute near a limit.")
+                            .font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                    }
+                }
+                Text("You can add accounts or services later in Settings.").font(.footnote).foregroundStyle(OverviewStyle.secondary)
+            case .notifications, .widgets:
+                EmptyView()
+            case .complete:
+                VStack(spacing: compact ? 14 : 24) {
+                    Image(systemName: "checkmark.circle.fill").font(.system(size: compact ? 44 : 64)).foregroundStyle(OverviewStyle.accent)
+                    Text("You’re all set!").font(.title.bold())
+                    VStack(alignment: .leading, spacing: 12) {
+                        MobileAnalyticsConsentControls(surface: .onboarding, isDemo: codex.isDemo)
+                    }
+                        .padding(18)
+                        .background(OverviewStyle.track, in: RoundedRectangle(cornerRadius: OverviewStyle.radius))
+                    VStack(spacing: 6) {
+                        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+                        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
+                        Text("AIQuota \(version) (\(build))").fontWeight(.medium)
+                        Text("Made by John Niedermeyer, with a little help from Claude, Codex, and friends.")
+                        Text("Need help?").padding(.top, 8)
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: 12) { supportLinks }
+                            VStack(spacing: 8) { supportLinks }
+                        }
+                    }.font(.footnote).foregroundStyle(OverviewStyle.secondary)
+                        .multilineTextAlignment(.center).padding(.top, compact ? 4 : 24)
+
+                }.frame(maxWidth: .infinity).padding(.vertical, compact ? 0 : 16)
+            }
+        }
+        .padding(.horizontal, 24).padding(.vertical, compact ? 12 : 24)
+        .frame(maxWidth: 600, alignment: .leading)
+        .frame(maxWidth: .infinity)
+    }
+
     @ViewBuilder private var leadingBarButton: some View {
         if progress.step != .welcome {
             Button("Back", systemImage: "chevron.left") {
@@ -288,6 +300,15 @@ struct OnboardingView: View {
         } else {
             Color.clear.frame(width: 0, height: 0)
         }
+    }
+
+    private var iconBackButton: some View {
+        Button {
+            let index = OnboardingProgress.order.firstIndex(of: progress.step) ?? 0
+            progress.setStep(OnboardingProgress.order[max(0, index - 1)])
+        } label: {
+            Label("Back", systemImage: "chevron.left").labelStyle(.iconOnly)
+        }.modifier(OnboardingSecondaryButtonStyle()).fixedSize()
     }
 
     @ViewBuilder private var trailingBarButton: some View {
@@ -331,7 +352,7 @@ struct OnboardingView: View {
                     .background(OverviewStyle.accent.opacity(0.12), in: Circle())
                     .overlay(Circle().strokeBorder(OverviewStyle.accent.opacity(0.4)))
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(name).font(.headline)
+                    Text(name).font(.headline).lineLimit(1).minimumScaleFactor(0.85)
                     Text(subtitle)
                         .font(.caption).foregroundStyle(OverviewStyle.secondary)
                 }
