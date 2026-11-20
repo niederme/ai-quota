@@ -445,7 +445,7 @@ html:has(.get-dialog[open]) { overflow: hidden; }
 .hero-download { display: flex; flex-direction: column; gap: 10px; }
 
 /* Hero reset notice: the iOS banner above the cards. */
-.hero-notice { display: flex; align-items: flex-start; gap: 8px; padding: 14px 16px 14px 20px; border-radius: 24px; background: color-mix(in srgb, var(--accent) 22%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 42%, transparent); }
+.hero-notice { display: flex; align-items: flex-start; gap: 8px; padding: 14px 16px 14px 20px; border-radius: 24px; background: color-mix(in srgb, var(--accent) 11%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent); }
 .hero-notice[hidden] { display: none; }
 .hero-notice__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .hero-notice__title { margin: 0; font: 600 17px/22px var(--font-sans); color: var(--ink); }
@@ -568,27 +568,6 @@ html:has(.get-dialog[open]) { overflow: hidden; }
   .tile--mac .tile__body { max-width: 400px; }
 }
 
-/* Devices */
-.devices { padding: 0 0 clamp(64px, 8vw, 112px); }
-.devices .container { display: flex; flex-direction: column; align-items: center; gap: clamp(32px, 4vw, 56px); }
-.devices .aq-eyebrow { white-space: nowrap; }
-.device-row { width: 100%; max-width: 1000px; display: flex; align-items: flex-end; justify-content: center; gap: 4%; }
-.device { margin: 0; min-width: 0; display: flex; flex-direction: column; align-items: center; }
-.device figcaption { margin-top: 16px; font: 400 15px/20px var(--font-sans); color: var(--ink-2); text-align: center; }
-.device--mac { flex: 0 0 76%; }
-.device--phone { flex: 0 0 17%; container-type: inline-size; }
-.macbook__lid { width: 100%; border-radius: 22px 22px 6px 6px; background: var(--surface-2); padding: 1.6% 1.6% 2.4%; box-shadow: inset 0 0 0 1px var(--line); }
-.macbook__screen { position: relative; container-type: inline-size; aspect-ratio: 3024 / 1964; border-radius: 8px; overflow: hidden; background: radial-gradient(90% 80% at 15% 0%, #5b2d86, transparent 60%), radial-gradient(70% 70% at 100% 100%, #3a1e5a, transparent 60%), #17121f; }
-.macbook__menubar { position: absolute; top: 0; left: 0; right: 0; height: 2.45cqw; background: rgba(20, 14, 28, 0.55); display: flex; align-items: center; justify-content: flex-end; gap: 1cqw; padding: 0 1.2cqw; color: #fff; }
-.macbook__gauges { display: flex; gap: 0.5cqw; }
-.macbook__gauges svg { display: block; overflow: visible; width: 1.45cqw; height: 1.45cqw; }
-.macbook__clock { font: 500 0.86cqw/1 var(--font-sans); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.macbook__popover { position: absolute; top: 2.85cqw; right: 6.5cqw; width: 31.6cqw; aspect-ratio: 956 / 1256; border-radius: 1.2cqw; overflow: hidden; box-shadow: 0 1.2cqw 3cqw rgba(0, 0, 0, 0.5); }
-.macbook__popover img, .iphone__screen img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.macbook__base { width: 108%; height: 12px; border-radius: 0 0 12px 12px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); }
-.iphone { width: 100%; border-radius: 17cqw; background: var(--surface-2); padding: 3.6cqw; box-shadow: inset 0 0 0 1px var(--line); }
-.iphone__screen { position: relative; aspect-ratio: 1260 / 2736; border-radius: 13.5cqw; overflow: hidden; background: #000; }
-
 /* FAQ pointer and download band */
 .faq-pointer { padding: 0 clamp(16px, 4vw, 32px) clamp(48px, 6vw, 64px); }
 .faq-pointer p { max-width: 1056px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 8px; font: 400 17px/24px var(--font-sans); color: var(--ink-2); }
@@ -668,3 +647,7 @@ html:has(.get-dialog[open]) { overflow: hidden; }
   .desktop-widgets { flex-wrap: wrap; }
   .widget--medium { flex-basis: 100%; max-width: none; }
 }
+
+/* Hero cards sit on the purple wash: back them with the canvas so the top one doesn't read brighter than the rest. */
+.hero-visual .aq-acct { background: linear-gradient(color-mix(in srgb, var(--accent) 6%, transparent), color-mix(in srgb, var(--accent) 6%, transparent)), color-mix(in srgb, var(--canvas) 72%, transparent); }
+.hero-visual .hero-notice { background: linear-gradient(color-mix(in srgb, var(--accent) 11%, transparent), color-mix(in srgb, var(--accent) 11%, transparent)), color-mix(in srgb, var(--canvas) 72%, transparent); }
