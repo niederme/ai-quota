@@ -1,5 +1,263 @@
 {
-  "sourceLanguage": "en",
-  "strings": {},
-  "version": "1.0"
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ 5-hour usage at %lld%%" : {
+      "comment" : "Notification title. First value is the account name, second the percent of the 5-hour limit used.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ 5-hour usage at %2$lld%%"
+          }
+        }
+      }
+    },
+    "%@ 5-hour window reset" : {
+      "comment" : "Notification title. The value is the account name."
+    },
+    "%@ 7-day usage at %lld%%" : {
+      "comment" : "Notification title. First value is the account name, second the percent of the 7-day limit used.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ 7-day usage at %2$lld%%"
+          }
+        }
+      }
+    },
+    "%@ 7-day window reset" : {
+      "comment" : "Notification title. The value is the account name."
+    },
+    "%@ credits added" : {
+      "comment" : "Notification title. The value is the account name."
+    },
+    "%@ credits topped up" : {
+      "comment" : "Notification title. The value is the account name."
+    },
+    "%@ plan changed to %@" : {
+      "comment" : "Notification title. First value is the account name, second the new plan name (Pro, Max…).",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ plan changed to %2$@"
+          }
+        }
+      }
+    },
+    "%@ reset awaiting confirmation" : {
+      "comment" : "Shown when a usage window's reset time has passed but no fresh reading has arrived. The value is a window key such as “7d”."
+    },
+    "%@ reset unavailable" : {
+      "comment" : "Shown when a usage window has no reset time. The value is a window key such as “5h”."
+    },
+    "%@ resets %@" : {
+      "comment" : "Reset caption. First value is a usage window key such as “7d”, second a day and time such as “Wed. 1:03pm”.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ resets %2$@"
+          }
+        }
+      }
+    },
+    "%@ resets Today %@" : {
+      "comment" : "Reset caption. First value is a usage window key such as “5h”, second a time such as “8:29pm”.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ resets Today %2$@"
+          }
+        }
+      }
+    },
+    "%@ resets Tomorrow %@" : {
+      "comment" : "Reset caption. First value is a usage window key such as “5h”, second a time such as “12:15am”.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ resets Tomorrow %2$@"
+          }
+        }
+      }
+    },
+    "%lld day calendar month" : {
+      "comment" : "VoiceOver name for a budget period, such as “30 day calendar month”."
+    },
+    "<1m" : {
+      "comment" : "Compact countdown shown when a reset is under a minute away."
+    },
+    "API endpoint not configured." : {
+
+    },
+    "Auto-reload added credits. New balance: %lld." : {
+      "comment" : "Notification body. The value is the new credit balance."
+    },
+    "Both" : {
+
+    },
+    "calendar month" : {
+      "comment" : "VoiceOver name for a calendar-month budget period."
+    },
+    "Cancel" : {
+
+    },
+    "Check again after signing in or choosing the saved workspace." : {
+
+    },
+    "Check sign-in" : {
+
+    },
+    "Checking ChatGPT sign-in…" : {
+
+    },
+    "Claude Code credentials are missing an access token." : {
+
+    },
+    "Claude Code credentials do not contain Claude.ai OAuth data." : {
+
+    },
+    "Claude Code credentials do not include usage scope." : {
+
+    },
+    "Claude Code credentials not found. Run `claude` to sign in." : {
+
+    },
+    "Claude Code Keychain lookup failed with status %d." : {
+
+    },
+    "Codex CLI credentials are missing an access token." : {
+
+    },
+    "Codex CLI credentials do not contain OAuth tokens." : {
+
+    },
+    "Codex CLI credentials not found. Run `codex` to sign in." : {
+
+    },
+    "Could not decode Claude Code credentials." : {
+
+    },
+    "Could not decode Codex CLI credentials." : {
+
+    },
+    "Could not refresh session. Please sign in again." : {
+
+    },
+    "Couldn’t update allowance. Try again." : {
+
+    },
+    "Couldn’t verify sign-in" : {
+
+    },
+    "Different ChatGPT account or workspace" : {
+
+    },
+    "Finish signing in to ChatGPT, then click Check sign-in. You can also try another account or cancel." : {
+
+    },
+    "less than a minute" : {
+      "comment" : "Countdown shown when a reset is under a minute away."
+    },
+    "Month" : {
+      "comment" : "Compact key for a calendar-month budget when its length is unknown."
+    },
+    "New balance: %lld." : {
+      "comment" : "Notification body. The value is the new credit balance."
+    },
+    "No network connection." : {
+
+    },
+    "Not signed in." : {
+
+    },
+    "Open Claude Code to refresh your session." : {
+
+    },
+    "Previously %@. Connection checked and usage is up to date." : {
+      "comment" : "Notification body. The value is the previous plan name."
+    },
+    "Rate limited — try again in a moment." : {
+
+    },
+    "Reset awaiting confirmation" : {
+      "comment" : "Shown once when every usage window's reset time has passed but no fresh reading has arrived yet."
+    },
+    "resets %@" : {
+      "comment" : "Reset caption under a budget gauge. The value is a time or a day and time, such as “Wed. 1:03pm”."
+    },
+    "Run `codex` to refresh your session." : {
+
+    },
+    "Session expired. Please sign in again." : {
+
+    },
+    "Sign in" : {
+
+    },
+    "Sign in to ChatGPT" : {
+
+    },
+    "Sign in to Claude" : {
+
+    },
+    "Sign-in isn’t ready yet" : {
+
+    },
+    "Spend" : {
+
+    },
+    "Start a fresh sign-in without changing your saved connection." : {
+
+    },
+    "That sign-in is for a different account than the one saved here, so nothing changed. Reconnect with the original account." : {
+
+    },
+    "The browser session changed while we were checking it. Click Check sign-in again, or try another account. Your saved connection hasn’t changed." : {
+
+    },
+    "The service didn’t recognize this account (error %lld). Try reconnecting." : {
+
+    },
+    "The service had a problem (error %lld). AIQuota will try again." : {
+
+    },
+    "This sign-in doesn’t match the saved Codex account. Choose its workspace in ChatGPT, then click Check sign-in, or try another account. Your saved connection hasn’t changed." : {
+
+    },
+    "Try another account" : {
+
+    },
+    "Unexpected response format from server." : {
+
+    },
+    "Usage" : {
+
+    },
+    "We couldn’t verify this sign-in. Click Check sign-in to retry, or try another account. Your saved connection hasn’t changed." : {
+
+    },
+    "Your %@ 5-hour window has reset. You're back to full capacity." : {
+      "comment" : "Notification body. The value is the account name."
+    },
+    "Your %@ 7-day window has reset. You're back to full capacity." : {
+      "comment" : "Notification body. The value is the account name."
+    },
+    "Your %lld%% threshold was reached. Resets in %@." : {
+      "comment" : "Notification body. First value is the alert threshold percent, second a duration such as “2h 15m”.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Your %1$lld%% threshold was reached. Resets in %2$@."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
 }

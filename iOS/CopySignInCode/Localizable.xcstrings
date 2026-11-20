@@ -1,7 +1,15 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Code copied" : {
 
+    },
+    "Code unavailable. Start sign-in again in AIQuota." : {
+
+    },
+    "Couldn’t copy. Try again in AIQuota." : {
+
+    }
   },
   "version" : "1.0"
 }

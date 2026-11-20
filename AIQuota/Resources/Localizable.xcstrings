@@ -1,7 +1,1389 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "" : {
 
+    },
+    " · %lld reported as zero" : {
+
+    },
+    " · missing days left empty" : {
+
+    },
+    "—" : {
+
+    },
+    "— %@" : {
+
+    },
+    "— 7d" : {
+
+    },
+    ", %lld percent used in 7d" : {
+
+    },
+    ", %lld percent used, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : ", %1$lld percent used, %2$@"
+          }
+        }
+      }
+    },
+    "·" : {
+
+    },
+    "· auto-reload" : {
+
+    },
+    "@niederme on X" : {
+
+    },
+    "%" : {
+
+    },
+    "%@ · checked %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · checked %2$@"
+          }
+        }
+      }
+    },
+    "%@ (UTC)" : {
+
+    },
+    "%@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "%@ credits" : {
+
+    },
+    "%@ not reported" : {
+
+    },
+    "%@ of %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ of %2$@"
+          }
+        }
+      }
+    },
+    "%@ of %@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ of %2$@ %3$@"
+          }
+        }
+      }
+    },
+    "%@ of %@ credits" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ of %2$@ credits"
+          }
+        }
+      }
+    },
+    "%@ of reported usage" : {
+
+    },
+    "%@ plan" : {
+
+    },
+    "%@ reset awaiting confirmation" : {
+
+    },
+    "%@ reset unavailable" : {
+
+    },
+    "%@ resets %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ resets %2$@"
+          }
+        }
+      }
+    },
+    "%@ tokens" : {
+
+    },
+    "%@ total usage credits" : {
+
+    },
+    "%@ trend" : {
+
+    },
+    "%@ usage credits" : {
+
+    },
+    "%@ usage: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ usage: %2$@"
+          }
+        }
+      }
+    },
+    "%@ window: %lld%% used" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ window: %2$lld%% used"
+          }
+        }
+      }
+    },
+    "%@, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@"
+          }
+        }
+      }
+    },
+    "%@, %@%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@%3$@"
+          }
+        }
+      }
+    },
+    "%@, %lld percent, %@, %@ of %@ %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$lld percent, %3$@, %4$@ of %5$@ %6$@"
+          }
+        }
+      }
+    },
+    "%@, not connected" : {
+
+    },
+    "%@, percent used" : {
+
+    },
+    "%@:" : {
+
+    },
+    "%@. Reset uses the provider's date." : {
+
+    },
+    "%lld" : {
+
+    },
+    "%lld calendar days · %lld without reported data" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld calendar days · %2$lld without reported data"
+          }
+        }
+      }
+    },
+    "%lld hours ago" : {
+      "comment" : "Age of a usage reading, as in “Updated 2 hours ago”. Needs plural forms."
+    },
+    "%lld minutes ago" : {
+      "comment" : "Age of a usage reading, as in “Updated 5 minutes ago”. Needs plural forms."
+    },
+    "%lld of %lld calendar days reported" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld calendar days reported"
+          }
+        }
+      }
+    },
+    "%lld of %lld days reported · %lld include app attribution" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld days reported · %3$lld include app attribution"
+          }
+        }
+      }
+    },
+    "%lld of %lld days reported · %lld include model attribution" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld days reported · %3$lld include model attribution"
+          }
+        }
+      }
+    },
+    "%lld%%" : {
+
+    },
+    "%lld%% %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld%% %2$@"
+          }
+        }
+      }
+    },
+    "%lld%% 7d" : {
+
+    },
+    "%lld%% used" : {
+
+    },
+    "%lldh ago" : {
+
+    },
+    "%lldm" : {
+      "comment" : "Compact window key in minutes, such as “30m”."
+    },
+    "%lldm ago" : {
+
+    },
+    "%llds ago" : {
+
+    },
+    "⚠️" : {
+
+    },
+    "5-hour window" : {
+
+    },
+    "5h window: not currently reported" : {
+
+    },
+    "7 days" : {
+
+    },
+    "7-day window" : {
+
+    },
+    "7-day window: %lld%% used" : {
+
+    },
+    "30 days" : {
+
+    },
+    "About" : {
+      "comment" : "Settings tab"
+    },
+    "About %@" : {
+
+    },
+    "About AIQuota" : {
+
+    },
+    "Access blocked by policy" : {
+
+    },
+    "Account" : {
+
+    },
+    "Account name" : {
+
+    },
+    "Account storage is invalid. Remove and reconnect this account." : {
+
+    },
+    "Accounts" : {
+      "comment" : "Settings tab"
+    },
+    "Add %@ Account…" : {
+
+    },
+    "Add Account…" : {
+
+    },
+    "Add Another Account…" : {
+
+    },
+    "Add the AIQuota widget" : {
+
+    },
+    "Add the personal and work accounts you use." : {
+
+    },
+    "AIQuota" : {
+
+    },
+    "AIQuota %@ (%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "AIQuota %1$@ (%2$@)"
+          }
+        }
+      }
+    },
+    "AIQuota sums %@’s usage-credit events and converts them at 25 credits = $1." : {
+
+    },
+    "Alerts" : {
+
+    },
+    "Allow %@ notifications" : {
+
+    },
+    "Allow Claude Code notifications" : {
+
+    },
+    "Allow Codex notifications" : {
+
+    },
+    "Allow notifications to receive usage alerts and reset reminders." : {
+
+    },
+    "Allow Notifications…" : {
+
+    },
+    "Analytics spend" : {
+
+    },
+    "Anthropic / claude.ai" : {
+
+    },
+    "Application" : {
+
+    },
+    "Applies to usage alerts in both windows." : {
+
+    },
+    "Auth needs attention" : {
+
+    },
+    "Auto review" : {
+
+    },
+    "Automatically" : {
+
+    },
+    "Back" : {
+
+    },
+    "Back to Accounts" : {
+
+    },
+    "Back to analytics" : {
+
+    },
+    "Back to overview" : {
+
+    },
+    "Banked resets require separate action in Codex. The time shown is the scheduled refresh." : {
+
+    },
+    "Beyond your subscription · %@" : {
+
+    },
+    "Bonus!" : {
+
+    },
+    "Busy, updating allowance" : {
+
+    },
+    "By app" : {
+
+    },
+    "By model" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Chart shows the three leading series. All reported categories are listed." : {
+
+    },
+    "ChatGPT / OpenAI" : {
+
+    },
+    "Check Codex resets" : {
+
+    },
+    "Check for updates automatically" : {
+
+    },
+    "Check for Updates…" : {
+
+    },
+    "Checks every 5 minutes, more often near a limit, and less often when your Mac is idle." : {
+
+    },
+    "Choose a distinct connection name" : {
+
+    },
+    "Choose a distinct name in Settings" : {
+
+    },
+    "Choose which alerts you’d like to receive." : {
+
+    },
+    "Claude Code" : {
+
+    },
+    "Claude Code credentials expired" : {
+
+    },
+    "Claude Code credentials not found" : {
+
+    },
+    "Claude Code credentials unreadable" : {
+
+    },
+    "Claude Code permissions missing" : {
+
+    },
+    "Claude Code: %@" : {
+
+    },
+    "Claude reports additional skills beyond this list." : {
+
+    },
+    "Claude reports both as one monthly total and doesn’t provide a reliable breakdown." : {
+
+    },
+    "Claude usage" : {
+
+    },
+    "CLI OAuth" : {
+
+    },
+    "Click a day to see its reported usage." : {
+
+    },
+    "Cloud messages: ~%lld / %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Cloud messages: ~%1$lld / %2$lld"
+          }
+        }
+      }
+    },
+    "Codex" : {
+
+    },
+    "Codex credits: %@" : {
+
+    },
+    "Codex credits: %@\nAuto-reload at %@; target %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Codex credits: %1$@\nAuto-reload at %2$@; target %3$@."
+          }
+        }
+      }
+    },
+    "Codex credits: %@\nAuto-reload is off." : {
+
+    },
+    "Codex Resets" : {
+
+    },
+    "Codex Resets…" : {
+
+    },
+    "Codex service" : {
+
+    },
+    "Codex usage" : {
+
+    },
+    "Codex: %@" : {
+
+    },
+    "Collapsed" : {
+
+    },
+    "Connect" : {
+
+    },
+    "Connect %@" : {
+
+    },
+    "Connect a service on the previous step to configure thresholds." : {
+
+    },
+    "Connect an account" : {
+
+    },
+    "Connect your accounts" : {
+
+    },
+    "Connected" : {
+
+    },
+    "Connecting" : {
+
+    },
+    "Connection" : {
+
+    },
+    "Connection diagnostics include authentication sources, HTTP status, error categories, and timestamps. No credentials or response bodies." : {
+
+    },
+    "Continue" : {
+
+    },
+    "Converted at 25 credits = $1. Excludes your subscription price and credit purchases." : {
+
+    },
+    "Copied" : {
+
+    },
+    "Copy Diagnostics" : {
+
+    },
+    "Cost / use" : {
+
+    },
+    "Could not verify this account's identity. Reconnect to try again." : {
+
+    },
+    "Couldn’t load allowance" : {
+
+    },
+    "Couldn’t refresh product details. Last reported values remain visible." : {
+
+    },
+    "Couldn’t refresh skills. Last reported values remain visible." : {
+
+    },
+    "Couldn’t refresh spend. Last reported values remain visible." : {
+
+    },
+    "Couldn’t refresh usage" : {
+
+    },
+    "Couldn’t update · Saved reading" : {
+
+    },
+    "Credit balance" : {
+
+    },
+    "Credit balance:" : {
+
+    },
+    "Credit balance: %@" : {
+
+    },
+    "Credits" : {
+
+    },
+    "credits this month" : {
+
+    },
+    "Credits used" : {
+
+    },
+    "Credits used: %@" : {
+
+    },
+    "Current reporting period · UTC" : {
+
+    },
+    "Daily Enterprise spend by product in UTC" : {
+
+    },
+    "Daily usage" : {
+
+    },
+    "Daily usage not reported for this period." : {
+
+    },
+    "Daily values are also available using View daily readings." : {
+
+    },
+    "Date" : {
+
+    },
+    "Day" : {
+
+    },
+    "Desktop" : {
+
+    },
+    "Dismiss limit forecast" : {
+
+    },
+    "Dismiss reset announcement" : {
+
+    },
+    "Display name" : {
+
+    },
+    "Done" : {
+
+    },
+    "Drag a widget onto your desktop and click **Done**" : {
+
+    },
+    "Drag account cards in the menu bar popover to change their order. Open an account to manage its connection and menu bar gauge." : {
+
+    },
+    "empty; reload target %@" : {
+
+    },
+    "Enable notifications" : {
+
+    },
+    "Enterprise spend couldn’t be loaded." : {
+
+    },
+    "Enterprise spend was not reported." : {
+
+    },
+    "Estimate from current quota usage and available service history. Changes in usage can change the forecast." : {
+
+    },
+    "Estimated Monthly Spend" : {
+
+    },
+    "Every %lld minutes" : {
+
+    },
+    "Every minute" : {
+
+    },
+    "Every reset" : {
+
+    },
+    "Expanded" : {
+
+    },
+    "Extra usage" : {
+
+    },
+    "Fable 5 & Post-Limit Usage" : {
+
+    },
+    "From %@ to %@, UTC" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "From %1$@ to %2$@, UTC"
+          }
+        }
+      }
+    },
+    "General" : {
+      "comment" : "Settings tab"
+    },
+    "Get Started" : {
+
+    },
+    "GitHub Issues" : {
+
+    },
+    "GitHub review" : {
+
+    },
+    "Guided Setup…" : {
+
+    },
+    "Helps improve AIQuota. Includes app activity and version, never prompts, credentials, or personal information." : {
+
+    },
+    "History couldn’t refresh" : {
+
+    },
+    "History unavailable" : {
+
+    },
+    "just now" : {
+      "comment" : "Age of a usage reading, as in “Updated just now”."
+    },
+    "Just now" : {
+
+    },
+    "Keeps your accounts and preferences." : {
+
+    },
+    "Know your limits.\nKeep your flow." : {
+
+    },
+    "Last updated %@" : {
+
+    },
+    "Launch at login" : {
+
+    },
+    "Loading %@" : {
+      "comment" : "VoiceOver for a loading chart card. The value is the card title, such as “Daily usage”."
+    },
+    "Loading Claude skill activity" : {
+
+    },
+    "Loading Claude spend details" : {
+
+    },
+    "Loading this week by product" : {
+
+    },
+    "Loading usage" : {
+
+    },
+    "Local messages: ~%lld / %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Local messages: ~%1$lld / %2$lld"
+          }
+        }
+      }
+    },
+    "Made by John Niedermeyer, with a little help from\nClaude, Codex, and friends." : {
+
+    },
+    "Made by John Niedermeyer, with a little help from Claude, Codex, and friends." : {
+
+    },
+    "Manage" : {
+
+    },
+    "Manage account in Settings" : {
+
+    },
+    "Minimum usage" : {
+
+    },
+    "Minimum usage for reset alerts" : {
+
+    },
+    "Mobile" : {
+
+    },
+    "monthly" : {
+
+    },
+    "Monthly %@" : {
+
+    },
+    "monthly allowance" : {
+
+    },
+    "Monthly allowance" : {
+
+    },
+    "Monthly credits" : {
+
+    },
+    "Monthly limit: %lld / %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Monthly limit: %1$lld / %2$lld"
+          }
+        }
+      }
+    },
+    "monthly spend" : {
+
+    },
+    "Monthly spend" : {
+
+    },
+    "Move down" : {
+
+    },
+    "Move up" : {
+
+    },
+    "N/A" : {
+
+    },
+    "Name your %@ account" : {
+
+    },
+    "Need help?" : {
+
+    },
+    "Network issue" : {
+
+    },
+    "Next" : {
+
+    },
+    "No accounts yet" : {
+
+    },
+    "No app breakdown reported for this period." : {
+
+    },
+    "No model breakdown reported for this period." : {
+
+    },
+    "No network connection. Showing saved data." : {
+
+    },
+    "No product spend reported for this month." : {
+
+    },
+    "No reading yet" : {
+
+    },
+    "No record reported" : {
+
+    },
+    "No skill invocations reported for this month." : {
+
+    },
+    "No spend reported" : {
+
+    },
+    "Not checked yet" : {
+
+    },
+    "Not connected" : {
+
+    },
+    "Not Now" : {
+
+    },
+    "Not reported" : {
+
+    },
+    "Not signed in" : {
+
+    },
+    "Nothing new was added. Sign in with a different account to connect another one." : {
+
+    },
+    "Notification options appear after you connect a service." : {
+
+    },
+    "Notifications" : {
+      "comment" : "Settings tab"
+    },
+    "Notifications are disabled in System Settings." : {
+
+    },
+    "Off" : {
+
+    },
+    "Off by default. Change anytime in Settings." : {
+
+    },
+    "OK" : {
+
+    },
+    "Older reading · %@" : {
+
+    },
+    "One usage alert per window at your threshold. On Mac, alerts follow the original connection for each service." : {
+
+    },
+    "One usage alert per window when usage reaches your threshold. Reset reminders are separate. On Mac, alerts follow the original connection for each service." : {
+
+    },
+    "One usage alert per window, at or above this threshold. Enter 5 to 100 percent." : {
+
+    },
+    "Only near the limit" : {
+
+    },
+    "Open account details" : {
+
+    },
+    "Open account settings" : {
+
+    },
+    "Open Claude usage settings" : {
+
+    },
+    "Open System Settings…" : {
+
+    },
+    "Open the AIQuota update" : {
+
+    },
+    "Opens %@ analytics and statistics" : {
+
+    },
+    "Outside your plan allowance. Your subscription price is separate." : {
+
+    },
+    "Percent used" : {
+
+    },
+    "Percentages reported by Claude, separate from your allowance." : {
+
+    },
+    "Plan" : {
+
+    },
+    "Plan not reported" : {
+
+    },
+    "Plan: %@" : {
+
+    },
+    "Privacy" : {
+
+    },
+    "Privacy Policy" : {
+
+    },
+    "Product details appear when Claude reports them." : {
+
+    },
+    "Products · %@" : {
+
+    },
+    "Quit" : {
+
+    },
+    "Rate limited" : {
+
+    },
+    "Read more on Codex Resets" : {
+
+    },
+    "Reconnect" : {
+
+    },
+    "Reconnect %@" : {
+
+    },
+    "Reconnect account" : {
+
+    },
+    "Reconnect Claude for Enterprise details?" : {
+
+    },
+    "Reconnect…" : {
+
+    },
+    "Refresh" : {
+
+    },
+    "Refresh %@ details" : {
+
+    },
+    "Refresh Status" : {
+
+    },
+    "Refresh this account" : {
+
+    },
+    "Refresh this account to try again." : {
+
+    },
+    "Refresh usage" : {
+
+    },
+    "Refresh Usage" : {
+
+    },
+    "Refreshing saved reading" : {
+
+    },
+    "Refreshing usage" : {
+
+    },
+    "reload off" : {
+
+    },
+    "Remove" : {
+
+    },
+    "Remove Account" : {
+
+    },
+    "Remove Account?" : {
+
+    },
+    "Remove Account…" : {
+
+    },
+    "Removes this account’s local connection and cached usage." : {
+
+    },
+    "Report an Issue" : {
+
+    },
+    "Reported as of %@ · Window started %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Reported as of %1$@ · Window started %2$@"
+          }
+        }
+      }
+    },
+    "Reported product percentage" : {
+
+    },
+    "Reported segment" : {
+
+    },
+    "Reporting dates, %@ to %@, UTC" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Reporting dates, %1$@ to %2$@, UTC"
+          }
+        }
+      }
+    },
+    "Reset AIQuota" : {
+
+    },
+    "Reset AIQuota?" : {
+
+    },
+    "Reset AIQuota…" : {
+
+    },
+    "Reset alerts" : {
+
+    },
+    "Reset time unavailable" : {
+
+    },
+    "resets %@" : {
+
+    },
+    "Resets in %@" : {
+
+    },
+    "Resetting now…" : {
+
+    },
+    "Retry" : {
+
+    },
+    "Retry skills" : {
+
+    },
+    "Retry spend" : {
+
+    },
+    "Reuse Claude Code Keychain credentials" : {
+
+    },
+    "Revisit setup" : {
+
+    },
+    "Right-click on your desktop and choose **Edit Widgets…**" : {
+
+    },
+    "Save" : {
+
+    },
+    "Search for **AIQuota** in the widget gallery" : {
+
+    },
+    "See your quota at a glance on your desktop." : {
+
+    },
+    "Send a reset reminder only if usage reached this percentage before the reset." : {
+
+    },
+    "Separate from plan limits" : {
+
+    },
+    "Service" : {
+
+    },
+    "Service issue" : {
+
+    },
+    "Settings" : {
+
+    },
+    "Setup & Reset" : {
+
+    },
+    "Share anonymous usage data" : {
+
+    },
+    "Share app launches, active use, setup completion, and app version. No prompts, tokens, cookies, or personal info." : {
+
+    },
+    "Show in menu bar" : {
+
+    },
+    "Show this account’s usage gauge alongside your other accounts. You can change this in Settings." : {
+
+    },
+    "Shown in menu bar" : {
+
+    },
+    "Sign In" : {
+
+    },
+    "Sign Out" : {
+
+    },
+    "Sign Out?" : {
+
+    },
+    "Sign Out…" : {
+
+    },
+    "Signed in" : {
+
+    },
+    "Signs out and clears local settings and data." : {
+
+    },
+    "Skill" : {
+
+    },
+    "Skill activity couldn’t be loaded." : {
+
+    },
+    "Skill activity was not reported." : {
+
+    },
+    "Skills" : {
+
+    },
+    "Some reported usage has no app attribution." : {
+
+    },
+    "Some reported usage has no model attribution." : {
+
+    },
+    "Source: Claude Enterprise analytics · Daily buckets use UTC." : {
+
+    },
+    "Source: Claude Enterprise analytics · Skill activity is reported through the prior UTC day." : {
+
+    },
+    "Spend" : {
+
+    },
+    "Spend amounts were not reported for this period." : {
+
+    },
+    "Spend by product" : {
+
+    },
+    "Spend limit: %lld / %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Spend limit: %1$lld / %2$lld"
+          }
+        }
+      }
+    },
+    "Spending not reported" : {
+
+    },
+    "Spent this month: %@" : {
+
+    },
+    "Spent:" : {
+
+    },
+    "Start over" : {
+
+    },
+    "Start using AIQuota" : {
+
+    },
+    "That Claude account is already connected." : {
+
+    },
+    "That Codex account is already connected." : {
+
+    },
+    "This identity is already connected to another account. Both connections have been preserved." : {
+
+    },
+    "This is the percentage Claude reported for this product. It is separate from your allowance." : {
+
+    },
+    "This month" : {
+
+    },
+    "This session belongs to a different account. Its connection has been preserved." : {
+
+    },
+    "This signs out of every account, clears cached data, and restores default settings. System notification permissions are unchanged." : {
+
+    },
+    "This week by product" : {
+
+    },
+    "Through %@" : {
+
+    },
+    "Today · %@ (UTC)" : {
+
+    },
+    "Token activity · past 52 weeks\nNo data reported yet" : {
+
+    },
+    "Token activity, no data yet" : {
+
+    },
+    "Token activity, past 52 weeks" : {
+
+    },
+    "Top-up events" : {
+
+    },
+    "Total" : {
+
+    },
+    "Troubleshooting" : {
+
+    },
+    "Try again" : {
+
+    },
+    "Unexpected response" : {
+
+    },
+    "unknown" : {
+
+    },
+    "Unknown" : {
+
+    },
+    "Unnamed skill" : {
+
+    },
+    "Update Available" : {
+
+    },
+    "Update…" : {
+
+    },
+    "Updated" : {
+
+    },
+    "Updated %@" : {
+
+    },
+    "Updates" : {
+
+    },
+    "Usage" : {
+
+    },
+    "Usage alert threshold" : {
+
+    },
+    "Usage alerts" : {
+
+    },
+    "Usage credits" : {
+
+    },
+    "Usage credits reported by Codex." : {
+
+    },
+    "Usage period" : {
+
+    },
+    "Usage unavailable" : {
+
+    },
+    "Uses" : {
+
+    },
+    "Uses Claude Code’s saved sign-in when macOS allows access without a permission prompt." : {
+
+    },
+    "Version %@ (%@)" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Version %1$@ (%2$@)"
+          }
+        }
+      }
+    },
+    "View %@ details" : {
+
+    },
+    "View daily readings" : {
+
+    },
+    "Web" : {
+
+    },
+    "Website" : {
+
+    },
+    "Weekly breakdown unavailable" : {
+
+    },
+    "Widget screenshot" : {
+
+    },
+    "Working" : {
+
+    },
+    "Workspace ID" : {
+
+    },
+    "You can add and manage accounts later in Settings." : {
+
+    },
+    "You can reconnect this account at any time." : {
+
+    },
+    "You’re all set!" : {
+
+    },
+    "Your account is connected. Save the suggested name or choose your own. You can change it later in Settings." : {
+
+    },
+    "Your current Claude connection can still show allowance. Enterprise spend and skill activity need a Claude web session for the same organization. Reconnect opens Claude sign-in and changes the connection only after verification. Cancel keeps the current connection." : {
+
+    }
   },
   "version" : "1.0"
 }

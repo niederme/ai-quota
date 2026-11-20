@@ -1,7 +1,339 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    ", %@ reported" : {
 
+    },
+    "%@" : {
+
+    },
+    "%@\nof %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@\nof %2$@"
+          }
+        }
+      }
+    },
+    "%@ / %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ / %2$@"
+          }
+        }
+      }
+    },
+    "%@ %@ limit reached" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ limit reached"
+          }
+        }
+      }
+    },
+    "%@ %@ reset expected" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ reset expected"
+          }
+        }
+      }
+    },
+    "%@ %@ usage high" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ usage high"
+          }
+        }
+      }
+    },
+    "%@ %lld%%" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$lld%%"
+          }
+        }
+      }
+    },
+    "%@ plan changed to %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ plan changed to %2$@"
+          }
+        }
+      }
+    },
+    "%@ resets %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ resets %2$@"
+          }
+        }
+      }
+    },
+    "%@, %lld percent" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$lld percent"
+          }
+        }
+      }
+    },
+    "%lld days ago" : {
+      "comment" : "Age of a usage reading, as in “Older reading · 3 days ago”. Needs plural forms."
+    },
+    "%lld hours ago" : {
+      "comment" : "Age of a usage reading, as in “Updated 2 hours ago”. Needs plural forms."
+    },
+    "%lld minutes ago" : {
+      "comment" : "Age of a usage reading, as in “Updated 5 minutes ago”. Needs plural forms."
+    },
+    "%lld/%lld days" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld/%2$lld days"
+          }
+        }
+      }
+    },
+    "%lld%%" : {
+
+    },
+    "%lld%% used. Open AIQuota for current usage." : {
+
+    },
+    "Account" : {
+
+    },
+    "Accounts" : {
+
+    },
+    "Accounts · Two rows" : {
+
+    },
+    "AIQuota account" : {
+
+    },
+    "Allowance details" : {
+
+    },
+    "Allowance unavailable" : {
+
+    },
+    "App order" : {
+
+    },
+    "Awaiting confirmation" : {
+
+    },
+    "Choose a connection, or the one closest to a limit. Name matching connections in AIQuota first." : {
+
+    },
+    "Choose or reconnect" : {
+
+    },
+    "Claude" : {
+
+    },
+    "Claude account" : {
+
+    },
+    "Closest to a limit" : {
+
+    },
+    "Codex" : {
+
+    },
+    "Codex account" : {
+
+    },
+    "Codex and Claude" : {
+
+    },
+    "Couldn’t schedule reset alerts. Try again." : {
+
+    },
+    "Demo" : {
+
+    },
+    "Existing two-service configuration." : {
+
+    },
+    "Follows app order. Choose accounts or an optional sort order in Edit Widget." : {
+
+    },
+    "Follows the account order in AIQuota. Leave Accounts empty to show all accounts. Drag accounts in AIQuota or Settings → Account order to change their order." : {
+
+    },
+    "just now" : {
+      "comment" : "Age of a usage reading, as in “Updated just now”."
+    },
+    "Leave empty for all accounts." : {
+
+    },
+    "Limit reached" : {
+
+    },
+    "Monthly resets %@" : {
+
+    },
+    "N/A" : {
+
+    },
+    "Name in AIQuota" : {
+
+    },
+    "No reading yet" : {
+
+    },
+    "Not connected" : {
+
+    },
+    "Older reading" : {
+
+    },
+    "Older reading · %@" : {
+
+    },
+    "One account in depth, or the account closest to a limit." : {
+
+    },
+    "One account in depth. Existing Lock Screen widget." : {
+
+    },
+    "One account's allowance. Existing Lock Screen widget." : {
+
+    },
+    "Opens AIQuota" : {
+
+    },
+    "Order" : {
+
+    },
+    "Other" : {
+
+    },
+    "Previously %@. Connection checked and usage is up to date." : {
+
+    },
+    "Reconnect" : {
+
+    },
+    "Reconnect in AIQuota" : {
+
+    },
+    "Reconnect to update" : {
+
+    },
+    "Reset expected %@" : {
+
+    },
+    "Reset unavailable" : {
+
+    },
+    "Sample usage" : {
+
+    },
+    "Saved · %lldd ago" : {
+      "comment" : "Compact days, as in “Saved · 2d ago”."
+    },
+    "Saved · %lldh ago" : {
+      "comment" : "Compact hours, as in “Saved · 3h ago”."
+    },
+    "Saved · %lldm ago" : {
+      "comment" : "Compact minutes, as in “Saved · 5m ago”."
+    },
+    "Saved · just now" : {
+
+    },
+    "Saved reading" : {
+
+    },
+    "Selected account" : {
+
+    },
+    "Selection order" : {
+
+    },
+    "Service" : {
+
+    },
+    "Services" : {
+
+    },
+    "Several accounts at a glance. Existing Lock Screen widget." : {
+
+    },
+    "Show" : {
+
+    },
+    "Spent %@" : {
+
+    },
+    "That %@ account is already connected as %@, so nothing was changed. Sign in with the account for this card." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "That %1$@ account is already connected as %2$@, so nothing was changed. Sign in with the account for this card."
+          }
+        }
+      }
+    },
+    "That’s a different %@ account from the one on %@, so nothing was changed. Sign in with that card’s account, or disconnect the card to switch accounts." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "That’s a different %1$@ account from the one on %2$@, so nothing was changed. Sign in with that card’s account, or disconnect the card to switch accounts."
+          }
+        }
+      }
+    },
+    "This week by app" : {
+
+    },
+    "This week by model" : {
+
+    },
+    "This week by product" : {
+
+    },
+    "Token activity, past %lld weeks. Missing days have no record." : {
+
+    },
+    "Two accounts in one card, with allowance details and available history. Follows your selected account order." : {
+
+    },
+    "Unattributed" : {
+
+    },
+    "Use account names" : {
+
+    },
+    "Your last reading reported a reset now. Open AIQuota to check current usage." : {
+
+    }
   },
   "version" : "1.0"
 }

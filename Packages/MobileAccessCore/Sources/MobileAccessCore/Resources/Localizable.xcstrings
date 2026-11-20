@@ -1,23 +1,90 @@
 {
-  "sourceLanguage": "en",
-  "strings": {
-    "%lld resets available": {
-      "comment": "Number of banked Codex resets the user can still use. Needs plural forms.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld reset available"
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ is overpacing the %@ limit" : {
+      "comment" : "Forecast title. First value is the account name, second a window key such as “5h”, “7d”, “30d” or the word “monthly”.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ is overpacing the %2$@ limit"
+          }
+        }
+      }
+    },
+    "%@ of %@" : {
+      "comment" : "Monthly spend budget, such as “$654.98 of $1,000”. Values are formatted currency amounts.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ of %2$@"
+          }
+        }
+      }
+    },
+    "%@ of %@ credits" : {
+      "comment" : "Monthly credit budget, such as “434.19 of 7,000 credits”. Values are formatted numbers.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ of %2$@ credits"
+          }
+        }
+      }
+    },
+    "%@ plan" : {
+      "comment" : "Account subtitle. The value is a plan name such as Pro or Max, never translated."
+    },
+    "%@ reset awaiting confirmation" : {
+      "comment" : "Shown when a usage window's reset time has passed but no fresh reading has arrived. The value is a window key such as “30d”."
+    },
+    "%@ reset unavailable" : {
+      "comment" : "Shown when a usage window has no reset time. The value is a window key such as “30d”."
+    },
+    "%@ resets %@" : {
+      "comment" : "Budget reset caption. First value is a window key such as “30d”, second a date and time.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ resets %2$@"
+          }
+        }
+      }
+    },
+    "%@ usage update" : {
+      "comment" : "Notification title when account names would reveal private details. The value is Claude or Codex."
+    },
+    "%@: %lld percent used" : {
+      "comment" : "VoiceOver. First value is a window name such as “Weekly”, second a whole-number percent.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$lld percent used"
+          }
+        }
+      }
+    },
+    "%lld days" : {
+      "comment" : "Name of a usage window measured in days, such as “3 days”.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day"
                 }
               },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld resets available"
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days"
                 }
               }
             }
@@ -25,23 +92,23 @@
         }
       }
     },
-    "%lld days": {
-      "comment": "Name of a usage window measured in days, such as “3 days”.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld day"
+    "%lld hours" : {
+      "comment" : "Name of a usage window measured in hours, such as “5 hours”.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld hour"
                 }
               },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld days"
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld hours"
                 }
               }
             }
@@ -49,30 +116,171 @@
         }
       }
     },
-    "%lld hours": {
-      "comment": "Name of a usage window measured in hours, such as “5 hours”.",
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld hour"
+    "%lld resets available" : {
+      "comment" : "Number of banked Codex resets the user can still use. Needs plural forms.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld reset available"
                 }
               },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld hours"
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld resets available"
                 }
               }
             }
           }
         }
       }
+    },
+    "%lld-day" : {
+      "comment" : "Short usage-window name, such as “7-day”. Shown next to a percentage in a widget."
+    },
+    "%lld-hour" : {
+      "comment" : "Short usage-window name, such as “5-hour”. Shown next to a percentage in a widget."
+    },
+    "%lldd" : {
+      "comment" : "Compact usage-window key: a number of days, such as “7d” or “30d”. Keep it as short as possible; it sits inside a small dial."
+    },
+    "%lldh" : {
+      "comment" : "Compact usage-window key: a number of hours, such as “5h”. Keep it as short as possible; it sits inside a small dial."
+    },
+    "Allowance unavailable" : {
+      "comment" : "VoiceOver summary when an account reported no usage."
+    },
+    "At your average pace this period" : {
+      "comment" : "Forecast basis."
+    },
+    "Based on your usual weekly pattern" : {
+      "comment" : "Forecast basis."
+    },
+    "Claude %@ failed (HTTP %lld). Try again. Your last reading is saved." : {
+      "comment" : "Error. First value is a step such as “sign-in” or “usage update”, second an HTTP status code.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Claude %1$@ failed (HTTP %2$lld). Try again. Your last reading is saved."
+          }
+        }
+      }
+    },
+    "Claude could not renew this sign-in. Reconnect Claude to continue. Your last reading is saved." : {
+      "comment" : "Error."
+    },
+    "Claude is temporarily limiting updates. Updates are paused for a few minutes. Your last reading is saved." : {
+      "comment" : "Error."
+    },
+    "Claude sign-in renewal failed (HTTP %@). Retry or reconnect Claude. Your last reading is saved." : {
+      "comment" : "Error. The value is an HTTP status code, sometimes followed by the provider's own reason in English."
+    },
+    "credits this month" : {
+      "comment" : "Follows an amount, as in “434 of 7,000 credits this month used”."
+    },
+    "Give matching connections distinct names in Settings" : {
+      "comment" : "Hint shown when two connected accounts would otherwise look identical."
+    },
+    "Intensity relative to your own busiest days in the past year." : {
+      "comment" : "Legend under the activity graph."
+    },
+    "monthly" : {
+      "comment" : "Used inside “overpacing the monthly limit”."
+    },
+    "Monthly" : {
+      "comment" : "Name of a month-long usage window."
+    },
+    "monthly allowance" : {
+      "comment" : "Follows an amount, as in “40 of 100 monthly allowance used”."
+    },
+    "monthly spend" : {
+      "comment" : "Follows an amount, as in “$654 of $1,000 monthly spend used”."
+    },
+    "Monthly: %@ of %@ %@ used" : {
+      "comment" : "VoiceOver. First two values are amounts, third a phrase such as “credits this month” or “monthly spend”.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Monthly: %1$@ of %2$@ %3$@ used"
+          }
+        }
+      }
+    },
+    "Paste the complete authorization code from the sign-in page for this connection." : {
+      "comment" : "Error."
+    },
+    "Plan unavailable" : {
+      "comment" : "Shown under an account name when the provider did not report a plan."
+    },
+    "profile lookup" : {
+      "comment" : "Step name inside “Claude profile lookup failed (HTTP 500)”."
+    },
+    "Provider request failed (HTTP %lld)." : {
+      "comment" : "Error. The value is an HTTP status code."
+    },
+    "reset awaiting confirmation" : {
+      "comment" : "Follows a window key, as in “7d reset awaiting confirmation”: the reset time passed but no fresh reading confirmed it."
+    },
+    "Reset awaiting confirmation" : {
+      "comment" : "Shown once when every usage window's reset time has passed but no fresh reading has arrived yet."
+    },
+    "reset unavailable" : {
+      "comment" : "Follows a window key, as in “5h reset unavailable”. Lowercase unless the language needs otherwise."
+    },
+    "resets %@" : {
+      "comment" : "Follows a window key, as in “7d resets Wed 3:00 AM”. The value is a date and time."
+    },
+    "Resets %@ • %@" : {
+      "comment" : "Forecast detail line. First value is a day and time, second a short explanation. Keep the “ • ” separator.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Resets %1$@ • %2$@"
+          }
+        }
+      }
+    },
+    "sign-in" : {
+      "comment" : "Step name inside “Claude sign-in failed (HTTP 400)”."
+    },
+    "Sign-in expired. Start a new connection." : {
+      "comment" : "Error."
+    },
+    "sign-in renewal" : {
+      "comment" : "Step name inside “Claude sign-in renewal failed (HTTP 400)”."
+    },
+    "The connection could not be saved securely." : {
+      "comment" : "Error."
+    },
+    "The provider returned an unexpected response." : {
+      "comment" : "Error. The provider is Claude or OpenAI."
+    },
+    "This account did not report a supported quota window." : {
+      "comment" : "Error."
+    },
+    "This sign-in attempt expired. Start a new connection." : {
+      "comment" : "Error."
+    },
+    "Today" : {
+      "comment" : "Chart axis label for the current day."
+    },
+    "usage update" : {
+      "comment" : "Step name inside “Claude usage update failed (HTTP 500)”."
+    },
+    "Weekly" : {
+      "comment" : "Name of a 7-day usage window."
+    },
+    "You’re on pace to hit your %@ limit early" : {
+      "comment" : "Forecast sentence. The value is a window key such as “5h”, “7d”, “30d” or the word “monthly”."
     }
   },
-  "version": "1.0"
+  "version" : "1.0"
 }

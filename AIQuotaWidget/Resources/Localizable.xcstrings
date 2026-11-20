@@ -1,7 +1,161 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "—" : {
 
+    },
+    "%@" : {
+
+    },
+    "%@ credits" : {
+
+    },
+    "%@ limit reached · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ limit reached · %2$@"
+          }
+        }
+      }
+    },
+    "%@ reset in %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ reset in %2$@"
+          }
+        }
+      }
+    },
+    "%@ resets %@" : {
+      "comment" : "Widget footer. First value is a window key such as “7d”, second a compact countdown such as “2d 3h”.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ resets %2$@"
+          }
+        }
+      }
+    },
+    "%@ spent" : {
+
+    },
+    "%@, %lf of %lf monthly credits used" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$lf of %3$lf monthly credits used"
+          }
+        }
+      }
+    },
+    "%@:" : {
+
+    },
+    "%lld%%" : {
+
+    },
+    "%lldm" : {
+      "comment" : "Compact minutes, such as “30m”."
+    },
+    "Account" : {
+
+    },
+    "AIQuota" : {
+
+    },
+    "Balance" : {
+
+    },
+    "Choose which AI service to display." : {
+
+    },
+    "Claude Code" : {
+
+    },
+    "Claude connection unavailable" : {
+
+    },
+    "Codex" : {
+
+    },
+    "Codex connection unavailable" : {
+
+    },
+    "Connect %@ in the menu bar app." : {
+
+    },
+    "credits this month" : {
+
+    },
+    "Edit widget to choose a connection." : {
+
+    },
+    "Fable 5 / Post-Limit" : {
+
+    },
+    "Limit" : {
+
+    },
+    "Limit reached" : {
+
+    },
+    "Monthly credits" : {
+
+    },
+    "N/A" : {
+
+    },
+    "Not connected" : {
+
+    },
+    "of %@" : {
+
+    },
+    "Plan" : {
+
+    },
+    "Refresh AI quota data." : {
+
+    },
+    "Refresh Widget" : {
+
+    },
+    "resets in %@" : {
+
+    },
+    "Service" : {
+
+    },
+    "Shows both Codex and Claude Code usage." : {
+
+    },
+    "Sign in to AIQuota" : {
+
+    },
+    "Sign in to AIQuota to load this service in the widget." : {
+
+    },
+    "Spent" : {
+
+    },
+    "Track both Codex and Claude Code with room for more detail." : {
+
+    },
+    "Track your AI service usage quota." : {
+
+    },
+    "Usage unavailable" : {
+
+    },
+    "Used" : {
+
+    }
   },
   "version" : "1.0"
 }
