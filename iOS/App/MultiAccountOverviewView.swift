@@ -106,6 +106,8 @@ struct MultiAccountOverviewView: View {
         NavigationStack {
             GeometryReader { geometry in
                 let wide = min(geometry.size.width, 720) - 32 >= 600 && !typeSize.isAccessibilitySize
+                let sideRail = OverviewLayout.hasSideRail(geometry.safeAreaInsets)
+                let wideHeader = wide && !sideRail
                 OverviewScrollView {
                     TimelineView(.periodic(from: .now, by: 60)) { context in
                         let queries = MobileQuotaInsightModel.queries(accounts)
@@ -162,7 +164,7 @@ struct MultiAccountOverviewView: View {
                     if hasConnectedCodex, !isFixtureMode { await resetNotice.refresh() }
                 }
                 .safeAreaInset(edge: .top, spacing: 0) {
-                    if wide {
+                    if wideHeader {
                         OverviewWideHeader(refresh: refreshUsage, settings: { selected = .init(kind: .settings) })
                     }
                 }
@@ -170,10 +172,10 @@ struct MultiAccountOverviewView: View {
                 .persistentSystemOverlays(.visible)
                 .navigationTitle("AIQuota")
                 .toolbarTitleDisplayMode(.inlineLarge)
-                .toolbar(wide ? .hidden : .visible, for: .navigationBar)
+                .toolbar(wideHeader ? .hidden : .visible, for: .navigationBar)
                 .toolbar {
-                    if !wide {
-                        OverviewActionsToolbar(refresh: refreshUsage,
+                    if !wideHeader {
+                        OverviewActionsToolbar(sideRail: sideRail, refresh: refreshUsage,
                                                settings: { selected = .init(kind: .settings) })
                     }
                 }

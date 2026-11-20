@@ -81,6 +81,8 @@ struct OverviewView: View {
         NavigationStack {
             GeometryReader { geometry in
                 let wide = min(geometry.size.width, 720) - 32 >= 600 && !typeSize.isAccessibilitySize
+                let sideRail = OverviewLayout.hasSideRail(geometry.safeAreaInsets)
+                let wideHeader = wide && !sideRail
                 OverviewScrollView {
                     VStack(alignment: .leading, spacing: 8) {
                         if isDemo { DemoBanner() }
@@ -122,7 +124,7 @@ struct OverviewView: View {
                     _ = await (first, second)
                 }
                 .safeAreaInset(edge: .top, spacing: 0) {
-                    if wide {
+                    if wideHeader {
                         OverviewWideHeader(refreshing: codex.loading || claude.loading,
                                            refreshDisabled: codex.busy || claude.busy,
                                            refresh: refreshUsage,
@@ -133,11 +135,12 @@ struct OverviewView: View {
                 .persistentSystemOverlays(.visible)
                 .navigationTitle("AIQuota")
                 .toolbarTitleDisplayMode(.inlineLarge)
-                .toolbar(wide ? .hidden : .visible, for: .navigationBar)
+                .toolbar(wideHeader ? .hidden : .visible, for: .navigationBar)
                 .toolbar {
-                    if !wide {
+                    if !wideHeader {
                         OverviewActionsToolbar(refreshing: codex.loading || claude.loading,
                                                refreshDisabled: codex.busy || claude.busy,
+                                               sideRail: sideRail,
                                                refresh: refreshUsage,
                                                settings: { selectedService = .settings })
                     }
@@ -756,9 +759,20 @@ struct OverviewControlGlyph: View {
     }
 }
 
+/// iPhone Duo's open display puts the status bar in a strip down one side in
+/// landscape, and the system stacks standard toolbar buttons under it. The
+/// strip shows up as unequal leading and trailing safe-area insets.
+enum OverviewLayout {
+    static func hasSideRail(_ insets: EdgeInsets) -> Bool {
+        abs(insets.trailing - insets.leading) > 24
+    }
+}
+
 struct OverviewActionsToolbar: ToolbarContent {
     var refreshing = false
     var refreshDisabled = false
+    /// Separate symbol buttons, so the system can stack them in the side rail.
+    var sideRail = false
     let refresh: () -> Void
     let settings: () -> Void
 
@@ -768,6 +782,22 @@ struct OverviewActionsToolbar: ToolbarContent {
     }
 
     var body: some ToolbarContent {
+        if sideRail {
+            ToolbarItemGroup(placement: .primaryAction) {
+                Button(action: refresh) {
+                    if refreshing { ProgressView() }
+                    else { Label("Refresh usage", systemImage: "arrow.clockwise") }
+                }
+                .disabled(refreshDisabled)
+                .accessibilityLabel(refreshing ? "Refreshing usage" : "Refresh usage")
+                Button(action: settings) { Label("Settings", systemImage: "gearshape") }
+            }
+        } else {
+            capsule
+        }
+    }
+
+    @ToolbarContentBuilder private var capsule: some ToolbarContent {
         if #available(iOS 26.0, *) {
             ToolbarItem(placement: .topBarTrailing) { actions }
                 .sharedBackgroundVisibility(.hidden)
