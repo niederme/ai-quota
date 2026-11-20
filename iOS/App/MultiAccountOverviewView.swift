@@ -172,9 +172,10 @@ struct MultiAccountOverviewView: View {
                 }
                 .background { OverviewBackground().ignoresSafeArea() }
                 .persistentSystemOverlays(.visible)
-                .navigationTitle("AIQuota")
-                .toolbarTitleDisplayMode(.inlineLarge)
-                .modifier(OverviewSystemTitleRemoval(removed: wide && sideRail))
+                // With a side rail the card column draws the title, so the
+                // system title is left empty and inline to take no space.
+                .navigationTitle(wide && sideRail ? "" : "AIQuota")
+                .toolbarTitleDisplayMode(wide && sideRail ? .inline : .inlineLarge)
                 .toolbar(wideHeader ? .hidden : .visible, for: .navigationBar)
                 .toolbar {
                     if !wideHeader {
