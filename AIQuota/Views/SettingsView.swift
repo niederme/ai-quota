@@ -7,6 +7,14 @@ import MobileAccessCore
 private enum SettingsPage: String, CaseIterable, Identifiable {
     case general = "General", accounts = "Accounts", notifications = "Notifications", about = "About"
     var id: Self { self }
+    var title: String {
+        switch self {
+        case .general: String(localized: "General", comment: "Settings tab")
+        case .accounts: String(localized: "Accounts", comment: "Settings tab")
+        case .notifications: String(localized: "Notifications", comment: "Settings tab")
+        case .about: String(localized: "About", comment: "Settings tab")
+        }
+    }
     var icon: String {
         switch self {
         case .general: "gearshape"
@@ -32,7 +40,7 @@ struct SettingsView: View {
                     case .about: AboutSettingsPane()
                     }
                 }
-                .tabItem { Label(item.rawValue, systemImage: item.icon) }
+                .tabItem { Label(item.title, systemImage: item.icon) }
                 .tag(item)
             }
         }
@@ -330,7 +338,7 @@ struct AccountConnectionStatus {
         if account.connectionKind == .isolated { return session?.issue }
         return account.provider == .codex ? viewModel.codexError?.localizedDescription : viewModel.claudeError?.localizedDescription
     }
-    var summary: String { !connected ? "Not signed in" : issue == nil ? "Connected" : "Couldn’t refresh usage" }
+    var summary: String { !connected ? String(localized: "Not signed in") : issue == nil ? String(localized: "Connected") : String(localized: "Couldn’t refresh usage") }
     var symbol: String { !connected ? "minus.circle" : issue == nil ? "checkmark.circle.fill" : "exclamationmark.triangle.fill" }
     var color: Color { !connected ? .secondary : issue == nil ? .green : .orange }
 }
@@ -411,8 +419,9 @@ private struct SettingsAccountDetail: View {
         .formStyle(.grouped)
         .onAppear { name = (AccountRegistry.account(id: account.id) ?? account).presentation().alias ?? "" }
         .onDisappear(perform: saveName)
-        .confirmationDialog("\(pendingAction ?? "Remove Account")?", isPresented: Binding(get: { pendingAction != nil }, set: { if !$0 { pendingAction = nil } }), titleVisibility: .visible) {
-            Button(pendingAction ?? "Remove Account", role: .destructive) {
+        .confirmationDialog(pendingAction == "Sign Out" ? String(localized: "Sign Out?") : String(localized: "Remove Account?"),
+                            isPresented: Binding(get: { pendingAction != nil }, set: { if !$0 { pendingAction = nil } }), titleVisibility: .visible) {
+            Button(pendingAction == "Sign Out" ? String(localized: "Sign Out") : String(localized: "Remove Account"), role: .destructive) {
                 let action = pendingAction
                 pendingAction = nil
                 busy = true
@@ -563,21 +572,21 @@ private struct SettingsDiagnostics: View {
     }
 
     private func statusDetail(isAuthenticated: Bool, attempt: CodexSourceAttempt?) -> String {
-        guard isAuthenticated else { return "Not signed in" }
-        guard let attempt else { return "Not checked yet" }
+        guard isAuthenticated else { return String(localized: "Not signed in") }
+        guard let attempt else { return String(localized: "Not checked yet") }
         if attempt.errorCategory == .success {
-            return "\(sourceName(attempt.source)) · checked \(relativeTime(attempt.timestamp))"
+            return String(localized: "\(sourceName(attempt.source)) · checked \(relativeTime(attempt.timestamp))")
         }
-        return "\(statusMessage(for: attempt.errorCategory)) · checked \(relativeTime(attempt.timestamp))"
+        return String(localized: "\(statusMessage(for: attempt.errorCategory)) · checked \(relativeTime(attempt.timestamp))")
     }
 
     private func statusDetail(isAuthenticated: Bool, attempt: ClaudeSourceAttempt?) -> String {
-        guard isAuthenticated else { return "Not signed in" }
-        guard let attempt else { return "Not checked yet" }
+        guard isAuthenticated else { return String(localized: "Not signed in") }
+        guard let attempt else { return String(localized: "Not checked yet") }
         if attempt.errorCategory == .success {
-            return "\(sourceName(attempt.source)) · checked \(relativeTime(attempt.timestamp))"
+            return String(localized: "\(sourceName(attempt.source)) · checked \(relativeTime(attempt.timestamp))")
         }
-        return "\(statusMessage(for: attempt.errorCategory)) · checked \(relativeTime(attempt.timestamp))"
+        return String(localized: "\(statusMessage(for: attempt.errorCategory)) · checked \(relativeTime(attempt.timestamp))")
     }
 
     private func statusColor(isAuthenticated: Bool, attempt: CodexSourceAttempt?) -> Color {
@@ -638,17 +647,17 @@ private struct SettingsDiagnostics: View {
 
     private func sourceName(_ source: CodexAuthSource) -> String {
         switch source {
-        case .codexOAuth: "CLI OAuth"
-        case .webSession: "Web"
-        case .unknown: "Unknown"
+        case .codexOAuth: String(localized: "CLI OAuth")
+        case .webSession: String(localized: "Web")
+        case .unknown: String(localized: "Unknown")
         }
     }
 
     private func sourceName(_ source: ClaudeUsage.Source) -> String {
         switch source {
         case .oauth: "Claude Code"
-        case .web: "Web"
-        case .unknown: "Unknown"
+        case .web: String(localized: "Web")
+        case .unknown: String(localized: "Unknown")
         }
     }
 
@@ -665,44 +674,44 @@ private struct SettingsDiagnostics: View {
     private func statusMessage(for category: CodexSourceAttempt.ErrorCategory) -> String {
         switch category {
         case .success:
-            "Working"
+            String(localized: "Working")
         case .authFailed:
-            "Auth needs attention"
+            String(localized: "Auth needs attention")
         case .rateLimited:
-            "Rate limited"
+            String(localized: "Rate limited")
         case .serverError:
-            "Service issue"
+            String(localized: "Service issue")
         case .network:
-            "Network issue"
+            String(localized: "Network issue")
         case .invalidResponse:
-            "Unexpected response"
+            String(localized: "Unexpected response")
         }
     }
 
     private func statusMessage(for category: ClaudeSourceAttempt.ErrorCategory) -> String {
         switch category {
         case .success:
-            "Working"
+            String(localized: "Working")
         case .missingCredentials:
-            "Claude Code credentials not found"
+            String(localized: "Claude Code credentials not found")
         case .expiredCredentials:
-            "Claude Code credentials expired"
+            String(localized: "Claude Code credentials expired")
         case .missingScope:
-            "Claude Code permissions missing"
+            String(localized: "Claude Code permissions missing")
         case .malformedCredentials:
-            "Claude Code credentials unreadable"
+            String(localized: "Claude Code credentials unreadable")
         case .authFailed:
-            "Auth needs attention"
+            String(localized: "Auth needs attention")
         case .policyBlocked:
-            "Access blocked by policy"
+            String(localized: "Access blocked by policy")
         case .rateLimited:
-            "Rate limited"
+            String(localized: "Rate limited")
         case .serverError:
-            "Service issue"
+            String(localized: "Service issue")
         case .network:
-            "Network issue"
+            String(localized: "Network issue")
         case .invalidResponse:
-            "Unexpected response"
+            String(localized: "Unexpected response")
         }
     }
 
@@ -794,20 +803,20 @@ struct NotificationInlineControls: View {
         VStack(alignment: .leading, spacing: 16) {
             usageThreshold
             Divider()
-            notificationOptionGroup("5-hour window") {
-                notificationCheckbox("Usage alerts", isOn: $preferences.codex5hThresholdAlerts)
+            notificationOptionGroup(String(localized: "5-hour window")) {
+                notificationCheckbox(String(localized: "Usage alerts"), isOn: $preferences.codex5hThresholdAlerts)
                 resetAlertControls(enabled: $preferences.codex5hReset, minimum: $preferences.codex5hResetMinimum)
             }
 
             Divider()
-            notificationOptionGroup("7-day window") {
-                notificationCheckbox("Usage alerts", isOn: $preferences.codexWeeklyThresholdAlerts)
+            notificationOptionGroup(String(localized: "7-day window")) {
+                notificationCheckbox(String(localized: "Usage alerts"), isOn: $preferences.codexWeeklyThresholdAlerts)
                 resetAlertControls(enabled: $preferences.codexReset, minimum: $preferences.codexResetMinimum)
             }
 
             Divider()
-            notificationOptionGroup("Credits") {
-                notificationCheckbox("Top-up events", isOn: $preferences.codexTopUp)
+            notificationOptionGroup(String(localized: "Credits")) {
+                notificationCheckbox(String(localized: "Top-up events"), isOn: $preferences.codexTopUp)
             }
         }
     }
@@ -817,14 +826,14 @@ struct NotificationInlineControls: View {
         VStack(alignment: .leading, spacing: 16) {
             usageThreshold
             Divider()
-            notificationOptionGroup("5-hour window") {
-                notificationCheckbox("Usage alerts", isOn: $preferences.claude5hThresholdAlerts)
+            notificationOptionGroup(String(localized: "5-hour window")) {
+                notificationCheckbox(String(localized: "Usage alerts"), isOn: $preferences.claude5hThresholdAlerts)
                 resetAlertControls(enabled: $preferences.claude5hReset, minimum: $preferences.claude5hResetMinimum)
             }
 
             Divider()
-            notificationOptionGroup("7-day window") {
-                notificationCheckbox("Usage alerts", isOn: $preferences.claude7dThresholdAlerts)
+            notificationOptionGroup(String(localized: "7-day window")) {
+                notificationCheckbox(String(localized: "Usage alerts"), isOn: $preferences.claude7dThresholdAlerts)
                 resetAlertControls(enabled: $preferences.claude7dReset, minimum: $preferences.claude7dResetMinimum)
             }
         }
@@ -835,7 +844,7 @@ struct NotificationInlineControls: View {
             HStack {
                 Text("Usage alert threshold")
                 Spacer(minLength: 12)
-                SettingsPercentageField(label: "Usage alert threshold", value: Binding(get: {
+                SettingsPercentageField(label: String(localized: "Usage alert threshold"), value: Binding(get: {
                     service == .codex ? preferences.codexUsageThreshold : preferences.claudeUsageThreshold
                 }, set: { value in
                     if service == .codex { preferences.codexUsageThreshold = value }
@@ -873,7 +882,7 @@ struct NotificationInlineControls: View {
                 HStack(spacing: 8) {
                     Text("Minimum usage")
                         .foregroundStyle(.secondary)
-                    SettingsPercentageField(label: "Minimum usage for reset alerts", value: Binding(get: {
+                    SettingsPercentageField(label: String(localized: "Minimum usage for reset alerts"), value: Binding(get: {
                         minimum.wrappedValue
                     }, set: { value in
                         // A field losing focus must not overwrite the Every reset sentinel.

@@ -401,11 +401,10 @@ enum AccountRegistry {
         let provider = profile.service == .codex ? "ChatGPT" : "Claude"
         switch conflict {
         case .differentAccount:
-            return "That’s a different \(provider) account from the one on \(presentation(for: profile).title), so nothing was changed. "
-                + "Sign in with that card’s account, or disconnect the card to switch accounts."
+            let card = presentation(for: profile).title
+            return String(localized: "That’s a different \(provider) account from the one on \(card), so nothing was changed. Sign in with that card’s account, or disconnect the card to switch accounts.")
         case .alreadyConnected(let other):
-            return "That \(provider) account is already connected as \(other), so nothing was changed. "
-                + "Sign in with the account for this card."
+            return String(localized: "That \(provider) account is already connected as \(other), so nothing was changed. Sign in with the account for this card.")
         }
     }
 

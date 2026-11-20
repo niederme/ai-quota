@@ -1,11 +1,12 @@
 import SwiftUI
 import AIQuotaKit
+import MobileAccessCore
 
 private let widgetAccentColor = Color(red: 0.62, green: 0.22, blue: 0.93)
 private let widgetOverageColor = Color(red: 1.0, green: 0.65, blue: 0.0)
 
 private struct WidgetDetailRowData: Identifiable {
-    let label: String
+    let label: LocalizedStringResource
     let value: String
     let icon: String
     let tint: Color
@@ -13,7 +14,7 @@ private struct WidgetDetailRowData: Identifiable {
     var valueTint: Color = .primary
     var usesTwoLineLayout = false
 
-    var id: String { "\(label)-\(value)-\(icon)" }
+    var id: String { "\(label.key)-\(value)-\(icon)" }
 }
 
 private struct WidgetServiceSnapshot {
@@ -61,10 +62,10 @@ private extension QuotaEntry {
                     secondaryLimitReached: false,
                     detailRows: [
                         WidgetDetailRowData(label: "Used", value: widgetCreditAmount(budget.used ?? 0), icon: "chart.bar.fill", tint: widgetAccentColor),
-                        WidgetDetailRowData(label: "Limit", value: widgetCreditAmount(budget.limit ?? 0) + " credits", icon: "sparkles", tint: .secondary),
+                        WidgetDetailRowData(label: "Limit", value: String(localized: "\(widgetCreditAmount(budget.limit ?? 0)) credits"), icon: "sparkles", tint: .secondary),
                         WidgetDetailRowData(label: "Plan", value: usage.displayPlan, icon: "person.fill", tint: .secondary),
                     ],
-                    detailFooter: "Monthly credits",
+                    detailFooter: String(localized: "Monthly credits"),
                     alertText: nil,
                     monthlyBudget: budget
                 )
@@ -77,7 +78,7 @@ private extension QuotaEntry {
                     primaryLabel: "", secondaryLabel: "", resetSeconds: 0,
                     weeklyResetSeconds: 0, secondaryLimitReached: false,
                     detailRows: [WidgetDetailRowData(label: "Plan", value: usage.displayPlan, icon: "person.fill", tint: .secondary)],
-                    detailFooter: "Usage unavailable", alertText: nil,
+                    detailFooter: String(localized: "Usage unavailable"), alertText: nil,
                     usageUnavailable: true
                 )
             }
@@ -133,8 +134,8 @@ private extension QuotaEntry {
                 weeklyResetSeconds: usage.weeklyResetAfterSeconds,
                 secondaryLimitReached: usage.isWeeklyExhausted,
                 detailRows: detailRows,
-                detailFooter: widgetCountdownText(prefix: "7d resets", seconds: usage.weeklyResetAfterSeconds),
-                alertText: usage.limitReached ? "Limit reached" : nil
+                detailFooter: widgetCountdownText(windowKey: "7d", seconds: usage.weeklyResetAfterSeconds),
+                alertText: usage.limitReached ? String(localized: "Limit reached") : nil
             )
 
         case .claude:
@@ -160,7 +161,7 @@ private extension QuotaEntry {
                 detailRows.append(
                     WidgetDetailRowData(
                         label: "Fable 5 / Post-Limit",
-                        value: "\(widgetUsageCreditsSpend(credits)) spent",
+                        value: String(localized: "\(widgetUsageCreditsSpend(credits)) spent"),
                         icon: "plus.circle.fill",
                         tint: tint,
                         labelTint: tint,
@@ -183,20 +184,24 @@ private extension QuotaEntry {
                 weeklyResetSeconds: usage.sevenDayResetAfterSeconds ?? 0,
                 secondaryLimitReached: (usage.sevenDayUtilization ?? 0) >= 100,
                 detailRows: detailRows,
-                detailFooter: usage.sevenDayResetAfterSeconds.map { widgetCountdownText(prefix: "7d resets", seconds: $0) } ?? "",
-                alertText: usage.limitReached ? "Limit reached" : nil
+                detailFooter: usage.sevenDayResetAfterSeconds.map { widgetCountdownText(windowKey: "7d", seconds: $0) } ?? "",
+                alertText: usage.limitReached ? String(localized: "Limit reached") : nil
             )
         }
     }
 }
 
-private func widgetCountdownText(prefix: String, seconds: Int) -> String {
+/// "7d resets 2d 3h": the window key, then a compact countdown.
+private func widgetCountdownText(windowKey: String, seconds: Int) -> String {
     let days = seconds / 86400
     let hours = (seconds % 86400) / 3600
     let minutes = (seconds % 3600) / 60
-    if days > 0 { return "\(prefix) \(days)d \(hours)h" }
-    if hours > 0 { return "\(prefix) \(hours)h \(minutes)m" }
-    return "\(prefix) \(minutes)m"
+    let countdown: String
+    if days > 0 { countdown = "\(WindowKeyText.days(days)) \(WindowKeyText.hours(hours))" }
+    else if hours > 0 { countdown = "\(WindowKeyText.hours(hours)) \(String(localized: "\(minutes)m", comment: "Compact minutes, such as “30m”."))" }
+    else { countdown = String(localized: "\(minutes)m", comment: "Compact minutes, such as “30m”.") }
+    return String(localized: "\(WindowKeyText.display(windowKey)) resets \(countdown)",
+                  comment: "Widget footer. First value is a window key such as “7d”, second a compact countdown such as “2d 3h”.")
 }
 
 private func widgetUsageCreditsSpend(_ credits: ClaudeUsage.UsageCredits) -> String {
@@ -297,7 +302,7 @@ private struct WidgetDetailRowView: View {
     }
 
     private var label: some View {
-        Text(row.label + ":")
+        Text("\(String(localized: row.label)):")
             .font(.caption2)
             .foregroundStyle(row.labelTint)
     }

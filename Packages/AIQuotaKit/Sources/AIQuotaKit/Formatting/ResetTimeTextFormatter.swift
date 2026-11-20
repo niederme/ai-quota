@@ -57,6 +57,20 @@ public enum ResetTimeTextFormatter {
         return resets(windowLabel, phrase, locale: locale)
     }
 
+    /// "resets 3:00pm" with no window key, for a gauge that already names its window.
+    public static func compactResetCaption(
+        resetAt: Date,
+        now: Date = .now,
+        calendar: Calendar = .autoupdatingCurrent,
+        locale: Locale = .autoupdatingCurrent
+    ) -> String {
+        let phrase = calendar.isDate(resetAt, inSameDayAs: now)
+            ? timeText(for: resetAt, locale: locale)
+            : dayAndTime(for: resetAt, now: now, calendar: calendar, locale: locale)
+        return String(localized: "resets \(phrase)", bundle: .module, locale: locale,
+                      comment: "Reset caption under a budget gauge. The value is a time or a day and time, such as “Wed. 1:03pm”.")
+    }
+
     private static func resets(_ label: String, _ when: String, locale: Locale) -> String {
         String(localized: "\(label) resets \(when)", bundle: .module, locale: locale,
                comment: "Reset caption. First value is a usage window key such as “7d”, second a day and time such as “Wed. 1:03pm”.")

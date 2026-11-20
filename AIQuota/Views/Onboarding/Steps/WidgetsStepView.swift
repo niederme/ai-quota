@@ -57,7 +57,7 @@ struct WidgetsStepView: View {
                                 .background(Color.brand)
                                 .clipShape(Circle())
 
-                            Text((try? AttributedString(markdown: item.text)) ?? AttributedString(item.text))
+                            Text(AttributedString(localized: item.text))
                                 .font(.callout)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -74,7 +74,7 @@ struct WidgetsStepView: View {
 
     private struct Instruction {
         let step: Int
-        let text: String
+        let text: LocalizedStringResource
     }
 
     private let instructions: [Instruction] = [

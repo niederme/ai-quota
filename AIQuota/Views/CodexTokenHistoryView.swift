@@ -67,9 +67,10 @@ struct CodexTokenHistoryView: View {
     private func description(_ day: CodexTokenHistory.Day) -> String {
         let date = day.date.formatted(Date.FormatStyle(date: .complete, time: .omitted,
                                                       timeZone: CodexTokenHistory.calendar.timeZone))
-        let heading = "\(day.isToday ? "Today · " : "")\(date) (UTC)"
-        guard let tokens = day.tokens else { return "\(heading)\nNo record reported" }
-        return "\(heading)\n\(tokens.formatted(.number.precision(.fractionLength(0)))) tokens"
+        let heading = day.isToday ? String(localized: "Today · \(date) (UTC)") : String(localized: "\(date) (UTC)")
+        guard let tokens = day.tokens else { return heading + "\n" + String(localized: "No record reported") }
+        let count = tokens.formatted(.number.precision(.fractionLength(0)))
+        return heading + "\n" + String(localized: "\(count) tokens")
     }
 }
 

@@ -81,7 +81,7 @@ struct ClaudeAnalyticsView: View {
                     Text("Extra usage").font(.headline)
                     Text(reading?.metadata?.usageCurrency.flatMap { $0.isEmpty ? nil : $0 }
                         .map { spent.formatted(.currency(code: $0)) }
-                        ?? spent.formatted(.number.precision(.fractionLength(0...2))) + " credits")
+                        ?? String(localized: "\(spent.formatted(.number.precision(.fractionLength(0...2)))) credits"))
                         .font(.largeTitle.bold()).monospacedDigit()
                         .fixedSize(horizontal: false, vertical: true)
                     Text("Outside your plan allowance. Your subscription price is separate.")
@@ -100,16 +100,15 @@ struct ClaudeBreakdownFreshness: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { context in
             VStack(alignment: .leading, spacing: 4) {
-                Text("Products · " + analyticsFreshnessLabel(breakdown.asOf, at: context.date, saved: failed))
+                Text("Products · \(analyticsFreshnessLabel(breakdown.asOf, at: context.date, saved: failed))")
                 #if os(iOS)
-                Text("Reported as of " + breakdown.asOf.formatted(date: .abbreviated, time: .shortened))
-                Text("Window started " + breakdown.windowStartedAt.formatted(date: .abbreviated, time: .shortened))
+                Text("Reported as of \(breakdown.asOf.formatted(date: .abbreviated, time: .shortened))")
+                Text("Window started \(breakdown.windowStartedAt.formatted(date: .abbreviated, time: .shortened))")
                 #endif
             }.font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
                 .fixedSize(horizontal: false, vertical: true)
                 #if os(macOS)
-                .help("Reported as of " + breakdown.asOf.formatted(date: .abbreviated, time: .shortened)
-                      + " · Window started " + breakdown.windowStartedAt.formatted(date: .abbreviated, time: .shortened))
+                .help(String(localized: "Reported as of \(breakdown.asOf.formatted(date: .abbreviated, time: .shortened)) · Window started \(breakdown.windowStartedAt.formatted(date: .abbreviated, time: .shortened))"))
                 #endif
         }
     }

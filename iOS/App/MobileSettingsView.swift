@@ -91,7 +91,7 @@ struct MobileSettingsView: View {
                         onboarding.begin()
                         showOnboarding = true
                     } catch {
-                        resetError = "Couldn’t finish resetting. Some connections may already be removed. Try again."
+                        resetError = String(localized: "Couldn’t finish resetting. Some connections may already be removed. Try again.")
                     }
                     resetting = false
                 }
@@ -189,7 +189,7 @@ struct MobileNotificationControls: View {
                         if value {
                             requesting = true
                             do { enabled = try await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) }
-                            catch { enabled = false; schedulingError = "Couldn’t enable notifications. Try again." }
+                            catch { enabled = false; schedulingError = String(localized: "Couldn’t enable notifications. Try again.") }
                             requesting = false
                         }
                         await check()
@@ -331,10 +331,10 @@ private struct MobileAccountAlertControls: View {
         if enabled {
             Stepper("Alert at \(Int(threshold))% used", value: $threshold, in: 5...100, step: 5)
             if let window = reading.shortTerm {
-                MobileWindowAlertControls(service: service, window: "5h", title: window.label + " window", namespace: namespace)
+                MobileWindowAlertControls(service: service, window: "5h", title: String(localized: "\(window.label) window"), namespace: namespace)
             }
             if let window = reading.weekly {
-                MobileWindowAlertControls(service: service, window: "7d", title: window.label + " window", namespace: namespace)
+                MobileWindowAlertControls(service: service, window: "7d", title: String(localized: "\(window.label) window"), namespace: namespace)
             }
         }
         // Reconcile cancels scheduled reminders immediately after an account is disabled.

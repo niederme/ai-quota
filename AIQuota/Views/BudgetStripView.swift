@@ -26,10 +26,17 @@ struct BudgetStripView: View {
     private var resetText: String {
         let cal = Calendar.current
         guard let nextMonth = cal.date(byAdding: .month, value: 1, to: .now) else {
-            return "monthly"
+            return String(localized: "monthly")
         }
         let month = cal.component(.month, from: nextMonth)
-        return "resets \(Self.nytMonth(month)) 1"
+        guard Locale.current.language.languageCode == .english else {
+            let formatter = DateFormatter()
+            formatter.locale = .current
+            formatter.setLocalizedDateFormatFromTemplate("MMMd")
+            let first = cal.date(from: cal.dateComponents([.year, .month], from: nextMonth)) ?? nextMonth
+            return String(localized: "resets \(formatter.string(from: first))")
+        }
+        return String(localized: "resets \(Self.nytMonth(month) + " 1")")
     }
 
     /// NYT style: short months get periods (Jan., Feb., Aug., Sept., Oct., Nov., Dec.);

@@ -37,7 +37,7 @@ struct MobileTokenHistoryView: View {
                                 RoundedRectangle(cornerRadius: 1)
                                     .fill(fill(day, scale: scale))
                                     .frame(width: side, height: side)
-                                    .accessibilityLabel(day.isToday ? "Today, \(description(day))" : description(day))
+                                    .accessibilityLabel(day.isToday ? String(localized: "Today, \(description(day))") : description(day))
                                     .accessibilityHidden(day.isFuture)
                             }
                         }
@@ -73,8 +73,9 @@ struct MobileTokenHistoryView: View {
     }
 
     private func description(_ day: CodexTokenHistory.Day) -> String {
-        guard let tokens = day.tokens else { return "\(day.key): no record reported" }
-        return "\(day.key): \(tokens.formatted(.number.precision(.fractionLength(0)))) tokens"
+        guard let tokens = day.tokens else { return String(localized: "\(day.key): no record reported") }
+        let count = tokens.formatted(.number.precision(.fractionLength(0)))
+        return String(localized: "\(day.key): \(count) tokens")
     }
 }
 

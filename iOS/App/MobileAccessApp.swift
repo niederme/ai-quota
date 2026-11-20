@@ -300,7 +300,7 @@ struct ProbeView: View {
         }
             .foregroundStyle(OverviewStyle.primary)
             .background(OverviewStyle.base)
-            .navigationTitle(model.profile.map { AccountRegistry.presentation(for: $0, reading: model.reading).title } ?? "Connect Codex")
+            .navigationTitle(model.profile.map { AccountRegistry.presentation(for: $0, reading: model.reading).title } ?? String(localized: "Connect Codex"))
             .modifier(DismissAfterAccountConnection(completionID: model.signInCompletionID))
             .navigationBarTitleDisplayMode(.inline)
             .confirmationDialog("Remove this device’s connection?", isPresented: $confirmDisconnect) {
@@ -589,7 +589,7 @@ final class CopyCodexSignInCodeActivity: UIActivity {
     override var activityType: UIActivity.ActivityType? {
         UIActivity.ActivityType("com.niederme.AIQuota.copyCodexSignInCode")
     }
-    override var activityTitle: String? { "Copy Codex sign-in code" }
+    override var activityTitle: String? { String(localized: "Copy Codex sign-in code") }
     override var activityImage: UIImage? { UIImage(systemName: "doc.on.doc") }
     override func canPerform(withActivityItems activityItems: [Any]) -> Bool { true }
     override func perform() {

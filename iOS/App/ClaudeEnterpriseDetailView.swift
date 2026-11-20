@@ -122,11 +122,11 @@ struct ClaudeEnterpriseDetailView: View {
             if reconnectGate.shouldPrompt(for: state, signInVisible: showSignIn) {
                 reconnectExplanation = switch state {
                 case .accountMismatch:
-                    "This Claude sign-in belongs to another organization. Sign in with the Enterprise organization shown in your allowance? Cancel keeps your connection."
+                    String(localized: "This Claude sign-in belongs to another organization. Sign in with the Enterprise organization shown in your allowance? Cancel keeps your connection.")
                 case .organizationReconnectRequired:
-                    "Claude’s current account connection did not provide an organization to verify against the allowance. Reconnect the account to check Enterprise details. Your saved allowance stays in place."
+                    String(localized: "Claude’s current account connection did not provide an organization to verify against the allowance. Reconnect the account to check Enterprise details. Your saved allowance stays in place.")
                 default:
-                    "Claude requires a web sign-in for Enterprise spend and skills. Sign in to show those details? Cancel keeps your connection."
+                    String(localized: "Claude requires a web sign-in for Enterprise spend and skills. Sign in to show those details? Cancel keeps your connection.")
                 }
                 showReconnectPrompt = true
             }
@@ -137,7 +137,7 @@ struct ClaudeEnterpriseDetailView: View {
         } message: { Text(reconnectExplanation) }
     }
 
-    private func compactUnavailable(_ title: String) -> some View {
+    private func compactUnavailable(_ title: LocalizedStringKey) -> some View {
         HStack {
             Text(title).font(.callout).foregroundStyle(OverviewStyle.secondary)
             Spacer()
@@ -147,7 +147,7 @@ struct ClaudeEnterpriseDetailView: View {
         .modifier(OverviewCardMaterial())
     }
 
-    private func compactEmpty(_ title: String) -> some View {
+    private func compactEmpty(_ title: LocalizedStringKey) -> some View {
         Label(title, systemImage: "clock")
             .font(.callout)
             .foregroundStyle(OverviewStyle.secondary)
@@ -354,8 +354,8 @@ struct ClaudeEnterpriseDetailView: View {
         let details = VStack(alignment: .trailing, spacing: 2) {
             Text(product.minorUnits.map { money($0, currency: currency) } ?? "—")
                 .fontWeight(.semibold).monospacedDigit()
-            Text(product.percent.map { $0.formatted(.number.precision(.fractionLength(0...1))) + "% of total" }
-                 ?? "Percentage unavailable")
+            Text(product.percent.map { String(localized: "\($0.formatted(.number.precision(.fractionLength(0...1))))% of total") }
+                 ?? String(localized: "Percentage unavailable"))
                 .font(.caption).foregroundStyle(OverviewStyle.secondary)
         }
         if dynamicTypeSize.isAccessibilitySize {
@@ -391,19 +391,19 @@ struct ClaudeEnterpriseDetailView: View {
         }
         let metrics = VStack(alignment: dynamicTypeSize.isAccessibilitySize ? .leading : .trailing, spacing: 2) {
             Text("Cost per use \(perUse ?? "—")").monospacedDigit()
-            Text(uses.map { "\($0.formatted()) \($0 == 1 ? "use" : "uses")" } ?? "Uses —")
+            Text(uses.map { String(localized: "\($0) uses", comment: "Number of times a skill was used. Needs plural forms.") } ?? String(localized: "Uses —"))
         }
         .font(.caption)
         .foregroundStyle(OverviewStyle.secondary)
         if dynamicTypeSize.isAccessibilitySize {
             VStack(alignment: .leading, spacing: 6) {
-                Text(item.skillName.flatMap { $0.isEmpty ? nil : $0 } ?? "Unknown skill")
+                Text(item.skillName.flatMap { $0.isEmpty ? nil : $0 } ?? String(localized: "Unknown skill"))
                     .font(.callout.weight(.semibold))
                 metrics
             }
         } else {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Text(item.skillName.flatMap { $0.isEmpty ? nil : $0 } ?? "Unknown skill")
+                Text(item.skillName.flatMap { $0.isEmpty ? nil : $0 } ?? String(localized: "Unknown skill"))
                     .font(.callout.weight(.semibold))
                     .lineLimit(2)
                 Spacer(minLength: 8)
@@ -466,9 +466,9 @@ struct ClaudeEnterpriseDetailView: View {
     }
 
     private func chartCoverageLabel(dayCount: Int, explicitZeroDays: Int, unreportedDays: Int) -> String {
-        var parts = ["\(dayCount) calendar \(dayCount == 1 ? "day" : "days")"]
-        if explicitZeroDays > 0 { parts.append("\(explicitZeroDays) reported as zero") }
-        if unreportedDays > 0 { parts.append("\(unreportedDays) without reported data") }
+        var parts = [String(localized: "\(dayCount) calendar days", comment: "Chart coverage. Needs plural forms.")]
+        if explicitZeroDays > 0 { parts.append(String(localized: "\(explicitZeroDays) reported as zero")) }
+        if unreportedDays > 0 { parts.append(String(localized: "\(unreportedDays) without reported data")) }
         return parts.joined(separator: " · ")
     }
 
@@ -571,7 +571,7 @@ struct ClaudeEnterpriseDetailView: View {
         (Double(minor) / Double(uses) / 100).formatted(.currency(code: currency))
     }
 
-    private func reconnectRow(_ title: String) -> some View {
+    private func reconnectRow(_ title: LocalizedStringKey) -> some View {
         HStack {
             Text(title).font(.callout).foregroundStyle(OverviewStyle.secondary)
             Spacer()
@@ -604,7 +604,7 @@ struct ClaudeEnterpriseDetailView: View {
         session.start(organization: organization, reuseReady: !force)
     }
 
-    private func loadingRow(_ title: String) -> some View {
+    private func loadingRow(_ title: LocalizedStringKey) -> some View {
         HStack(spacing: 10) {
             Spacer(minLength: 0)
             ProgressView().controlSize(.small)
@@ -615,7 +615,7 @@ struct ClaudeEnterpriseDetailView: View {
         .frame(maxWidth: .infinity, minHeight: 64)
     }
 
-    private func detailsLoadingSkeleton(_ label: String) -> some View {
+    private func detailsLoadingSkeleton(_ label: LocalizedStringKey) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             AnalyticsSkeletonCard(title: "Spend by product", rows: 2)
             AnalyticsSkeletonCard(title: "Skills", rows: 3)

@@ -32,7 +32,7 @@ struct WidgetAccount: AppEntity {
         return "\(prefix) · \(name)"
     }
 
-    var pickerDetail: String { identityHint ?? (isAvailable ? (needsFriendlyName ? "Name in AIQuota" : "") : "Reconnect in AIQuota") }
+    var pickerDetail: String { identityHint ?? (isAvailable ? (needsFriendlyName ? String(localized: "Name in AIQuota") : "") : String(localized: "Reconnect in AIQuota")) }
 
     init(_ profile: AccountProfile, identityHint: String?, displayLabel: String? = nil) {
         id = "\(profile.service.rawValue):\(profile.id)"
@@ -52,7 +52,7 @@ struct WidgetAccount: AppEntity {
         id = identifier
         profileID = parsedID
         service = parsedService
-        label = "Choose or reconnect"
+        label = String(localized: "Choose or reconnect")
         identityHint = nil
         isAvailable = false
     }
@@ -300,7 +300,7 @@ private func loadReading(_ service: QuotaService, account: WidgetAccount? = nil)
     let resolution = profile(account, for: service)
     guard case let .selected(profile, headerLabel) = resolution else {
         let unavailable = if case .unavailable = resolution { true } else { false }
-        return WidgetReading(value: ProviderReading(service: service, reading: nil, needsApp: unavailable), accountLabel: unavailable ? "Choose or reconnect" : nil, namespace: nil)
+        return WidgetReading(value: ProviderReading(service: service, reading: nil, needsApp: unavailable), accountLabel: unavailable ? String(localized: "Choose or reconnect") : nil, namespace: nil)
     }
     if DemoQuotaData.isEnabled {
         return WidgetReading(value: ProviderReading(service: service, reading: DemoQuotaData.reading(service), needsApp: false), accountLabel: headerLabel, namespace: profile.id)
@@ -336,7 +336,7 @@ private func snapshotReading(_ service: QuotaService, account: WidgetAccount? = 
     let resolution = profile(account, for: service)
     guard case let .selected(profile, headerLabel) = resolution else {
         let unavailable = if case .unavailable = resolution { true } else { false }
-        return WidgetReading(value: ProviderReading(service: service, reading: nil, needsApp: unavailable), accountLabel: unavailable ? "Choose or reconnect" : nil, namespace: nil)
+        return WidgetReading(value: ProviderReading(service: service, reading: nil, needsApp: unavailable), accountLabel: unavailable ? String(localized: "Choose or reconnect") : nil, namespace: nil)
     }
     if DemoQuotaData.isEnabled {
         return WidgetReading(value: ProviderReading(service: service, reading: DemoQuotaData.reading(service), needsApp: false), accountLabel: headerLabel, namespace: profile.id)

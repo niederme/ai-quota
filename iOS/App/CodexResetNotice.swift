@@ -135,7 +135,7 @@ struct OverviewAlerts: View {
     @ViewBuilder private func row(_ id: String) -> some View {
         VStack(spacing: 0) {
             if id.hasPrefix("announcement-"), let announcement {
-                OverviewAlertRow(title: announcement.title, detail: "Read more on Codex Resets",
+                OverviewAlertRow(title: announcement.title, detail: String(localized: "Read more on Codex Resets"),
                     announcement: true, wide: wide, loading: loading,
                     openDetails: openDetails, dismiss: { dismiss(id) })
             } else if let forecast {
@@ -145,7 +145,7 @@ struct OverviewAlerts: View {
                     announcement: false, wide: wide, indentsForecast: indentsForecast, dismiss: { dismiss(id) })
                     .accessibilityLabel(QuotaForecastTextFormatter.accessibilitySummary(forecast, accountLabel: accountLabel, bankedResets: bankedResets))
                     .accessibilityHint(bankedResets?.availableCount(for: forecast, now: .now) != nil
-                        ? "Banked resets require separate action in Codex. The time shown is the scheduled refresh." : "")
+                        ? String(localized: "Banked resets require separate action in Codex. The time shown is the scheduled refresh.") : "")
                     .accessibilityIdentifier("quotaPaceInsight")
             }
             if id != rowIDs.last {
@@ -181,7 +181,7 @@ struct OverviewAlertRow: View {
 
     private var isWide: Bool { wide && !typeSize.isAccessibilitySize }
     private var titleLine: CGFloat { isWide ? wideTitleLine : compactTitleLine }
-    private var dismissalLabel: String { announcement ? "Dismiss reset announcement" : "Dismiss limit forecast" }
+    private var dismissalLabel: String { announcement ? String(localized: "Dismiss reset announcement") : String(localized: "Dismiss limit forecast") }
 
     private var emojiWidth: CGFloat { isWide ? wideEmojiWidth : compactEmojiWidth }
 
@@ -266,7 +266,7 @@ struct OverviewAlertRow: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(title + ". " + (forecastSentence.map { $0 + ". " } ?? "") + detail)
         .accessibilityAction(named: Text(dismissalLabel), dismiss)
-        .modifier(UsageLoadingState(loading: loading, label: "Updating reset announcement"))
+        .modifier(UsageLoadingState(loading: loading, label: String(localized: "Updating reset announcement")))
     }
 }
 

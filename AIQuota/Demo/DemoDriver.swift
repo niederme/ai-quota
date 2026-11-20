@@ -353,8 +353,8 @@ final class DemoDriver {
                               codexAutoReload: target.codexAutoReload)
 
         if claudeIndex - 1 == 10 {
-            notifyDemo(id: "demo.claude.red", title: "Claude 5-hour limit reached",
-                       body: "Your Claude 5-hour allowance is exhausted.")
+            notifyDemo(id: "demo.claude.red", title: String(localized: "Claude 5-hour limit reached"),
+                       body: String(localized: "Your Claude 5-hour allowance is exhausted."))
         }
 
     }
@@ -398,8 +398,8 @@ final class DemoDriver {
 
         // Send one amber alert, without writing simulated usage to real alert history.
         if codexIndex - 1 == 4 {
-            notifyDemo(id: "demo.codex.amber", title: "Codex 5-hour usage high",
-                       body: "You've used 85% of your Codex 5-hour allowance.")
+            notifyDemo(id: "demo.codex.amber", title: String(localized: "Codex 5-hour usage high"),
+                       body: String(localized: "You've used 85% of your Codex 5-hour allowance."))
         }
 
     }

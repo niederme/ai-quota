@@ -151,6 +151,7 @@ targets:
           - Resources/AIQuotaWidget-TestFlight.entitlements
           - Resources/Info-TestFlight.plist
     dependencies:
+      - package: MobileAccessCore
       - package: AIQuotaKit
     settings:
       base:
@@ -210,6 +211,7 @@ targets:
           - Resources/Info.plist
           - Resources/Info-TestFlight.plist
     dependencies:
+      - package: MobileAccessCore
       - package: AIQuotaKit
     settings:
       base:

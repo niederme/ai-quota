@@ -246,9 +246,7 @@ struct OverviewView: View {
                 } else if codex.loading || claude.loading {
                     Text("Refreshing…")
                 } else if let oldest = [codex.reading, claude.reading].compactMap({ $0?.fetchedAt }).min() {
-                    Text(overviewFreshnessLabel(oldest, at: context.date, saved: false)
-                        .replacingOccurrences(of: "Updated", with: "Refreshed")
-                        .replacingOccurrences(of: "Older reading ·", with: "Refreshed"))
+                    Text(overviewFreshnessLabel(oldest, at: context.date, saved: false, wording: .refreshedEvenWhenOld))
                 } else {
                     Text("Connect a service to see your usage.")
                 }
@@ -263,8 +261,11 @@ struct OverviewView: View {
             if busy {
                 Text("\(name) refreshing…")
             } else if let reading {
-                let updated = overviewFreshnessLabel(reading.fetchedAt, at: now, saved: failed)
-                Text(failed ? "\(name) couldn’t update · \(updated)" : "\(name) \(updated.lowercased())")
+                if failed {
+                    Text("\(name) couldn’t update · \(overviewFreshnessLabel(reading.fetchedAt, at: now, saved: true))")
+                } else {
+                    Text(overviewServiceFreshnessLabel(name, fetchedAt: reading.fetchedAt, at: now))
+                }
             } else {
                 Text("\(name) · No usage received yet")
             }
@@ -294,7 +295,7 @@ struct AccountConnectionForm: View {
     var body: some View {
         Form {
             Section {
-                LabeledContent("Status", value: needsReconnect ? "Sign-in required" : "Connected")
+                LabeledContent(String(localized: "Status"), value: needsReconnect ? String(localized: "Sign-in required") : String(localized: "Connected"))
                 if let plan { LabeledContent("Plan", value: plan).fixedSize(horizontal: false, vertical: true) }
                 if !needsReconnect, error != nil, !updatesPaused {
                     Button("Retry update", action: retry)
@@ -467,7 +468,7 @@ struct ServiceDetailContent<Account: View>: View {
     private var needsReconnect: Bool { failure == .reconnect || failure == .renewal }
     private var planText: String? {
         if let identity { return identity.subtitle(for: .fullIdentity) }
-        let plan = reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported"
+        let plan = reading?.metadata?.displayPlan.map { String(localized: "\($0) plan") } ?? String(localized: "Plan not reported")
         return accountLabel.map { "\($0) · \(plan)" } ?? plan
     }
     @ViewBuilder private var planLabel: some View {
@@ -482,7 +483,7 @@ struct ServiceDetailContent<Account: View>: View {
 
 struct UsageLoadingState: ViewModifier {
     let loading: Bool
-    var label = "Updating usage"
+    var label = String(localized: "Updating usage")
     func body(content: Content) -> some View {
         if loading {
             content.redacted(reason: .placeholder)
@@ -1091,8 +1092,8 @@ struct ProviderDialCardContent: View {
                         OverviewControlGlyph(symbol: "chevron.right")
                     }
                 }
-                Text(connected ? (identity?.subtitle ?? ((reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported")
-                    + (accountLabel.map { " · \($0)" } ?? ""))) : "Not connected")
+                Text(connected ? (identity?.subtitle ?? ((reading?.metadata?.displayPlan.map { String(localized: "\($0) plan") } ?? String(localized: "Plan not reported"))
+                    + (accountLabel.map { " · \($0)" } ?? ""))) : String(localized: "Not connected"))
                     .modifier(OverviewDetailType(weight: .semibold, wide: usesWideLayout)).foregroundStyle(OverviewStyle.primary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -1150,14 +1151,14 @@ struct ProviderDialCardContent: View {
             .accessibilityIdentifier(name == "Codex" ? "codexReconnectButton" : "claudeReconnectButton")
     }
     private var statusText: String {
-        if failure == .reconnect || failure == .renewal { return "Reconnect to update" }
-        if failure != nil || error != nil { return "Couldn’t update · Saved reading" }
-        if reading == nil { return busy ? "Loading allowance…" : "No reading yet" }
-        return "Limit reached"
+        if failure == .reconnect || failure == .renewal { return String(localized: "Reconnect to update") }
+        if failure != nil || error != nil { return String(localized: "Couldn’t update · Saved reading") }
+        if reading == nil { return busy ? String(localized: "Loading allowance…") : String(localized: "No reading yet") }
+        return String(localized: "Limit reached")
     }
     private func spending(_ amount: Double) -> some View {
         let value = reading?.metadata?.usageCurrency.map { amount.formatted(.currency(code: $0)) }
-            ?? amount.formatted(.number.precision(.fractionLength(0...2))) + " credits"
+            ?? String(localized: "\(amount.formatted(.number.precision(.fractionLength(0...2)))) credits")
         return Text("Credits used  \(value)")
             .modifier(OverviewDetailType(weight: .regular, wide: usesWideLayout)).monospacedDigit()
             .foregroundStyle(supportingTextColor)
@@ -1191,10 +1192,10 @@ struct ProviderDialCardContent: View {
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
                     } else {
-                        dialValue(primary, label: primary?.compactLabel ?? "5h")
+                        dialValue(primary, label: primary?.compactLabel ?? WindowKeyText.hours(5))
                     }
                     if showsSecondary {
-                        dialValue(reading?.secondaryWindow, label: "7d").opacity(secondaryOpacity)
+                        dialValue(reading?.secondaryWindow, label: WindowKeyText.days(7)).opacity(secondaryOpacity)
                     }
                 }
             }
@@ -1207,7 +1208,7 @@ struct ProviderDialCardContent: View {
         .frame(height: 103 * scale, alignment: .top)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(name) allowance used")
-        .accessibilityValue(reading?.accessibilitySummary ?? "Allowance unavailable")
+        .accessibilityValue(reading?.accessibilitySummary ?? String(localized: "Allowance unavailable"))
     }
     private func dialValue(_ window: QuotaWindow?, label: String) -> some View {
         Text(window.map { "\($0.displayPercent)% \(label)" } ?? "— \(label)")
@@ -1218,7 +1219,7 @@ struct ProviderDialCardContent: View {
 
     private func resetCaption(_ window: QuotaWindow?, label: String) -> some View {
         let text: String = {
-            guard let window else { return "\(label) not reported" }
+            guard let window else { return String(localized: "\(label) not reported") }
             return "\(label) \(window.resetDescription())"
         }()
         return Text(text).modifier(OverviewDetailType(weight: .regular, wide: usesWideLayout)).monospacedDigit()
@@ -1240,10 +1241,27 @@ struct ProviderDialCardContent: View {
 
 
 
-func overviewFreshnessLabel(_ fetchedAt: Date, at now: Date, saved: Bool) -> String {
+enum OverviewFreshnessWording { case updated, refreshed, refreshedEvenWhenOld }
+
+/// "just now", "5 minutes ago", "2 hours ago" (plural forms live in the String Catalog).
+func overviewRelativeAge(_ elapsed: Int) -> String {
+    if elapsed < 60 { return String(localized: "just now", comment: "Age of a usage reading, as in “Updated just now”.") }
+    if elapsed < 3600 { return String(localized: "\(elapsed / 60) minutes ago", comment: "Age of a usage reading, as in “Updated 5 minutes ago”. Needs plural forms.") }
+    return String(localized: "\(elapsed / 3600) hours ago", comment: "Age of a usage reading, as in “Updated 2 hours ago”. Needs plural forms.")
+}
+
+func overviewFreshnessLabel(_ fetchedAt: Date, at now: Date, saved: Bool, wording: OverviewFreshnessWording = .updated) -> String {
     let elapsed = max(0, Int(now.timeIntervalSince(fetchedAt)))
-    let relative = elapsed < 60 ? "just now" : elapsed < 3600 ? "\(elapsed / 60) minute\(elapsed / 60 == 1 ? "" : "s") ago" : "\(elapsed / 3600) hour\(elapsed / 3600 == 1 ? "" : "s") ago"
-    if saved { return "Last updated \(relative)" }
-    if elapsed >= 1800 { return "Older reading · \(relative)" }
-    return "Updated \(relative)"
+    let relative = overviewRelativeAge(elapsed)
+    if saved { return String(localized: "Last updated \(relative)") }
+    if elapsed >= 1800, wording != .refreshedEvenWhenOld { return String(localized: "Older reading · \(relative)") }
+    return wording == .updated ? String(localized: "Updated \(relative)") : String(localized: "Refreshed \(relative)")
+}
+
+/// One service's freshness line, such as "Codex updated 5 minutes ago".
+func overviewServiceFreshnessLabel(_ name: String, fetchedAt: Date, at now: Date) -> String {
+    let elapsed = max(0, Int(now.timeIntervalSince(fetchedAt)))
+    let relative = overviewRelativeAge(elapsed)
+    if elapsed >= 1800 { return String(localized: "\(name) older reading · \(relative)", comment: "First value is Codex or Claude.") }
+    return String(localized: "\(name) updated \(relative)", comment: "First value is Codex or Claude.")
 }

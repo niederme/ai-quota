@@ -24,7 +24,7 @@ struct MacQuotaInsightBanner: View {
         .help("Estimate from current quota usage and available service history. Changes in usage can change the forecast.")
         .accessibilityLabel(QuotaForecastTextFormatter.accessibilitySummary(forecast, accountLabel: accountLabel, bankedResets: bankedResets))
         .accessibilityHint(bankedResets?.availableCount(for: forecast, now: .now) != nil
-            ? "Banked resets require separate action in Codex. The time shown is the scheduled refresh." : "")
+            ? String(localized: "Banked resets require separate action in Codex. The time shown is the scheduled refresh.") : "")
         .accessibilityIdentifier("quotaPaceInsight")
     }
 

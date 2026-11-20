@@ -8,10 +8,10 @@ struct CountdownView: View {
     private let timer = Timer.publish(every: 60, on: .main, in: .common).autoconnect()
 
     private var text: String {
-        guard let resetAt else { return "Reset time unavailable" }
-        if resetAt < now { return "Resetting now…" }
+        guard let resetAt else { return String(localized: "Reset time unavailable") }
+        if resetAt < now { return String(localized: "Resetting now…") }
         let seconds = Int(resetAt.timeIntervalSince(now))
-        return "Resets in \(CountdownTextFormatter.duration(seconds))"
+        return String(localized: "Resets in \(CountdownTextFormatter.duration(seconds))")
     }
 
     private var absoluteText: String {

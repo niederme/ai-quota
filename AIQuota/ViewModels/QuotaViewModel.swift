@@ -301,7 +301,9 @@ final class QuotaViewModel {
             // Never keep a card that did not finish connecting. A duplicate
             // would otherwise sit beside the original as "Couldn't load allowance".
             if session.isDuplicateIdentity {
-                connectAccountNotice = "That \(provider == .codex ? "Codex" : "Claude") account is already connected."
+                connectAccountNotice = provider == .codex
+                    ? String(localized: "That Codex account is already connected.")
+                    : String(localized: "That Claude account is already connected.")
             }
             await removeAccount(id: account.id)
             return nil
@@ -1895,7 +1897,7 @@ final class AdditionalAccountSession: Identifiable {
             claudeCoordinator = nil
             codexClient = nil
             claudeClient = nil
-            issue = "Account storage is invalid. Remove and reconnect this account."
+            issue = String(localized: "Account storage is invalid. Remove and reconnect this account.")
             return
         }
         switch account.provider {
@@ -2239,18 +2241,18 @@ final class AdditionalAccountSession: Identifiable {
             }
             guard provider != .codex || (generation == refreshGeneration && isAuthenticated && !Task.isCancelled) else { return false }
             guard let identity, !identity.isEmpty else {
-                reportIssue(NetworkError.accountIdentityMismatch, message: "Could not verify this account's identity. Reconnect to try again.")
+                reportIssue(NetworkError.accountIdentityMismatch, message: String(localized: "Could not verify this account's identity. Reconnect to try again."))
                 return false
             }
             if let expected = account.workspaceID, expected != identity {
-                reportIssue(NetworkError.accountIdentityMismatch, message: "This session belongs to a different account. Its connection has been preserved.")
+                reportIssue(NetworkError.accountIdentityMismatch, message: String(localized: "This session belongs to a different account. Its connection has been preserved."))
                 return false
             }
             if AccountRegistry.accounts(for: provider).contains(where: {
                 $0.id != id && $0.workspaceID == identity
             }) {
                 isDuplicateIdentity = true
-                reportIssue(NetworkError.accountIdentityMismatch, message: "This identity is already connected to another account. Both connections have been preserved.")
+                reportIssue(NetworkError.accountIdentityMismatch, message: String(localized: "This identity is already connected to another account. Both connections have been preserved."))
                 return false
             }
             account.workspaceID = identity

@@ -1,5 +1,6 @@
 import SwiftUI
 import AIQuotaKit
+import MobileAccessCore
 
 /// Quota gauge with an outer primary ring and an optional inner secondary ring.
 ///
@@ -136,7 +137,7 @@ struct CircularGaugeView: View {
                                 .font(.system(size: 14, weight: .bold, design: .rounded))
                                 .foregroundStyle(showsPrimaryMetric ? AnyShapeStyle(statusColor) : AnyShapeStyle(.secondary))
                                 .contentTransition(.numericText())
-                            Text(primaryLabel)
+                            Text(WindowKeyText.display(primaryLabel))
                                 .font(.system(size: 12, weight: .medium))
                                 .foregroundStyle(showsPrimaryMetric ? AnyShapeStyle(statusColor) : AnyShapeStyle(.secondary))
                         }
@@ -146,7 +147,7 @@ struct CircularGaugeView: View {
                                     .font(.system(size: 13, weight: .semibold, design: .rounded))
                                     .foregroundStyle(statusColor.opacity(secondaryTextOpacity))
                                     .contentTransition(.numericText())
-                                Text(secondaryLabel)
+                                Text(WindowKeyText.display(secondaryLabel))
                                     .font(.system(size: 13, weight: .medium))
                                     .foregroundStyle(statusColor.opacity(secondaryTextOpacity))
                             }
@@ -226,8 +227,8 @@ struct BudgetGaugeView: View {
     let usedText: String
     let limitText: String
     let unitLabel: String
-    /// Appended to the amounts so they read on one line ("434.19 of 7,000 credits").
-    var amountSuffix: String = ""
+    /// Names the unit after the amounts so they read on one line ("434.19 of 7,000 credits").
+    var showsCreditsUnit = false
     let icon: String
     let label: String
     let resetAt: Date?
@@ -300,13 +301,13 @@ struct BudgetGaugeView: View {
             Text(label)
                 .font(.headline.bold())
                 .lineLimit(1)
-            Text("\(usedText) of \(limitText)\(amountSuffix)")
+            Text(showsCreditsUnit ? "\(usedText) of \(limitText) credits" : "\(usedText) of \(limitText)")
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
             if let resetAt, resetAt > .now {
-                Text(ResetTimeTextFormatter.compactWindowCaption("", resetAt: resetAt).trimmingCharacters(in: .whitespaces))
+                Text(ResetTimeTextFormatter.compactResetCaption(resetAt: resetAt))
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

@@ -28,7 +28,7 @@ struct QuotaEntry: TimelineEntry {
             // Its label must never fall back to another connection's identity.
             guard selected.provider == provider,
                   let match = accounts.first(where: { $0.id == selected.id && $0.provider == provider })
-            else { return "\(provider == .codex ? "Codex" : "Claude") connection unavailable" }
+            else { return provider == .codex ? String(localized: "Codex connection unavailable") : String(localized: "Claude connection unavailable") }
             account = match
         } else {
             account = accounts.first { $0.provider == provider && $0.connectionKind == .legacyPrimary }

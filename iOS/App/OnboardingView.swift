@@ -108,7 +108,7 @@ struct OnboardingView: View {
                                 service("Codex", subtitle: accountSubtitle(.codex, fallback: "ChatGPT / OpenAI"), logo: "logo-openai", connected: accounts?.connected(.codex).isEmpty == false || codex.connected, error: codex.error) {
                                     openAccount(.codex)
                                 }
-                                service("Claude Code", subtitle: accountSubtitle(.claude, fallback: "Anthropic / claude.ai"), logo: "logo-claude", connected: accounts?.connected(.claude).isEmpty == false || claude.connected, error: claude.error ?? (claude.connectionFailure != nil ? "Needs attention" : nil)) {
+                                service("Claude Code", subtitle: accountSubtitle(.claude, fallback: "Anthropic / claude.ai"), logo: "logo-claude", connected: accounts?.connected(.claude).isEmpty == false || claude.connected, error: claude.error ?? (claude.connectionFailure != nil ? String(localized: "Needs attention") : nil)) {
                                     openAccount(.claude)
                                 }
                                 if accounts?.hasConnection == true || codex.connected || claude.connected {
@@ -270,7 +270,7 @@ struct OnboardingView: View {
     private func accountSubtitle(_ service: QuotaService, fallback: String) -> String {
         guard let accounts else { return fallback }
         let count = accounts.connected(service).count
-        return count == 0 ? fallback : "\(count) \(count == 1 ? "account" : "accounts") connected"
+        return count == 0 ? fallback : String(localized: "\(count) accounts connected")
     }
 
     private func openAccount(_ service: QuotaService) {
@@ -416,7 +416,7 @@ struct LockScreenSetupContent: View {
         .overlay(RoundedRectangle(cornerRadius: 32).strokeBorder(OverviewStyle.secondary.opacity(0.25), lineWidth: 1))
     }
 
-    private func instruction(_ number: Int, _ text: String) -> some View {
+    private func instruction(_ number: Int, _ text: LocalizedStringKey) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text("\(number)").font(.headline).foregroundStyle(OverviewStyle.accent)
             Text(text).fixedSize(horizontal: false, vertical: true)

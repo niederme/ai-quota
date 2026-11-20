@@ -1,4 +1,5 @@
 import SwiftUI
+import MobileAccessCore
 
 /// The iOS overview's account dial, sized for a Mac account row.
 struct MacAccountDial: View {
@@ -35,7 +36,7 @@ struct MacAccountDial: View {
                 Image(icon).resizable().scaledToFit().frame(width: 18, height: 18)
                 if let primaryPercent {
                     VStack(spacing: 2) {
-                        Text("\(primaryPercent)% \(primaryLabel)")
+                        Text("\(primaryPercent)% \(WindowKeyText.display(primaryLabel))")
                             .font(.system(size: 16, weight: .semibold).monospacedDigit())
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
@@ -49,7 +50,7 @@ struct MacAccountDial: View {
                     }
                 } else {
                     VStack(spacing: 2) {
-                        Text("— \(primaryLabel)")
+                        Text("— \(WindowKeyText.display(primaryLabel))")
                         if showsSecondary { Text("— 7d").opacity(0.7) }
                     }
                     .font(.system(size: 16, weight: .semibold).monospacedDigit())

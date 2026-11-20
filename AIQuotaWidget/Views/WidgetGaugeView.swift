@@ -1,5 +1,6 @@
 import SwiftUI
 import AIQuotaKit
+import MobileAccessCore
 
 struct WidgetBudgetView: View {
     let budget: CodexUsage.MonthlyBudget
@@ -160,7 +161,7 @@ struct WidgetGaugeView: View {
                             Text(showsPrimaryMetric ? "\(primaryPercent)%" : "N/A")
                                 .font(.system(size: primPt, weight: .bold, design: .rounded))
                                 .foregroundStyle(showsPrimaryMetric ? AnyShapeStyle(statusColor) : AnyShapeStyle(.secondary))
-                            Text(primaryLabel)
+                            Text(primaryKey)
                                 .font(.system(size: primPt * 0.58))
                                 .foregroundStyle(.secondary)
                         }
@@ -169,7 +170,7 @@ struct WidgetGaugeView: View {
                                 Text("\(secondaryPercent)%")
                                     .font(.system(size: secPt, weight: .semibold, design: .rounded))
                                     .foregroundStyle(statusColor)
-                                Text(secondaryLabel)
+                                Text(secondaryKey)
                                     .font(.system(size: secPt * 0.7))
                                     .foregroundStyle(.secondary)
                             }
@@ -206,7 +207,7 @@ struct WidgetGaugeView: View {
                 .minimumScaleFactor(0.8)
                 .frame(height: resetPt * 1.25, alignment: .top)
             if showsSecondaryReset {
-                Text(secondaryLimitReached ? "\(secondaryLabel) limit reached · \(secondaryLimitCountdownText)" : secondaryCountdownText)
+                Text(secondaryLimitReached ? String(localized: "\(secondaryKey) limit reached · \(secondaryLimitCountdownText)") : secondaryCountdownText)
                     .font(.system(size: resetPt))
                     .foregroundStyle(secondaryLimitReached ? AnyShapeStyle(.red.opacity(0.8)) : AnyShapeStyle(.secondary))
                     .lineLimit(1)
@@ -219,18 +220,22 @@ struct WidgetGaugeView: View {
         }
     }
 
+    /// Window keys ("5h", "7d") in the user's language; the stored labels stay raw.
+    private var primaryKey: String { WindowKeyText.display(primaryLabel) }
+    private var secondaryKey: String { WindowKeyText.display(secondaryLabel) }
+
     private var resetText: String {
         if showsPrimaryMetric {
-            return "\(primaryLabel) reset in \(CountdownTextFormatter.duration(resetSeconds, style: .compact))"
+            return String(localized: "\(primaryKey) reset in \(CountdownTextFormatter.duration(resetSeconds, style: .compact))")
         }
-        return "\(secondaryLabel) reset in \(CountdownTextFormatter.duration(weeklyResetSeconds, style: .compact))"
+        return String(localized: "\(secondaryKey) reset in \(CountdownTextFormatter.duration(weeklyResetSeconds, style: .compact))")
     }
 
     private var secondaryCountdownText: String {
-        "\(secondaryLabel) reset in \(CountdownTextFormatter.duration(weeklyResetSeconds, style: .compact))"
+        String(localized: "\(secondaryKey) reset in \(CountdownTextFormatter.duration(weeklyResetSeconds, style: .compact))")
     }
 
     private var secondaryLimitCountdownText: String {
-        "resets in \(CountdownTextFormatter.duration(weeklyResetSeconds, style: .compact))"
+        String(localized: "resets in \(CountdownTextFormatter.duration(weeklyResetSeconds, style: .compact))")
     }
 }
