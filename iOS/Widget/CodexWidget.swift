@@ -96,24 +96,34 @@ struct WidgetAccountQuery: EntityQuery {
         }
     }
 
-    func suggestedEntities() async throws -> [WidgetAccount] { accounts.filter { !$0.needsFriendlyName } }
-    func defaultResult() async -> WidgetAccount? { WidgetAccount.soleDefault(in: accounts) }
+    func suggestedEntities() async throws -> [WidgetAccount] { visibleAccounts.filter { !$0.needsFriendlyName } }
+    func defaultResult() async -> WidgetAccount? { WidgetAccount.soleDefault(in: visibleAccounts) }
 
-    private var accounts: [WidgetAccount] {
-        let profiles = AccountRegistry.orderedProfiles().filter { service == nil || $0.service == service }
-        return service.map { WidgetAccount.options(for: $0, profiles: profiles) } ?? WidgetAccount.make(profiles)
+    private var profiles: [AccountProfile] {
+        AccountRegistry.orderedProfiles().filter { service == nil || $0.service == service }
     }
+    private var accounts: [WidgetAccount] {
+        service.map { WidgetAccount.options(for: $0, profiles: profiles) } ?? WidgetAccount.make(profiles)
+    }
+    /// The picker offers the cards the app shows. Saved choices still resolve
+    /// through `accounts`, signed-out cards included.
+    private var visibleAccounts: [WidgetAccount] { widgetVisibleAccounts(accounts, profiles: profiles) }
 }
 
 private struct ServiceWidgetAccountOptionsProvider: DynamicOptionsProvider {
     let service: QuotaService
 
     func results() async throws -> [WidgetAccount] {
-        WidgetAccount.options(for: service, profiles: AccountRegistry.profiles(for: service)).filter { !$0.needsFriendlyName }
+        options.filter { !$0.needsFriendlyName }
     }
 
     func defaultResult() async -> WidgetAccount? {
-        WidgetAccount.soleDefault(in: WidgetAccount.options(for: service, profiles: AccountRegistry.profiles(for: service)))
+        WidgetAccount.soleDefault(in: options)
+    }
+
+    private var options: [WidgetAccount] {
+        let profiles = AccountRegistry.profiles(for: service)
+        return widgetVisibleAccounts(WidgetAccount.options(for: service, profiles: profiles), profiles: profiles)
     }
 }
 
@@ -173,24 +183,56 @@ func resolveWidgetProfile(
     _ selection: WidgetAccount?,
     for service: QuotaService,
     profiles: [AccountProfile],
-    defaultProfile: AccountProfile?
+    defaultProfile: AccountProfile?,
+    isSignedIn: (AccountProfile) -> Bool = { _ in true }
 ) -> WidgetProfileResolution {
     if let selection {
         guard selection.service == service, selection.isAvailable,
               let selected = profiles.first(where: { $0.id == selection.profileID }) else {
             return .unavailable
         }
-        return .selected(selected, headerLabel: WidgetAccount.headerLabel(for: selected, among: profiles))
+        // A card restored signed out from another phone may have been connected
+        // again as a new card. Follow the account, not the old card.
+        let resolved = isSignedIn(selected) ? selected : selected.providerIdentity.flatMap { identity in
+            profiles.first { $0.id != selected.id && $0.providerIdentity == identity && isSignedIn($0) }
+        } ?? selected
+        return .selected(resolved, headerLabel: WidgetAccount.headerLabel(for: resolved, among: profiles))
     }
     // Existing widgets predate account parameters. A nil selection retains the
     // former service default, while the editor only auto-selects a sole account.
-    guard let migrated = defaultProfile else { return .noAccount }
+    guard let migrated = widgetDefaultProfile(defaultProfile, among: profiles, isSignedIn: isSignedIn) else { return .noAccount }
     return .selected(migrated, headerLabel: WidgetAccount.headerLabel(for: migrated, among: profiles))
+}
+
+/// The cards the app shows on its overview: the ones signed in on this device.
+/// Setting up a phone from another one restores the account list but never the
+/// this-device-only sign-ins, so the old cards arrive signed out. The app hides
+/// them; widgets that follow "all accounts", "closest to a limit" or a default
+/// must too, or they show a reconnect warning for a card the user can't see.
+/// With no card signed in, every card stays so the widget can still ask for a
+/// reconnect.
+func widgetVisibleProfiles(_ profiles: [AccountProfile], isSignedIn: (AccountProfile) -> Bool) -> [AccountProfile] {
+    let signedIn = profiles.filter(isSignedIn)
+    return signedIn.isEmpty ? profiles : signedIn
+}
+
+/// The service default, unless it is signed out while another card of the
+/// service is signed in.
+func widgetDefaultProfile(_ defaultProfile: AccountProfile?, among profiles: [AccountProfile],
+                          isSignedIn: (AccountProfile) -> Bool) -> AccountProfile? {
+    guard let defaultProfile, !isSignedIn(defaultProfile) else { return defaultProfile }
+    return profiles.first { $0.service == defaultProfile.service && isSignedIn($0) } ?? defaultProfile
+}
+
+private func widgetVisibleAccounts(_ accounts: [WidgetAccount], profiles: [AccountProfile]) -> [WidgetAccount] {
+    let visible = Set(widgetVisibleProfiles(profiles, isSignedIn: widgetHasSavedSignIn).map(\.orderKey))
+    return accounts.filter { visible.contains("\($0.service.rawValue)\u{0}\($0.profileID)") }
 }
 
 private func profile(_ selection: WidgetAccount?, for service: QuotaService) -> WidgetProfileResolution {
     let profiles = AccountRegistry.profiles(for: service)
-    return resolveWidgetProfile(selection, for: service, profiles: profiles, defaultProfile: AccountRegistry.defaultProfile(for: service))
+    return resolveWidgetProfile(selection, for: service, profiles: profiles, defaultProfile: AccountRegistry.defaultProfile(for: service),
+                                isSignedIn: widgetHasSavedSignIn)
 }
 
 private func entry(_ readings: [WidgetReading], at date: Date = .now, showAccountNames: Bool = false) -> QuotaEntry {
@@ -229,7 +271,8 @@ private func accountReadings(_ selections: [WidgetAccount], fetch: Bool) async -
 }
 private func singleReadings(_ configuration: QuotaConfiguration, fetch: Bool) async -> [WidgetReading] {
     if configuration.show == .closestToLimit {
-        let selections = WidgetAccount.make(AccountRegistry.orderedProfiles())
+        let profiles = AccountRegistry.orderedProfiles()
+        let selections = widgetVisibleAccounts(WidgetAccount.make(profiles), profiles: profiles)
         let readings = await accountReadings(selections, fetch: fetch)
         if let first = ranked(readings).first { return [first] }
     }
@@ -243,7 +286,8 @@ private func singleReadings(_ configuration: QuotaConfiguration, fetch: Bool) as
 /// Resolve identity and order before asynchronous loads, so fetch completion cannot
 /// move accounts. Missing explicit selections remain present as reconnect entries.
 func multipleWidgetSelections(_ configuration: BothConfiguration, profiles: [AccountProfile],
-                              defaults: [QuotaService: AccountProfile]) -> [WidgetAccount] {
+                              defaults: [QuotaService: AccountProfile],
+                              isSignedIn: (AccountProfile) -> Bool = { _ in true }) -> [WidgetAccount] {
     let proposed: [WidgetAccount]
     if let accounts = configuration.accounts, !accounts.isEmpty {
         proposed = accounts
@@ -251,8 +295,9 @@ func multipleWidgetSelections(_ configuration: BothConfiguration, profiles: [Acc
         proposed = [configuration.codexAccount ?? defaults[.codex].map { WidgetAccount($0, identityHint: nil) },
                     configuration.claudeAccount ?? defaults[.claude].map { WidgetAccount($0, identityHint: nil) }].compactMap { $0 }
     } else {
-        // An empty selection means all accounts, following the app's current order.
-        proposed = WidgetAccount.make(profiles)
+        // An empty selection means all accounts the app shows, in its current order.
+        let visible = Set(widgetVisibleProfiles(profiles, isSignedIn: isSignedIn).map(\.orderKey))
+        proposed = WidgetAccount.make(profiles).filter { visible.contains("\($0.service.rawValue)\u{0}\($0.profileID)") }
     }
     var seen = Set<String>()
     let unique = proposed.filter { seen.insert($0.id).inserted }
@@ -267,9 +312,9 @@ func multipleWidgetSelections(_ configuration: BothConfiguration, profiles: [Acc
 private func multipleReadings(_ configuration: BothConfiguration, fetch: Bool) async -> [WidgetReading] {
     let profiles = AccountRegistry.orderedProfiles()
     let defaults = Dictionary(uniqueKeysWithValues: QuotaService.allCases.compactMap { service in
-        AccountRegistry.defaultProfile(for: service).map { (service, $0) }
+        widgetDefaultProfile(AccountRegistry.defaultProfile(for: service), among: profiles, isSignedIn: widgetHasSavedSignIn).map { (service, $0) }
     })
-    let selections = multipleWidgetSelections(configuration, profiles: profiles, defaults: defaults)
+    let selections = multipleWidgetSelections(configuration, profiles: profiles, defaults: defaults, isSignedIn: widgetHasSavedSignIn)
     if selections.isEmpty {
         return QuotaService.allCases.map { service in
             if DemoQuotaData.isEnabled {
@@ -286,6 +331,9 @@ private func hasSavedCredentials(_ store: SharedQuotaStore) -> Bool {
     case .codex: return (try? store.load(CodexTokens.self)) != nil
     case .claude: return (try? store.load(ClaudeTokens.self)) != nil
     }
+}
+private func widgetHasSavedSignIn(_ profile: AccountProfile) -> Bool {
+    DemoQuotaData.isEnabled || hasSavedCredentials(SharedQuotaStore(profile))
 }
 func widgetNeedsReconnect(
     explicitlyConfigured: Bool,

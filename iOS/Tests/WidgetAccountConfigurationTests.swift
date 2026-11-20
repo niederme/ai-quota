@@ -644,3 +644,47 @@ extension WidgetAccountConfigurationTests {
         attachment.lifetime = .keepAlways; add(attachment)
     }
 }
+
+// A phone set up from another one restores the account list but not the
+// this-device-only sign-ins. The app hides those signed-out cards, so widgets
+// that pick accounts for the user must not show them as "Reconnect" either.
+extension WidgetAccountConfigurationTests {
+    private var restoredClaude: AccountProfile {
+        AccountProfile(id: "live", service: .claude, label: "Claude", providerIdentity: "org-max", isLegacy: true)
+    }
+    private var reconnectedClaude: AccountProfile {
+        AccountProfile(id: "claude-max-new", service: .claude, label: "Claude Max", providerIdentity: "org-max", isLegacy: false)
+    }
+
+    func testAllAccountsSkipsCardsSignedOutOnThisDevice() {
+        let profiles = [codexPersonal, restoredClaude, reconnectedClaude, claudeWork]
+        let signedIn: Set<String> = [codexPersonal.id, reconnectedClaude.id, claudeWork.id]
+        let configuration = BothConfiguration()
+        XCTAssertEqual(multipleWidgetSelections(configuration, profiles: profiles, defaults: [:],
+                                                isSignedIn: { signedIn.contains($0.id) }).map(\.id),
+                       ["codex:codex-personal", "claude:claude-max-new", "claude:claude-work"])
+        XCTAssertEqual(widgetVisibleProfiles(profiles, isSignedIn: { _ in false }).map(\.id), profiles.map(\.id),
+                       "With nothing signed in, keep the cards so the widget can ask for a reconnect")
+    }
+
+    func testDefaultAndExplicitChoicesFollowTheSignedInCard() throws {
+        let profiles = [restoredClaude, reconnectedClaude, claudeWork]
+        let signedIn: Set<String> = [reconnectedClaude.id, claudeWork.id]
+        let isSignedIn: (AccountProfile) -> Bool = { signedIn.contains($0.id) }
+
+        guard case let .selected(migrated, _) = resolveWidgetProfile(nil, for: .claude, profiles: profiles,
+                defaultProfile: restoredClaude, isSignedIn: isSignedIn) else { return XCTFail("Expected a default") }
+        XCTAssertEqual(migrated.id, reconnectedClaude.id)
+
+        let restoredChoice = try XCTUnwrap(WidgetAccount.make(profiles).first { $0.profileID == "live" })
+        guard case let .selected(followed, _) = resolveWidgetProfile(restoredChoice, for: .claude, profiles: profiles,
+                defaultProfile: nil, isSignedIn: isSignedIn) else { return XCTFail("Expected a selection") }
+        XCTAssertEqual(followed.id, reconnectedClaude.id, "Same Claude organization, connected again as a new card")
+
+        let unmatched = AccountProfile(id: "old-team", service: .claude, label: "Team", providerIdentity: "org-team", isLegacy: false)
+        let unmatchedChoice = try XCTUnwrap(WidgetAccount.make(profiles + [unmatched]).first { $0.profileID == "old-team" })
+        guard case let .selected(kept, _) = resolveWidgetProfile(unmatchedChoice, for: .claude, profiles: profiles + [unmatched],
+                defaultProfile: nil, isSignedIn: isSignedIn) else { return XCTFail("Expected a selection") }
+        XCTAssertEqual(kept.id, unmatched.id, "A signed-out card with no reconnected twin still asks for a reconnect")
+    }
+}
