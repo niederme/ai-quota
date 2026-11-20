@@ -144,12 +144,6 @@ struct OnboardingView: View {
                                     }
                                         .padding(18)
                                         .background(OverviewStyle.track, in: RoundedRectangle(cornerRadius: OverviewStyle.radius))
-                                    Button(codex.isDemo ? "Return to demo" : "Start using AIQuota") {
-                                        progress.finish()
-                                        if !codex.isDemo { MobileAnalytics.shared.completeOnboarding() }
-                                        if let onFinish { onFinish() } else { dismiss() }
-                                    }
-                                        .modifier(OnboardingPrimaryButtonStyle())
                                     VStack(spacing: 6) {
                                         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
                                         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
@@ -163,7 +157,7 @@ struct OnboardingView: View {
                                     }.font(.footnote).foregroundStyle(OverviewStyle.secondary)
                                         .multilineTextAlignment(.center).padding(.top, 24)
 
-                                }.frame(maxWidth: .infinity).padding(.vertical, 40)
+                                }.frame(maxWidth: .infinity).padding(.vertical, 16)
                             }
                         }
                         .padding(24)
@@ -173,42 +167,15 @@ struct OnboardingView: View {
                 }
             }
             .onboardingBottomBar {
-                HStack(spacing: 12) {
-                    HStack(spacing: 0) {
-                        if progress.step == .welcome {
-                            if !codex.isDemo {
-                                Button("Try Demo") {
-                                    progress.dismiss()
-                                    dismiss()
-                                    setDemoEnabled(true)
-                                }.modifier(OnboardingSecondaryButtonStyle())
-                            }
-                        } else {
-                            Button("Back", systemImage: "chevron.left") {
-                                let index = OnboardingProgress.order.firstIndex(of: progress.step) ?? 0
-                                progress.setStep(OnboardingProgress.order[max(0, index - 1)])
-                            }.modifier(OnboardingSecondaryButtonStyle())
-                        }
-                    }
-                    .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
-                    HStack(spacing: 6) {
-                        ForEach(OnboardingProgress.order, id: \.rawValue) { step in
-                            Circle().fill(step == progress.step ? OverviewStyle.accent : OverviewStyle.track).frame(width: 6, height: 6)
-                        }
-                    }
-                    .fixedSize()
-                    .accessibilityLabel("Step \((OnboardingProgress.order.firstIndex(of: progress.step) ?? 0) + 1) of 5")
-                    HStack(spacing: 0) {
-                        if progress.step != .complete {
-                            Button("Continue") {
-                                let index = OnboardingProgress.order.firstIndex(of: progress.step) ?? 0
-                                progress.setStep(OnboardingProgress.order[index + 1])
-                            }.modifier(OnboardingPrimaryButtonStyle())
-                                .disabled(!progress.canAdvance(hasConnectedService: accounts?.hasConnection == true || codex.connected || claude.connected))
-                        }
-                    }
-                    .frame(minWidth: 0, maxWidth: .infinity, alignment: .trailing)
-                }.padding(20)
+                // Buttons keep their natural width (no wrapping). Dots stay centred while
+                // both sides fit; long labels (German "Demo ausprobieren") drop the dots,
+                // then stack.
+                ViewThatFits(in: .horizontal) {
+                    OnboardingBalancedBar(spacing: 12) { leadingBarButton; pageDots; trailingBarButton }
+                    HStack(spacing: 12) { leadingBarButton; Spacer(minLength: 0); trailingBarButton }
+                    VStack(spacing: 10) { trailingBarButton; leadingBarButton }
+                }
+                .padding(20)
             }
             .background { BrandSurfaceBackground().ignoresSafeArea() }
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -306,6 +273,50 @@ struct OnboardingView: View {
         .fixedSize(horizontal: true, vertical: false)
     }
 
+    @ViewBuilder private var leadingBarButton: some View {
+        if progress.step != .welcome {
+            Button("Back", systemImage: "chevron.left") {
+                let index = OnboardingProgress.order.firstIndex(of: progress.step) ?? 0
+                progress.setStep(OnboardingProgress.order[max(0, index - 1)])
+            }.modifier(OnboardingSecondaryButtonStyle()).fixedSize()
+        } else if !codex.isDemo {
+            Button("Try Demo") {
+                progress.dismiss()
+                dismiss()
+                setDemoEnabled(true)
+            }.modifier(OnboardingSecondaryButtonStyle()).fixedSize()
+        } else {
+            Color.clear.frame(width: 0, height: 0)
+        }
+    }
+
+    @ViewBuilder private var trailingBarButton: some View {
+        if progress.step == .complete {
+            // In the bar, not the page, so it is never under Back on short screens.
+            Button(codex.isDemo ? "Return to demo" : "Start using AIQuota") {
+                progress.finish()
+                if !codex.isDemo { MobileAnalytics.shared.completeOnboarding() }
+                if let onFinish { onFinish() } else { dismiss() }
+            }.modifier(OnboardingPrimaryButtonStyle()).fixedSize()
+        } else {
+            Button("Continue") {
+                let index = OnboardingProgress.order.firstIndex(of: progress.step) ?? 0
+                progress.setStep(OnboardingProgress.order[index + 1])
+            }.modifier(OnboardingPrimaryButtonStyle()).fixedSize()
+                .disabled(!progress.canAdvance(hasConnectedService: accounts?.hasConnection == true || codex.connected || claude.connected))
+        }
+    }
+
+    private var pageDots: some View {
+        HStack(spacing: 6) {
+            ForEach(OnboardingProgress.order, id: \.rawValue) { step in
+                Circle().fill(step == progress.step ? OverviewStyle.accent : OverviewStyle.track).frame(width: 6, height: 6)
+            }
+        }
+        .fixedSize()
+        .accessibilityLabel("Step \((OnboardingProgress.order.firstIndex(of: progress.step) ?? 0) + 1) of 5")
+    }
+
     @ViewBuilder private var supportLinks: some View {
         Link("GitHub Issues", destination: URL(string: "https://github.com/niederme/ai-quota/issues")!)
         Link("@niederme on X", destination: URL(string: "https://x.com/niederme")!)
@@ -331,7 +342,7 @@ struct OnboardingView: View {
                         .font(.caption.weight(.medium))
                         .foregroundStyle(error == nil ? OverviewStyle.accent : OverviewStyle.warning)
                 } else {
-                    Text("Sign In").font(.callout.weight(.semibold))
+                    Text("Sign In").font(.callout.weight(.semibold)).lineLimit(1).fixedSize()
                         .padding(.horizontal, 12).padding(.vertical, 8)
                         .foregroundStyle(.white).background(OverviewStyle.accent, in: Capsule())
                 }
@@ -465,6 +476,34 @@ struct LockScreenSetupView: View {
     }
 }
 
+/// Leading button, centred page dots, trailing button. Its ideal width counts both sides
+/// at the wider one's width, so ViewThatFits only picks it when the dots can sit in the
+/// true centre without anything wrapping.
+private struct OnboardingBalancedBar: Layout {
+    var spacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
+        let side = sizes.indices.filter { $0 != 1 }.map { sizes[$0].width }.max() ?? 0
+        let middle = sizes.count > 1 ? sizes[1].width : 0
+        let ideal = side * 2 + middle + spacing * 2
+        return CGSize(width: proposal.width ?? ideal, height: sizes.map(\.height).max() ?? 0)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        for (index, subview) in subviews.enumerated() {
+            let size = subview.sizeThatFits(.unspecified)
+            let x: CGFloat
+            switch index {
+            case 0: x = bounds.minX
+            case 1: x = bounds.midX - size.width / 2
+            default: x = bounds.maxX - size.width
+            }
+            subview.place(at: CGPoint(x: x, y: bounds.midY - size.height / 2), proposal: ProposedViewSize(size))
+        }
+    }
+}
+
 private extension View {
     /// On iOS 26+ a safe-area bar, so content scrolled beneath Back/Continue gets the
     /// system scroll edge effect instead of showing through the glass buttons.
@@ -473,7 +512,15 @@ private extension View {
         if #available(iOS 26.0, *) {
             safeAreaBar(edge: .bottom, content: bar)
         } else {
-            safeAreaInset(edge: .bottom, content: bar)
+            // No system edge effect before iOS 26: fade a material in behind the bar so
+            // scrolled text doesn't show through the buttons.
+            safeAreaInset(edge: .bottom) {
+                bar().background {
+                    Rectangle().fill(.ultraThinMaterial)
+                        .mask(LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.35)))
+                        .ignoresSafeArea()
+                }
+            }
         }
     }
 }
