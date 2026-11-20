@@ -37,7 +37,7 @@ public struct AccountPresentation: Equatable, Sendable {
     public func subtitle(for heading: HeadingStyle) -> String? {
         switch heading {
         case .service: return subtitle
-        case .fullIdentity: return plan == nil ? planUnavailable : nil
+        case .fullIdentity: return plan == nil ? Self.planUnavailable : nil
         }
     }
 
