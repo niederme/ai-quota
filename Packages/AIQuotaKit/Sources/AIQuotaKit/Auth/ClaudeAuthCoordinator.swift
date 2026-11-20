@@ -1330,7 +1330,7 @@ private final class CoordLoginWindowController: NSObject {
 
         let win = NSWindow(contentRect: .init(x: 0, y: 0, width: 520, height: 680),
                            styleMask: [.titled, .closable], backing: .buffered, defer: false)
-        win.title = "Sign in to Claude"
+        win.title = String(localized: "Sign in to Claude", bundle: .module)
         win.contentView = webView
         win.center()
         win.isReleasedWhenClosed = false
@@ -1466,7 +1466,7 @@ extension CoordLoginWindowController: WKUIDelegate {
         let popup = WKWebView(frame: .init(x: 0, y: 0, width: 480, height: 640), configuration: configuration)
         popup.navigationDelegate = self
         popup.uiDelegate = self
-        hostPopup(popup, title: "Sign in")
+        hostPopup(popup, title: String(localized: "Sign in", bundle: .module))
         return popup
     }
 

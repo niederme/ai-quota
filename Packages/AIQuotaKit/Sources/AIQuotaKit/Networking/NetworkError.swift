@@ -36,18 +36,18 @@ public enum NetworkError: Error, Sendable, LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .notAuthenticated: "Not signed in."
-        case .tokenExpired: "Session expired. Please sign in again."
-        case .refreshFailed: "Could not refresh session. Please sign in again."
+        case .notAuthenticated: String(localized: "Not signed in.", bundle: .module)
+        case .tokenExpired: String(localized: "Session expired. Please sign in again.", bundle: .module)
+        case .refreshFailed: String(localized: "Could not refresh session. Please sign in again.", bundle: .module)
         case .httpError(let code): (400...499).contains(code)
-            ? "The service didn’t recognize this account (error \(code)). Try reconnecting."
-            : "The service had a problem (error \(code)). AIQuota will try again."
-        case .rateLimited: "Rate limited — try again in a moment."
-        case .decodingError: "Unexpected response format from server."
-        case .networkUnavailable: "No network connection."
-        case .requestFailed: "Couldn’t update allowance. Try again."
-        case .unknownEndpoint: "API endpoint not configured."
-        case .accountIdentityMismatch: "That sign-in is for a different account than the one saved here, so nothing changed. Reconnect with the original account."
+            ? String(localized: "The service didn’t recognize this account (error \(code)). Try reconnecting.", bundle: .module)
+            : String(localized: "The service had a problem (error \(code)). AIQuota will try again.", bundle: .module)
+        case .rateLimited: String(localized: "Rate limited — try again in a moment.", bundle: .module)
+        case .decodingError: String(localized: "Unexpected response format from server.", bundle: .module)
+        case .networkUnavailable: String(localized: "No network connection.", bundle: .module)
+        case .requestFailed: String(localized: "Couldn’t update allowance. Try again.", bundle: .module)
+        case .unknownEndpoint: String(localized: "API endpoint not configured.", bundle: .module)
+        case .accountIdentityMismatch: String(localized: "That sign-in is for a different account than the one saved here, so nothing changed. Reconnect with the original account.", bundle: .module)
         }
     }
 }

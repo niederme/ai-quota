@@ -19,19 +19,21 @@ public struct CodexUsageHistory: Codable, Sendable, Equatable {
     public var hasChartData: Bool { !chartDays.isEmpty }
     public var chartRangeLabel: String {
         guard let first = chartDays.first, let last = chartDays.last else { return "" }
-        let end = last.date == Self.dateString(.now) ? "Today" : Self.axisLabel(last.date)
+        let end = last.date == Self.dateString(.now) ? Self.today : Self.axisLabel(last.date)
         return first.date == last.date ? end : "\(Self.axisLabel(first.date)) – \(end)"
     }
     public var startLabel: String { days.first.map { Self.axisLabel($0.date) } ?? "" }
     public var endLabel: String {
-        days.last?.date == Self.dateString(.now) ? "Today" : days.last.map { Self.axisLabel($0.date) } ?? ""
+        days.last?.date == Self.dateString(.now) ? Self.today : days.last.map { Self.axisLabel($0.date) } ?? ""
     }
+    private static var today: String { String(localized: "Today", bundle: .module, comment: "Chart axis label for the current day.") }
     private static func axisLabel(_ value: String) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
         formatter.dateFormat = "yyyy-MM-dd"
         guard let date = formatter.date(from: value) else { return value }
+        formatter.locale = .autoupdatingCurrent
         formatter.setLocalizedDateFormatFromTemplate("MMM d")
         return formatter.string(from: date)
     }

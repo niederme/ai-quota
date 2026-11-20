@@ -5,11 +5,11 @@ public enum AccessError: Error, LocalizedError, Sendable, Equatable {
     case http(Int), invalidResponse, noWindows, expired, storage
     public var errorDescription: String? {
         switch self {
-        case .http(let status): "Provider request failed (HTTP \(status))."
-        case .invalidResponse: "The provider returned an unexpected response."
-        case .noWindows: "This account did not report a supported quota window."
-        case .expired: "Sign-in expired. Start a new connection."
-        case .storage: "The connection could not be saved securely."
+        case .http(let status): String(localized: "Provider request failed (HTTP \(status)).", bundle: .module, comment: "Error. The value is an HTTP status code.")
+        case .invalidResponse: String(localized: "The provider returned an unexpected response.", bundle: .module, comment: "Error. The provider is Claude or OpenAI.")
+        case .noWindows: String(localized: "This account did not report a supported quota window.", bundle: .module, comment: "Error.")
+        case .expired: String(localized: "Sign-in expired. Start a new connection.", bundle: .module, comment: "Error.")
+        case .storage: String(localized: "The connection could not be saved securely.", bundle: .module, comment: "Error.")
         }
     }
 }
@@ -84,10 +84,11 @@ public struct QuotaWindow: Codable, Sendable, Equatable, Identifiable {
     public var id: Int { durationSeconds }
     public var compactLabel: String {
         // Month-long windows show their length in days ("30d"), like 5h and 7d.
-        if label == "Monthly" { return "\(Int((Double(durationSeconds) / 86400).rounded()))d" }
+        if isMonthly { return WindowKeyText.days(Int((Double(durationSeconds) / 86400).rounded())) }
         return durationSeconds.isMultiple(of: 86400)
-            ? "\(durationSeconds / 86400)d" : "\(durationSeconds / 3600)h"
+            ? WindowKeyText.days(durationSeconds / 86400) : WindowKeyText.hours(durationSeconds / 3600)
     }
+    private var isMonthly: Bool { (28 * 86400...31 * 86400).contains(durationSeconds) }
     public var resetLabel: String { compactLabel }
     /// The reset time has passed but no reading has confirmed the new window yet.
     /// The app never assumes 0% for that window; it keeps the last reading.
@@ -95,23 +96,38 @@ public struct QuotaWindow: Codable, Sendable, Equatable, Identifiable {
         resetsAt.map { $0 <= date } ?? false
     }
     /// Shown once in place of one line per window when every window has passed.
-    public static let combinedAwaitingConfirmation = "Reset awaiting confirmation"
+    public static var combinedAwaitingConfirmation: String {
+        String(localized: "Reset awaiting confirmation", bundle: .module,
+               comment: "Shown once when every usage window's reset time has passed but no fresh reading has arrived yet.")
+    }
     public static func allAwaitConfirmation(_ windows: [QuotaWindow], at date: Date = .now) -> Bool {
         windows.count > 1 && windows.allSatisfy { $0.awaitsConfirmation(at: date) }
     }
-    public var accessibilitySummary: String { "\(label): \(displayPercent) percent used" }
+    public var accessibilitySummary: String {
+        String(localized: "\(label): \(displayPercent) percent used", bundle: .module,
+               comment: "VoiceOver. First value is a window name such as “Weekly”, second a whole-number percent.")
+    }
     public func resetDescription(relativeTo date: Date = .now, compact: Bool = false) -> String {
-        guard let reset = resetsAt else { return "reset unavailable" }
-        guard reset > date else { return "reset awaiting confirmation" }
-        if compact, label == "Monthly" {
-            return "resets \(reset.formatted(.dateTime.month(.abbreviated).day()))"
+        guard let reset = resetsAt else {
+            return String(localized: "reset unavailable", bundle: .module, comment: "Follows a window key, as in “5h reset unavailable”. Lowercase unless the language needs otherwise.")
+        }
+        guard reset > date else {
+            return String(localized: "reset awaiting confirmation", bundle: .module,
+                          comment: "Follows a window key, as in “7d reset awaiting confirmation”: the reset time passed but no fresh reading confirmed it.")
+        }
+        if compact, isMonthly {
+            return Self.resets(reset.formatted(.dateTime.month(.abbreviated).day()))
         }
         let format: Date.FormatStyle = Calendar.current.isDate(reset, inSameDayAs: date)
             ? .dateTime.hour().minute()
-            : label == "Monthly" || reset.timeIntervalSince(date) >= 6 * 86400
+            : isMonthly || reset.timeIntervalSince(date) >= 6 * 86400
                 ? .dateTime.month(.abbreviated).day().hour().minute()
                 : .dateTime.weekday(.abbreviated).hour().minute()
-        return "resets \(reset.formatted(format))"
+        return Self.resets(reset.formatted(format))
+    }
+    private static func resets(_ when: String) -> String {
+        String(localized: "resets \(when)", bundle: .module,
+               comment: "Follows a window key, as in “7d resets Wed 3:00 AM”. The value is a date and time.")
     }
     public let usedPercent: Double
     public let durationSeconds: Int
@@ -123,10 +139,11 @@ public struct QuotaWindow: Codable, Sendable, Equatable, Identifiable {
     }
     public var label: String {
         switch durationSeconds {
-        case 604800: "Weekly"
-        case 28 * 86400...31 * 86400: "Monthly"
+        case 604800: String(localized: "Weekly", bundle: .module, comment: "Name of a 7-day usage window.")
+        case 28 * 86400...31 * 86400: String(localized: "Monthly", bundle: .module, comment: "Name of a month-long usage window.")
         default: durationSeconds.isMultiple(of: 86400)
-            ? "\(durationSeconds / 86400) days" : "\(durationSeconds / 3600) hours"
+            ? String(localized: "\(durationSeconds / 86400) days", bundle: .module, comment: "Name of a usage window measured in days, such as “3 days”.")
+            : String(localized: "\(durationSeconds / 3600) hours", bundle: .module, comment: "Name of a usage window measured in hours, such as “5 hours”.")
         }
     }
 }
@@ -149,7 +166,9 @@ public struct QuotaReading: Codable, Sendable, Equatable {
     }
     public var accessibilitySummary: String {
         let summaries = windows.map(\.accessibilitySummary) + (monthlyBudget.map { [$0.accessibilitySummary] } ?? [])
-        return summaries.isEmpty ? "Allowance unavailable" : summaries.joined(separator: ". ")
+        return summaries.isEmpty
+            ? String(localized: "Allowance unavailable", bundle: .module, comment: "VoiceOver summary when an account reported no usage.")
+            : summaries.joined(separator: ". ")
     }
     public let metadata: AccountMetadata?
     public let claudeBreakdown: ClaudeWeeklyBreakdown?

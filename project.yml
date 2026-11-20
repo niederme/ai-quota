@@ -5,6 +5,7 @@ include:
 
 options:
   bundleIdPrefix: com.niederme
+  developmentLanguage: en
   deploymentTarget:
     macOS: "15.0"
   createIntermediateGroups: true
@@ -19,6 +20,9 @@ settings:
   base:
     MARKETING_VERSION: "2.0"
     CURRENT_PROJECT_VERSION: "407"
+    # Localization: String Catalogs, with Swift strings extracted by the compiler.
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    SWIFT_EMIT_LOC_STRINGS: YES
 
 packages:
   MobileAccessCore:

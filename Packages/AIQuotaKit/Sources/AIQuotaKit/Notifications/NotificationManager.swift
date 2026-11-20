@@ -48,8 +48,12 @@ public actor NotificationManager {
         guard enabled, let change = PlanChange(previous: previous, current: current) else { return }
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
-        await send(id: "plan-change.\(service.lowercased())", title: "\(Self.name(provider: service == "Codex" ? .codex : .claude, providerID: nil, plan: current)) plan changed to \(change.current)",
-                   body: "Previously \(change.previous). Connection checked and usage is up to date.")
+        let account = Self.name(provider: service == "Codex" ? .codex : .claude, providerID: nil, plan: current)
+        await send(id: "plan-change.\(service.lowercased())",
+                   title: String(localized: "\(account) plan changed to \(change.current)", bundle: .module,
+                                 comment: "Notification title. First value is the account name, second the new plan name (Pro, Max…)."),
+                   body: String(localized: "Previously \(change.previous). Connection checked and usage is up to date.", bundle: .module,
+                                comment: "Notification body. The value is the previous plan name."))
     }
 
     // MARK: - Codex evaluation
@@ -68,27 +72,19 @@ public actor NotificationManager {
         let hourlyResetPeak = current.hasHourlyWindow ? observeReset(key: Key.codex5hLastResetAt, used: Double(current.hourlyUsedPercent), end: current.hourlyResetAt) : nil
 
         if prefs.codexReset && ResetAlertObservation.allows(priorPeak: weeklyResetPeak, minimum: prefs.codexResetMinimum) {
-            await send(
-                id: "codexReset",
-                title: "\(display) 7-day window reset",
-                body: "Your \(display) 7-day window has reset. You're back to full capacity."
-            )
+            await send(id: "codexReset", title: Self.resetTitle(display, window: .sevenDay), body: Self.resetBody(display, window: .sevenDay))
         }
         if prefs.codex5hReset && ResetAlertObservation.allows(priorPeak: hourlyResetPeak, minimum: prefs.codex5hResetMinimum) {
-            await send(
-                id: "codex5hReset",
-                title: "\(display) 5-hour window reset",
-                body: "Your \(display) 5-hour window has reset. You're back to full capacity."
-            )
+            await send(id: "codex5hReset", title: Self.resetTitle(display, window: .fiveHour), body: Self.resetBody(display, window: .fiveHour))
         }
 
         if current.hasHourlyWindow {
             await evaluateUsage(key: Key.codex5hThresholds, legacyEndKey: Key.codex5hLastResetAt,
-                service: display, window: "5-hour", used: Double(current.hourlyUsedPercent),
+                service: display, window: .fiveHour, used: Double(current.hourlyUsedPercent),
                 end: current.hourlyResetAt, enabled: prefs.codex5hThresholdAlerts, threshold: prefs.codexUsageThreshold)
         }
         await evaluateUsage(key: Key.codexThresholds, legacyEndKey: Key.codexLastResetAt,
-            service: display, window: "7-day", used: Double(current.weeklyUsedPercent),
+            service: display, window: .sevenDay, used: Double(current.weeklyUsedPercent),
             end: current.weeklyResetAt, enabled: prefs.codexWeeklyThresholdAlerts, threshold: prefs.codexUsageThreshold)
     }
 
@@ -122,11 +118,13 @@ public actor NotificationManager {
         let title: String
         let body: String
         if autoReload?.isEnabled == true {
-            title = "\(display) credits topped up"
-            body  = "Auto-reload added credits. New balance: \(Int(currentBalance))."
+            title = String(localized: "\(display) credits topped up", bundle: .module, comment: "Notification title. The value is the account name.")
+            body  = String(localized: "Auto-reload added credits. New balance: \(Int(currentBalance)).", bundle: .module,
+                           comment: "Notification body. The value is the new credit balance.")
         } else {
-            title = "\(display) credits added"
-            body  = "New balance: \(Int(currentBalance))."
+            title = String(localized: "\(display) credits added", bundle: .module, comment: "Notification title. The value is the account name.")
+            body  = String(localized: "New balance: \(Int(currentBalance)).", bundle: .module,
+                           comment: "Notification body. The value is the new credit balance.")
         }
         await send(id: "codexTopUp", title: title, body: body)
     }
@@ -149,33 +147,52 @@ public actor NotificationManager {
             claude.sevenDayResetsAt.flatMap { observeReset(key: Key.claudeSevenDayLastResetAt, used: used, end: $0) }
         }
         if prefs.claude5hReset && ResetAlertObservation.allows(priorPeak: hourlyResetPeak, minimum: prefs.claude5hResetMinimum) {
-            await send(
-                id: "claudeReset",
-                title: "\(display) 5-hour window reset",
-                body: "Your \(display) 5-hour window has reset. You're back to full capacity."
-            )
+            await send(id: "claudeReset", title: Self.resetTitle(display, window: .fiveHour), body: Self.resetBody(display, window: .fiveHour))
         }
         if prefs.claude7dReset && ResetAlertObservation.allows(priorPeak: weeklyResetPeak, minimum: prefs.claude7dResetMinimum) {
-            await send(
-                id: "claudeSevenDayReset",
-                title: "\(display) 7-day window reset",
-                body: "Your \(display) 7-day window has reset. You're back to full capacity."
-            )
+            await send(id: "claudeSevenDayReset", title: Self.resetTitle(display, window: .sevenDay), body: Self.resetBody(display, window: .sevenDay))
         }
 
         if let used = claude.fiveHourUtilization, let end = claude.fiveHourResetsAt {
             await evaluateUsage(key: Key.claudeThresholds, legacyEndKey: Key.claudeLastResetAt,
-                service: display, window: "5-hour", used: used, end: end,
+                service: display, window: .fiveHour, used: used, end: end,
                 enabled: prefs.claude5hThresholdAlerts, threshold: prefs.claudeUsageThreshold)
         }
         if let used = claude.sevenDayUtilization, let end = claude.sevenDayResetsAt {
             await evaluateUsage(key: Key.claudeSevenDayThresholds, legacyEndKey: Key.claudeSevenDayLastResetAt,
-                service: display, window: "7-day", used: used, end: end,
+                service: display, window: .sevenDay, used: used, end: end,
                 enabled: prefs.claude7dThresholdAlerts, threshold: prefs.claudeUsageThreshold)
         }
     }
 
-    private func evaluateUsage(key: String, legacyEndKey: String, service: String, window: String,
+    enum AlertWindow { case fiveHour, sevenDay }
+
+    static func resetTitle(_ account: String, window: AlertWindow) -> String {
+        switch window {
+        case .fiveHour: String(localized: "\(account) 5-hour window reset", bundle: .module, comment: "Notification title. The value is the account name.")
+        case .sevenDay: String(localized: "\(account) 7-day window reset", bundle: .module, comment: "Notification title. The value is the account name.")
+        }
+    }
+
+    static func resetBody(_ account: String, window: AlertWindow) -> String {
+        switch window {
+        case .fiveHour: String(localized: "Your \(account) 5-hour window has reset. You're back to full capacity.", bundle: .module,
+                               comment: "Notification body. The value is the account name.")
+        case .sevenDay: String(localized: "Your \(account) 7-day window has reset. You're back to full capacity.", bundle: .module,
+                               comment: "Notification body. The value is the account name.")
+        }
+    }
+
+    static func usageTitle(_ account: String, window: AlertWindow, used: Int) -> String {
+        switch window {
+        case .fiveHour: String(localized: "\(account) 5-hour usage at \(used)%", bundle: .module,
+                               comment: "Notification title. First value is the account name, second the percent of the 5-hour limit used.")
+        case .sevenDay: String(localized: "\(account) 7-day usage at \(used)%", bundle: .module,
+                               comment: "Notification title. First value is the account name, second the percent of the 7-day limit used.")
+        }
+    }
+
+    private func evaluateUsage(key: String, legacyEndKey: String, service: String, window: AlertWindow,
                                used: Double, end: Date, enabled: Bool, threshold: Int) async {
         guard end > .now else { return }
         let stateKey = key + ".singleUsage"
@@ -192,8 +209,10 @@ public actor NotificationManager {
         observation.highestNotified = level
         // Reserve before awaiting delivery so concurrent refreshes cannot duplicate the alert.
         defaults.set(try? JSONEncoder().encode(observation), forKey: stateKey)
-        let delivered = await send(id: key + ".usage", title: "\(service) \(window) usage at \(Int(used.rounded()))%",
-            body: "Your \(threshold)% threshold was reached. Resets in \(timeString(max(0, Int(end.timeIntervalSinceNow)))).")
+        let resetsIn = timeString(max(0, Int(end.timeIntervalSinceNow)))
+        let delivered = await send(id: key + ".usage", title: Self.usageTitle(service, window: window, used: Int(used.rounded())),
+            body: String(localized: "Your \(threshold)% threshold was reached. Resets in \(resetsIn).", bundle: .module,
+                         comment: "Notification body. First value is the alert threshold percent, second a duration such as “2h 15m”."))
         if !delivered { defaults.removeObject(forKey: stateKey) }
     }
 

@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "AIQuotaKit",
+    defaultLocalization: "en",
     platforms: [.macOS(.v15)],
     products: [
         .library(name: "AIQuotaKit", targets: ["AIQuotaKit"])
@@ -13,6 +14,7 @@ let package = Package(
             name: "AIQuotaKit",
             dependencies: ["MobileAccessCore"],
             path: "Sources/AIQuotaKit",
+            resources: [.process("Resources")],
             linkerSettings: [
                 .linkedFramework("WebKit"),
                 .linkedFramework("AppKit"),

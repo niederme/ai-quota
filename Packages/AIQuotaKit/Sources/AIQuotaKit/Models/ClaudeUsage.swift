@@ -28,8 +28,8 @@ public struct ClaudeUsage: Codable, Sendable, Equatable {
             switch self {
             case .fiveHour: "5h"
             case .sevenDay: "7d"
-            case .spendLimit: "Spend"
-            case .unknown: "Usage"
+            case .spendLimit: String(localized: "Spend", bundle: .module)
+            case .unknown: String(localized: "Usage", bundle: .module)
             }
         }
     }

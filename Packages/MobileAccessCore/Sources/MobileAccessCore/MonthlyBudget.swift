@@ -31,7 +31,11 @@ public struct MonthlyBudget: Codable, Sendable, Equatable {
     /// One-line card copy: "434.19 of 7,000 credits" or "$654.98 of $1,000".
     /// The period is left to the reset line ("30d resets Nov 30") under it.
     public var usageText: String {
-        "\(amountText(used)) of \(amountText(limit))\(isCredits ? " credits" : "")"
+        isCredits
+            ? String(localized: "\(amountText(used)) of \(amountText(limit)) credits", bundle: .module,
+                     comment: "Monthly credit budget, such as “434.19 of 7,000 credits”. Values are formatted numbers.")
+            : String(localized: "\(amountText(used)) of \(amountText(limit))", bundle: .module,
+                     comment: "Monthly spend budget, such as “$654.98 of $1,000”. Values are formatted currency amounts.")
     }
 
     private var isCredits: Bool {
@@ -49,8 +53,10 @@ public struct MonthlyBudget: Codable, Sendable, Equatable {
 
     public var unitLabel: String {
         switch unit?.lowercased() {
-        case "credit", "credits": "credits this month"
-        default: currencyCode == nil ? "monthly allowance" : "monthly spend"
+        case "credit", "credits": String(localized: "credits this month", bundle: .module, comment: "Follows an amount, as in “434 of 7,000 credits this month used”.")
+        default: currencyCode == nil
+            ? String(localized: "monthly allowance", bundle: .module, comment: "Follows an amount, as in “40 of 100 monthly allowance used”.")
+            : String(localized: "monthly spend", bundle: .module, comment: "Follows an amount, as in “$654 of $1,000 monthly spend used”.")
         }
     }
 
@@ -63,22 +69,34 @@ public struct MonthlyBudget: Codable, Sendable, Equatable {
     }
 
     public static func periodLabel(containing readingAt: Date) -> String {
-        "\(periodDays(containing: readingAt))d"
+        WindowKeyText.days(periodDays(containing: readingAt))
     }
 
     public func confirmedResetDescription(readingAt: Date, relativeTo date: Date = .now) -> String? {
         guard let resetsAt, resetsAt > date else { return nil }
-        return "\(Self.periodLabel(containing: readingAt)) resets \(resetsAt.formatted(.dateTime.month(.abbreviated).day().hour().minute()))"
+        return Self.resets(Self.periodLabel(containing: readingAt), resetsAt)
+    }
+
+    private static func resets(_ period: String, _ resetsAt: Date) -> String {
+        String(localized: "\(period) resets \(resetsAt.formatted(.dateTime.month(.abbreviated).day().hour().minute()))", bundle: .module,
+               comment: "Budget reset caption. First value is a window key such as “30d”, second a date and time.")
     }
 
     public func resetDescription(readingAt: Date, relativeTo date: Date = .now) -> String {
         let period = Self.periodLabel(containing: readingAt)
-        guard let resetsAt else { return "\(period) reset unavailable" }
-        guard resetsAt > date else { return "\(period) reset awaiting confirmation" }
-        return "\(period) resets \(resetsAt.formatted(.dateTime.month(.abbreviated).day().hour().minute()))"
+        guard let resetsAt else {
+            return String(localized: "\(period) reset unavailable", bundle: .module,
+                          comment: "Shown when a usage window has no reset time. The value is a window key such as “30d”.")
+        }
+        guard resetsAt > date else {
+            return String(localized: "\(period) reset awaiting confirmation", bundle: .module,
+                          comment: "Shown when a usage window's reset time has passed but no fresh reading has arrived. The value is a window key such as “30d”.")
+        }
+        return Self.resets(period, resetsAt)
     }
 
     public var accessibilitySummary: String {
-        "Monthly: \(amountText(used)) of \(amountText(limit)) \(unitLabel) used"
+        String(localized: "Monthly: \(amountText(used)) of \(amountText(limit)) \(unitLabel) used", bundle: .module,
+               comment: "VoiceOver. First two values are amounts, third a phrase such as “credits this month” or “monthly spend”.")
     }
 }

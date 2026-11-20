@@ -145,18 +145,33 @@ public enum ClaudeEnterpriseDateOnly {
         return dateString(previous)
     }
 
-    public static func displayDate(_ value: String) -> String? {
+    public static func displayDate(_ value: String, locale: Locale = .autoupdatingCurrent) -> String? {
         guard let date = bucketDate(value) else { return nil }
         let formatter = DateFormatter()
         formatter.calendar = utcCalendar
         formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "MMM d, yyyy"
+        if locale.language.languageCode == .english {
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.dateFormat = "MMM d, yyyy"
+        } else {
+            formatter.locale = locale
+            formatter.setLocalizedDateFormatFromTemplate("yMMMd")
+        }
         return formatter.string(from: date)
     }
 
-    public static func displayRange(startDate: String, endDate: String) -> String? {
+    public static func displayRange(startDate: String, endDate: String, locale: Locale = .autoupdatingCurrent) -> String? {
         guard let start = bucketDate(startDate), let end = bucketDate(endDate), start <= end else { return nil }
+        guard locale.language.languageCode == .english else {
+            var calendar = utcCalendar
+            calendar.locale = locale
+            let formatter = DateIntervalFormatter()
+            formatter.calendar = calendar
+            formatter.locale = locale
+            formatter.timeZone = TimeZone(secondsFromGMT: 0)
+            formatter.dateTemplate = "yMMMd"
+            return formatter.string(from: start, to: end) + " · UTC"
+        }
         let calendar = utcCalendar
         let a = calendar.dateComponents([.year, .month, .day], from: start)
         let b = calendar.dateComponents([.year, .month, .day], from: end)

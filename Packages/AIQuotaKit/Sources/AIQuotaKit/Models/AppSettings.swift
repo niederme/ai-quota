@@ -36,7 +36,7 @@ public enum MenuBarDisplayOption: String, CaseIterable, Sendable {
         switch self {
         case .codex: "Codex"
         case .claude: "Claude Code"
-        case .both: "Both"
+        case .both: String(localized: "Both", bundle: .module)
         }
     }
 

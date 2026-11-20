@@ -6,22 +6,22 @@ enum CodexLoginFeedback: Equatable {
 
     var title: String {
         switch self {
-        case .differentAccount: "Different ChatGPT account or workspace"
-        case .verificationFailed, .inconsistentSession: "Couldn’t verify sign-in"
-        case .noSession: "Sign-in isn’t ready yet"
+        case .differentAccount: String(localized: "Different ChatGPT account or workspace", bundle: .module)
+        case .verificationFailed, .inconsistentSession: String(localized: "Couldn’t verify sign-in", bundle: .module)
+        case .noSession: String(localized: "Sign-in isn’t ready yet", bundle: .module)
         }
     }
 
     var message: String {
         switch self {
         case .differentAccount:
-            "This sign-in doesn’t match the saved Codex account. Choose its workspace in ChatGPT, then click Check sign-in, or try another account. Your saved connection hasn’t changed."
+            String(localized: "This sign-in doesn’t match the saved Codex account. Choose its workspace in ChatGPT, then click Check sign-in, or try another account. Your saved connection hasn’t changed.", bundle: .module)
         case .verificationFailed:
-            "We couldn’t verify this sign-in. Click Check sign-in to retry, or try another account. Your saved connection hasn’t changed."
+            String(localized: "We couldn’t verify this sign-in. Click Check sign-in to retry, or try another account. Your saved connection hasn’t changed.", bundle: .module)
         case .inconsistentSession:
-            "The browser session changed while we were checking it. Click Check sign-in again, or try another account. Your saved connection hasn’t changed."
+            String(localized: "The browser session changed while we were checking it. Click Check sign-in again, or try another account. Your saved connection hasn’t changed.", bundle: .module)
         case .noSession:
-            "Finish signing in to ChatGPT, then click Check sign-in. You can also try another account or cancel."
+            String(localized: "Finish signing in to ChatGPT, then click Check sign-in. You can also try another account or cancel.", bundle: .module)
         }
     }
 }
