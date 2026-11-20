@@ -453,7 +453,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ se reinicia hoy a las %2$@"
+            "value" : "%1$@ se reinicia hoy, %2$@"
           }
         },
         "fr" : {
