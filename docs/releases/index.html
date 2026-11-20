@@ -9,7 +9,7 @@
       content="Release information and download links for AIQuota, the macOS quota tracker for Codex and Claude Code."
     />
     <meta name="color-scheme" content="dark light" />
-    <meta name="theme-color" content="#0b1730" />
+    <meta name="theme-color" content="#0b060f" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
@@ -54,7 +54,12 @@
     <meta name="twitter:image:alt" content="AIQuota app icon." />
     <script>
       (() => {
-        const storedTheme = window.localStorage.getItem("aiquota-docs-theme");
+        let storedTheme = null;
+        try {
+          storedTheme =
+            window.localStorage.getItem("aiquota-theme") ??
+            window.localStorage.getItem("aiquota-docs-theme");
+        } catch (error) {}
         const resolvedTheme =
           storedTheme === "light" || storedTheme === "dark"
             ? storedTheme
@@ -62,359 +67,343 @@
               ? "light"
               : "dark";
         document.documentElement.dataset.theme = resolvedTheme;
-        document.documentElement.style.colorScheme = resolvedTheme;
+        document.documentElement.classList.add("js");
       })();
     </script>
     <link rel="stylesheet" href="../site.css" />
     <script src="../site.js" defer></script>
   </head>
   <body>
-    <div class="page-shell">
-      <header class="site-header">
-        <div class="container">
-          <a class="brand" href="../">
-            <img
-              class="brand-icon"
-              src="../assets/aiquota-app-icon.png"
-              alt=""
-              width="1024"
-              height="1024"
-              aria-hidden="true"
-            />
-            <span>AIQuota</span>
-          </a>
-          <nav class="site-nav" aria-label="Primary">
-            <a href="../">Home</a>
-            <a href="../releases/">Releases</a>
-            <a href="https://github.com/niederme/ai-quota">GitHub</a>
-            <button class="button theme-toggle" type="button" data-theme-toggle></button>
-            <a
-              class="button"
-              href="https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip"
-              >Download</a
-            >
-          </nav>
-        </div>
-      </header>
-
-      <main>
-        <section class="release-hero">
-          <div class="container">
-            <div class="section-heading">
-              <h1>Releases</h1>
-            </div>
-
-            <div class="release-panel">
-              <div>
-                <div class="release-kicker">Latest stable</div>
-                <h2>AIQuota 1.9.28</h2>
-                <div class="release-date">Published September 15, 2026</div>
-                <ul>
-                  <li><strong>Clearer labels for extra usage:</strong> more clearly distinguish your remaining credit balance from credits used on top of your subscription, including Fable 5.</li>
-                  <li><strong>Easier-to-read reset dates:</strong> resets a week or more away include a calendar date.</li>
-                  <li><strong>Small display fixes:</strong> clearer messages when usage limits or reset times aren’t available.</li>
-                </ul>
-                <p><strong>📱 Coming soon: AIQuota for iPhone &amp; iPad, with Home Screen and Lock Screen widgets.</strong></p>
-                <div class="hero-actions">
-                  <a
-                    class="button button-primary"
-                    href="https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip"
-                    >Download 1.9.28</a
-                  >
-                  <a
-                    class="button"
-                    href="https://github.com/niederme/ai-quota/releases/tag/v1.9.28"
-                    >View on GitHub</a
-                  >
-                </div>
-              </div>
-              <img
-                src="/assets/aiquota-1.9.28.png"
-                alt="AIQuota 1.9.28 showing Codex and Claude Code quota gauges, credit balance, and credits used."
-                width="888"
-                height="860"
-                style="display: block; width: 100%; height: auto; border-radius: 16px;"
-              >
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-nav">
+      <div class="site-nav__inner">
+        <nav class="aq-nav aq-glass" aria-label="Main" data-nav>
+          <a class="aq-nav__brand" href="../"><img src="../assets/aiquota-app-icon.png" alt="" width="28" height="28" />AIQuota</a>
+          <div class="aq-nav__links">
+            <a class="aq-nav__link" href="../">Overview</a>
+            <a class="aq-nav__link" href="../releases/" aria-current="page">Releases</a>
+            <a class="aq-nav__link" href="../faq/">FAQ</a>
+            <a class="aq-nav__link" href="https://github.com/niederme/ai-quota">GitHub <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="aq-theme aq-glass aq-theme--compact" role="group" aria-label="Appearance" data-theme-picker>
+            <button type="button" aria-pressed="false" data-theme-choice="system"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5"></rect><path d="M5.5 14h5M8 11.5V14"></path></svg><span>System</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"></circle><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"></path></svg><span>Light</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"></path></svg><span>Dark</span></button>
+          </div>
+          <a class="aq-btn aq-btn--primary" href="https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip">Download</a>
+          <button class="site-nav__menu" type="button" aria-label="Menu" aria-expanded="false" aria-controls="site-menu" data-menu-toggle>
+            <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 6h12M3 12h12"></path></svg>
+          </button>
+        </nav>
+        <div class="site-menu aq-glass" id="site-menu" hidden>
+          <a href="../">Overview</a>
+          <a href="../releases/" aria-current="page">Releases</a>
+          <a href="../faq/">FAQ</a>
+          <a href="https://github.com/niederme/ai-quota">GitHub <span aria-hidden="true">↗</span></a>
+          <div class="site-menu__appearance">
+            <span>Appearance</span>
+            <div class="aq-theme aq-glass" role="group" aria-label="Appearance" data-theme-picker>
+              <button type="button" aria-pressed="false" data-theme-choice="system"><span>System</span></button>
+              <button type="button" aria-pressed="false" data-theme-choice="light"><span>Light</span></button>
+              <button type="button" aria-pressed="false" data-theme-choice="dark"><span>Dark</span></button>
             </div>
           </div>
-        </section>
+        </div>
+      </div>
+    </header>
 
-        <section class="section">
-          <div class="container">
-            <div class="section-heading">
-              <h2>Previous Releases</h2>
+    <main id="main">
+
+      <section class="release-hero page-hero aq-wash">
+        <div class="container">
+          <h1>Releases</h1>
+          <div class="release-feature aq-glass">
+            <div class="release-feature__copy">
+              <div class="release-meta"><span class="aq-tag">Coming soon</span><span>In beta on TestFlight</span></div>
+              <h2>AIQuota 2.0</h2>
+              <p class="release-feature__lead">AIQuota comes to iPhone and iPad.</p>
+              <ul>
+              <li><strong>AIQuota for iPhone and iPad.</strong> Codex and Claude on dual-ring cards, with reset times, plan details and reading age.</li>
+              <li><strong>Home Screen and Lock Screen widgets.</strong> Four Home Screen layouts for one service or both, and configurable Lock Screen widgets.</li>
+              <li><strong>A refreshed Mac app.</strong> Personal and work accounts on cards you can reorder, with your choice of menu bar gauges.</li>
+              <li><strong>Codex usage history.</strong> Daily usage in the Codex card, with model and app breakdowns in its details.</li>
+              <li><strong>Codex reset announcements.</strong> A dismissible notice when Codex Resets reports an announcement.</li>
+              <li><strong>Every kind of allowance.</strong> Monthly and weekly-only plans fill a single gauge; missing windows are left out.</li>
+              <li><strong>Notifications at your threshold.</strong> One alert per window at the level you choose, with optional reset reminders.</li>
+              <li><strong>Try demo.</strong> Explore sample usage on iPhone and iPad without signing in.</li>
+              </ul>
+              <div class="hero-actions">
+                <a class="aq-btn aq-btn--secondary aq-glass" href="#" data-ios-app-link>Get the iPhone app</a>
+                <a class="aq-btn aq-btn--plain" href="https://github.com/niederme/ai-quota/releases">View on GitHub <span aria-hidden="true">↗</span></a>
+              </div>
             </div>
-            <div class="release-grid">
-              <article class="release-card">
-                <div class="release-kicker">September 4, 2026</div>
-                <h3>Version 1.9.27</h3>
-                <p>More reliable Claude web sign-in.</p>
-                <ul>
+            <div class="card-stack">
+              <article class="aq-card aq-glass"><div class="aq-card__top"><div class="aq-dial" role="img" aria-label="38% of 5h used, 61% of 7d used"><svg viewBox="0 0 124 124" aria-hidden="true"><circle class="aq-dial__track" cx="62" cy="62" r="58" pathLength="100" stroke-dasharray="75 100" transform="rotate(135 62 62)"></circle><circle class="aq-dial__track" cx="62" cy="62" r="48" pathLength="100" stroke-dasharray="75 100" transform="rotate(135 62 62)"></circle><circle class="aq-dial__fill" cx="62" cy="62" r="58" pathLength="100" stroke-dasharray="28.50 100" transform="rotate(135 62 62)"></circle><circle class="aq-dial__fill aq-dial__fill--secondary" cx="62" cy="62" r="48" pathLength="100" stroke-dasharray="45.75 100" transform="rotate(135 62 62)"></circle></svg><div class="aq-dial__values" aria-hidden="true"><span>38% 5h</span><span class="is-secondary">61% 7d</span></div></div><div class="aq-card__body"><h3 class="aq-card__name">Codex</h3><p class="aq-card__plan">Pro plan</p><p class="aq-card__reset">5h resets 10:01 AM</p><p class="aq-card__reset">7d resets Mon 8:01 AM</p></div></div></article>
+              <article class="aq-card aq-glass"><div class="aq-card__top"><div class="aq-dial aq-dial--single" role="img" aria-label="66% of Monthly used"><svg viewBox="0 0 124 124" aria-hidden="true"><circle class="aq-dial__track" cx="62" cy="62" r="56" pathLength="100" stroke-dasharray="75 100" transform="rotate(135 62 62)"></circle><circle class="aq-dial__fill" cx="62" cy="62" r="56" pathLength="100" stroke-dasharray="49.50 100" transform="rotate(135 62 62)"></circle></svg><div class="aq-dial__values" aria-hidden="true"><span>66%</span><span class="is-label">Monthly</span></div></div><div class="aq-card__body"><h3 class="aq-card__name">Claude</h3><p class="aq-card__plan">Enterprise plan</p><p class="aq-card__meta">$65.57 of $100.00 monthly spend</p></div></div></article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="release-list">
+        <div class="container">
+          <h2>Latest release</h2>
+          <div class="release-feature release-feature--current">
+            <div class="release-feature__copy">
+              <div class="release-meta"><span class="aq-tag">Latest</span><span>Published September 15, 2026</span></div>
+              <h2>AIQuota 1.9.28</h2>
+              <ul>
+                <li><strong>Clearer labels for extra usage:</strong> more clearly distinguish your remaining credit balance from credits used on top of your subscription, including Fable 5.</li>
+                <li><strong>Easier-to-read reset dates:</strong> resets a week or more away include a calendar date.</li>
+                <li><strong>Small display fixes:</strong> clearer messages when usage limits or reset times aren’t available.</li>
+              </ul>
+              <div class="hero-actions">
+                <a class="aq-btn aq-btn--primary" href="https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip">Download 1.9.28</a>
+                <a class="aq-btn aq-btn--plain" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.28">View on GitHub <span aria-hidden="true">↗</span></a>
+              </div>
+            </div>
+            <img src="/assets/aiquota-1.9.28.png" alt="AIQuota 1.9.28 showing Codex and Claude Code quota gauges, credit balance, and credits used." width="888" height="860" loading="lazy" decoding="async" />
+          </div>
+        </div>
+      </section>
+
+      <section class="release-list">
+        <div class="container">
+          <h2>Previous releases</h2>
+          <div class="release-grid">
+            <article class="release-card">
+              <p class="release-card__date">September 4, 2026</p>
+              <h3>Version 1.9.27</h3>
+              <p class="release-card__summary">More reliable Claude web sign-in.</p>
+              <ul>
                   <li>Claude’s current browser sessions are recognized after Cloudflare verification.</li>
                   <li>Completed web sign-ins stay connected and refresh usage without requiring the Claude app.</li>
-                </ul>
-                <a class="button" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.27">View on GitHub</a>
-              </article>
+              </ul>
+              <a class="aq-btn aq-btn--plain aq-btn--link" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.27">View on GitHub <span aria-hidden="true">↗</span></a>
+            </article>
 
-              <article class="release-card">
-                <div class="release-kicker">August 28, 2026</div>
-                <h3>Version 1.9.26</h3>
-                <p>A clearer recovery path for expired Claude sessions.</p>
-                <ul>
+            <article class="release-card">
+              <p class="release-card__date">August 28, 2026</p>
+              <h3>Version 1.9.26</h3>
+              <p class="release-card__summary">A clearer recovery path for expired Claude sessions.</p>
+              <ul>
                   <li>Expired Claude web sessions lead directly to a fresh login screen.</li>
                   <li>AIQuota no longer leaves you in an apparently signed-in Claude window that cannot refresh usage.</li>
-                </ul>
-                <a class="button" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.26"
-                  >View on GitHub</a
-                >
-              </article>
+              </ul>
+              <a class="aq-btn aq-btn--plain aq-btn--link" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.26">View on GitHub <span aria-hidden="true">↗</span></a>
+            </article>
 
-              <article class="release-card">
-                <div class="release-kicker">July 31, 2026</div>
-                <h3>Version 1.9.25</h3>
-                <p>Updates that wait for you.</p>
-                <ul>
+            <article class="release-card">
+              <p class="release-card__date">July 31, 2026</p>
+              <h3>Version 1.9.25</h3>
+              <p class="release-card__summary">Updates that wait for you.</p>
+              <ul>
                   <li>Automatic update checks add a quiet amber badge to the menu bar gauges instead of interrupting your work.</li>
                   <li>The popover shows the available version and lets you start the update when convenient.</li>
-                </ul>
-                <a class="button" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.25"
-                  >View on GitHub</a
-                >
-              </article>
+              </ul>
+              <a class="aq-btn aq-btn--plain aq-btn--link" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.25">View on GitHub <span aria-hidden="true">↗</span></a>
+            </article>
 
-              <article class="release-card">
-                <div class="release-kicker">July 31, 2026</div>
-                <h3>Version 1.9.24</h3>
-                <p>Quieter credential checks and more reliable Sparkle downloads.</p>
-                <ul>
+            <article class="release-card">
+              <p class="release-card__date">July 31, 2026</p>
+              <h3>Version 1.9.24</h3>
+              <p class="release-card__summary">Quieter credential checks and more reliable Sparkle downloads.</p>
+              <ul>
                   <li>Claude Code credentials are checked silently, without unexpected Keychain password prompts.</li>
                   <li>Sparkle updates use immutable, build-specific downloads for reliable signature validation.</li>
-                </ul>
-                <a class="button" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.24"
-                  >View on GitHub</a
-                >
-              </article>
+              </ul>
+              <a class="aq-btn aq-btn--plain aq-btn--link" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.24">View on GitHub <span aria-hidden="true">↗</span></a>
+            </article>
 
-              <article class="release-card">
-                <div class="release-kicker">July 30, 2026</div>
-                <h3>Version 1.9.23</h3>
-                <p>Clearer Claude usage-credit spending and more reliable session restoration.</p>
-                <ul>
+            <article class="release-card">
+              <p class="release-card__date">July 30, 2026</p>
+              <h3>Version 1.9.23</h3>
+              <p class="release-card__summary">Clearer Claude usage-credit spending and more reliable session restoration.</p>
+              <ul>
                   <li>Claude’s combined monthly usage-credit total is shown separately from the 5-hour and 7-day plan limits.</li>
                   <li>Restored Claude web sessions are validated before use, so expired sessions return to a clear Sign In state.</li>
-                </ul>
-                <a class="button" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.23"
-                  >View on GitHub</a
-                >
-              </article>
+              </ul>
+              <a class="aq-btn aq-btn--plain aq-btn--link" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.23">View on GitHub <span aria-hidden="true">↗</span></a>
+            </article>
 
-              <article class="release-card">
-                <div class="release-kicker">July 13, 2026</div>
-                <h3>Version 1.9.22</h3>
-                <p>Weekly-only Codex usage is accurate while the familiar gauge layout stays stable.</p>
-                <ul>
+            <article class="release-card">
+              <p class="release-card__date">July 13, 2026</p>
+              <h3>Version 1.9.22</h3>
+              <p class="release-card__summary">Weekly-only Codex usage is accurate while the familiar gauge layout stays stable.</p>
+              <ul>
                   <li>Codex accounts with weekly-only usage show the correct 7-day percentage and reset time.</li>
                   <li>The two-ring layout remains steady when the 5-hour limit is unavailable.</li>
-                </ul>
-                <a class="button" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.22"
-                  >View on GitHub</a
-                >
-              </article>
+              </ul>
+              <a class="aq-btn aq-btn--plain aq-btn--link" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.22">View on GitHub <span aria-hidden="true">↗</span></a>
+            </article>
 
-              <article class="release-card">
-                <div class="release-kicker">July 7, 2026</div>
-                <h3>Version 1.9.21</h3>
-                <p>Smoother updates and a shorter first-run setup.</p>
-                <ul>
+            <article class="release-card">
+              <p class="release-card__date">July 7, 2026</p>
+              <h3>Version 1.9.21</h3>
+              <p class="release-card__summary">Smoother updates and a shorter first-run setup.</p>
+              <ul>
                   <li>Codex and Claude Code reconnect from existing sessions after app updates.</li>
                   <li>First-run setup keeps optional choices concise and predictable.</li>
-                </ul>
-                <a class="button" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.21"
-                  >View on GitHub</a
-                >
-              </article>
+              </ul>
+              <a class="aq-btn aq-btn--plain aq-btn--link" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.21">View on GitHub <span aria-hidden="true">↗</span></a>
+            </article>
 
-              <article class="release-card">
-                <div class="release-kicker">July 3, 2026</div>
-                <h3>Version 1.9.20</h3>
-                <p>Dual-service menu bar gauges, quieter Settings, and more Mac-like notification controls.</p>
-                <ul>
+            <article class="release-card">
+              <p class="release-card__date">July 3, 2026</p>
+              <h3>Version 1.9.20</h3>
+              <p class="release-card__summary">Dual-service menu bar gauges, quieter Settings, and more Mac-like notification controls.</p>
+              <ul>
                   <li>The menu bar shows Codex and Claude Code gauges together by default when both services are connected.</li>
                   <li>Settings combines accounts and diagnostics into quieter service rows.</li>
                   <li>Notification controls now use one master group with inline service details.</li>
                   <li>The Tahoe popover uses system materials and adaptive macOS status colors.</li>
-                </ul>
-                <a class="button" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.20"
-                  >View on GitHub</a
-                >
-              </article>
+              </ul>
+              <a class="aq-btn aq-btn--plain aq-btn--link" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.20">View on GitHub <span aria-hidden="true">↗</span></a>
+            </article>
 
-              <article class="release-card">
-                <div class="release-kicker">July 2, 2026</div>
-                <h3>Version 1.9.19</h3>
-                <p>Widget polish, sign-in fallback, and macOS 26 contrast improvements.</p>
-                <ul>
+            <article class="release-card">
+              <p class="release-card__date">July 2, 2026</p>
+              <h3>Version 1.9.19</h3>
+              <p class="release-card__summary">Widget polish, sign-in fallback, and macOS 26 contrast improvements.</p>
+              <ul>
                   <li>Claude Code sign-in now falls back to the web flow when stored credentials are rejected.</li>
                   <li>Widget gauge tracks are clearer while still using system semantic colors.</li>
                   <li>Widgets match the main app and hide $0.00 spent rows.</li>
                   <li>The menu bar popover is easier to read over bright windows on macOS 26.</li>
-                </ul>
-                <a class="button" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.19"
-                  >View on GitHub</a
-                >
-              </article>
+              </ul>
+              <a class="aq-btn aq-btn--plain aq-btn--link" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.19">View on GitHub <span aria-hidden="true">↗</span></a>
+            </article>
 
-              <article class="release-card">
-                <div class="release-kicker">June 27, 2026</div>
-                <h3>Version 1.9.18</h3>
-                <p>Monthly overage spend is easier to see and understand.</p>
-                <ul>
+            <article class="release-card">
+              <p class="release-card__date">June 27, 2026</p>
+              <h3>Version 1.9.18</h3>
+              <p class="release-card__summary">Monthly overage spend is easier to see and understand.</p>
+              <ul>
                   <li>Codex bonus credit spend and Claude extra usage now appear in the popover.</li>
                   <li>Codex credit balances are shown as dollars instead of raw credit counts.</li>
                   <li>Spent rows use amber styling across the popover and widgets.</li>
                   <li>Hover details explain monthly spend timing and conversion.</li>
-                </ul>
-                <a class="button" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.18"
-                  >View on GitHub</a
-                >
-              </article>
+              </ul>
+              <a class="aq-btn aq-btn--plain aq-btn--link" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.18">View on GitHub <span aria-hidden="true">↗</span></a>
+            </article>
 
-              <article class="release-card">
-                <div class="release-kicker">June 21, 2026</div>
-                <h3>Version 1.9.17</h3>
-                <p>Refresh behavior, budget awareness, sign-in, and Sequoia support are all more resilient.</p>
-                <ul>
+            <article class="release-card">
+              <p class="release-card__date">June 21, 2026</p>
+              <h3>Version 1.9.17</h3>
+              <p class="release-card__summary">Refresh behavior, budget awareness, sign-in, and Sequoia support are all more resilient.</p>
+              <ul>
                   <li>Auto refresh speeds up while usage changes or approaches a limit.</li>
                   <li>New budget summaries clarify Codex credits and Claude extra usage.</li>
                   <li>Existing Codex CLI and Claude Code sessions are reused more reliably.</li>
                   <li>Popover, widget, and onboarding contrast is improved on Sequoia.</li>
-                </ul>
-                <a class="button" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.17"
-                  >View on GitHub</a
-                >
-              </article>
+              </ul>
+              <a class="aq-btn aq-btn--plain aq-btn--link" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.17">View on GitHub <span aria-hidden="true">↗</span></a>
+            </article>
 
-              <article class="release-card">
-                <div class="release-kicker">April 24, 2026</div>
-                <h3>Version 1.9.16</h3>
-                <p>The popover is clearer, steadier, and easier to read at a glance.</p>
-                <ul>
+            <article class="release-card">
+              <p class="release-card__date">April 24, 2026</p>
+              <h3>Version 1.9.16</h3>
+              <p class="release-card__summary">The popover is clearer, steadier, and easier to read at a glance.</p>
+              <ul>
                   <li>Reset timing is easier to scan with cleaner captions and spacing.</li>
                   <li>The popover stays more legible over bright pages and windows.</li>
                   <li>Gauges no longer jump to a misleading halfway state during refresh.</li>
                   <li>Launch at login is now part of first-run onboarding.</li>
-                </ul>
-                <a class="button" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.16"
-                  >View on GitHub</a
-                >
-              </article>
+              </ul>
+              <a class="aq-btn aq-btn--plain aq-btn--link" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.16">View on GitHub <span aria-hidden="true">↗</span></a>
+            </article>
 
-              <article class="release-card">
-                <div class="release-kicker">April 18, 2026</div>
-                <h3>Version 1.9.15</h3>
-                <p>Reset timing is clearer, and optional analytics is more complete.</p>
-                <ul>
+            <article class="release-card">
+              <p class="release-card__date">April 18, 2026</p>
+              <h3>Version 1.9.15</h3>
+              <p class="release-card__summary">Reset timing is clearer, and optional analytics is more complete.</p>
+              <ul>
                   <li>The popover now shows local reset times like today and tomorrow.</li>
                   <li>Compact reset labels fit more naturally without truncating.</li>
                   <li>Optional anonymous analytics now covers more of the app experience.</li>
-                </ul>
-                <a class="button" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.15"
-                  >View on GitHub</a
-                >
-              </article>
+              </ul>
+              <a class="aq-btn aq-btn--plain aq-btn--link" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.15">View on GitHub <span aria-hidden="true">↗</span></a>
+            </article>
 
-              <article class="release-card">
-                <div class="release-kicker">April 13, 2026</div>
-                <h3>Version 1.9.14</h3>
-                <p>Under the hood improvements.</p>
-                <ul>
+            <article class="release-card">
+              <p class="release-card__date">April 13, 2026</p>
+              <h3>Version 1.9.14</h3>
+              <p class="release-card__summary">Under the hood improvements.</p>
+              <ul>
                   <li>Internal improvements to help make AIQuota better over time.</li>
-                </ul>
-                <a class="button" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.14"
-                  >View on GitHub</a
-                >
-              </article>
+              </ul>
+              <a class="aq-btn aq-btn--plain aq-btn--link" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.14">View on GitHub <span aria-hidden="true">↗</span></a>
+            </article>
 
-              <article class="release-card">
-                <div class="release-kicker">April 12, 2026</div>
-                <h3>Version 1.9.13</h3>
-                <p>Adaptive refreshing is smarter, clearer, and easier to set up.</p>
-                <ul>
+            <article class="release-card">
+              <p class="release-card__date">April 12, 2026</p>
+              <h3>Version 1.9.13</h3>
+              <p class="release-card__summary">Adaptive refreshing is smarter, clearer, and easier to set up.</p>
+              <ul>
                   <li>Auto now refreshes as fast as every 1 minute when the app is active.</li>
                   <li>Refresh preferences are now part of onboarding after you connect a service.</li>
                   <li>Fixed a launch issue affecting some archived app builds.</li>
-                </ul>
-                <a class="button" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.13"
-                  >View on GitHub</a
-                >
-              </article>
+              </ul>
+              <a class="aq-btn aq-btn--plain aq-btn--link" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.13">View on GitHub <span aria-hidden="true">↗</span></a>
+            </article>
 
-              <article class="release-card">
-                <div class="release-kicker">April 9, 2026</div>
-                <h3>Version 1.9.12</h3>
-                <p>Anonymous usage analytics became available as an opt-in setting.</p>
-                <ul>
-                  <li>
-                    Added an optional analytics preference to help improve AIQuota without sharing
-                    prompts, tokens, or personal information.
-                  </li>
-                </ul>
-                <a class="button" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.12"
-                  >View on GitHub</a
-                >
-              </article>
+            <article class="release-card">
+              <p class="release-card__date">April 9, 2026</p>
+              <h3>Version 1.9.12</h3>
+              <p class="release-card__summary">Anonymous usage analytics became available as an opt-in setting.</p>
+              <ul>
+                  <li>Added an optional analytics preference to help improve AIQuota without sharing prompts, tokens, or personal information.</li>
+              </ul>
+              <a class="aq-btn aq-btn--plain aq-btn--link" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.12">View on GitHub <span aria-hidden="true">↗</span></a>
+            </article>
 
-              <article class="release-card">
-                <div class="release-kicker">April 7, 2026</div>
-                <h3>Version 1.9.11</h3>
-                <p>Notification timing is clearer when you’re low or fully capped.</p>
-                <ul>
+            <article class="release-card">
+              <p class="release-card__date">April 7, 2026</p>
+              <h3>Version 1.9.11</h3>
+              <p class="release-card__summary">Notification timing is clearer when you’re low or fully capped.</p>
+              <ul>
                   <li>Low and critical alerts now include the reset time for the affected window.</li>
-                </ul>
-                <a class="button" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.11"
-                  >View on GitHub</a
-                >
-              </article>
+              </ul>
+              <a class="aq-btn aq-btn--plain aq-btn--link" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.11">View on GitHub <span aria-hidden="true">↗</span></a>
+            </article>
 
-              <article class="release-card">
-                <div class="release-kicker">April 2, 2026</div>
-                <h3>Version 1.9.10</h3>
-                <p>Settings became easier to navigate and more consistent across upgrades.</p>
-                <ul>
+            <article class="release-card">
+              <p class="release-card__date">April 2, 2026</p>
+              <h3>Version 1.9.10</h3>
+              <p class="release-card__summary">Settings became easier to navigate and more consistent across upgrades.</p>
+              <ul>
                   <li>Accounts moved to the top so sign-in and sign-out are easier to find.</li>
                   <li>Notification controls were consolidated into a single toggle per window.</li>
                   <li>The Settings window now opens at the correct saved size more reliably.</li>
-                </ul>
-                <a class="button" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.10"
-                  >View on GitHub</a
-                >
-              </article>
-            </div>
-
-            <div class="release-archive-link">
-              <a href="https://github.com/niederme/ai-quota/releases">View all releases on GitHub</a>
-            </div>
+              </ul>
+              <a class="aq-btn aq-btn--plain aq-btn--link" href="https://github.com/niederme/ai-quota/releases/tag/v1.9.10">View on GitHub <span aria-hidden="true">↗</span></a>
+            </article>
           </div>
-        </section>
-      </main>
+          <a class="aq-btn aq-btn--secondary aq-glass aq-btn--outline release-archive" href="https://github.com/niederme/ai-quota/releases">View all releases on GitHub</a>
+        </div>
+      </section>
+    </main>
 
-      <footer class="site-footer">
-        <div class="container">
-          <div class="footer-meta">
-            <p>
-              <a href="https://nieder.me/">&copy; John Niedermeyer</a>
-              <span aria-hidden="true"> | </span>
-              Need help? Email
-              <a href="mailto:help@aiquota.app">help@aiquota.app</a>
-            </p>
-          </div>
-          <div class="footer-links">
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <div class="site-footer__meta">
+          <a class="site-footer__owner" href="https://nieder.me/">&copy; John Niedermeyer</a>
+          <p>Need help? Email <a href="mailto:help@aiquota.app?subject=AIQuota%20Issue%20Report">help@aiquota.app</a></p>
+        </div>
+        <div class="site-footer__end">
+          <nav class="site-footer__links" aria-label="Legal">
             <a href="../privacy/">Privacy Policy</a>
             <a href="../terms/">Terms of Service</a>
             <a href="../accessibility/">Accessibility</a>
+            <a href="https://github.com/niederme/ai-quota">GitHub</a>
+          </nav>
+          <div class="aq-theme aq-glass" role="group" aria-label="Appearance" data-theme-picker>
+            <button type="button" aria-pressed="false" data-theme-choice="system"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5"></rect><path d="M5.5 14h5M8 11.5V14"></path></svg><span>System</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"></circle><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"></path></svg><span>Light</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"></path></svg><span>Dark</span></button>
           </div>
         </div>
-      </footer>
-    </div>
+      </div>
+    </footer>
   </body>
 </html>
