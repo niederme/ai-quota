@@ -213,10 +213,50 @@
       }
     },
     "%lld hours ago" : {
-      "comment" : "Age of a usage reading, as in “Updated 2 hours ago”. Needs plural forms."
+      "comment" : "Age of a usage reading, as in “Updated 2 hours ago”. Needs plural forms.",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld hour ago"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld hours ago"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "%lld minutes ago" : {
-      "comment" : "Age of a usage reading, as in “Updated 5 minutes ago”. Needs plural forms."
+      "comment" : "Age of a usage reading, as in “Updated 5 minutes ago”. Needs plural forms.",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld minute ago"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld minutes ago"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "%lld of %lld calendar days reported" : {
       "localizations" : {

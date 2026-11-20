@@ -223,22 +223,121 @@
 
     },
     "%lld accounts connected" : {
-
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld account connected"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld accounts connected"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "%lld calendar days" : {
-      "comment" : "Chart coverage. Needs plural forms."
+      "comment" : "Chart coverage. Needs plural forms.",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld calendar day"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld calendar days"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "%lld days ago" : {
-      "comment" : "Age of a usage reading, as in “Older reading · 3 days ago”. Needs plural forms."
+      "comment" : "Age of a usage reading, as in “Older reading · 3 days ago”. Needs plural forms.",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld day ago"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld days ago"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "%lld hours ago" : {
-      "comment" : "Age of a usage reading, as in “Updated 2 hours ago”. Needs plural forms."
+      "comment" : "Age of a usage reading, as in “Updated 2 hours ago”. Needs plural forms.",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld hour ago"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld hours ago"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "%lld min" : {
 
     },
     "%lld minutes ago" : {
-      "comment" : "Age of a usage reading, as in “Updated 5 minutes ago”. Needs plural forms."
+      "comment" : "Age of a usage reading, as in “Updated 5 minutes ago”. Needs plural forms.",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld minute ago"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld minutes ago"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "%lld of %lld calendar days reported" : {
       "localizations" : {
@@ -274,7 +373,27 @@
 
     },
     "%lld uses" : {
-      "comment" : "Number of times a skill was used. Needs plural forms."
+      "comment" : "Number of times a skill was used. Needs plural forms.",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld use"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld uses"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "%lld without reported data" : {
 
