@@ -35,18 +35,12 @@ struct MacAccountDial: View {
             VStack(spacing: 5) {
                 Image(icon).resizable().scaledToFit().frame(width: 18, height: 18)
                 if let primaryPercent {
-                    VStack(spacing: 2) {
-                        Text("\(primaryPercent)% \(WindowKeyText.display(primaryLabel))")
-                            .font(.system(size: 16, weight: .semibold).monospacedDigit())
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                        if let secondaryPercent {
-                            Text("\(secondaryPercent)% \(WindowKeyText.days(7))")
-                                .font(.system(size: 16, weight: .semibold).monospacedDigit())
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.7)
-                                .opacity(0.7)
-                        }
+                    // Both lines step down together when a language's keys are long
+                    // ("100% 5 Std."), so they stay the same size and clear of the ring.
+                    ViewThatFits(in: .horizontal) {
+                        readout(primaryPercent, fontSize: 16)
+                        readout(primaryPercent, fontSize: 14)
+                        readout(primaryPercent, fontSize: 12)
                     }
                 } else {
                     VStack(spacing: 2) {
@@ -56,8 +50,8 @@ struct MacAccountDial: View {
                     .font(.system(size: 16, weight: .semibold).monospacedDigit())
                 }
             }
-            // Narrower than the inner ring's opening so longer keys ("100% 5 Std.")
-            // shrink instead of touching or truncating.
+            // Narrower than the inner ring's opening, so longer keys step down
+            // in size instead of touching the ring or truncating.
             .frame(width: 76)
             // Lift the second readout clear of the inner arc's open ends.
             .offset(y: showsSecondary ? -5 : 0)
@@ -69,6 +63,19 @@ struct MacAccountDial: View {
         .padding(.top, Self.strokeOutset)
         .frame(height: 103, alignment: .top)
         .accessibilityHidden(true)
+    }
+
+    private func readout(_ primaryPercent: Int, fontSize: CGFloat) -> some View {
+        VStack(spacing: 2) {
+            Text("\(primaryPercent)% \(WindowKeyText.display(primaryLabel))")
+            if let secondaryPercent {
+                Text("\(secondaryPercent)% \(WindowKeyText.days(7))")
+                    .opacity(0.7)
+            }
+        }
+        .font(.system(size: fontSize, weight: .semibold).monospacedDigit())
+        .lineLimit(1)
+        .minimumScaleFactor(0.85)
     }
 
     private func arc(percent: Int?, lineWidth: CGFloat, opacity: Double) -> some View {

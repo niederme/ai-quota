@@ -19,6 +19,12 @@ public enum WindowKeyText {
                comment: "Compact minutes in a countdown, such as “45m” or the “15m” in “2h 15m”. Keep it as short as possible.")
     }
 
+    /// Two compact units of one countdown, such as "2d 3h" or "2h 15m".
+    public static func pair(_ larger: String, _ smaller: String) -> String {
+        String(localized: "duration.pair", defaultValue: "\(larger) \(smaller)", bundle: .module,
+               comment: "Joins the two parts of a compact countdown, such as “2d” and “3h” in “2d 3h”. Leave out the space if your language writes them together.")
+    }
+
     /// Localizes a raw key such as "5h", "7d", "28d" or "7-day". Anything else is returned unchanged.
     public static func display(_ key: String) -> String {
         if key.hasSuffix("-day"), let count = Int(key.dropLast(4)) {

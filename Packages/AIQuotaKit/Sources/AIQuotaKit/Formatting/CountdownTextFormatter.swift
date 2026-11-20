@@ -47,10 +47,10 @@ public enum CountdownTextFormatter {
             let hours = (seconds % 86_400) / 3_600
             let minutes = (seconds % 3_600) / 60
             if days > 0 {
-                return hours > 0 ? "\(WindowKeyText.days(days)) \(WindowKeyText.hours(hours))" : WindowKeyText.days(days)
+                return hours > 0 ? WindowKeyText.pair(WindowKeyText.days(days), WindowKeyText.hours(hours)) : WindowKeyText.days(days)
             }
             if hours > 0 {
-                return minutes > 0 ? "\(WindowKeyText.hours(hours)) \(WindowKeyText.minutes(minutes))" : WindowKeyText.hours(hours)
+                return minutes > 0 ? WindowKeyText.pair(WindowKeyText.hours(hours), WindowKeyText.minutes(minutes)) : WindowKeyText.hours(hours)
             }
             return WindowKeyText.minutes(minutes)
         }

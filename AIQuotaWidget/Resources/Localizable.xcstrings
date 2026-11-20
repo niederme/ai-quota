@@ -122,7 +122,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@は%2$@後にリセット"
+            "value" : "%1$@: %2$@後にリセット"
           }
         },
         "ko" : {
@@ -134,7 +134,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ renova em %2$@"
+            "value" : "%1$@: renova em %2$@"
           }
         }
       }

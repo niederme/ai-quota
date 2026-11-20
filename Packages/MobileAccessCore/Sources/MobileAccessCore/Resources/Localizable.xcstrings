@@ -265,6 +265,53 @@
         }
       }
     },
+    "duration.pair" : {
+      "comment" : "Joins the two parts of a compact countdown, such as “2d” and “3h” in “2d 3h”. Leave out the space if your language writes them together.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@%2$@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
+          }
+        }
+      }
+    },
     "reset.at" : {
       "comment" : "Budget reset caption at a calendar time. First value is a window key such as “30d”, second a date and time such as “Dec 1, 12:00 AM”, never a duration. Means the budget resets on that date.",
       "localizations" : {

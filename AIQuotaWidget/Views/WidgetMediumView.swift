@@ -197,8 +197,8 @@ private func widgetCountdownText(windowKey: String, seconds: Int) -> String {
     let hours = (seconds % 86400) / 3600
     let minutes = (seconds % 3600) / 60
     let countdown: String
-    if days > 0 { countdown = "\(WindowKeyText.days(days)) \(WindowKeyText.hours(hours))" }
-    else if hours > 0 { countdown = "\(WindowKeyText.hours(hours)) \(WindowKeyText.minutes(minutes))" }
+    if days > 0 { countdown = WindowKeyText.pair(WindowKeyText.days(days), WindowKeyText.hours(hours)) }
+    else if hours > 0 { countdown = WindowKeyText.pair(WindowKeyText.hours(hours), WindowKeyText.minutes(minutes)) }
     else { countdown = WindowKeyText.minutes(minutes) }
     return String(localized: "reset.countdown", defaultValue: "\(WindowKeyText.display(windowKey)) resets \(countdown)",
                   comment: "Widget footer countdown. First value is a window key such as “7d”, second a remaining duration such as “2d 3h”, never a clock time. Means the window resets IN that much time.")
