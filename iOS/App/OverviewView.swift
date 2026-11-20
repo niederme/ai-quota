@@ -129,12 +129,15 @@ struct OverviewView: View {
                                            refreshDisabled: codex.busy || claude.busy,
                                            refresh: refreshUsage,
                                            settings: { selectedService = .settings })
+                    } else if wide {
+                        OverviewWideHeader(showsActions: false)
                     }
                 }
                 .background { OverviewBackground().ignoresSafeArea() }
                 .persistentSystemOverlays(.visible)
                 .navigationTitle("AIQuota")
                 .toolbarTitleDisplayMode(.inlineLarge)
+                .modifier(OverviewSystemTitleRemoval(removed: wide && sideRail))
                 .toolbar(wideHeader ? .hidden : .visible, for: .navigationBar)
                 .toolbar {
                     if !wideHeader {
@@ -661,8 +664,10 @@ enum OverviewStyle {
 struct OverviewWideHeader: View {
     var refreshing = false
     var refreshDisabled = false
-    let refresh: () -> Void
-    let settings: () -> Void
+    /// Off when the buttons live in the iPhone Duo's side rail instead.
+    var showsActions = true
+    var refresh: () -> Void = {}
+    var settings: () -> Void = {}
 
     var body: some View {
         HStack {
@@ -671,8 +676,10 @@ struct OverviewWideHeader: View {
                 .foregroundStyle(OverviewStyle.primary)
                 .accessibilityAddTraits(.isHeader)
             Spacer(minLength: 24)
-            OverviewActions(refreshing: refreshing, refreshDisabled: refreshDisabled,
-                            refresh: refresh, settings: settings)
+            if showsActions {
+                OverviewActions(refreshing: refreshing, refreshDisabled: refreshDisabled,
+                                refresh: refresh, settings: settings)
+            }
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
@@ -765,6 +772,20 @@ struct OverviewControlGlyph: View {
 enum OverviewLayout {
     static func hasSideRail(_ insets: EdgeInsets) -> Bool {
         abs(insets.trailing - insets.leading) > 24
+    }
+}
+
+/// With a side rail the system title sits at the screen's leading margin, out
+/// of line with the card column, so the column draws the title itself.
+struct OverviewSystemTitleRemoval: ViewModifier {
+    let removed: Bool
+
+    func body(content: Content) -> some View {
+        if #available(iOS 18.0, *) {
+            content.toolbar(removing: removed ? .title : nil)
+        } else {
+            content
+        }
     }
 }
 

@@ -166,12 +166,15 @@ struct MultiAccountOverviewView: View {
                 .safeAreaInset(edge: .top, spacing: 0) {
                     if wideHeader {
                         OverviewWideHeader(refresh: refreshUsage, settings: { selected = .init(kind: .settings) })
+                    } else if wide {
+                        OverviewWideHeader(showsActions: false)
                     }
                 }
                 .background { OverviewBackground().ignoresSafeArea() }
                 .persistentSystemOverlays(.visible)
                 .navigationTitle("AIQuota")
                 .toolbarTitleDisplayMode(.inlineLarge)
+                .modifier(OverviewSystemTitleRemoval(removed: wide && sideRail))
                 .toolbar(wideHeader ? .hidden : .visible, for: .navigationBar)
                 .toolbar {
                     if !wideHeader {
