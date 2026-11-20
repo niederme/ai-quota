@@ -25,6 +25,10 @@ BUNDLE = 'com.niederme.AIQuota'
 TEAM = '289GY9L343'
 XCODE = '/Applications/Xcode.app/Contents/Developer'
 RUNS = Path.home() / 'Library/Logs/AIQuota/TestFlight'
+# iPhone Duo runs an app edge to edge on its inner display only when the app was
+# built with the iOS 27.1 SDK or later. Older SDKs stop at the status bar strip
+# and leave a black bar beside the app.
+MIN_IOS_SDK = (27, 1)
 
 
 def credentials():
@@ -158,6 +162,24 @@ def execute(run, stage, args, creds):
         raise RuntimeError(f'{stage.capitalize()} failed. Inspect {log}')
 
 
+def sdk_version(text):
+    numbers = re.findall(r'\d+', text or '')
+    return tuple(int(n) for n in numbers[:2]) if numbers else ()
+
+
+def require_sdk(version, source):
+    if sdk_version(version) < MIN_IOS_SDK:
+        minimum = '.'.join(map(str, MIN_IOS_SDK))
+        raise RuntimeError(f'{source} uses iOS SDK {version or "unknown"}; iPhone Duo needs {minimum} or later to fill the screen. Update {XCODE.split("/Contents")[0]}.')
+
+
+def check_xcode_sdk():
+    env = dict(os.environ, DEVELOPER_DIR=XCODE, PATH='/usr/bin:/bin:/usr/sbin:/sbin')
+    version = subprocess.check_output(['/usr/bin/xcodebuild', '-version', '-sdk', 'iphoneos', 'SDKVersion'], env=env, text=True).strip()
+    require_sdk(version, 'Xcode')
+    return version
+
+
 def verify_archive(state):
     archive = Path(state['archive'])
     apps = list((archive / 'Products/Applications').glob('*.app'))
@@ -179,6 +201,7 @@ def verify_archive(state):
         expected = {'CFBundleIdentifier': bundle, 'CFBundleShortVersionString': state['version'], 'CFBundleVersion': str(state['build']), 'DTPlatformName': 'iphoneos'}
         if any(info.get(k) != v for k, v in expected.items()):
             raise RuntimeError('Archive identity, platform, or build does not match this release.')
+        require_sdk(info.get('DTPlatformVersion'), 'Archive')
 
 
 def status(api, run, state):
@@ -225,7 +248,8 @@ def main():
             version, local = project_numbers()
             builds = api.builds(version)
             number = next_build(local, builds)
-            print(f'Worktree: {ROOT}\nVersion: {version}; project build: {local}; next build: {number}', flush=True)
+            sdk = check_xcode_sdk()
+            print(f'Worktree: {ROOT}\nVersion: {version}; project build: {local}; next build: {number}; iOS SDK: {sdk}', flush=True)
             if args.command == 'preflight':
                 return
             stamp = dt.datetime.now().strftime('%Y-%m-%d-%H%M%S') + '-' + uuid.uuid4().hex[:6]
