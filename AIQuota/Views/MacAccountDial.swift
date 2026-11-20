@@ -50,9 +50,9 @@ struct MacAccountDial: View {
                     .font(.system(size: 16, weight: .semibold).monospacedDigit())
                 }
             }
-            // Narrower than the inner ring's opening, so longer keys step down
-            // in size instead of touching the ring or truncating.
-            .frame(width: 76)
+            // Longer keys than English step down in size to fit this width
+            // instead of truncating; English sizes are unchanged.
+            .frame(width: 80)
             // Lift the second readout clear of the inner arc's open ends.
             .offset(y: showsSecondary ? -5 : 0)
             .foregroundStyle(tint)
