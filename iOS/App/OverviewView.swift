@@ -135,9 +135,10 @@ struct OverviewView: View {
                 }
                 .background { OverviewBackground().ignoresSafeArea() }
                 .persistentSystemOverlays(.visible)
-                .navigationTitle("AIQuota")
-                .toolbarTitleDisplayMode(.inlineLarge)
-                .modifier(OverviewSystemTitleRemoval(removed: wide && sideRail))
+                // With a side rail the card column draws the title, so the
+                // system title is left empty and inline to take no space.
+                .navigationTitle(wide && sideRail ? "" : "AIQuota")
+                .toolbarTitleDisplayMode(wide && sideRail ? .inline : .inlineLarge)
                 .toolbar(wideHeader ? .hidden : .visible, for: .navigationBar)
                 .toolbar {
                     if !wideHeader {
@@ -772,20 +773,6 @@ struct OverviewControlGlyph: View {
 enum OverviewLayout {
     static func hasSideRail(_ insets: EdgeInsets) -> Bool {
         abs(insets.trailing - insets.leading) > 24
-    }
-}
-
-/// With a side rail the system title sits at the screen's leading margin, out
-/// of line with the card column, so the column draws the title itself.
-struct OverviewSystemTitleRemoval: ViewModifier {
-    let removed: Bool
-
-    func body(content: Content) -> some View {
-        if #available(iOS 18.0, *) {
-            content.toolbar(removing: removed ? .title : nil)
-        } else {
-            content
-        }
     }
 }
 
