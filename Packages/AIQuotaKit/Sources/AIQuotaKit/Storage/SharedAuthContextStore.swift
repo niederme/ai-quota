@@ -72,7 +72,10 @@ public struct SharedClaudeAuthContext: Codable, Sendable, Equatable {
 
 /// Credential snapshots used by the widget extension for best-effort background
 /// refresh. The app's auth coordinators must not treat these snapshots as a
-/// login source; app authentication comes from live OAuth credentials or WebKit.
+/// login source on their own; app authentication comes from live OAuth
+/// credentials or WebKit. The one exception is Claude launch restoration: when
+/// WebKit comes back without an account's cookies (seen after app updates),
+/// the coordinator may adopt the saved Claude snapshot once claude.ai accepts it.
 public enum SharedAuthContextStore {
     private static let codexKey = "sharedCodexAuthContext"
     private static let claudeKey = "sharedClaudeAuthContext"

@@ -26,7 +26,9 @@ struct ClaudeAuthCoordinatorTests {
         webSessionClearer: ClaudeAuthCoordinator.WebSessionClearer? = nil,
         webSessionRestorer: ClaudeAuthCoordinator.WebSessionRestorer? = nil,
         loginWindowRunner: ClaudeAuthCoordinator.LoginWindowRunner? = nil,
-        organizationLister: ClaudeAuthCoordinator.OrganizationLister? = nil
+        organizationLister: ClaudeAuthCoordinator.OrganizationLister? = nil,
+        contextWriter: (@Sendable (SharedClaudeAuthContext?) -> Void)? = nil,
+        contextLoader: @escaping @Sendable () -> SharedClaudeAuthContext? = { nil }
     ) -> ClaudeAuthCoordinator {
         ClaudeAuthCoordinator(
             accountStorageID: accountStorageID,
@@ -38,8 +40,109 @@ struct ClaudeAuthCoordinatorTests {
             webSessionClearer: webSessionClearer ?? {},
             webSessionRestorer: webSessionRestorer ?? { _ in },
             loginWindowRunner: loginWindowRunner,
-            organizationLister: organizationLister ?? { _ in nil }
+            organizationLister: organizationLister ?? { _ in nil },
+            contextWriter: contextWriter,
+            contextLoader: contextLoader
         )
+    }
+
+    // MARK: - Launch restoration from the saved web session
+
+    private static let savedOrg = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
+
+    private static func savedContext(org: String = savedOrg) -> SharedClaudeAuthContext {
+        let cookies = [cookie(name: "sessionKey", domain: ".claude.ai"),
+                       cookie(name: "lastActiveOrg", domain: ".claude.ai")].compactMap { $0 }
+        return SharedClaudeAuthContext(orgId: org, cookies: cookies.map(PersistedCookie.init))
+    }
+
+    @Test("an account whose WebKit store came back empty restores from its saved session")
+    func bootstrapRestoresSavedSessionWhenWebKitIsEmpty() async throws {
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
+        let restored = LockIsolated<[String]>([])
+        let validated = LockIsolated(0)
+        let sut = makeSUT(
+            accountStorageID: UUID(),
+            probe: { .notFound },
+            sessionValidator: { cookies in
+                validated.withLock { $0 += 1 }
+                return cookies.contains { $0.name == "sessionKey" } ? .valid(orgId: "other-org") : .invalid
+            },
+            webSessionRestorer: { cookies in restored.withLock { $0 = cookies.map(\.name).sorted() } },
+            contextWriter: { _ in },
+            contextLoader: { Self.savedContext() }
+        )
+
+        await sut.bootstrap()
+
+        #expect(await sut.state == .authenticated)
+        let context = try await sut.requestContext()
+        #expect(context.orgId == Self.savedOrg)
+        #expect(context.cookies.contains { $0.name == "sessionKey" })
+        #expect(validated.value == 1)
+        #expect(restored.value == ["lastActiveOrg", "sessionKey"])
+    }
+
+    @Test("a saved session claude.ai rejects or cannot check is not adopted or erased",
+          arguments: [ClaudeSessionValidation.invalid, .indeterminate])
+    func bootstrapDoesNotAdoptUnverifiedSavedSession(verdict: ClaudeSessionValidation) async {
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
+        let writes = LockIsolated(0)
+        let restored = LockIsolated(0)
+        let sut = makeSUT(
+            accountStorageID: UUID(),
+            probe: { .notFound },
+            sessionValidator: { _ in verdict },
+            webSessionRestorer: { _ in restored.withLock { $0 += 1 } },
+            contextWriter: { _ in writes.withLock { $0 += 1 } },
+            contextLoader: { Self.savedContext() }
+        )
+
+        await sut.bootstrap()
+
+        #expect(await sut.state == .unauthenticated)
+        #expect(writes.value == 0)
+        #expect(restored.value == 0)
+    }
+
+    @Test("a scoped account revives its WebKit session at launch and keeps its saved organization")
+    func bootstrapRevivesScopedAccountOnItsSavedOrganization() async throws {
+        UserDefaults.standard.set(true, forKey: "app.installedAt.v2")
+        defer { UserDefaults.standard.removeObject(forKey: "app.installedAt.v2") }
+        let revivedCookies = [Self.cookie(name: "sessionKey", domain: ".claude.ai")].compactMap { $0 }
+        let sut = makeSUT(
+            accountStorageID: UUID(),
+            probe: { .notFound },
+            headlessSessionReviver: { .found(orgId: "page-org", cookies: revivedCookies) },
+            sessionValidator: { _ in .invalid },
+            organizationLister: { _ in ["page-org", Self.savedOrg] },
+            contextWriter: { _ in },
+            contextLoader: { Self.savedContext() }
+        )
+
+        await sut.bootstrap()
+
+        #expect(await sut.state == .authenticated)
+        #expect(try await sut.requestContext().orgId == Self.savedOrg)
+    }
+
+    @Test("the primary account leaves headless revival to enrolled recovery")
+    func bootstrapDoesNotReviveThePrimaryAccount() async {
+        let revivals = LockIsolated(0)
+        let sut = makeSUT(
+            probe: { .notFound },
+            headlessSessionReviver: {
+                revivals.withLock { $0 += 1 }
+                return .found(orgId: "page-org", cookies: [])
+            }
+        )
+
+        await sut.bootstrap()
+
+        #expect(await sut.state == .unauthenticated)
+        #expect(revivals.value == 0)
     }
 
     @Test("scoped sign-out marker does not block another account")
