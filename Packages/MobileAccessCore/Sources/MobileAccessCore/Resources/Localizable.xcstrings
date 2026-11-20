@@ -265,8 +265,8 @@
         }
       }
     },
-    "%@ resets %@" : {
-      "comment" : "Budget reset caption. First value is a window key such as “30d”, second a date and time.",
+    "reset.at" : {
+      "comment" : "Budget reset caption at a calendar time. First value is a window key such as “30d”, second a date and time such as “Dec 1, 12:00 AM”, never a duration. Means the budget resets on that date.",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -276,38 +276,38 @@
         },
         "en" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "%1$@ resets %2$@"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@: reinicio en %2$@"
+            "value" : "%1$@: reinicio %2$@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ : réinit. %2$@"
+            "value" : "%1$@ : réinit. %2$@"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@のリセットまで%2$@"
+            "value" : "%1$@: %2$@にリセット"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%2$@ 후 %1$@ 초기화"
+            "value" : "%1$@: %2$@ 초기화"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ renova em %2$@"
+            "value" : "%1$@: renovação %2$@"
           }
         }
       }

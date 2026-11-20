@@ -144,7 +144,8 @@ struct HomeQuotaView: View {
                     Text(account.status(at: date)).lineLimit(2)
                 } else if let reading = account.value.reading {
                     ForEach(reading.windows) { window in
-                        Text("\(WidgetCopy.key(window)) resets \(WidgetCopy.reset(window.resetsAt, at: date))").lineLimit(1)
+                        Text(String(localized: "reset.at", defaultValue: "\(WidgetCopy.key(window)) resets \(WidgetCopy.reset(window.resetsAt, at: date))",
+                                    comment: "Reset caption at a calendar time. First value is a window key such as “7d”, second a clock time or day and time such as “Wed 3:40P”, never a duration. Means the window resets at that time.")).lineLimit(1)
                     }
                     if let budget = reading.monthlyBudget {
                         Text(budget.usageText).lineLimit(1).minimumScaleFactor(0.8)

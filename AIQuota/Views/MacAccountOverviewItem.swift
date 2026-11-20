@@ -330,7 +330,8 @@ struct MacAccountCard: View {
             : monthly || date.timeIntervalSince(now) >= 6 * 86400
                 ? .dateTime.month(.abbreviated).day().hour().minute()
                 : .dateTime.weekday(.abbreviated).hour().minute()
-        return String(localized: "\(window) resets \(date.formatted(format))")
+        return String(localized: "reset.at", defaultValue: "\(window) resets \(date.formatted(format))",
+                      comment: "Reset caption at a calendar time. First value is a window key such as “7d”, second a clock time or day and time such as “Wed 3:00 PM”, never a duration. Means the window resets at that time.")
     }
 
     /// Matches iOS: whole currency amounts drop their cents ("$1,000"), fractional keep two.

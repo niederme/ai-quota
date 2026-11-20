@@ -74,7 +74,8 @@ struct WidgetAccountContent: Identifiable, Sendable {
         if !value.needsApp, !isSaved(at: date) {
             for window in value.reading?.windows ?? [] {
                 if let reset = window.resetsAt, reset > date {
-                    parts.append(String(localized: "\(window.label) resets \(reset.formatted(date: .complete, time: .shortened))"))
+                    parts.append(String(localized: "reset.at", defaultValue: "\(window.label) resets \(reset.formatted(date: .complete, time: .shortened))",
+                                        comment: "Reset caption at a calendar time. First value is a usage window such as “7d” or “Weekly”, second a date and time, never a duration. Means the window resets at that time."))
                 }
             }
             if let reset = value.reading?.budgetOnly?.resetsAt, reset > date {

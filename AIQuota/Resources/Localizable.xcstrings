@@ -801,7 +801,8 @@
         }
       }
     },
-    "%@ resets %@" : {
+    "reset.at" : {
+      "comment" : "Reset caption at a calendar time. First value is a window key such as “7d”, second a clock time or day and time such as “Wed 3:00 PM”, never a duration. Means the window resets at that time.",
       "localizations" : {
         "de" : {
           "stringUnit" : {
@@ -811,38 +812,38 @@
         },
         "en" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "%1$@ resets %2$@"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@: reinicio en %2$@"
+            "value" : "%1$@: reinicio %2$@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ : réinit. %2$@"
+            "value" : "%1$@ : réinit. %2$@"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@のリセットまで%2$@"
+            "value" : "%1$@: %2$@にリセット"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%2$@ 후 %1$@ 초기화"
+            "value" : "%1$@: %2$@ 초기화"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ renova em %2$@"
+            "value" : "%1$@: renovação %2$@"
           }
         }
       }

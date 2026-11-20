@@ -72,8 +72,8 @@ public enum ResetTimeTextFormatter {
     }
 
     private static func resets(_ label: String, _ when: String, locale: Locale) -> String {
-        String(localized: "\(label) resets \(when)", bundle: .module, locale: locale,
-               comment: "Reset caption. First value is a usage window key such as “7d”, second a day and time such as “Wed. 1:03pm”.")
+        String(localized: "reset.at", defaultValue: "\(label) resets \(when)", bundle: .module, locale: locale,
+               comment: "Reset caption at a calendar time. First value is a usage window key such as “7d”, second a clock time or day and time such as “Wed. 1:03pm”, never a duration. Means the window resets at that time.")
     }
 
     private static func upcoming(_ resetAt: Date?, now: Date) -> Date? {

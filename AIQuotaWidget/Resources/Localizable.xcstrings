@@ -139,49 +139,49 @@
         }
       }
     },
-    "%@ resets %@" : {
-      "comment" : "Widget footer. First value is a window key such as “7d”, second a compact countdown such as “2d 3h”.",
+    "reset.countdown" : {
+      "comment" : "Widget footer countdown. First value is a window key such as “7d”, second a remaining duration such as “2d 3h”, never a clock time. Means the window resets IN that much time.",
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@: Reset %2$@"
+            "value" : "%1$@: Reset in %2$@"
           }
         },
         "en" : {
           "stringUnit" : {
-            "state" : "new",
+            "state" : "translated",
             "value" : "%1$@ resets %2$@"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@: reinicio en %2$@"
+            "value" : "%1$@: se reinicia en %2$@"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ : réinit. %2$@"
+            "value" : "%1$@ : réinit. dans %2$@"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@のリセットまで%2$@"
+            "value" : "%1$@: %2$@後にリセット"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%2$@ 후 %1$@ 초기화"
+            "value" : "%1$@: %2$@ 후 초기화"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@ renova em %2$@"
+            "value" : "%1$@: renova em %2$@"
           }
         }
       }

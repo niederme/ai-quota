@@ -78,8 +78,8 @@ public struct MonthlyBudget: Codable, Sendable, Equatable {
     }
 
     private static func resets(_ period: String, _ resetsAt: Date) -> String {
-        String(localized: "\(period) resets \(resetsAt.formatted(.dateTime.month(.abbreviated).day().hour().minute()))", bundle: .module,
-               comment: "Budget reset caption. First value is a window key such as “30d”, second a date and time.")
+        String(localized: "reset.at", defaultValue: "\(period) resets \(resetsAt.formatted(.dateTime.month(.abbreviated).day().hour().minute()))", bundle: .module,
+               comment: "Budget reset caption at a calendar time. First value is a window key such as “30d”, second a date and time such as “Dec 1, 12:00 AM”, never a duration. Means the budget resets on that date.")
     }
 
     public func resetDescription(readingAt: Date, relativeTo date: Date = .now) -> String {
