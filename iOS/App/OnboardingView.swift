@@ -280,6 +280,9 @@ struct OnboardingView: View {
                 }.frame(maxWidth: .infinity).padding(.vertical, compact ? 0 : 16)
             }
         }
+        // Ideal height, never squeezed: ViewThatFits already chose a layout that fits,
+        // and a squeezed VStack truncates wrapping text ("Anonyme Nutzungsdaten teil…").
+        .fixedSize(horizontal: false, vertical: true)
         .padding(.horizontal, 24).padding(.vertical, compact ? 12 : 24)
         .frame(maxWidth: 600, alignment: .leading)
         .frame(maxWidth: .infinity)
@@ -352,7 +355,7 @@ struct OnboardingView: View {
                     .background(OverviewStyle.accent.opacity(0.12), in: Circle())
                     .overlay(Circle().strokeBorder(OverviewStyle.accent.opacity(0.4)))
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(name).font(.headline).lineLimit(1).minimumScaleFactor(0.85)
+                    Text(name).font(.headline)
                     Text(subtitle)
                         .font(.caption).foregroundStyle(OverviewStyle.secondary)
                 }
@@ -407,7 +410,8 @@ struct LockScreenSetupContent: View {
     }
 
     private func page(compact: Bool) -> some View {
-        layout(compact: compact).padding(24).frame(maxWidth: 600, alignment: .leading)
+        layout(compact: compact).fixedSize(horizontal: false, vertical: true)
+            .padding(24).frame(maxWidth: 600, alignment: .leading)
             .frame(maxWidth: .infinity)
     }
 
