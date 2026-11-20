@@ -166,7 +166,7 @@ struct MultiAccountOverviewView: View {
                 .safeAreaInset(edge: .top, spacing: 0) {
                     if wideHeader {
                         OverviewWideHeader(refresh: refreshUsage, settings: { selected = .init(kind: .settings) })
-                    } else if wide {
+                    } else if sideRail {
                         OverviewWideHeader(showsActions: false)
                     }
                 }
@@ -174,8 +174,8 @@ struct MultiAccountOverviewView: View {
                 .persistentSystemOverlays(.visible)
                 // With a side rail the card column draws the title, so the
                 // system title is left empty and inline to take no space.
-                .navigationTitle(wide && sideRail ? "" : "AIQuota")
-                .toolbarTitleDisplayMode(wide && sideRail ? .inline : .inlineLarge)
+                .navigationTitle(sideRail ? "" : "AIQuota")
+                .toolbarTitleDisplayMode(sideRail ? .inline : .inlineLarge)
                 .toolbar(wideHeader ? .hidden : .visible, for: .navigationBar)
                 .toolbar {
                     if !wideHeader {
