@@ -125,7 +125,7 @@ public actor ClaudeAuthCoordinator {
         self.contextWriter = contextWriter
         // An injected writer means the real Keychain snapshot is not this
         // coordinator's to read; tests opt in by injecting a loader too.
-        self.contextLoader = contextLoader ?? (contextWriter != nil ? { nil } : {
+        self.contextLoader = contextLoader ?? (contextWriter != nil ? { @Sendable in nil } : { @Sendable in
             if let accountStorageID {
                 return SharedAuthContextStore.loadClaude(forAccountID: accountStorageID.uuidString)
             }
