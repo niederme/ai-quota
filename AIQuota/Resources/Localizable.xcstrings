@@ -114,46 +114,6 @@
     "— %@" : {
       "shouldTranslate" : false
     },
-    "— 7d" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "— 7 T"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "— 7d"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "— 7j"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "— 7日"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "— 7일"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "— 7 d"
-          }
-        }
-      }
-    },
     ", %lld percent used in 7d" : {
       "localizations" : {
         "de" : {
@@ -1763,49 +1723,15 @@
             "state" : "new",
             "value" : "%1$lld%% %2$@"
           }
-        }
-      },
-      "shouldTranslate" : false
-    },
-    "%lld%% 7d" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld%% 7 T"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld%% 7d"
-          }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%lld %% 7j"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld%% 7日"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld%% 7일"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld%% 7 d"
+            "value" : "%1$lld %% %2$@"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%lld%% used" : {
       "localizations" : {
@@ -12102,7 +12028,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "renova em %@"
+            "value" : "renovação %@"
           }
         }
       }
@@ -12112,7 +12038,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Reset in %@"
+            "value" : "Noch %@ bis zum Reset"
           }
         },
         "es" : {

@@ -20,7 +20,7 @@ struct PopoverTypographyTests {
         let gaugeSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/CircularGaugeView.swift"), encoding: .utf8)
         let accountDialSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/MacAccountDial.swift"), encoding: .utf8)
 
-        #expect(accountDialSource.contains(#"Text("\(secondaryPercent)% 7d")"#))
+        #expect(accountDialSource.contains(#"Text("\(secondaryPercent)% \(WindowKeyText.days(7))")"#))
         #expect(popoverSource.contains(#"secondaryLabel: "7d""#))
         #expect(!popoverSource.contains(#"secondaryLabel: "7-day""#))
 

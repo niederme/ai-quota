@@ -39,24 +39,26 @@ struct MacAccountDial: View {
                         Text("\(primaryPercent)% \(WindowKeyText.display(primaryLabel))")
                             .font(.system(size: 16, weight: .semibold).monospacedDigit())
                             .lineLimit(1)
-                            .minimumScaleFactor(0.85)
+                            .minimumScaleFactor(0.7)
                         if let secondaryPercent {
-                            Text("\(secondaryPercent)% 7d")
+                            Text("\(secondaryPercent)% \(WindowKeyText.days(7))")
                                 .font(.system(size: 16, weight: .semibold).monospacedDigit())
                                 .lineLimit(1)
-                                .minimumScaleFactor(0.85)
+                                .minimumScaleFactor(0.7)
                                 .opacity(0.7)
                         }
                     }
                 } else {
                     VStack(spacing: 2) {
                         Text("— \(WindowKeyText.display(primaryLabel))")
-                        if showsSecondary { Text("— 7d").opacity(0.7) }
+                        if showsSecondary { Text("— \(WindowKeyText.days(7))").opacity(0.7) }
                     }
                     .font(.system(size: 16, weight: .semibold).monospacedDigit())
                 }
             }
-            .frame(width: 80)
+            // Narrower than the inner ring's opening so longer keys ("100% 5 Std.")
+            // shrink instead of touching or truncating.
+            .frame(width: 76)
             // Lift the second readout clear of the inner arc's open ends.
             .offset(y: showsSecondary ? -5 : 0)
             .foregroundStyle(tint)

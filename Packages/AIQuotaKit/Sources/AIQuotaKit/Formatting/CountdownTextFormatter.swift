@@ -1,4 +1,5 @@
 import Foundation
+import MobileAccessCore
 
 public enum CountdownTextFormatter {
     public enum Style: Sendable {
@@ -32,19 +33,32 @@ public enum CountdownTextFormatter {
         return style == .full ? "less than a minute" : "<1m"
     }
 
-    /// Non-English languages get Foundation's own unit names, plurals and
-    /// abbreviations ("1 Tag, 3 Stunden", "1 T 3 Std."); English keeps the house style.
+    /// Non-English languages get Foundation's own unit names and plurals in full
+    /// ("1 Tag, 3 Stunden"); compact countdowns use the same keys as the dials
+    /// ("1 T 3 Std."). English keeps the house style.
     private static func localizedDuration(_ seconds: Int, style: Style, locale: Locale) -> String {
         guard seconds >= 60 else {
             return style == .full
                 ? String(localized: "less than a minute", bundle: .module, locale: locale, comment: "Countdown shown when a reset is under a minute away.")
                 : String(localized: "<1m", bundle: .module, locale: locale, comment: "Compact countdown shown when a reset is under a minute away.")
         }
+        if style == .compact {
+            let days = seconds / 86_400
+            let hours = (seconds % 86_400) / 3_600
+            let minutes = (seconds % 3_600) / 60
+            if days > 0 {
+                return hours > 0 ? "\(WindowKeyText.days(days)) \(WindowKeyText.hours(hours))" : WindowKeyText.days(days)
+            }
+            if hours > 0 {
+                return minutes > 0 ? "\(WindowKeyText.hours(hours)) \(WindowKeyText.minutes(minutes))" : WindowKeyText.hours(hours)
+            }
+            return WindowKeyText.minutes(minutes)
+        }
         var calendar = Calendar(identifier: .gregorian)
         calendar.locale = locale
         let formatter = DateComponentsFormatter()
         formatter.calendar = calendar
-        formatter.unitsStyle = style == .full ? .full : .abbreviated
+        formatter.unitsStyle = .full
         formatter.allowedUnits = seconds >= 86_400 ? [.day, .hour] : [.hour, .minute]
         formatter.zeroFormattingBehavior = .dropAll
         formatter.maximumUnitCount = 2

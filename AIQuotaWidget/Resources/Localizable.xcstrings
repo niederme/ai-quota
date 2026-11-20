@@ -128,7 +128,7 @@
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%2$@ 후 %1$@ 초기화"
+            "value" : "%1$@: %2$@ 후 초기화"
           }
         },
         "pt-BR" : {
@@ -314,47 +314,6 @@
     },
     "%lld%%" : {
       "shouldTranslate" : false
-    },
-    "%lldm" : {
-      "comment" : "Compact minutes, such as “30m”.",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld Min."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld min"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld min"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld分"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld분"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld min"
-          }
-        }
-      }
     },
     "Account" : {
       "localizations" : {

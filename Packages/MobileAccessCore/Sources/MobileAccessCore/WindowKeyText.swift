@@ -13,11 +13,17 @@ public enum WindowKeyText {
                comment: "Compact usage-window key: a number of hours, such as “5h”. Keep it as short as possible; it sits inside a small dial.")
     }
 
+    /// Compact minutes in a countdown, such as "45m".
+    public static func minutes(_ count: Int) -> String {
+        String(localized: "\(count)m", bundle: .module,
+               comment: "Compact minutes in a countdown, such as “45m” or the “15m” in “2h 15m”. Keep it as short as possible.")
+    }
+
     /// Localizes a raw key such as "5h", "7d", "28d" or "7-day". Anything else is returned unchanged.
     public static func display(_ key: String) -> String {
         if key.hasSuffix("-day"), let count = Int(key.dropLast(4)) {
             return String(localized: "\(count)-day", bundle: .module,
-                          comment: "Short usage-window name, such as “7-day”. Shown next to a percentage in a widget.")
+                          comment: "Usage-window name next to a percentage inside a small widget dial, such as “7-day”. Keep it as short as the compact key (“7d”) where the full word would not fit.")
         }
         if key.hasSuffix("-hour"), let count = Int(key.dropLast(5)) {
             return String(localized: "\(count)-hour", bundle: .module,

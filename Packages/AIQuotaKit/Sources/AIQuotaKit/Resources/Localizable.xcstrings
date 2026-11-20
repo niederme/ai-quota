@@ -1934,7 +1934,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "renova em %@"
+            "value" : "renovação %@"
           }
         }
       }
@@ -2707,7 +2707,7 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Dein Schwellenwert von %1$lld %% wurde erreicht. Reset in %2$@."
+            "value" : "Dein Schwellenwert von %1$lld %% wurde erreicht. Noch %2$@ bis zum Reset."
           }
         },
         "en" : {
