@@ -129,7 +129,7 @@ struct OverviewView: View {
                                            refreshDisabled: codex.busy || claude.busy,
                                            refresh: refreshUsage,
                                            settings: { selectedService = .settings })
-                    } else if wide {
+                    } else if sideRail {
                         OverviewWideHeader(showsActions: false)
                     }
                 }
@@ -137,8 +137,8 @@ struct OverviewView: View {
                 .persistentSystemOverlays(.visible)
                 // With a side rail the card column draws the title, so the
                 // system title is left empty and inline to take no space.
-                .navigationTitle(wide && sideRail ? "" : "AIQuota")
-                .toolbarTitleDisplayMode(wide && sideRail ? .inline : .inlineLarge)
+                .navigationTitle(sideRail ? "" : "AIQuota")
+                .toolbarTitleDisplayMode(sideRail ? .inline : .inlineLarge)
                 .toolbar(wideHeader ? .hidden : .visible, for: .navigationBar)
                 .toolbar {
                     if !wideHeader {
