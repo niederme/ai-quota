@@ -504,7 +504,7 @@ html:has(.get-dialog[open]) { overflow: hidden; }
 .notification__body { font: 400 15px/20px var(--font-sans); color: var(--ink-2); text-wrap: pretty; }
 
 .tile--mac { gap: 28px; }
-.mac-desktop { flex: 1 1 auto; min-height: 260px; margin: calc(-1 * clamp(24px, 3vw, 32px)) calc(-1 * clamp(24px, 3vw, 32px)) 0; display: flex; flex-direction: column; color: #fff; background: radial-gradient(90% 90% at 10% 0%, #6a3399, transparent 60%), radial-gradient(80% 90% at 100% 100%, #45206b, transparent 60%), linear-gradient(160deg, #2a1a3e, #160f20); }
+.mac-desktop { flex: none; height: 200px; margin: calc(-1 * clamp(24px, 3vw, 32px)) calc(-1 * clamp(24px, 3vw, 32px)) 0; display: flex; flex-direction: column; color: #fff; background: radial-gradient(90% 90% at 10% 0%, #6a3399, transparent 60%), radial-gradient(80% 90% at 100% 100%, #45206b, transparent 60%), linear-gradient(160deg, #2a1a3e, #160f20); }
 .mac-menubar { flex: none; height: 44px; background: rgba(18, 12, 26, 0.5); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); padding: 0 clamp(24px, 3vw, 32px); display: flex; align-items: center; justify-content: flex-end; gap: 16px; color: var(--ink); overflow: hidden; }
 .mac-menubar > svg { flex: none; fill: currentColor; }
 .mac-menubar__gauges { display: flex; gap: 8px; }
@@ -557,10 +557,15 @@ html:has(.get-dialog[open]) { overflow: hidden; }
   .bento { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .tile--iphone { grid-column: span 4; grid-row: span 2; }
   .tile--widgets { grid-column: span 2; grid-row: span 2; }
-  .tile--notifications, .tile--mac { grid-column: span 3; grid-row: span 2; }
+  .tile--notifications, .tile--mac { grid-column: span 3; }
   .tile--history, .tile--accounts, .tile--privacy { grid-column: span 6; }
   .tile--desktop, .tile--resets { grid-column: span 3; }
   .tile--history, .tile--privacy { grid-template-columns: minmax(0, 1fr) auto; }
+  /* Notifications and Mac share one content-height row; the desktop is a short strip. */
+  .tile--mac { gap: 24px; }
+  .tile--mac .mac-desktop { height: 168px; }
+  .tile--mac .mac-head { grid-template-columns: minmax(0, 1fr); }
+  .tile--mac .tile__body { max-width: 400px; }
 }
 
 /* Devices */
