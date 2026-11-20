@@ -666,3 +666,10 @@ html:has(.get-dialog[open]) { overflow: hidden; }
 .aq-adial--widget .aq-adial__lines span + span { opacity: 1; font-size: 0.74em; }
 .aq-adial--widget .aq-adial__lines small { font-size: 0.6em; font-weight: 400; color: var(--ink-2); }
 .aq-adial--widget .aq-adial__lines span + span small { font-size: 0.7em; }
+/* The phone mock is a scaled-down iPhone: scale the control glyph with it so reset times stay on one line. */
+.aq-acct--sm .aq-acct__chev { width: 15px; height: 15px; }
+.aq-acct--sm .aq-acct__chev svg { width: 6px; height: 6px; }
+.aq-acct--sm .aq-acct__cap { white-space: nowrap; }
+.phone .aq-acct--sm .aq-adial { --size: 78px !important; }
+.phone .aq-acct--sm .aq-acct__row { gap: 10px; }
+.phone .aq-acct--sm { padding-right: 12px; }
