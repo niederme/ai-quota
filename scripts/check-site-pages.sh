@@ -85,22 +85,27 @@ missing = []
 for index, release in enumerate(stable_releases[:4]):
     version = release["tag_name"].removeprefix("v")
     tag_url = f"https://github.com/niederme/ai-quota/releases/tag/{release['tag_name']}"
+    # A tag like v2.0.0 may be written "2.0" on the page.
+    names = {version}
+    if version.count(".") == 2 and version.endswith(".0"):
+        names.add(version.removesuffix(".0"))
 
     if index == 0:
-        required_tokens = [
-            f"AIQuota {version}",
-            f"Download {version}",
-            tag_url,
+        required = [
+            [f"AIQuota {name}" for name in names],
+            [f"download {name}" for name in names],
+            [tag_url],
         ]
     else:
-        required_tokens = [
-            f"Version {version}",
-            tag_url,
+        required = [
+            [f"Version {name}" for name in names],
+            [tag_url],
         ]
 
-    for token in required_tokens:
-        if token not in page_html:
-            missing.append(token)
+    page_lower = page_html.lower()
+    for options in required:
+        if not any(option.lower() in page_lower for option in options):
+            missing.append(" or ".join(options))
 
     valid_dates = release_dates(release["published_at"])
     if not any(date in page_html for date in valid_dates):
@@ -132,6 +137,8 @@ check_contains "/faq/" "<link rel=\"canonical\" href=\"https://aiquota.app/faq/\
 check_contains "/terms/" "<h1 class=\"policy-title\">Terms of Service</h1>"
 check_contains "/accessibility/" "<h1 class=\"policy-title\">Accessibility</h1>"
 check_release_page_matches_github
+check_contains "/releases/" "download 2.0 directly for Mac</a>."
+check_status "/assets/aiquota-2.0-mac.webp"
 
 check_status "/site.css"
 check_status "/site.js"

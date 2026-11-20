@@ -570,7 +570,8 @@ html:has(.get-dialog[open]) { overflow: hidden; }
 
 /* FAQ pointer and download band */
 .faq-pointer { padding: 0 clamp(16px, 4vw, 32px) clamp(48px, 6vw, 64px); }
-.faq-pointer p { max-width: 1056px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 8px; font: 400 17px/24px var(--font-sans); color: var(--ink-2); }
+.faq-pointer p { max-width: 1056px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 4px 12px; font: 600 clamp(22px, 2.4vw, 28px)/1.25 var(--font-sans); letter-spacing: -0.015em; color: var(--ink); text-align: center; text-wrap: balance; }
+.faq-pointer .aq-btn--link { font: inherit; letter-spacing: inherit; padding: 0; height: auto; min-height: 0; }
 .download-band { padding: 0 clamp(16px, 4vw, 32px) clamp(64px, 8vw, 96px); }
 .download-band__card { max-width: 1056px; margin: 0 auto; border-radius: var(--radius-card); background: var(--icon-ground); color: var(--ink); padding: clamp(48px, 7vw, 88px) clamp(24px, 4vw, 48px); display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center; }
 .download-band__card > img { display: block; width: 112px; height: 112px; }
@@ -611,8 +612,7 @@ html:has(.get-dialog[open]) { overflow: hidden; }
 .release-feature .hero-actions { align-items: center; }
 .release-links { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; font: 400 15px/20px var(--font-sans); }
 .release-links a { font-weight: 500; }
-.release-feature--current { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
-.release-feature--current img { display: block; width: 100%; height: auto; border-radius: 16px; }
+.release-feature__art { display: block; width: 100%; height: auto; border-radius: 16px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35); }
 .release-list { padding: clamp(48px, 6vw, 80px) 0 clamp(64px, 8vw, 112px); }
 .release-list h2 { margin: 0; font: 700 clamp(28px, 3vw, 36px)/1.1 var(--font-sans); letter-spacing: -0.02em; }
 .release-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: 20px; }
