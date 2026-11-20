@@ -25,12 +25,8 @@ public enum WindowKeyText {
                comment: "Joins the two parts of a compact countdown, such as “2d” and “3h” in “2d 3h”. Leave out the space if your language writes them together.")
     }
 
-    /// Localizes a raw key such as "5h", "7d", "28d" or "7-day". Anything else is returned unchanged.
+    /// Localizes a raw key such as "5h", "7d" or "28d". Anything else is returned unchanged.
     public static func display(_ key: String) -> String {
-        if key.hasSuffix("-day"), let count = Int(key.dropLast(4)) {
-            return String(localized: "\(count)-day", bundle: .module,
-                          comment: "Usage-window name next to a percentage inside a small widget dial, such as “7-day”. Keep it as short as the compact key (“7d”) where the full word would not fit.")
-        }
         if key.hasSuffix("-hour"), let count = Int(key.dropLast(5)) {
             return String(localized: "\(count)-hour", bundle: .module,
                           comment: "Short usage-window name, such as “5-hour”. Shown next to a percentage in a widget.")

@@ -79,7 +79,7 @@ struct WidgetGaugeView: View {
     let icon: String        // xcassets image name (SVG)
     let label: String
     let primaryLabel: String   // e.g. "5h"
-    let secondaryLabel: String // e.g. "7-day"
+    let secondaryLabel: String // e.g. "7d"
     let resetSeconds: Int
     let weeklyResetSeconds: Int
     let secondaryLimitReached: Bool

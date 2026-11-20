@@ -807,47 +807,6 @@
         }
       }
     },
-    "%lld-day" : {
-      "comment" : "Usage-window name next to a percentage inside a small widget dial, such as “7-day”. Keep it as short as the compact key (“7d”) where the full word would not fit.",
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld T"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld d"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld j"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld日"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld일"
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld d"
-          }
-        }
-      }
-    },
     "%lld-hour" : {
       "comment" : "Short usage-window name, such as “5-hour”. Shown next to a percentage in a widget.",
       "localizations" : {
@@ -2485,6 +2444,129 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Você está no ritmo de alcançar seu limite %@ antes da renovação"
+          }
+        }
+      }
+    },
+    "Codex usage may reset soon" : {
+      "comment" : "Banner title when the public Codex Resets tracker hints that OpenAI may reset Codex usage limits soon. Keep “Codex” untranslated.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codex-Nutzung wird bald eventuell zurückgesetzt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "El uso de Codex podría reiniciarse pronto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’utilisation de Codex pourrait bientôt être réinitialisée"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codexの使用量がまもなくリセットされる可能性があります"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codex 사용량이 곧 초기화될 수 있음"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "O uso do Codex pode ser renovado em breve"
+          }
+        }
+      }
+    },
+    "Codex reset credit announced" : {
+      "comment" : "Banner title when OpenAI announced a banked reset credit: a reset the user can trigger later in Codex. Keep “Codex” untranslated.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Angesparter Codex-Reset angekündigt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anunciado un reinicio acumulado de Codex"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réinitialisation Codex en réserve annoncée"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codexの保存できるリセットが発表されました"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codex 적립 초기화 발표됨"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renovação acumulada do Codex anunciada"
+          }
+        }
+      }
+    },
+    "Codex usage reset announced" : {
+      "comment" : "Banner title when OpenAI announced a reset of everyone's Codex usage limits. Keep “Codex” untranslated.",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset der Codex-Nutzung angekündigt"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Anunciado un reinicio del uso de Codex"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réinitialisation de l’utilisation de Codex annoncée"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codexの使用量リセットが発表されました"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Codex 사용량 초기화 발표됨"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renovação do uso do Codex anunciada"
           }
         }
       }
