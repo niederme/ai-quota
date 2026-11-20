@@ -94,6 +94,9 @@ struct OnboardingView: View {
             Group {
                 if progress.step == .notifications {
                     if codex.isDemo { DemoNotificationsView() } else { MobileNotificationsView() }
+                } else if progress.step == .widgets {
+                    // Sized to the screen: the steps must never sit under the Back/Continue bar.
+                    LockScreenSetupContent(fitsToScreen: true)
                 } else {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 24) {
@@ -130,10 +133,8 @@ struct OnboardingView: View {
                                     }
                                 }
                                 Text("You can add accounts or services later in Settings.").font(.footnote).foregroundStyle(OverviewStyle.secondary)
-                            case .notifications:
+                            case .notifications, .widgets:
                                 EmptyView()
-                            case .widgets:
-                                LockScreenSetupContent()
                             case .complete:
                                 VStack(spacing: 24) {
                                     Image(systemName: "checkmark.circle.fill").font(.system(size: 64)).foregroundStyle(OverviewStyle.accent)
@@ -171,7 +172,7 @@ struct OnboardingView: View {
                     }
                 }
             }
-            .safeAreaInset(edge: .bottom) {
+            .onboardingBottomBar {
                 HStack(spacing: 12) {
                     HStack(spacing: 0) {
                         if progress.step == .welcome {
@@ -356,15 +357,39 @@ struct OnboardingWelcome: View {
 
 struct LockScreenSetupContent: View {
     @State var lockScreen = false
+    /// Onboarding passes true: the page fills the space above the bottom bar and,
+    /// before it would scroll, shrinks the illustration so all three steps stay visible.
+    var fitsToScreen = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        if fitsToScreen {
+            ViewThatFits(in: .vertical) {
+                page(compact: false)
+                page(compact: true)
+                ScrollView { page(compact: true) }
+            }
+            .frame(maxHeight: .infinity, alignment: .top)
+        } else {
+            layout(compact: false)
+        }
+    }
+
+    private func page(compact: Bool) -> some View {
+        layout(compact: compact).padding(24).frame(maxWidth: 600, alignment: .leading)
+            .frame(maxWidth: .infinity)
+    }
+
+    private func layout(compact: Bool) -> some View {
+        VStack(alignment: .leading, spacing: compact ? 16 : 24) {
             Picker("Widget location", selection: $lockScreen) {
                 Text("Home Screen").tag(false)
                 Text("Lock Screen").tag(true)
             }.pickerStyle(.segmented)
-            illustration.frame(maxWidth: .infinity).accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 20) {
+            illustration
+                .scaleEffect(compact ? Self.compactScale : 1)
+                .frame(width: 240 * (compact ? Self.compactScale : 1), height: 280 * (compact ? Self.compactScale : 1))
+                .frame(maxWidth: .infinity).accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: compact ? 14 : 20) {
                 if lockScreen {
                     instruction(1, "Touch and hold your Lock Screen.")
                     instruction(2, "Tap Customize, then Lock Screen.")
@@ -377,6 +402,8 @@ struct LockScreenSetupContent: View {
             }
         }
     }
+
+    private static let compactScale: CGFloat = 0.7
 
     private var illustration: some View {
         VStack(spacing: 18) {
@@ -435,6 +462,19 @@ struct LockScreenSetupView: View {
         .foregroundStyle(OverviewStyle.primary)
         .tint(OverviewStyle.accent)
         .navigationTitle("Widgets").navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private extension View {
+    /// On iOS 26+ a safe-area bar, so content scrolled beneath Back/Continue gets the
+    /// system scroll edge effect instead of showing through the glass buttons.
+    @ViewBuilder
+    func onboardingBottomBar<Bar: View>(@ViewBuilder _ bar: () -> Bar) -> some View {
+        if #available(iOS 26.0, *) {
+            safeAreaBar(edge: .bottom, content: bar)
+        } else {
+            safeAreaInset(edge: .bottom, content: bar)
+        }
     }
 }
 
