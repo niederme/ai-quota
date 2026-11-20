@@ -165,6 +165,8 @@ struct WidgetGaugeView: View {
                                 .font(.system(size: primPt * 0.58))
                                 .foregroundStyle(.secondary)
                         }
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
                         if showsSecondaryMetric {
                             HStack(alignment: .firstTextBaseline, spacing: 2) {
                                 Text("\(secondaryPercent)%")
@@ -174,8 +176,13 @@ struct WidgetGaugeView: View {
                                     .font(.system(size: secPt * 0.7))
                                     .foregroundStyle(.secondary)
                             }
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
                         }
                     }
+                    // Keep longer keys ("100% 5 Std.") inside the inner ring; they
+                    // shrink instead of overlapping it.
+                    .frame(maxWidth: size * (showsSecondaryMetric ? 0.64 : 0.74))
                 }
             }
             .frame(width: size, height: size)
