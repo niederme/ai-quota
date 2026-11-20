@@ -28,6 +28,7 @@
   --notice: rgba(191, 90, 242, 0.22);
   --warning: #ff9f0a;
   --warning-ink: #ff9f0a;
+  --control-ink: #bd9cd6;
   --critical: #ff453a;
   --critical-ink: #ff6b61;
   --data-0: #4d4757;
@@ -63,6 +64,7 @@
   --notice: rgba(175, 82, 222, 0.22);
   --warning: #ff9500;
   --warning-ink: #9a5700;
+  --control-ink: #6e478a;
   --critical: #ff3b30;
   --critical-ink: #c4241b;
   --data-0: #ded9e6;
@@ -98,6 +100,7 @@
   --notice: rgba(175, 82, 222, 0.22);
   --warning: #ff9500;
   --warning-ink: #9a5700;
+  --control-ink: #6e478a;
   --critical: #ff3b30;
   --critical-ink: #c4241b;
   --data-0: #ded9e6;
@@ -212,14 +215,12 @@ body { font-family: var(--font-sans); color: var(--ink); background: var(--canva
 .aq-card__chev svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 
 /* Reset notice banner. */
-.aq-notice { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-5) var(--space-6); border-radius: var(--radius-card); background: var(--notice); box-shadow: inset 0 0 0 1px var(--glass-edge); }
+.aq-notice { display: flex; align-items: flex-start; gap: 12px; padding: var(--space-5) var(--space-6); border-radius: 24px; background: color-mix(in srgb, var(--accent) 6%, transparent); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent) 10%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--accent) 8%, transparent); }
 .aq-notice--mac { border-radius: var(--radius-md); box-shadow: none; padding: var(--space-4) var(--space-5); }
 .aq-notice__text { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; flex: 1; }
 .aq-notice__title { margin: 0; font: 600 17px/22px var(--font-sans); color: var(--ink); }
 .aq-notice__link { font: 400 17px/22px var(--font-sans); color: var(--accent-ink); text-decoration: none; }
 .aq-notice__link:hover { text-decoration: underline; text-underline-offset: 3px; }
-.aq-notice__close { width: 28px; height: 28px; border: 0; border-radius: 50%; background: var(--ink-3); color: var(--surface); display: grid; place-items: center; cursor: pointer; flex: none; }
-.aq-notice__close svg { width: 12px; height: 12px; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
 
 /* Mac sheet: the menu-bar window as a panel. */
 .aq-sheet { position: relative; isolation: isolate; overflow: hidden; border-radius: var(--radius-sheet); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line), var(--shadow-float); color: var(--ink); }
@@ -389,8 +390,8 @@ a:not(.aq-btn):hover { color: var(--accent-ink); text-decoration: underline; }
 .aq-acct--sm .aq-acct__name { font-size: 20px; line-height: 24px; }
 .aq-acct--sm .aq-acct__sub { margin: 4px 0 6px; font-size: 13px; line-height: 16px; }
 .aq-acct--sm .aq-acct__cap { font-size: 13px; line-height: 16px; }
-.aq-acct__chev { flex: none; width: 15px; height: 15px; border-radius: 50%; background: color-mix(in srgb, var(--ink) 32%, transparent); display: grid; place-items: center; }
-.aq-acct__chev svg { width: 7px; height: 7px; fill: none; stroke: var(--canvas); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.aq-acct__chev { flex: none; width: 20px; height: 20px; border-radius: 50%; background: rgba(189, 156, 214, 0.14); display: grid; place-items: center; }
+.aq-acct__chev svg { width: 8px; height: 8px; fill: none; stroke: var(--control-ink); stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .acct-heat { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .acct-heat .aq-heat { grid-template-rows: repeat(7, auto); grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 1px; }
 .acct-heat .aq-heat i { aspect-ratio: 1; border-radius: 1px; }
@@ -445,14 +446,16 @@ html:has(.get-dialog[open]) { overflow: hidden; }
 .hero-download { display: flex; flex-direction: column; gap: 10px; }
 
 /* Hero reset notice: the iOS banner above the cards. */
-.hero-notice { display: flex; align-items: flex-start; gap: 8px; padding: 14px 16px 14px 20px; border-radius: 24px; background: color-mix(in srgb, var(--accent) 11%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent); }
+.hero-notice { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-radius: 24px; background: color-mix(in srgb, var(--accent) 6%, transparent); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--accent) 10%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--accent) 8%, transparent); }
+.notice-info { flex: none; width: 20px; height: 22px; padding: 1px 0; fill: none; stroke: var(--accent-ink); stroke-width: 1.5; stroke-linecap: round; }
+.notice-info .notice-info__dot { fill: var(--accent-ink); stroke: none; }
 .hero-notice[hidden] { display: none; }
 .hero-notice__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .hero-notice__title { margin: 0; font: 600 17px/22px var(--font-sans); color: var(--ink); }
 .hero-notice__link, .hero-notice__link:hover { font: 400 17px/22px var(--font-sans); color: var(--accent); text-decoration: none; }
-.hero-notice__close { flex: none; width: 20px; height: 20px; margin-top: 1px; padding: 0; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--ink) 32%, transparent); display: grid; place-items: center; cursor: pointer; }
-.hero-notice__close svg { width: 8px; height: 8px; fill: none; stroke: var(--canvas); stroke-width: 1.8; stroke-linecap: round; }
-.hero-notice__close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.hero-notice__close, .aq-notice__close { flex: none; width: 20px; height: 20px; margin-top: 1px; padding: 0; border: 0; border-radius: 50%; background: rgba(189, 156, 214, 0.14); display: grid; place-items: center; cursor: pointer; }
+.hero-notice__close svg, .aq-notice__close svg { width: 8px; height: 8px; fill: none; stroke: var(--control-ink); stroke-width: 1.9; stroke-linecap: round; }
+.hero-notice__close:focus-visible, .aq-notice__close:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Features bento */
 .features { display: flex; flex-direction: column; gap: clamp(32px, 4vw, 48px); }
@@ -525,17 +528,21 @@ html:has(.get-dialog[open]) { overflow: hidden; }
 .desktop-widgets { margin-top: auto; display: flex; gap: 12px; align-items: stretch; min-width: 0; }
 .widget { height: 140px; border-radius: 22px; background: var(--surface-2); }
 .widget--small { flex: none; width: 140px; padding: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
-.widget--medium { flex: 1 1 0; min-width: 0; max-width: 340px; padding: 12px 14px; display: flex; gap: 12px; align-items: center; }
-.widget__name { margin: 0; font: 600 13px/16px var(--font-sans); }
-.widget__reset { margin: 0; font: 400 11px/14px var(--font-sans); color: var(--accent-ink); }
+.widget--medium { flex: 1 1 0; min-width: 0; max-width: 340px; padding: 10px 16px 10px 12px; display: flex; gap: 16px; align-items: center; }
+.widget__divider { flex: none; align-self: stretch; width: 1px; margin: 16px 0; background: var(--line); }
+.widget__name { margin: 0; font: 700 11px/14px var(--font-sans); text-align: center; }
+.widget__reset { margin: 0; font: 400 10px/13px var(--font-sans); color: var(--ink-2); text-align: center; }
 .widget__gauge { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: none; }
-.widget__rows { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.widget__row { display: flex; justify-content: space-between; gap: 8px; font: 400 12px/16px var(--font-sans); }
+.widget__rows { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.widget__row { display: flex; align-items: center; gap: 4px; font: 400 11px/14px var(--font-sans); --icon: var(--ink-2); }
+.widget__icon { flex: none; width: 10px; height: 10px; margin-right: 2px; fill: var(--icon); }
+.widget__icon .widget__icon-cut { fill: var(--surface-2); stroke: var(--surface-2); stroke-width: 1.3; stroke-linecap: round; }
+.widget__row--accent { --icon: var(--accent-ink); }
+.widget__row--overage { --icon: #ffa600; }
+.widget__row--overage span { color: #ffa600 !important; }
 .widget__row span:first-child { color: var(--ink-2); }
-.widget__row span:last-child { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
-.widget__row .is-accent { color: var(--accent-ink) !important; }
-.widget__row .is-warning { color: var(--warning-ink) !important; }
-.widget__foot { margin: 2px 0 0; font: 400 11px/14px var(--font-sans); color: var(--ink-2); }
+.widget__row span:last-child { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.widget__foot { margin: 4px 0 0; font: 500 10px/13px var(--font-sans); color: var(--ink-2); }
 
 .tile--resets .tile__foot .aq-notice { padding: 16px 18px; }
 .notice-dismissed { min-height: 76px; border-radius: var(--radius-card); box-shadow: inset 0 0 0 1px var(--line); padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; gap: 12px; font: 400 15px/20px var(--font-sans); color: var(--ink-2); }
@@ -648,6 +655,14 @@ html:has(.get-dialog[open]) { overflow: hidden; }
   .widget--medium { flex-basis: 100%; max-width: none; }
 }
 
-/* Hero cards sit on the purple wash: back them with the canvas so the top one doesn't read brighter than the rest. */
+/* Hero cards sit on the purple wash: back them with the canvas so the top one doesn't read brighter than the rest.
+   The reset notice uses the same surface as the cards, as on iOS. */
 .hero-visual .aq-acct { background: linear-gradient(color-mix(in srgb, var(--accent) 6%, transparent), color-mix(in srgb, var(--accent) 6%, transparent)), color-mix(in srgb, var(--canvas) 72%, transparent); }
-.hero-visual .hero-notice { background: linear-gradient(color-mix(in srgb, var(--accent) 11%, transparent), color-mix(in srgb, var(--accent) 11%, transparent)), color-mix(in srgb, var(--canvas) 72%, transparent); }
+.hero-visual .hero-notice { background: linear-gradient(color-mix(in srgb, var(--accent) 6%, transparent), color-mix(in srgb, var(--accent) 6%, transparent)), color-mix(in srgb, var(--canvas) 72%, transparent); }
+
+/* Mac desktop widgets draw their gauge with system gray tracks and gray window keys (WidgetGaugeView). */
+.aq-adial--widget .aq-adial__track { stroke: color-mix(in srgb, var(--ink) 14%, transparent); }
+.aq-adial--widget .aq-adial__lines span:first-child { font-weight: 700; }
+.aq-adial--widget .aq-adial__lines span + span { opacity: 1; font-size: 0.74em; }
+.aq-adial--widget .aq-adial__lines small { font-size: 0.6em; font-weight: 400; color: var(--ink-2); }
+.aq-adial--widget .aq-adial__lines span + span small { font-size: 0.7em; }
