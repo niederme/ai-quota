@@ -33,7 +33,7 @@ final class ProbeModel {
     private(set) var reading: QuotaReading?
     private(set) var signInCompletionID: UUID?
     private(set) var busy = false
-    private(set) var message = "Connect Codex to see your usage."
+    private(set) var message = String(localized: "Connect Codex to see your usage.")
     private(set) var error: String?
     private(set) var renewedAt: Date?
     private(set) var connectionFailure: SharedQuotaStore.Failure?
@@ -61,7 +61,7 @@ final class ProbeModel {
             reading = DemoQuotaData.reading(.codex)
             history = DemoQuotaData.history()
             tokenHistory = DemoQuotaData.tokenHistory()
-            message = "Sample usage. No account connected."
+            message = String(localized: "Sample usage. No account connected.")
             return
         }
         do {
@@ -71,7 +71,7 @@ final class ProbeModel {
                 updateProviderIdentity(from: tokens)
                 alignTokenHistory(to: tokens)
                 connectionFailure = self.shared.failure()
-                message = "Connected. Your usage updates automatically."
+                message = String(localized: "Connected. Your usage updates automatically.")
                 reading = self.shared.reading()
                 if let data = cachedData(forKey: historyCacheKey, legacyKey: "mobileProbe.codexHistory") {
                     history = try? JSONDecoder().decode(CodexUsageHistory.self, from: data)
@@ -81,7 +81,7 @@ final class ProbeModel {
                     reading = try? JSONDecoder().decode(QuotaReading.self, from: data)
                 }
             }
-        } catch { self.error = "Could not read this device’s saved connection." }
+        } catch { self.error = String(localized: "Could not read this device’s saved connection.") }
     }
     private static func cacheKey(_ base: String, profile: AccountProfile?) -> String {
         profile.map { base + "." + $0.id } ?? base
@@ -106,7 +106,7 @@ final class ProbeModel {
             try Task.checkCancellation()
             try SignInCodeStore.save(code: newChallenge.userCode, expiresAt: .now.addingTimeInterval(15 * 60))
             challenge = newChallenge
-            message = "Open the sign-in page, enter this code, then return here."
+            message = String(localized: "Open the sign-in page, enter this code, then return here.")
             let deadline = Date.now.addingTimeInterval(15 * 60)
             while Date.now < deadline {
                 try await Task.sleep(for: .seconds(newChallenge.interval))
@@ -127,8 +127,8 @@ final class ProbeModel {
     }
     func failWebSignIn() {
         guard !isDemo, !busy else { return }
-        error = "ChatGPT sign-in did not complete. Try again."
-        message = "Couldn’t connect this account."
+        error = String(localized: "ChatGPT sign-in did not complete. Try again.")
+        message = String(localized: "Couldn’t connect this account.")
     }
     private func finishSignIn(_ newTokens: CodexTokens) async throws {
         // Reconnecting a card must not swap in another ChatGPT account.
@@ -136,7 +136,7 @@ final class ProbeModel {
            let conflict = AccountRegistry.identityConflict(for: profile, signingInAs: identity) {
             challenge = nil
             error = AccountRegistry.message(for: conflict, profile: profile)
-            message = "Nothing was changed."
+            message = String(localized: "Nothing was changed.")
             return
         }
         let migrateLegacy = usesLegacyStorage
@@ -154,7 +154,7 @@ final class ProbeModel {
         foregroundRefresh.reset()
         tokens = newTokens
         challenge = nil
-        message = "Signed in on this device. Checking quota…"
+        message = String(localized: "Signed in on this device. Checking quota…")
         try await fetch(forceRenewal: false)
         signInCompletionID = UUID()
     }
@@ -218,7 +218,7 @@ final class ProbeModel {
                 try WidgetStore.clearAccess()
             }
         }
-        message = "Refreshing…"
+        message = String(localized: "Refreshing…")
         let value: QuotaReading
         if let fetchUsage { value = try await fetchUsage(forceRenewal, minimumAge) }
         else { value = try await shared.fetch(source: "app", forceRenewal: forceRenewal, minimumAge: minimumAge) }
@@ -231,7 +231,7 @@ final class ProbeModel {
         defaults.set(try JSONEncoder().encode(value), forKey: cacheKey)
         if forceRenewal { renewedAt = .now }
         WidgetCenter.shared.reloadAllTimelines()
-        message = "Usage updated."
+        message = String(localized: "Usage updated.")
         // History is optional: an unavailable analytics endpoint must not mark quota stale.
         if let tokens {
             await refreshTokenHistory(tokens)
@@ -304,10 +304,10 @@ final class ProbeModel {
                 guard let self, self.generation == id else { return }
                 // Never surface raw response bodies, tokens, or provider error URLs.
                 self.error = (error as? AccessError)?.errorDescription
-                    ?? "The request did not complete. Check your connection and try again."
+                    ?? String(localized: "The request did not complete. Check your connection and try again.")
                 self.connectionFailure = SharedQuotaStore.Failure.classify(error)
                 if self.tokens != nil { self.tokenHistoryUnavailable = true }
-                self.message = "Couldn’t update usage. Your last reading is still shown."
+                self.message = String(localized: "Couldn’t update usage. Your last reading is still shown.")
             }
             guard let self, self.generation == id else { return }
             self.quietlyRefreshing = false
@@ -324,7 +324,7 @@ final class ProbeModel {
         quietlyRefreshing = false
         busy = false
         challenge = nil
-        message = "Check cancelled."
+        message = String(localized: "Check cancelled.")
     }
     func disconnect() {
         guard !isDemo else { return }
@@ -343,7 +343,7 @@ final class ProbeModel {
         try await clearConnection()
         foregroundRefresh.reset()
         signInCompletionID = nil
-        message = "Connect Codex to see your usage."
+        message = String(localized: "Connect Codex to see your usage.")
     }
     private func clearConnection() async throws {
         let clearLegacy = usesLegacyStorage
@@ -371,6 +371,6 @@ final class ProbeModel {
         renewedAt = nil
         connectionFailure = nil
         error = nil
-        message = "Connection removed from this device."
+        message = String(localized: "Connection removed from this device.")
     }
 }

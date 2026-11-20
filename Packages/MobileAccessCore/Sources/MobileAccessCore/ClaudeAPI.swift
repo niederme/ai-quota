@@ -17,12 +17,33 @@ public enum ClaudeAccessError: Error, LocalizedError, Sendable {
     }
     public var errorDescription: String? {
         switch self {
-        case let .renewalRejected(status, reason): "Claude sign-in renewal failed (HTTP \(status)\(reason.map { ", " + $0 } ?? "")). Retry or reconnect Claude. Your last reading is saved."
-        case .reconnectRequired: "Claude could not renew this sign-in. Reconnect Claude to continue. Your last reading is saved."
-        case .requestFailed(_, 429): "Claude is temporarily limiting updates. Updates are paused for a few minutes. Your last reading is saved."
-        case let .requestFailed(stage, status): "Claude \(stage) failed (HTTP \(status)). Try again. Your last reading is saved."
-        case .invalidCode: "Paste the complete authorization code from the sign-in page for this connection."
-        case .expiredChallenge: "This sign-in attempt expired. Start a new connection."
+        case let .renewalRejected(status, reason):
+            String(localized: "Claude sign-in renewal failed (HTTP \(Self.httpDetail(status, reason))). Retry or reconnect Claude. Your last reading is saved.", bundle: .module,
+                   comment: "Error. The value is an HTTP status code, sometimes followed by the provider's own reason in English.")
+        case .reconnectRequired:
+            String(localized: "Claude could not renew this sign-in. Reconnect Claude to continue. Your last reading is saved.", bundle: .module, comment: "Error.")
+        case .requestFailed(_, 429):
+            String(localized: "Claude is temporarily limiting updates. Updates are paused for a few minutes. Your last reading is saved.", bundle: .module, comment: "Error.")
+        case let .requestFailed(stage, status):
+            String(localized: "Claude \(Self.stageName(stage)) failed (HTTP \(status)). Try again. Your last reading is saved.", bundle: .module,
+                   comment: "Error. First value is a step such as “sign-in” or “usage update”, second an HTTP status code.")
+        case .invalidCode:
+            String(localized: "Paste the complete authorization code from the sign-in page for this connection.", bundle: .module, comment: "Error.")
+        case .expiredChallenge:
+            String(localized: "This sign-in attempt expired. Start a new connection.", bundle: .module, comment: "Error.")
+        }
+    }
+    private static func httpDetail(_ status: Int, _ reason: String?) -> String {
+        "\(status)" + (reason.map { ", " + $0 } ?? "")
+    }
+    /// Stage keys stay English in code; only the shown name is localized.
+    private static func stageName(_ stage: String) -> String {
+        switch stage {
+        case "sign-in": String(localized: "sign-in", bundle: .module, comment: "Step name inside “Claude sign-in failed (HTTP 400)”.")
+        case "sign-in renewal": String(localized: "sign-in renewal", bundle: .module, comment: "Step name inside “Claude sign-in renewal failed (HTTP 400)”.")
+        case "usage update": String(localized: "usage update", bundle: .module, comment: "Step name inside “Claude usage update failed (HTTP 500)”.")
+        case "profile lookup": String(localized: "profile lookup", bundle: .module, comment: "Step name inside “Claude profile lookup failed (HTTP 500)”.")
+        default: stage
         }
     }
 }

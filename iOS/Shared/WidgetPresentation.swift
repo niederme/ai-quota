@@ -56,29 +56,30 @@ struct WidgetAccountContent: Identifiable, Sendable {
         WidgetReadingStatus.isSaved(value.reading, needsApp: value.needsApp, updateFailed: value.updateFailed, at: date)
     }
     func status(at date: Date, compact: Bool = false) -> String {
-        if value.needsApp { return "Reconnect to update" }
-        guard let reading = value.reading else { return "Not connected" }
-        if reading.metadata?.plan == "Demo" { return "Sample usage" }
+        if value.needsApp { return String(localized: "Reconnect to update") }
+        guard let reading = value.reading else { return String(localized: "Not connected") }
+        if reading.metadata?.plan == "Demo" { return String(localized: "Sample usage") }
         if isSaved(at: date) { return WidgetCopy.olderReading(reading, at: date) }
-        if (worstPercent ?? 0) >= 95 { return "Limit reached" }
+        if (worstPercent ?? 0) >= 95 { return String(localized: "Limit reached") }
         if let budget = reading.budgetOnly {
             let used = WidgetCopy.amount(budget.used, budget: budget)
             let limit = WidgetCopy.amount(budget.limit, budget: budget)
-            return compact ? "\(used)\nof \(limit)" : budget.usageText
+            return compact ? String(localized: "\(used)\nof \(limit)") : budget.usageText
         }
-        guard let window = reading.windows.max(by: { $0.usedPercent < $1.usedPercent }) else { return "No reading yet" }
+        guard let window = reading.windows.max(by: { $0.usedPercent < $1.usedPercent }) else { return String(localized: "No reading yet") }
         return WidgetCopy.reset(window.resetsAt, at: date, compact: compact)
     }
     func accessibility(at date: Date, showAccountNames: Bool = true) -> String {
-        var parts = [compactName(showAccountNames: showAccountNames), value.reading?.accessibilitySummary ?? "Allowance unavailable", status(at: date)]
+        var parts = [compactName(showAccountNames: showAccountNames), value.reading?.accessibilitySummary ?? String(localized: "Allowance unavailable"), status(at: date)]
         if !value.needsApp, !isSaved(at: date) {
             for window in value.reading?.windows ?? [] {
                 if let reset = window.resetsAt, reset > date {
-                    parts.append("\(window.label) resets \(reset.formatted(date: .complete, time: .shortened))")
+                    parts.append(String(localized: "reset.at", defaultValue: "\(window.label) resets \(reset.formatted(date: .complete, time: .shortened))",
+                                        comment: "Reset caption at a calendar time. First value is a usage window such as “7d” or “Weekly”, second a date and time, never a duration. Means the window resets at that time."))
                 }
             }
             if let reset = value.reading?.budgetOnly?.resetsAt, reset > date {
-                parts.append("Monthly resets \(reset.formatted(date: .complete, time: .shortened))")
+                parts.append(String(localized: "Monthly resets \(reset.formatted(date: .complete, time: .shortened))"))
             }
         }
         return parts.joined(separator: ". ")
@@ -109,13 +110,20 @@ enum WidgetCopy {
     static func reset(_ reset: Date?, at date: Date, compact: Bool = false,
                       calendar: Calendar = .autoupdatingCurrent) -> String {
         guard let reset, reset.timeIntervalSince1970.isFinite,
-              reset.timeIntervalSince1970 < 253402300800 else { return "Reset unavailable" }
-        guard reset > date else { return "Awaiting confirmation" }
+              reset.timeIntervalSince1970 < 253402300800 else { return String(localized: "Reset unavailable") }
+        guard reset > date else { return String(localized: "Awaiting confirmation") }
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.calendar = calendar
         formatter.timeZone = calendar.timeZone
         let days = calendar.dateComponents([.day], from: calendar.startOfDay(for: date), to: calendar.startOfDay(for: reset)).day ?? 0
+        // English keeps the compact house style ("Wed 3:40P"); other languages use
+        // the locale's own weekday, date order and 12/24-hour clock.
+        if Locale.autoupdatingCurrent.language.languageCode != .english {
+            formatter.locale = .autoupdatingCurrent
+            formatter.setLocalizedDateFormatFromTemplate(days >= 7 ? "MMMd" : (days == 0 ? "" : "EEE") + "jmm")
+            return formatter.string(from: reset)
+        }
         if days >= 7 { formatter.dateFormat = "MMM d" }
         else if compact {
             formatter.dateFormat = (days == 0 ? "" : "EEE ") + (calendar.component(.minute, from: reset) == 0 ? "ha" : "h:mma")
@@ -125,14 +133,14 @@ enum WidgetCopy {
     }
     static func olderReading(_ reading: QuotaReading, at date: Date) -> String {
         let elapsed = date.timeIntervalSince(reading.fetchedAt)
-        guard elapsed.isFinite else { return "Older reading" }
+        guard elapsed.isFinite else { return String(localized: "Older reading") }
         let seconds = max(0, min(315360000, elapsed))
         let age: String
-        if seconds < 60 { age = "just now" }
-        else if seconds < 3600 { let n = Int(seconds / 60); age = "\(n) minute\(n == 1 ? "" : "s") ago" }
-        else if seconds < 86400 { let n = Int(seconds / 3600); age = "\(n) hour\(n == 1 ? "" : "s") ago" }
-        else { let n = Int(seconds / 86400); age = "\(n) day\(n == 1 ? "" : "s") ago" }
-        return "Older reading · \(age)"
+        if seconds < 60 { age = String(localized: "just now", comment: "Age of a usage reading, as in “Updated just now”.") }
+        else if seconds < 3600 { age = String(localized: "\(Int(seconds / 60)) minutes ago", comment: "Age of a usage reading, as in “Updated 5 minutes ago”. Needs plural forms.") }
+        else if seconds < 86400 { age = String(localized: "\(Int(seconds / 3600)) hours ago", comment: "Age of a usage reading, as in “Updated 2 hours ago”. Needs plural forms.") }
+        else { age = String(localized: "\(Int(seconds / 86400)) days ago", comment: "Age of a usage reading, as in “Older reading · 3 days ago”. Needs plural forms.") }
+        return String(localized: "Older reading · \(age)")
     }
 }
 
@@ -174,9 +182,9 @@ struct AccountWidgetDial: View {
     /// Curved Lock Screen label: window key, then its reset ("31D NOV 30",
     /// "5H 3:40P"). No percentage: the ring already shows usage.
     private var caption: (key: String, rest: String) {
-        guard !account.value.needsApp else { return ("", "RECONNECT") }
-        guard reading != nil else { return ("", "NOT CONNECTED") }
-        if account.isSaved(at: date) { return ("", "OLDER READING") }
+        guard !account.value.needsApp else { return ("", String(localized: "Reconnect").localizedUppercase) }
+        guard reading != nil else { return ("", String(localized: "Not connected").localizedUppercase) }
+        if account.isSaved(at: date) { return ("", String(localized: "Older reading").localizedUppercase) }
         guard let window = captionWindow else { return ("", "N/A") }
         let key = WidgetCopy.key(window).uppercased()
         guard let reset = window.resetsAt, reset > date else { return (key, "") }

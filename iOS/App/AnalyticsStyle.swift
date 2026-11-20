@@ -70,8 +70,10 @@ struct AnalyticsDetailSurface: ViewModifier {
 
 func analyticsFreshnessLabel(_ fetchedAt: Date, at now: Date, saved: Bool) -> String {
     let elapsed = max(0, Int(now.timeIntervalSince(fetchedAt)))
-    let relative = elapsed < 60 ? "just now" : elapsed < 3600 ? "\(elapsed / 60) minute\(elapsed / 60 == 1 ? "" : "s") ago" : "\(elapsed / 3600) hour\(elapsed / 3600 == 1 ? "" : "s") ago"
-    if saved { return "Last updated \(relative)" }
-    if elapsed >= 1800 { return "Older reading · \(relative)" }
-    return "Updated \(relative)"
+    let relative = elapsed < 60 ? String(localized: "just now", comment: "Age of a usage reading, as in “Updated just now”.")
+        : elapsed < 3600 ? String(localized: "\(elapsed / 60) minutes ago", comment: "Age of a usage reading, as in “Updated 5 minutes ago”. Needs plural forms.")
+        : String(localized: "\(elapsed / 3600) hours ago", comment: "Age of a usage reading, as in “Updated 2 hours ago”. Needs plural forms.")
+    if saved { return String(localized: "Last updated \(relative)") }
+    if elapsed >= 1800 { return String(localized: "Older reading · \(relative)") }
+    return String(localized: "Updated \(relative)")
 }

@@ -27,7 +27,7 @@ struct CodexAnalyticsView: View {
                 #endif
             }
             if history == nil, busy {
-                ForEach(["Daily usage", "By model", "By app"], id: \.self) { title in
+                ForEach([String(localized: "Daily usage"), String(localized: "By model"), String(localized: "By app")], id: \.self) { title in
                     AnalyticsSkeletonCard(title: title)
                 }
                 .accessibilityIdentifier("codexHistoryLoadingSkeleton")
@@ -41,17 +41,17 @@ struct CodexAnalyticsView: View {
                 .frame(maxWidth: .infinity, minHeight: 44)
             }
             if history != nil {
-                CodexTrendCard(title: "Daily usage", data: data, breakdown: nil,
+                CodexTrendCard(title: String(localized: "Daily usage"), data: data, breakdown: nil,
                                fetchedAt: history?.fetchedAt, saved: historyUnavailable)
-                CodexTrendCard(title: "By model", data: data, breakdown: .models)
-                CodexTrendCard(title: "By app", data: data, breakdown: .surfaces)
+                CodexTrendCard(title: String(localized: "By model"), data: data, breakdown: .models)
+                CodexTrendCard(title: String(localized: "By app"), data: data, breakdown: .surfaces)
             }
             if let spent = reading?.metadata?.usageSpent, spent > 0 {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Extra usage").font(.headline)
                     Text(spent.formatted(.currency(code: reading?.metadata?.usageCurrency ?? "USD")))
                         .font(.largeTitle.bold()).monospacedDigit()
-                    Text("Beyond your subscription · " + (reading?.fetchedAt.formatted(.dateTime.month(.wide)) ?? "This month"))
+                    Text("Beyond your subscription · \(reading?.fetchedAt.formatted(.dateTime.month(.wide)) ?? String(localized: "This month"))")
                         .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
                     Text("Converted at 25 credits = $1. Excludes your subscription price and credit purchases.")
                         .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
@@ -107,7 +107,7 @@ struct AnalyticsSkeletonCard: View {
         }
         .modifier(AnalyticsCard())
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Loading \(title.lowercased())")
+        .accessibilityLabel(String(localized: "Loading \(title)", comment: "VoiceOver for a loading chart card. The value is the card title, such as “Daily usage”."))
     }
 }
 
@@ -133,16 +133,18 @@ struct CodexTrendCard: View {
         let calendar = data.days.count
         guard let breakdown else {
             let zeroDays = data.days.filter { $0.credits == 0 }.count
-            return "\(reported) of \(calendar) calendar days reported" +
-                (reported < calendar ? " · missing days left empty" : "") +
-                (zeroDays > 0 ? " · \(zeroDays) reported as zero" : "")
+            return String(localized: "\(reported) of \(calendar) calendar days reported") +
+                (reported < calendar ? String(localized: " · missing days left empty") : "") +
+                (zeroDays > 0 ? String(localized: " · \(zeroDays) reported as zero") : "")
         }
         let attributed = data.days.filter { day in
             guard day.credits != nil else { return false }
             let values = breakdown == .models ? day.models : day.surfaces
             return values?.isEmpty == false
         }.count
-        return "\(reported) of \(calendar) days reported · \(attributed) include \(breakdown == .models ? "model" : "app") attribution"
+        return breakdown == .models
+            ? String(localized: "\(reported) of \(calendar) days reported · \(attributed) include model attribution")
+            : String(localized: "\(reported) of \(calendar) days reported · \(attributed) include app attribution")
     }
     private var selectedIndex: Int? {
         guard let selection else { return nil }
@@ -161,7 +163,7 @@ struct CodexTrendCard: View {
     private var points: [Point] {
         var result: [Point] = []
         let sources: [(String, [Double?])] = breakdown == nil
-            ? [("Usage", data.days.map(\.credits))]
+            ? [(String(localized: "Usage"), data.days.map(\.credits))]
             : visibleSeries.map { ($0.id, $0.values) }
         for (colorIndex, source) in sources.enumerated() {
             var segment = 0
@@ -181,8 +183,7 @@ struct CodexTrendCard: View {
             Text(title).font(.headline).foregroundStyle(AnalyticsStyle.primary)
             if (breakdown == nil && data.reportedDays > 0) || !series.isEmpty {
                 if breakdown == nil || focusedID != nil {
-                    Text((focusedID.flatMap { id in series.first { $0.id == id }?.total } ?? data.total)
-                        .formatted(.number.precision(.fractionLength(0...2))) + " usage credits")
+                    Text("\((focusedID.flatMap { id in series.first { $0.id == id }?.total } ?? data.total).formatted(.number.precision(.fractionLength(0...2)))) usage credits")
                         .font(.title.bold()).monospacedDigit()
                 }
                 if showsDateRange, let first = data.days.first, let last = data.days.last {
@@ -202,7 +203,7 @@ struct CodexTrendCard: View {
                     selectedDay(index)
                 }
                 if let breakdown, data.missingAttribution(breakdown) {
-                    Text("Some reported usage has no \(breakdown == .models ? "model" : "app") attribution.")
+                    Text(breakdown == .models ? "Some reported usage has no model attribution." : "Some reported usage has no app attribution.")
                         .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
                 }
                 if breakdown != nil && focusedID == nil {
@@ -242,7 +243,7 @@ struct CodexTrendCard: View {
                 }
             } else {
                 Text(breakdown == nil ? "Daily usage not reported for this period."
-                     : "No \(breakdown == .models ? "model" : "app") breakdown reported for this period.")
+                     : breakdown == .models ? "No model breakdown reported for this period." : "No app breakdown reported for this period.")
                     .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
             }
         }.modifier(CodexTrendSurface(principal: breakdown == nil || focusedID != nil))
@@ -250,9 +251,9 @@ struct CodexTrendCard: View {
     }
     private var daySelectionHint: String {
         #if os(macOS)
-        "Click a day to see its reported usage."
+        String(localized: "Click a day to see its reported usage.")
         #else
-        "Tap a day to see its reported usage."
+        String(localized: "Tap a day to see its reported usage.")
         #endif
     }
     private var showsDateRange: Bool {
@@ -283,7 +284,7 @@ struct CodexTrendCard: View {
         .chartLegend(.hidden)
         .chartXSelection(value: $selection)
         .frame(height: typeSize.isAccessibilitySize ? 220 : (breakdown == nil || focusedID != nil ? 170 : 130))
-        .accessibilityLabel(title + " trend")
+        .accessibilityLabel(String(localized: "\(title) trend"))
         .accessibilityHint("Daily values are also available using View daily readings.")
         #if os(macOS)
         .help(daySelectionHint)
@@ -323,8 +324,10 @@ struct CodexTrendCard: View {
         let amount = focusedID.flatMap { id in series.first { $0.id == id }?.values[index] } ?? day.credits
         return VStack(alignment: .leading, spacing: 4) {
             Text(Self.dateLabel(day.date)).font(.callout.weight(.semibold))
-            Text(amount.map { $0.formatted(.number.precision(.fractionLength(0...2))) +
-                 (breakdown != nil && focusedID == nil ? " total usage credits" : " usage credits") } ?? "Not reported")
+            Text(amount.map { breakdown != nil && focusedID == nil
+                    ? String(localized: "\($0.formatted(.number.precision(.fractionLength(0...2)))) total usage credits")
+                    : String(localized: "\($0.formatted(.number.precision(.fractionLength(0...2)))) usage credits") }
+                 ?? String(localized: "Not reported"))
                 .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -337,8 +340,8 @@ struct CodexTrendCard: View {
                 Spacer(minLength: 8)
                 Image(systemName: "chevron.right").font(.caption).foregroundStyle(AnalyticsStyle.secondary)
             }
-            Text(item.total.formatted(.number.precision(.fractionLength(0...2))) + " credits · " +
-                 (data.total > 0 ? (item.total / data.total).formatted(.percent.precision(.fractionLength(0))) + " of reported usage" : ""))
+            Text(String(localized: "\(item.total.formatted(.number.precision(.fractionLength(0...2)))) credits") + " · " +
+                 (data.total > 0 ? String(localized: "\((item.total / data.total).formatted(.percent.precision(.fractionLength(0)))) of reported usage") : ""))
                 .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }.frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
@@ -351,9 +354,9 @@ struct CodexTrendCard: View {
         CodexHistoryPeriod.date(string)?.formatted(Date.FormatStyle(timeZone: TimeZone(secondsFromGMT: 0)!).month(.abbreviated).day()) ?? string
     }
     static func displayName(_ name: String) -> String {
-        ["cli": "CLI", "vscode": "VS Code", "desktop_app": "Desktop", "web": "Web",
-         "mobile": "Mobile", "sdk": "SDK", "github_code_review": "GitHub review",
-         "codex-auto-review": "Auto review"][name]
+        ["cli": "CLI", "vscode": "VS Code", "desktop_app": String(localized: "Desktop"), "web": String(localized: "Web"),
+         "mobile": String(localized: "Mobile"), "sdk": "SDK", "github_code_review": String(localized: "GitHub review"),
+         "codex-auto-review": String(localized: "Auto review")][name]
             ?? name.replacingOccurrences(of: "gpt-", with: "GPT-").replacingOccurrences(of: "_", with: " ")
     }
 }

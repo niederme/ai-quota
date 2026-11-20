@@ -135,7 +135,7 @@ struct MacAccountCard: View {
                                loading: loading, connected: connected || (loading && hasReading),
                                hasIssue: !loading && issue != nil,
                                showsSecondaryPlaceholder: secondaryPercent != nil || !hasReading)
-                    .help(budget == nil ? primaryLabel : "\(CalendarMonthLabel.spoken(containing: readingAt)). Reset uses the provider's date.")
+                    .help(budget == nil ? WindowKeyText.display(primaryLabel) : String(localized: "\(CalendarMonthLabel.spoken(containing: readingAt)). Reset uses the provider's date."))
                 details
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -295,9 +295,9 @@ struct MacAccountCard: View {
         // Routine refresh keeps saved readings at full strength. Only initial
         // loading and an explicit reconnect need progress over the row.
         if loading { return nil }
-        if issue != nil { return hasReading ? "Couldn’t update · Saved reading" : "Couldn’t load allowance" }
-        if !connected { return hasReading ? nil : "Not connected" }
-        if !hasReading { return "No reading yet" }
+        if issue != nil { return hasReading ? String(localized: "Couldn’t update · Saved reading") : String(localized: "Couldn’t load allowance") }
+        if !connected { return hasReading ? nil : String(localized: "Not connected") }
+        if !hasReading { return String(localized: "No reading yet") }
         return nil
     }
 
@@ -319,17 +319,19 @@ struct MacAccountCard: View {
     // Every caption names its window ("5h resets Wed 3:00 AM"), worded like
     // the iOS card's QuotaWindow.resetDescription so both platforms read the same.
     private func resetText(_ window: String, at date: Date?, monthly: Bool) -> String {
+        let window = WindowKeyText.display(window)
         guard let date, date != .distantFuture, date != .distantPast else {
-            return "\(window) reset unavailable"
+            return String(localized: "\(window) reset unavailable")
         }
         let now = Date.now
-        guard date > now else { return "\(window) reset awaiting confirmation" }
+        guard date > now else { return String(localized: "\(window) reset awaiting confirmation") }
         let format: Date.FormatStyle = Calendar.current.isDate(date, inSameDayAs: now)
             ? .dateTime.hour().minute()
             : monthly || date.timeIntervalSince(now) >= 6 * 86400
                 ? .dateTime.month(.abbreviated).day().hour().minute()
                 : .dateTime.weekday(.abbreviated).hour().minute()
-        return "\(window) resets \(date.formatted(format))"
+        return String(localized: "reset.at", defaultValue: "\(window) resets \(date.formatted(format))",
+                      comment: "Reset caption at a calendar time. First value is a window key such as “7d”, second a clock time or day and time such as “Wed 3:00 PM”, never a duration. Means the window resets at that time.")
     }
 
     /// Matches iOS: whole currency amounts drop their cents ("$1,000"), fractional keep two.
@@ -345,15 +347,17 @@ struct MacAccountCard: View {
     private func budgetSummary(_ budget: (used: Double, limit: Double, unit: String,
                                            currency: String?, reset: Date?)) -> String {
         let unit = budget.unit.lowercased()
-        let suffix = budget.currency == nil && (unit == "credit" || unit == "credits") ? " credits" : ""
-        return "\(amount(budget.used, currency: budget.currency)) of \(amount(budget.limit, currency: budget.currency))\(suffix)"
+        let used = amount(budget.used, currency: budget.currency), limit = amount(budget.limit, currency: budget.currency)
+        return budget.currency == nil && (unit == "credit" || unit == "credits")
+            ? String(localized: "\(used) of \(limit) credits")
+            : String(localized: "\(used) of \(limit)")
     }
 
     private var accessibilitySummary: String {
-        let period = budget == nil ? primaryLabel : CalendarMonthLabel.spoken(containing: readingAt)
-        let percentage = primaryPercent.map { ", \($0) percent used, \(period)" } ?? ""
-        let secondary = secondaryPercent.map { ", \($0) percent used in 7d" } ?? ""
-        let activity = loading ? (hasReading ? "Refreshing saved reading" : "Connecting") : statusExplanation
+        let period = budget == nil ? WindowKeyText.display(primaryLabel) : CalendarMonthLabel.spoken(containing: readingAt)
+        let percentage = primaryPercent.map { String(localized: ", \($0) percent used, \(period)") } ?? ""
+        let secondary = secondaryPercent.map { String(localized: ", \($0) percent used in 7d") } ?? ""
+        let activity = loading ? (hasReading ? String(localized: "Refreshing saved reading") : String(localized: "Connecting")) : statusExplanation
         return "\(self.identity.title)\(percentage)\(secondary)\(activity.map { ", \($0)" } ?? "")"
     }
 }

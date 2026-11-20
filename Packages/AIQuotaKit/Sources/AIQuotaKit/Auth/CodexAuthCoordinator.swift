@@ -1494,7 +1494,7 @@ private final class CodexLoginWindowController: NSObject {
                         let count = session.cookiesToCommit?.count ?? 0
                         let recognized = !session.sessionToken.isEmpty
                         self.logger.notice("[CodexLogin] candidate workspace accepted cookieCount=\(count, privacy: .public) recognizedSessionCookie=\(recognized, privacy: .public)")
-                        self.window?.title = "Checking ChatGPT sign-in…"
+                        self.window?.title = String(localized: "Checking ChatGPT sign-in…", bundle: .module)
                         let verified = session.cookiesToCommit == nil ? session : try await self.stagedSessionVerifier(session)
                         guard !self.hasCompleted, self.attempt.accepts(generation) else { return }
                         guard CodexAuthCoordinator.acceptsInteractiveSession(verified, expectedAccountID: self.expectedAccountID) else {
@@ -1534,7 +1534,7 @@ private final class CodexLoginWindowController: NSObject {
         guard let webView, window == nil else { return }
         let win = NSWindow(contentRect: .init(x: 0, y: 0, width: 520, height: 680),
                            styleMask: [.titled, .closable], backing: .buffered, defer: false)
-        win.title = "Sign in to ChatGPT"
+        win.title = String(localized: "Sign in to ChatGPT", bundle: .module)
         let content = NSView()
         let stack = NSStackView()
         stack.orientation = .vertical
@@ -1550,11 +1550,11 @@ private final class CodexLoginWindowController: NSObject {
         browserStack = stack
         content.addSubview(stack)
 
-        let check = NSButton(title: "Check sign-in", target: self, action: #selector(checkSignIn))
-        check.toolTip = "Check again after signing in or choosing the saved workspace."
-        let cancel = NSButton(title: "Cancel", target: self, action: #selector(cancelSignIn))
-        let retry = NSButton(title: "Try another account", target: self, action: #selector(tryAnotherAccount))
-        retry.toolTip = "Start a fresh sign-in without changing your saved connection."
+        let check = NSButton(title: String(localized: "Check sign-in", bundle: .module), target: self, action: #selector(checkSignIn))
+        check.toolTip = String(localized: "Check again after signing in or choosing the saved workspace.", bundle: .module)
+        let cancel = NSButton(title: String(localized: "Cancel", bundle: .module), target: self, action: #selector(cancelSignIn))
+        let retry = NSButton(title: String(localized: "Try another account", bundle: .module), target: self, action: #selector(tryAnotherAccount))
+        retry.toolTip = String(localized: "Start a fresh sign-in without changing your saved connection.", bundle: .module)
         retry.isHidden = true
         retryButton = retry
         for view in [check, cancel, retry] {
@@ -1609,7 +1609,7 @@ private final class CodexLoginWindowController: NSObject {
         feedbackView.isHidden = true
         lastFeedback = nil
         retryButton?.isHidden = true
-        window?.title = "Sign in to ChatGPT"
+        window?.title = String(localized: "Sign in to ChatGPT", bundle: .module)
         browser.load(URLRequest(url: CodexAuthCoordinator.loginURL))
     }
 
@@ -1704,7 +1704,7 @@ extension CodexLoginWindowController: WKUIDelegate {
         let popup = WKWebView(frame: .init(x: 0, y: 0, width: 480, height: 640), configuration: configuration)
         popup.navigationDelegate = self
         popup.uiDelegate = self
-        hostPopup(popup, title: "Sign in")
+        hostPopup(popup, title: String(localized: "Sign in", bundle: .module))
         return popup
     }
 

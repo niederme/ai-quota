@@ -16,6 +16,21 @@ struct LockScreenResetPresentation: Equatable {
               let reset = reading.primaryWindow?.resetsAt,
               reset.timeIntervalSince1970.isFinite,
               reset.timeIntervalSince1970 < 253402300800, reset > date else { return nil }
+        let spoken = DateFormatter()
+        spoken.locale = locale
+        spoken.calendar = calendar
+        spoken.timeZone = calendar.timeZone
+        spoken.dateStyle = .full
+        spoken.timeStyle = .short
+        let accessibilityText = String(localized: "Reset expected \(spoken.string(from: reset))")
+        guard locale.language.languageCode == .english else {
+            let short = DateFormatter()
+            short.locale = locale
+            short.calendar = calendar
+            short.timeZone = calendar.timeZone
+            short.setLocalizedDateFormatFromTemplate("EEEjmm")
+            return Self(text: short.string(from: reset), accessibilityText: accessibilityText)
+        }
         let weekday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][calendar.component(.weekday, from: reset) - 1]
         let time = DateFormatter()
         // Explicitly requested three-letter English days and 12-hour AM/PM copy.
@@ -23,13 +38,6 @@ struct LockScreenResetPresentation: Equatable {
         time.calendar = calendar
         time.timeZone = calendar.timeZone
         time.dateFormat = "h:mm a"
-        let spoken = DateFormatter()
-        spoken.locale = locale
-        spoken.calendar = calendar
-        spoken.timeZone = calendar.timeZone
-        spoken.dateStyle = .full
-        spoken.timeStyle = .short
-        return Self(text: weekday + " " + time.string(from: reset),
-                    accessibilityText: "Reset expected " + spoken.string(from: reset))
+        return Self(text: weekday + " " + time.string(from: reset), accessibilityText: accessibilityText)
     }
 }

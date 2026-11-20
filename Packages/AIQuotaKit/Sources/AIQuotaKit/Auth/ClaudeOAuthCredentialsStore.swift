@@ -31,17 +31,17 @@ public enum ClaudeOAuthCredentialsError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .notFound:
-            "Claude Code credentials not found. Run `claude` to sign in."
+            String(localized: "Claude Code credentials not found. Run `claude` to sign in.", bundle: .module)
         case .decodeFailed:
-            "Could not decode Claude Code credentials."
+            String(localized: "Could not decode Claude Code credentials.", bundle: .module)
         case .missingOAuth:
-            "Claude Code credentials do not contain Claude.ai OAuth data."
+            String(localized: "Claude Code credentials do not contain Claude.ai OAuth data.", bundle: .module)
         case .missingAccessToken:
-            "Claude Code credentials are missing an access token."
+            String(localized: "Claude Code credentials are missing an access token.", bundle: .module)
         case .expired:
-            "Open Claude Code to refresh your session."
+            String(localized: "Open Claude Code to refresh your session.", bundle: .module)
         case .missingScope:
-            "Claude Code credentials do not include usage scope."
+            String(localized: "Claude Code credentials do not include usage scope.", bundle: .module)
         }
     }
 }
@@ -154,7 +154,7 @@ private struct ClaudeOAuthKeychainError: LocalizedError {
 
     var errorDescription: String? {
         SecCopyErrorMessageString(status, nil) as String?
-            ?? "Claude Code Keychain lookup failed with status \(status)."
+            ?? String(localized: "Claude Code Keychain lookup failed with status \(status).", bundle: .module)
     }
 }
 

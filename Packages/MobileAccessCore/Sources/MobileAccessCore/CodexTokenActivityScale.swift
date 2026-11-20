@@ -11,7 +11,9 @@ import Foundation
 /// to it evenly, so each step is roughly 2.3× more tokens; anything above the
 /// big day is the top step and anything below 1/30 of it is the first.
 public struct CodexTokenActivityScale: Sendable {
-    public static let explanation = "Intensity relative to your own busiest days in the past year."
+    public static var explanation: String {
+        String(localized: "Intensity relative to your own busiest days in the past year.", bundle: .module, comment: "Legend under the activity graph.")
+    }
     static let baselineDays = 364
     static let minimumPercentileSamples = 10
     static let referencePercentile = 0.90

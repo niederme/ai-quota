@@ -445,9 +445,9 @@ struct PopoverView: View {
                         used: used, limit: limit,
                         usedText: budgetValue(used, unit: budget.unit),
                         limitText: budgetValue(limit, unit: budget.unit),
-                        unitLabel: budget.unit?.lowercased() == "credit" ? "credits this month"
-                            : (budget.unit?.lowercased() == "usd" ? "monthly spend" : "monthly allowance"),
-                        amountSuffix: budget.unit?.lowercased() == "credit" ? " credits" : "",
+                        unitLabel: budget.unit?.lowercased() == "credit" ? String(localized: "credits this month")
+                            : (budget.unit?.lowercased() == "usd" ? String(localized: "monthly spend") : String(localized: "monthly allowance")),
+                        showsCreditsUnit: budget.unit?.lowercased() == "credit",
                         icon: "logo-openai", label: "Codex", resetAt: budget.resetAt,
                         readingAt: u.fetchedAt,
                         isRefreshing: viewModel.isCodexLoading,
@@ -514,7 +514,7 @@ struct PopoverView: View {
                         used: spend.used, limit: spend.limit,
                         usedText: budgetValue(spend.used, unit: spend.currencyCode),
                         limitText: budgetValue(spend.limit, unit: spend.currencyCode),
-                        unitLabel: spend.currencyCode?.uppercased() == "USD" ? "monthly spend" : "monthly allowance",
+                        unitLabel: spend.currencyCode?.uppercased() == "USD" ? String(localized: "monthly spend") : String(localized: "monthly allowance"),
                         icon: "logo-claude", label: "Claude Code", resetAt: nil,
                         readingAt: u.fetchedAt,
                         isRefreshing: viewModel.isClaudeLoading,
@@ -628,26 +628,26 @@ struct PopoverView: View {
         var lines: [String]
         if u.reportedWindowShape == .dual {
             lines = [
-                "\(formatWindowDuration(u.hourlyWindowSeconds)) window: \(u.hourlyUsedPercent)% used",
-                "7-day window: \(u.weeklyUsedPercent)% used",
+                String(localized: "\(formatWindowDuration(u.hourlyWindowSeconds)) window: \(u.hourlyUsedPercent)% used"),
+                String(localized: "7-day window: \(u.weeklyUsedPercent)% used"),
             ]
         } else if u.reportedWindowShape == .weeklyOnly {
             lines = [
-                "5h window: not currently reported",
-                "7-day window: \(u.weeklyUsedPercent)% used",
+                String(localized: "5h window: not currently reported"),
+                String(localized: "7-day window: \(u.weeklyUsedPercent)% used"),
             ]
-        } else { lines = ["Usage unavailable"] }
-        if let balance = u.creditBalance { lines.append("Credit balance: \(formatCodexDollarAmount(balance))") }
+        } else { lines = [String(localized: "Usage unavailable")] }
+        if let balance = u.creditBalance { lines.append(String(localized: "Credit balance: \(formatCodexDollarAmount(balance))")) }
         if let spent = u.bonusCreditsSpentThisMonth, spent > 0 {
-            lines.append("Credits used: \(formatCodexDollarAmount(spent))")
+            lines.append(String(localized: "Credits used: \(formatCodexDollarAmount(spent))"))
         }
         if let local = u.approxLocalMessages, local.count == 2 {
-            lines.append("Local messages: ~\(local[0]) / \(local[1])")
+            lines.append(String(localized: "Local messages: ~\(local[0]) / \(local[1])"))
         }
         if let cloud = u.approxCloudMessages, cloud.count == 2 {
-            lines.append("Cloud messages: ~\(cloud[0]) / \(cloud[1])")
+            lines.append(String(localized: "Cloud messages: ~\(cloud[0]) / \(cloud[1])"))
         }
-        lines.append("Plan: \(u.displayPlan)")
+        lines.append(String(localized: "Plan: \(u.displayPlan)"))
         return lines.joined(separator: "\n")
     }
 
@@ -673,21 +673,21 @@ struct PopoverView: View {
 
     private func claudeAccessibilitySummary(_ u: ClaudeUsage) -> String {
         var lines = [
-            "\(u.primaryMetricLabel) usage: \(u.primaryMetric.utilization.map { "\(UsagePercentage.roundedForDisplay($0))% used" } ?? "unknown")",
+            String(localized: "\(WindowKeyText.display(u.primaryMetricLabel)) usage: \(u.primaryMetric.utilization.map { String(localized: "\(UsagePercentage.roundedForDisplay($0))% used") } ?? String(localized: "unknown"))"),
         ]
         if u.primaryMetric.kind != .sevenDay, let sevenDay = u.sevenDayUtilization {
-            lines.append("7-day window: \(Int(sevenDay.rounded()))% used")
+            lines.append(String(localized: "7-day window: \(Int(sevenDay.rounded()))% used"))
         }
         if let bonus = u.bonusUsage {
-            lines.append("Spent this month: \(formatBonusSpend(bonus))")
+            lines.append(String(localized: "Spent this month: \(formatBonusSpend(bonus))"))
         }
         if let extra = u.extraUsage, extra.isEnabled {
-            lines.append("Monthly limit: \(Int(extra.usedCredits)) / \(extra.monthlyLimit)")
+            lines.append(String(localized: "Monthly limit: \(Int(extra.usedCredits)) / \(extra.monthlyLimit)"))
         }
         if let spend = u.spendLimit {
-            lines.append("Spend limit: \(Int(spend.used)) / \(Int(spend.limit))")
+            lines.append(String(localized: "Spend limit: \(Int(spend.used)) / \(Int(spend.limit))"))
         }
-        lines.append("Plan: \(u.planDisplayName)")
+        lines.append(String(localized: "Plan: \(u.planDisplayName)"))
         return lines.joined(separator: "\n")
     }
 
@@ -811,33 +811,33 @@ struct PopoverView: View {
     }
 
     private func compactRow(
-        _ label: String,
+        _ label: LocalizedStringResource,
         _ value: String,
         labelTint: Color = .secondary,
         valueTint: Color = .primary,
         suffix: String? = nil,
-        infoTitle: String? = nil,
+        infoTitle: LocalizedStringResource? = nil,
         infoHelp: String? = nil,
         stacked: Bool = false
     ) -> some View {
         CompactStatRow(
-            label: label,
+            label: String(localized: label),
             value: value,
             labelTint: labelTint,
             valueTint: valueTint,
             suffix: suffix,
-            infoTitle: infoTitle,
+            infoTitle: infoTitle.map { String(localized: $0) },
             infoHelp: infoHelp,
             stacked: stacked
         )
     }
 
     private var codexSpentHelpText: String {
-        "AIQuota sums \(currentMonthName)’s usage-credit events and converts them at 25 credits = $1."
+        String(localized: "AIQuota sums \(currentMonthName)’s usage-credit events and converts them at 25 credits = $1.")
     }
 
     private var claudeUsageCreditsHelpText: String {
-        "Claude reports both as one monthly total and doesn’t provide a reliable breakdown."
+        String(localized: "Claude reports both as one monthly total and doesn’t provide a reliable breakdown.")
     }
 
     private var currentMonthName: String {
@@ -947,7 +947,7 @@ struct PopoverView: View {
         .padding(.bottom, 10)
     }
 
-    private func footerActionLabel(_ title: String) -> some View {
+    private func footerActionLabel(_ title: LocalizedStringKey) -> some View {
         Text(title)
     }
 
@@ -979,7 +979,7 @@ struct PopoverView: View {
 
     private struct ErrorBanner: Identifiable {
         let id: String
-        let message: String
+        let message: LocalizedStringKey
         let dismiss: () -> Void
         let retry: (() -> Void)?
         let signIn: (() -> Void)?
@@ -1040,9 +1040,9 @@ struct PopoverView: View {
 
     private func formatWindowDuration(_ seconds: Int) -> String {
         let days = seconds / 86_400
-        if days > 0, seconds.isMultiple(of: 86_400) { return "\(days)d" }
+        if days > 0, seconds.isMultiple(of: 86_400) { return WindowKeyText.days(days) }
         let hours = seconds / 3600
-        return hours > 0 ? "\(hours)h" : "\(seconds / 60)m"
+        return hours > 0 ? WindowKeyText.hours(hours) : String(localized: "\(seconds / 60)m", comment: "Compact window key in minutes, such as “30m”.")
     }
 }
 
@@ -1069,7 +1069,7 @@ private struct CompactStatRow: View {
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: -2))
             : AnyLayout(HStackLayout(alignment: .center, spacing: 4))
         layout {
-            Text(label + ":")
+            Text("\(label):")
                 .font(.caption2)
                 .foregroundStyle(labelTint)
                 .fixedSize(horizontal: false, vertical: true)
@@ -1219,9 +1219,9 @@ private struct CodexCreditsRow: View {
     }
 
     private var statusText: String? {
-        if isExhaustedWithoutReload { return "reload off" }
+        if isExhaustedWithoutReload { return String(localized: "reload off") }
         if let autoReload, autoReload.isEnabled, balance <= autoReload.rechargeThreshold {
-            return "· auto-reload"
+            return String(localized: "· auto-reload")
         }
         return nil
     }
@@ -1317,12 +1317,12 @@ private struct CodexCreditsRow: View {
 
     private var helpText: String {
         guard let autoReload else {
-            return "Codex credits: \(balanceText)"
+            return String(localized: "Codex credits: \(balanceText)")
         }
         if autoReload.isEnabled {
-            return "Codex credits: \(balanceText)\nAuto-reload at \(formatCodexDollarAmount(autoReload.rechargeThreshold)); target \(formatCodexDollarAmount(autoReload.rechargeTarget))."
+            return String(localized: "Codex credits: \(balanceText)\nAuto-reload at \(formatCodexDollarAmount(autoReload.rechargeThreshold)); target \(formatCodexDollarAmount(autoReload.rechargeTarget)).")
         }
-        return "Codex credits: \(balanceText)\nAuto-reload is off."
+        return String(localized: "Codex credits: \(balanceText)\nAuto-reload is off.")
     }
 }
 
@@ -1538,14 +1538,14 @@ private extension Date {
     var relativeFormatted: String {
         let elapsed = Int(-timeIntervalSinceNow)
         switch elapsed {
-        case ..<10:  return "Just now"
-        case ..<60:  return "\(elapsed)s ago"
+        case ..<10:  return String(localized: "Just now")
+        case ..<60:  return String(localized: "\(elapsed)s ago")
         case ..<3600:
             let m = elapsed / 60
-            return "\(m)m ago"
+            return String(localized: "\(m)m ago")
         default:
             let h = elapsed / 3600
-            return "\(h)h ago"
+            return String(localized: "\(h)h ago")
         }
     }
 }

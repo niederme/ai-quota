@@ -24,15 +24,15 @@ public enum CodexOAuthCredentialsError: LocalizedError, Sendable {
     public var errorDescription: String? {
         switch self {
         case .notFound:
-            "Codex CLI credentials not found. Run `codex` to sign in."
+            String(localized: "Codex CLI credentials not found. Run `codex` to sign in.", bundle: .module)
         case .decodeFailed:
-            "Could not decode Codex CLI credentials."
+            String(localized: "Could not decode Codex CLI credentials.", bundle: .module)
         case .missingTokens:
-            "Codex CLI credentials do not contain OAuth tokens."
+            String(localized: "Codex CLI credentials do not contain OAuth tokens.", bundle: .module)
         case .missingAccessToken:
-            "Codex CLI credentials are missing an access token."
+            String(localized: "Codex CLI credentials are missing an access token.", bundle: .module)
         case .expired:
-            "Run `codex` to refresh your session."
+            String(localized: "Run `codex` to refresh your session.", bundle: .module)
         }
     }
 }

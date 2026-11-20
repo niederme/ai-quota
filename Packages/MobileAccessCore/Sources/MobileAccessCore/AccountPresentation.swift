@@ -24,14 +24,20 @@ public struct AccountPresentation: Equatable, Sendable {
     public let requiresName: Bool
     /// Notifications omit aliases (which may contain private names or emails).
     public let notificationTitle: String
-    public var managementHint: String? { requiresName ? "Give matching connections distinct names in Settings" : nil }
+    public var managementHint: String? {
+        requiresName ? String(localized: "Give matching connections distinct names in Settings", bundle: .module,
+                              comment: "Hint shown when two connected accounts would otherwise look identical.") : nil
+    }
+    static var planUnavailable: String {
+        String(localized: "Plan unavailable", bundle: .module, comment: "Shown under an account name when the provider did not report a plan.")
+    }
 
     /// Split cards need plan/alias below the service. A full identity already
     /// includes both; keep only metadata that adds information beneath it.
     public func subtitle(for heading: HeadingStyle) -> String? {
         switch heading {
         case .service: return subtitle
-        case .fullIdentity: return plan == nil ? "Plan unavailable" : nil
+        case .fullIdentity: return plan == nil ? Self.planUnavailable : nil
         }
     }
 
@@ -40,7 +46,9 @@ public struct AccountPresentation: Equatable, Sendable {
         let matching = peers.filter { $0.key != identity.key && fold(components($0).title) == fold(base.title) }
         let privateMatching = peers.filter { $0.key != identity.key && fold(components($0).notificationTitle) == fold(base.notificationTitle) }
         return Self(service: base.service, plan: base.plan, alias: base.alias, title: base.title, subtitle: base.subtitle, requiresName: !matching.isEmpty,
-                    notificationTitle: privateMatching.isEmpty ? base.notificationTitle : "\(identity.service) usage update")
+                    notificationTitle: privateMatching.isEmpty ? base.notificationTitle
+                        : String(localized: "\(identity.service) usage update", bundle: .module,
+                                 comment: "Notification title when account names would reveal private details. The value is Claude or Codex."))
     }
 
     private static func components(_ i: AccountIdentity) -> Self {
@@ -60,7 +68,8 @@ public struct AccountPresentation: Equatable, Sendable {
         if let shown, fold(shown) != fold(stem), fold(shown) != fold(service) {
             title = plan == nil && shown.lowercased().hasPrefix(service.lowercased() + " ") ? shown : "\(stem) · \(shown)"
         } else { title = stem }
-        let subtitle = [plan.map { "\($0) plan" } ?? "Plan unavailable", shown.flatMap { fold($0) == fold(stem) || fold($0) == fold(service) ? nil : $0 }].compactMap { $0 }.joined(separator: " · ")
+        let planText = plan.map { String(localized: "\($0) plan", bundle: .module, comment: "Account subtitle. The value is a plan name such as Pro or Max, never translated.") }
+        let subtitle = [planText ?? planUnavailable, shown.flatMap { fold($0) == fold(stem) || fold($0) == fold(service) ? nil : $0 }].compactMap { $0 }.joined(separator: " · ")
         return Self(service: service, plan: plan, alias: alias, title: title, subtitle: subtitle, requiresName: false, notificationTitle: stem)
     }
     /// The part of `name` after a leading `prefix` and any separator, or `name`

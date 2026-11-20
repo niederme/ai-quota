@@ -28,7 +28,7 @@ final class ClaudeProbeModel {
     private(set) var reading: QuotaReading?
     private(set) var signInCompletionID: UUID?
     private(set) var busy = false
-    private(set) var message = "Connect Claude to see your usage."
+    private(set) var message = String(localized: "Connect Claude to see your usage.")
     private(set) var error: String?
     private(set) var connectionFailure: SharedQuotaStore.Failure?
     private(set) var renewedAt: Date?
@@ -50,7 +50,7 @@ final class ClaudeProbeModel {
         self.cacheKey = profile.map { "mobileProbe.claudeReading." + $0.id } ?? "mobileProbe.claudeReading"
         if isDemo {
             reading = DemoQuotaData.reading(.claude)
-            message = "Sample usage. No account connected."
+            message = String(localized: "Sample usage. No account connected.")
             return
         }
         guard restore else { return }
@@ -59,13 +59,13 @@ final class ClaudeProbeModel {
                 ?? (usesLegacyStorage ? ClaudeTokenStore.load() : nil)
             if tokens != nil {
                 connectionFailure = self.shared.failure()
-                message = "Connected. Your usage updates automatically."
+                message = String(localized: "Connected. Your usage updates automatically.")
                 reading = self.shared.reading()
                 if reading == nil, let data = cachedReadingData() {
                     reading = try? JSONDecoder().decode(QuotaReading.self, from: data)
                 }
             }
-        } catch { self.error = "Could not read this device’s saved connection." }
+        } catch { self.error = String(localized: "Could not read this device’s saved connection.") }
     }
     private func cachedReadingData() -> Data? {
         if let data = defaults.data(forKey: cacheKey) { return data }
@@ -87,8 +87,8 @@ final class ClaudeProbeModel {
         do {
             challenge = try ClaudeChallenge()
             error = nil
-            message = "Sign in with Claude. If needed, use Safari and paste the authorization code."
-        } catch { self.error = "Could not prepare sign-in. Try again." }
+            message = String(localized: "Sign in with Claude. If needed, use Safari and paste the authorization code.")
+        } catch { self.error = String(localized: "Could not prepare sign-in. Try again.") }
     }
     func finishSignIn(_ pasted: String,
                       afterSuccessfulSignIn: @escaping @MainActor (String?) async -> Void = { _ in }) {
@@ -103,7 +103,7 @@ final class ClaudeProbeModel {
                let conflict = AccountRegistry.identityConflict(for: profile, signingInAs: organizationID) {
                 challenge = nil
                 error = AccountRegistry.message(for: conflict, profile: profile)
-                message = "Nothing was changed."
+                message = String(localized: "Nothing was changed.")
                 return
             }
             let migrateLegacy = usesLegacyStorage
@@ -116,7 +116,7 @@ final class ClaudeProbeModel {
             webDetailsSession.invalidate()
             tokens = newTokens
             challenge = nil
-            message = "Signed in on this device. Checking quota…"
+            message = String(localized: "Signed in on this device. Checking quota…")
             try await fetch(forceRenewal: false)
             await afterSuccessfulSignIn(organizationID)
             signInCompletionID = UUID()
@@ -146,7 +146,7 @@ final class ClaudeProbeModel {
             return .verified(organizationID)
         } catch let accessError as ClaudeAccessError where accessError.requiresReconnect {
             connectionFailure = .reconnect
-            error = "Claude sign-in expired. Reconnect to continue. Your last reading is saved."
+            error = String(localized: "Claude sign-in expired. Reconnect to continue. Your last reading is saved.")
             return .reconnectRequired
         } catch {
             // Profile lookup can fail independently of the saved allowance.
@@ -181,7 +181,7 @@ final class ClaudeProbeModel {
             }
             if migrateLegacy { try ClaudeTokenStore.clear() }
         }
-        message = "Updating allowance…"
+        message = String(localized: "Updating allowance…")
         let value: QuotaReading
         if let fetchUsage {
             value = try await fetchUsage(forceRenewal, minimumAge)
@@ -195,7 +195,7 @@ final class ClaudeProbeModel {
         defaults.set(try JSONEncoder().encode(value), forKey: cacheKey)
         if forceRenewal { renewedAt = .now }
         WidgetCenter.shared.reloadAllTimelines()
-        message = "Usage updated."
+        message = String(localized: "Usage updated.")
     }
     private func run(_ action: @escaping @MainActor () async throws -> Void) {
         error = nil
@@ -211,8 +211,8 @@ final class ClaudeProbeModel {
                 if self.challenge == nil { self.connectionFailure = SharedQuotaStore.Failure.classify(error) }
                 self.error = (error as? ClaudeAccessError)?.errorDescription
                     ?? (error as? AccessError)?.errorDescription
-                    ?? "The request did not complete. Check your connection and try again."
-                self.message = "Couldn’t update usage. Your last reading is still shown."
+                    ?? String(localized: "The request did not complete. Check your connection and try again.")
+                self.message = String(localized: "Couldn’t update usage. Your last reading is still shown.")
             }
             guard let self, self.generation == id else { return }
             self.quietlyRefreshing = false
@@ -228,7 +228,7 @@ final class ClaudeProbeModel {
         quietlyRefreshing = false
         busy = false
         challenge = nil
-        message = "Check cancelled."
+        message = String(localized: "Check cancelled.")
     }
     func disconnect() {
         guard !isDemo else { return }
@@ -246,7 +246,7 @@ final class ClaudeProbeModel {
         try await clearConnection()
         foregroundRefresh.reset()
         signInCompletionID = nil
-        message = "Connect Claude to see your usage."
+        message = String(localized: "Connect Claude to see your usage.")
     }
     private func clearConnection() async throws {
         let clearLegacy = usesLegacyStorage
@@ -265,6 +265,6 @@ final class ClaudeProbeModel {
         renewedAt = nil
         connectionFailure = nil
         error = nil
-        message = "Connection removed from this device."
+        message = String(localized: "Connection removed from this device.")
     }
 }

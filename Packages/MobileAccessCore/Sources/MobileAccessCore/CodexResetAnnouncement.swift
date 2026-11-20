@@ -22,8 +22,15 @@ public struct CodexResetAnnouncement: Decodable, Sendable, Equatable, Identifiab
     }
 
     public var title: String {
-        if status == "hint" { return "Codex usage may reset soon" }
-        return reset_type == "banked" ? "Codex reset credit announced" : "Codex usage reset announced"
+        if status == "hint" {
+            return String(localized: "Codex usage may reset soon", bundle: .module,
+                          comment: "Banner title when the public Codex Resets tracker hints that OpenAI may reset Codex usage limits soon. Keep “Codex” untranslated.")
+        }
+        return reset_type == "banked"
+            ? String(localized: "Codex reset credit announced", bundle: .module,
+                     comment: "Banner title when OpenAI announced a banked reset credit: a reset the user can trigger later in Codex. Keep “Codex” untranslated.")
+            : String(localized: "Codex usage reset announced", bundle: .module,
+                     comment: "Banner title when OpenAI announced a reset of everyone's Codex usage limits. Keep “Codex” untranslated.")
     }
 
     public var expiresAt: Date {

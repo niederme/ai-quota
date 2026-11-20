@@ -9,16 +9,16 @@ final class CopySignInCodeRequestHandler: NSObject, @preconcurrency NSExtensionR
         request = context
         do {
             guard let entry = try SignInCodeStore.load() else {
-                finish("Code unavailable. Start sign-in again in AIQuota.", success: false)
+                finish(String(localized: "Code unavailable. Start sign-in again in AIQuota."), success: false)
                 return
             }
             UIPasteboard.general.setItems(
                 [[UIPasteboard.typeAutomatic: entry.code]],
                 options: [.localOnly: true, .expirationDate: entry.expiresAt]
             )
-            finish("Code copied", success: true)
+            finish(String(localized: "Code copied"), success: true)
         } catch {
-            finish("Couldn’t copy. Try again in AIQuota.", success: false)
+            finish(String(localized: "Couldn’t copy. Try again in AIQuota."), success: false)
         }
     }
 

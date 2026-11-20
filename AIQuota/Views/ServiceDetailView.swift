@@ -18,7 +18,7 @@ struct ServiceDetailView: View {
     }
     private var headingSubtitle: String? {
         if let identity { return identity.subtitle(for: .fullIdentity) }
-        return reading?.metadata?.displayPlan.map { "\($0) plan" } ?? "Plan not reported"
+        return reading?.metadata?.displayPlan.map { String(localized: "\($0) plan") } ?? String(localized: "Plan not reported")
     }
     private var busy: Bool {
         isCodex
@@ -202,7 +202,7 @@ struct ServiceDetailView: View {
 
     private var refreshHelp: String {
         let freshness = reading.map { analyticsFreshnessLabel($0.fetchedAt, at: .now, saved: error != nil || !connected) }
-        return ["Refresh \(name) details", freshness].compactMap { $0 }.joined(separator: " · ")
+        return [String(localized: "Refresh \(name) details"), freshness].compactMap { $0 }.joined(separator: " · ")
     }
 
     private func refresh() {
@@ -391,10 +391,10 @@ private struct ClaudeEnterpriseSpendView: View {
                 if hasReportedSpend {
                     Text(Self.money(totalMinorUnits, currency: currency))
                         .font(.largeTitle.bold()).monospacedDigit()
-                    Text(periodLabel ?? "Current reporting period · UTC")
+                    Text(periodLabel ?? String(localized: "Current reporting period · UTC"))
                         .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
                 } else {
-                    Text(periodLabel ?? "Current reporting period · UTC")
+                    Text(periodLabel ?? String(localized: "Current reporting period · UTC"))
                         .font(.footnote).foregroundStyle(AnalyticsStyle.secondary)
                     Text("Spend amounts were not reported for this period.")
                         .font(.callout).foregroundStyle(AnalyticsStyle.secondary)
@@ -545,8 +545,8 @@ private struct ClaudeEnterpriseSpendView: View {
     private var chartCoverageLabel: String {
         let missing = days.filter { $0.minorUnits == nil }.count
         let zeros = days.filter { $0.minorUnits == 0 }.count
-        return "\(days.count) calendar days · \(missing) without reported data" +
-            (zeros > 0 ? " · \(zeros) reported as zero" : "")
+        return String(localized: "\(days.count) calendar days · \(missing) without reported data") +
+            (zeros > 0 ? String(localized: " · \(zeros) reported as zero") : "")
     }
 
     private func dayPopover(_ day: Day) -> some View {
@@ -717,7 +717,7 @@ private struct ClaudeEnterpriseSkillsView: View {
                     ForEach(items, id: \.offset) { entry in
                         let item = entry.element
                         HStack(alignment: .firstTextBaseline, spacing: 12) {
-                            Text(item.skillName.flatMap { $0.isEmpty ? nil : $0 } ?? "Unnamed skill")
+                            Text(item.skillName.flatMap { $0.isEmpty ? nil : $0 } ?? String(localized: "Unnamed skill"))
                                 .fontWeight(.semibold).lineLimit(2)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             Text(costPerUse(item) ?? "—")

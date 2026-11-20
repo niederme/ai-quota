@@ -138,7 +138,7 @@ struct MultiAccountSettingsView: View {
                 accountToRemove = nil
                 Task {
                     do { try await accounts.remove(profile) }
-                    catch { resetError = "Couldn’t remove this account. Try again." }
+                    catch { resetError = String(localized: "Couldn’t remove this account. Try again.") }
                 }
             }
         } message: {
@@ -155,7 +155,7 @@ struct MultiAccountSettingsView: View {
                         onboarding.reset()
                         onboarding.begin()
                         showOnboarding = true
-                    } catch { resetError = "Couldn’t finish resetting. Try again." }
+                    } catch { resetError = String(localized: "Couldn’t finish resetting. Try again.") }
                     resetting = false
                 }
             }

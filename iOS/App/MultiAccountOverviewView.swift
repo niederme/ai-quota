@@ -382,8 +382,7 @@ struct MultiAccountOverviewView: View {
                 profile.service == .codex ? accounts.codex(profile)?.reading?.fetchedAt : accounts.claude(profile)?.reading?.fetchedAt
             }
             if let oldest = readings.min() {
-                Text(overviewFreshnessLabel(oldest, at: context.date, saved: false)
-                    .replacingOccurrences(of: "Updated", with: "Refreshed"))
+                Text(overviewFreshnessLabel(oldest, at: context.date, saved: false, wording: .refreshed))
                     .font(.footnote).foregroundStyle(OverviewStyle.secondary)
             }
         }

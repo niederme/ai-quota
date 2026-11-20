@@ -20,12 +20,12 @@ struct PopoverTypographyTests {
         let gaugeSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/CircularGaugeView.swift"), encoding: .utf8)
         let accountDialSource = try String(contentsOf: repoRoot.appending(path: "AIQuota/Views/MacAccountDial.swift"), encoding: .utf8)
 
-        #expect(accountDialSource.contains(#"Text("\(secondaryPercent)% 7d")"#))
+        #expect(accountDialSource.contains(#"Text("\(secondaryPercent)% \(WindowKeyText.days(7))")"#))
         #expect(popoverSource.contains(#"secondaryLabel: "7d""#))
         #expect(!popoverSource.contains(#"secondaryLabel: "7-day""#))
 
         #expect(popoverSource.contains(#".font(.system(size: 13, weight: .medium))"#))
-        #expect(popoverSource.contains(#"Text(label + ":")"#))
+        #expect(popoverSource.contains(#"Text("\(label):")"#))
         #expect(popoverSource.contains(#".foregroundStyle(labelTint)"#))
         // Stats row values are intentionally NOT bold — the reset captions with their
         // urgency color carry the real signal, and bolding metadata inverted the hierarchy.
@@ -99,7 +99,7 @@ struct PopoverTypographyTests {
         #expect(demoSource.contains("map[24] = extra(5150)"))
         #expect(widgetSource.contains("if let credits = usage.usageCredits, credits.spent > 0"))
         #expect(widgetSource.contains(#"label: "Fable 5 / Post-Limit""#))
-        #expect(widgetSource.contains(#"value: "\(widgetUsageCreditsSpend(credits)) spent""#))
+        #expect(widgetSource.contains(#"value: String(localized: "\(widgetUsageCreditsSpend(credits)) spent")"#))
         #expect(widgetSource.contains("usesTwoLineLayout: true"))
         #expect(!widgetSource.contains("if let bonus = usage.bonusUsage"))
         #expect(!widgetSource.contains("else if let extra = usage.extraUsage"))

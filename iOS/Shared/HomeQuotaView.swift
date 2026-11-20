@@ -144,7 +144,8 @@ struct HomeQuotaView: View {
                     Text(account.status(at: date)).lineLimit(2)
                 } else if let reading = account.value.reading {
                     ForEach(reading.windows) { window in
-                        Text("\(WidgetCopy.key(window)) resets \(WidgetCopy.reset(window.resetsAt, at: date))").lineLimit(1)
+                        Text(String(localized: "reset.at", defaultValue: "\(WidgetCopy.key(window)) resets \(WidgetCopy.reset(window.resetsAt, at: date))",
+                                    comment: "Reset caption at a calendar time. First value is a window key such as “7d”, second a clock time or day and time such as “Wed 3:40P”, never a duration. Means the window resets at that time.")).lineLimit(1)
                     }
                     if let budget = reading.monthlyBudget {
                         Text(budget.usageText).lineLimit(1).minimumScaleFactor(0.8)
@@ -219,7 +220,7 @@ struct WidgetWeeklySplit: Identifiable {
             guard let breakdown = account.value.reading?.claudeBreakdown,
                   breakdown.asOf <= date, date.timeIntervalSince(breakdown.asOf) < 7 * 86400,
                   breakdown.rows.reduce(0, { $0 + $1.percent }) <= 100 else { return [] }
-            return [Self(title: "This week by product", parts: breakdown.rows.map { Part(label: $0.displayName, value: $0.percent) }, denominator: 100)]
+            return [Self(title: String(localized: "This week by product"), parts: breakdown.rows.map { Part(label: $0.displayName, value: $0.percent) }, denominator: 100)]
         }
         guard let history = account.usageHistory else { return [] }
         let calendar = CodexTokenHistory.calendar
@@ -240,7 +241,7 @@ struct WidgetWeeklySplit: Identifiable {
                 guard attributed <= (day.credits ?? 0) + 0.000001 else { return nil }
                 for (key, value) in attribution { totals[key, default: 0] += value }
                 let unknown = max(0, (day.credits ?? 0) - attributed)
-                if unknown > 0.000001 { totals["Unattributed", default: 0] += unknown }
+                if unknown > 0.000001 { totals[String(localized: "Unattributed"), default: 0] += unknown }
             }
             guard hasAttribution, total > 0 else { return nil }
             let sorted = totals.filter { $0.value > 0 && $0.value.isFinite }.sorted { $0.value == $1.value ? $0.key < $1.key : $0.value > $1.value }
@@ -248,12 +249,12 @@ struct WidgetWeeklySplit: Identifiable {
             var parts = sorted.prefix(2).map { Part(label: $0.key, value: $0.value) }
             let rest = sorted.dropFirst(2)
             if rest.count == 1, let last = rest.first { parts.append(Part(label: last.key, value: last.value)) }
-            else if !rest.isEmpty { parts.append(Part(label: "Other", value: rest.reduce(0) { $0 + $1.value })) }
+            else if !rest.isEmpty { parts.append(Part(label: String(localized: "Other"), value: rest.reduce(0) { $0 + $1.value })) }
             let elapsedDays = (calendar.dateComponents([.day], from: sunday, to: today).day ?? 0) + 1
-            let coverage = reported.count < elapsedDays ? "\(reported.count)/\(elapsedDays) days" : ""
+            let coverage = reported.count < elapsedDays ? String(localized: "\(reported.count)/\(elapsedDays) days") : ""
             return Self(title: title, parts: parts, denominator: total, coverage: coverage)
         }
-        return [split("This week by app", key: \.surfaces), split("This week by model", key: \.models)].compactMap { $0 }
+        return [split(String(localized: "This week by app"), key: \.surfaces), split(String(localized: "This week by model"), key: \.models)].compactMap { $0 }
     }
 }
 
@@ -288,7 +289,7 @@ struct WidgetWeeklySplitView: View {
             }.font(.system(size: 10))
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(split.title + (split.coverage.isEmpty ? "" : ", \(split.coverage) reported") + ": " + split.parts.map { "\($0.label), \(Int(($0.value / max(1, split.denominator) * 100).rounded())) percent" }.joined(separator: ", "))
+        .accessibilityLabel(split.title + (split.coverage.isEmpty ? "" : String(localized: ", \(split.coverage) reported")) + ": " + split.parts.map { String(localized: "\($0.label), \(Int(($0.value / max(1, split.denominator) * 100).rounded())) percent") }.joined(separator: ", "))
     }
 }
 

@@ -427,8 +427,9 @@ enum MobileResetNotifications {
         let settings = await center.notificationSettings()
         guard settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional else { return }
         let content = UNMutableNotificationContent()
-        content.title = "\(displayName(service, namespace: namespace)) plan changed to \(change.current)"
-        content.body = "Previously \(change.previous). Connection checked and usage is up to date."
+        let name = displayName(service, namespace: namespace)
+        content.title = String(localized: "\(name) plan changed to \(change.current)")
+        content.body = String(localized: "Previously \(change.previous). Connection checked and usage is up to date.")
         content.sound = .default
         try? await center.add(UNNotificationRequest(identifier: planIdentifier(service, namespace: namespace), content: content, trigger: nil))
     }
@@ -448,8 +449,10 @@ enum MobileResetNotifications {
             }, schedule: { id, label, reset in
                 let content = UNMutableNotificationContent()
                 let window = label == "5h" ? reading?.shortTerm : reading?.weekly
-                content.title = "\(displayName(service, namespace: namespace)) \(window?.resetLabel ?? label) reset expected"
-                content.body = "Your last reading reported a reset now. Open AIQuota to check current usage."
+                let name = displayName(service, namespace: namespace)
+                let windowLabel = window?.resetLabel ?? WindowKeyText.display(label)
+                content.title = String(localized: "\(name) \(windowLabel) reset expected")
+                content.body = String(localized: "Your last reading reported a reset now. Open AIQuota to check current usage.")
                 content.sound = .default
                 let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute, .second], from: reset)
                 try await center.add(UNNotificationRequest(identifier: id, content: content,
@@ -458,7 +461,7 @@ enum MobileResetNotifications {
             if evaluateUsage { try await usageAlerts(service, reading: reading, namespace: namespace) }
             defaults.removeObject(forKey: errorKey(service, namespace: namespace))
         } catch {
-            defaults.set("Couldn’t schedule reset alerts. Try again.", forKey: errorKey(service, namespace: namespace))
+            defaults.set(String(localized: "Couldn’t schedule reset alerts. Try again."), forKey: errorKey(service, namespace: namespace))
         }
     }
     private static func usageAlerts(_ service: QuotaService, reading: QuotaReading?, namespace: String) async throws {
@@ -474,9 +477,12 @@ enum MobileResetNotifications {
                 enabled: alertEnabled(prefix + "usageEnabled"),
                 threshold: usageThreshold(service, namespace: namespace)) else { continue }
             let content = UNMutableNotificationContent()
-            content.title = "\(displayName(service, namespace: namespace)) \(window.resetLabel) "
-                + (level == 100 ? "limit reached" : "usage high")
-            content.body = "\(window.displayPercent)% used. Open AIQuota for current usage."
+            let name = displayName(service, namespace: namespace)
+            let windowLabel = window.resetLabel
+            content.title = level == 100
+                ? String(localized: "\(name) \(windowLabel) limit reached")
+                : String(localized: "\(name) \(windowLabel) usage high")
+            content.body = String(localized: "\(window.displayPercent)% used. Open AIQuota for current usage.")
             content.sound = .default
             try await UNUserNotificationCenter.current().add(UNNotificationRequest(
                 identifier: usageIdentifier(service, label, namespace: namespace), content: content, trigger: nil

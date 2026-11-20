@@ -1,4 +1,5 @@
 import SwiftUI
+import MobileAccessCore
 
 /// The iOS overview's account dial, sized for a Mac account row.
 struct MacAccountDial: View {
@@ -34,23 +35,11 @@ struct MacAccountDial: View {
             VStack(spacing: 5) {
                 Image(icon).resizable().scaledToFit().frame(width: 18, height: 18)
                 if let primaryPercent {
-                    VStack(spacing: 2) {
-                        Text("\(primaryPercent)% \(primaryLabel)")
-                            .font(.system(size: 16, weight: .semibold).monospacedDigit())
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.85)
-                        if let secondaryPercent {
-                            Text("\(secondaryPercent)% 7d")
-                                .font(.system(size: 16, weight: .semibold).monospacedDigit())
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.85)
-                                .opacity(0.7)
-                        }
-                    }
+                    readout(primaryPercent)
                 } else {
                     VStack(spacing: 2) {
-                        Text("— \(primaryLabel)")
-                        if showsSecondary { Text("— 7d").opacity(0.7) }
+                        Text("— \(WindowKeyText.display(primaryLabel))")
+                        if showsSecondary { Text("— \(WindowKeyText.days(7))").opacity(0.7) }
                     }
                     .font(.system(size: 16, weight: .semibold).monospacedDigit())
                 }
@@ -66,6 +55,23 @@ struct MacAccountDial: View {
         .padding(.top, Self.strokeOutset)
         .frame(height: 103, alignment: .top)
         .accessibilityHidden(true)
+    }
+
+    /// One Text for both lines, so a key longer than English ("100% 5 Std.")
+    /// shrinks both lines together instead of only the first.
+    private func readout(_ primaryPercent: Int) -> some View {
+        var text = Text("\(primaryPercent)% \(WindowKeyText.display(primaryLabel))")
+        if let secondaryPercent {
+            text = text + Text(verbatim: "\n")
+                + Text("\(secondaryPercent)% \(WindowKeyText.days(7))")
+                    .foregroundStyle(tint.opacity(0.7))
+        }
+        return text
+            .font(.system(size: 16, weight: .semibold).monospacedDigit())
+            .lineSpacing(2)
+            .multilineTextAlignment(.center)
+            .lineLimit(secondaryPercent == nil ? 1 : 2)
+            .minimumScaleFactor(0.7)
     }
 
     private func arc(percent: Int?, lineWidth: CGFloat, opacity: Double) -> some View {
