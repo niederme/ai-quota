@@ -13,6 +13,7 @@ final class MobileQuotaInsightModel {
     struct RefreshID: Equatable {
         let queries: [Query]
         let minute: Int
+        var active = true
     }
     struct Insight {
         let forecast: QuotaExhaustionForecast
@@ -58,6 +59,7 @@ final class MobileQuotaInsightModel {
     func refresh(queries: [Query], now: Date) async {
         var candidates: [Insight] = []
         for query in queries {
+            guard !Task.isCancelled else { return }
             let forecasts = (try? await SharedQuotaStore(query.profile).quotaForecasts(matching: query.reading, now: now)) ?? []
             candidates += forecasts.filter { !dismissed.contains($0.scope) }.map { Insight(forecast: $0, query: query) }
         }

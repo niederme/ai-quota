@@ -250,6 +250,21 @@ enum AccountRegistry {
             guard let root, let dataURL, let lockURL else {
                 return transient(body)
             }
+            // Most calls only read, often from the main thread while a view draws.
+            // iOS kills an app that it suspends while holding a lock in the App Group
+            // container (RunningBoard 0xdead10cc), so reads skip the lock entirely.
+            // Writes replace the file atomically, so an unlocked read sees a whole
+            // file. Only a call that would change the saved state takes the lock,
+            // and then it runs again against the file as read under the lock. That
+            // includes a file from an older version that normalizing would upgrade.
+            if let data = try? Data(contentsOf: dataURL),
+               var state = try? JSONDecoder().decode(State.self, from: data) {
+                let stored = state
+                state.normalize()
+                let result = body(&state)
+                state.normalize()
+                if state == stored { return result }
+            }
             do { try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true) }
             catch { return transient(body) }
             let fd = open(lockURL.path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)
