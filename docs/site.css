@@ -688,3 +688,16 @@ html:has(.get-dialog[open]) { overflow: hidden; }
 .widget { --accent: #9e38ed; --accent-ink: #9e38ed; --surface-2: #1e1223; --dial-empty: rgba(118, 118, 128, 0.24); background: #1e1223; color: var(--ink); }
 .widget .aq-adial--widget .aq-adial__track { stroke: rgba(118, 118, 128, 0.24); }
 .widget .aq-adial__fill--secondary { stroke-opacity: 0.45; }
+
+/* Purple carried down the page: soft accent pools behind the feature grid and
+   the download band, alternating sides (the app's BrandSurfaceBackground glow). */
+:root, [data-theme="dark"] { --pool-a: .30; --pool-w: .45; }
+[data-theme="light"] { --pool-a: .16; --pool-w: .14; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --pool-a: .16; --pool-w: .14; } }
+#features, .download-band { position: relative; isolation: isolate; }
+#features::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background:
+  radial-gradient(min(700px, 120vw) min(520px, 90vw) at 14% 24%, rgb(from var(--accent) r g b / var(--pool-a)), transparent 70%),
+  radial-gradient(min(760px, 130vw) min(560px, 95vw) at 90% 48%, rgb(from var(--wash) r g b / var(--pool-w)), transparent 70%),
+  radial-gradient(min(700px, 120vw) min(520px, 90vw) at 10% 78%, rgb(from var(--accent) r g b / var(--pool-a)), transparent 70%); }
+.download-band::before { content: ""; position: absolute; inset: -120px 0 0; z-index: -1; pointer-events: none; background: radial-gradient(60% 70% at 50% 60%, rgb(from var(--accent) r g b / var(--pool-a)), transparent 70%); }
+@media (prefers-reduced-transparency: reduce) { #features::before, .download-band::before { display: none; } }
