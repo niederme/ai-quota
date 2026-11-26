@@ -673,3 +673,18 @@ html:has(.get-dialog[open]) { overflow: hidden; }
 .phone .aq-acct--sm .aq-adial { --size: 78px !important; }
 .phone .aq-acct--sm .aq-acct__row { gap: 10px; }
 .phone .aq-acct--sm { padding-right: 12px; }
+
+/* App palette (main, 2026-11-26). Values come from the shipping apps:
+   brand = Mac BrandAccent; cards = iOS Liquid Glass (OverviewCardMaterial);
+   download band = OverviewBackground wash; desktop widgets = Mac WidgetKit
+   (fixed #1E1223 surface, #9E38ED accent, tertiary-fill tracks, 45% second ring). */
+:root, [data-theme="dark"] { --brand: #9e38ed; }
+[data-theme="light"] { --brand: #731fc2; }
+@media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) { --brand: #731fc2; } }
+.tile, .release-card, .policy-card { background: var(--glass); -webkit-backdrop-filter: var(--aq-blur); backdrop-filter: var(--aq-blur); box-shadow: inset 0 0 0 1px var(--glass-edge); }
+@media (prefers-reduced-transparency: reduce) { .tile, .release-card, .policy-card { background: var(--surface-2); -webkit-backdrop-filter: none; backdrop-filter: none; } }
+.download-band__card { background: var(--glass); box-shadow: inset 0 0 0 1px var(--glass-edge); }
+.download-band__card.aq-wash::before { border-radius: inherit; }
+.widget { --accent: #9e38ed; --accent-ink: #9e38ed; --surface-2: #1e1223; --dial-empty: rgba(118, 118, 128, 0.24); background: #1e1223; color: var(--ink); }
+.widget .aq-adial--widget .aq-adial__track { stroke: rgba(118, 118, 128, 0.24); }
+.widget .aq-adial__fill--secondary { stroke-opacity: 0.45; }
