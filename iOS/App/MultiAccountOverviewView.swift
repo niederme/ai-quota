@@ -154,7 +154,11 @@ struct MultiAccountOverviewView: View {
                         .padding(.bottom, 16)
                         .frame(maxWidth: 720)
                         .frame(maxWidth: .infinity)
-                        .task(id: MobileQuotaInsightModel.RefreshID(queries: queries, minute: Int(context.date.timeIntervalSince1970 / 60))) {
+                        .task(id: MobileQuotaInsightModel.RefreshID(queries: queries, minute: Int(context.date.timeIntervalSince1970 / 60),
+                                                                    active: scenePhase == .active)) {
+                            // Forecasts lock shared files. Starting that work while the app is
+                            // heading into the background invites a suspension mid-lease.
+                            guard scenePhase == .active else { return }
                             await quotaInsights.refresh(queries: queries, now: context.date)
                         }
                     }

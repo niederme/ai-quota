@@ -77,6 +77,36 @@ final class AccountCardOrderTests: XCTestCase {
         XCTAssertEqual(Set(reopened.all().map(\.orderKey)), Set(expected))
     }
 
+    /// iOS kills an app suspended while holding a lock in the App Group container
+    /// (0xdead10cc). Views read the registry constantly, so reads must not lock.
+    func testReadsNeitherTakeTheLockNorRewriteTheFile() throws {
+        let root = root()
+        defer { try? FileManager.default.removeItem(at: root) }
+        let registry = AccountRegistry.Store(root: root, legacyServices: [])
+        let codex = registry.add(service: .codex)
+        let claude = registry.add(service: .claude)
+        let dataURL = root.appendingPathComponent("account-registry-v1.json")
+        let saved = try Data(contentsOf: dataURL)
+        let modified = try FileManager.default.attributesOfItem(atPath: dataURL.path)[.modificationDate] as? Date
+
+        // Another holder keeps the lock; a read that waited for it would never finish.
+        let fd = open(root.appendingPathComponent("account-registry-v1.lock").path, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR)
+        XCTAssertGreaterThanOrEqual(fd, 0)
+        XCTAssertEqual(flock(fd, LOCK_EX), 0)
+        defer { flock(fd, LOCK_UN); close(fd) }
+
+        let finished = expectation(description: "reads finish while the lock is held")
+        DispatchQueue.global().async {
+            XCTAssertEqual(Set(registry.all().map(\.orderKey)), [codex.orderKey, claude.orderKey])
+            XCTAssertEqual(registry.accountOrder(), [codex.orderKey, claude.orderKey])
+            XCTAssertEqual(registry.defaultProfile(for: .claude)?.id, claude.id)
+            finished.fulfill()
+        }
+        wait(for: [finished], timeout: 5)
+        XCTAssertEqual(try Data(contentsOf: dataURL), saved)
+        XCTAssertEqual(try FileManager.default.attributesOfItem(atPath: dataURL.path)[.modificationDate] as? Date, modified)
+    }
+
     func testInvalidOrderIsRepairedWithoutDroppingAccounts() throws {
         let root = root()
         defer { try? FileManager.default.removeItem(at: root) }

@@ -180,6 +180,10 @@ struct SharedQuotaStore: Sendable {
         // the lease, and give the lock back if that background time runs out.
         let lease = SharedLeaseFile(fd: fd, reason: "AIQuota \(service.rawValue) lease")
         defer { lease.finish() }
+        // The background time is granted asynchronously. Locking before it arrives
+        // leaves a window where iOS can suspend the app with the lock held, which
+        // is how build 153 still crashed. Never lock without that cover.
+        guard await lease.covered() else { throw AccessError.storage }
         try FileManager.default.setAttributes([.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication], ofItemAtPath: path)
         let deadline = ContinuousClock.now.advanced(by: .seconds(35))
         while true {
@@ -514,20 +518,36 @@ enum MobileResetNotifications {
 }
 
 /// Owns one lease's lock file descriptor and the background time that covers it.
-/// The expiration handler runs on another thread, so every lock change is guarded.
+/// The activity callbacks run on other threads, so every state change is guarded.
 final class SharedLeaseFile: @unchecked Sendable {
     private let state = NSLock()
     private let activityDone = DispatchSemaphore(value: 0)
     private var fd: Int32
     private var expired = false
+    /// nil until iOS answers: true once background time is held, false if it was refused or ran out.
+    private var coverage: Bool?
+    private var coverageWaiters: [CheckedContinuation<Bool, Never>] = []
 
     init(fd: Int32, reason: String) {
         self.fd = fd
         // Works in the app and in the widget extension. The first call keeps the
-        // assertion while it waits; a second call with `expired` true means iOS is
-        // about to suspend the process.
+        // assertion while it waits; a call with `expired` true means iOS is about
+        // to suspend the process, or that no background time was available.
         ProcessInfo.processInfo.performExpiringActivity(withReason: reason) { [self] expired in
-            if expired { expire() } else { activityDone.wait() }
+            if expired { expire() } else { resolveCoverage(true); activityDone.wait() }
+        }
+    }
+
+    /// Waits until iOS has granted background time for this lease. Returns false
+    /// when it was refused or has already run out; the caller must not lock then.
+    func covered() async -> Bool {
+        await withCheckedContinuation { continuation in
+            let answer: Bool? = state.withLock {
+                if let coverage { return coverage && !expired }
+                coverageWaiters.append(continuation)
+                return nil
+            }
+            if let answer { continuation.resume(returning: answer) }
         }
     }
 
@@ -537,7 +557,7 @@ final class SharedLeaseFile: @unchecked Sendable {
     func tryLock() -> Attempt {
         state.lock()
         defer { state.unlock() }
-        guard !expired, fd >= 0 else { return .unavailable }
+        guard !expired, coverage == true, fd >= 0 else { return .unavailable }
         if flock(fd, LOCK_EX | LOCK_NB) == 0 { return .locked }
         return errno == EWOULDBLOCK ? .busy : .unavailable
     }
@@ -547,9 +567,20 @@ final class SharedLeaseFile: @unchecked Sendable {
         activityDone.signal()
     }
 
+    private func resolveCoverage(_ value: Bool) {
+        let (waiters, answer) = state.withLock {
+            if coverage == nil { coverage = value }
+            let waiters = coverageWaiters
+            coverageWaiters.removeAll()
+            return (waiters, coverage == true && !expired)
+        }
+        for waiter in waiters { waiter.resume(returning: answer) }
+    }
+
     private func expire() {
         state.withLock { expired = true }
         release()
+        resolveCoverage(false)
         activityDone.signal()
     }
 
