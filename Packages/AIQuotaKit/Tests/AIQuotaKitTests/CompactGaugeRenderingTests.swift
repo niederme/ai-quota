@@ -42,6 +42,17 @@ struct CompactGaugeRenderingTests {
         #expect(singleInnerEdge > dualInnerEdge)
     }
 
+    @Test @MainActor func innerFillHasRoundedHead() throws {
+        // 50% puts the inner tip straight up (x 0.5, 0.21 from the top); the head
+        // reaches half a stroke (0.06) past it, clockwise.
+        let image = GaugeImageMaker.image(primaryPercent: 10, secondaryPercent: 50,
+            limitReached: false, isLoading: false, size: 100)
+        let data = try #require(image.tiffRepresentation)
+        let rep = try #require(NSBitmapImageRep(data: data))
+        #expect(try sample(rep, x: 0.535, y: 0.21).alphaComponent > 0.3)
+        #expect(try sample(rep, x: 0.575, y: 0.21).alphaComponent < 0.2)
+    }
+
     @Test @MainActor func refreshingRetainsKnownRingImage() throws {
         let current = try bitmap(secondary: false)
         let loading = try bitmap(secondary: false, loading: true)

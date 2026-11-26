@@ -57,8 +57,9 @@ public enum GaugeImageMaker {
             ctx.strokePath()
         }
 
-        // Fills: flat caps — needle dot marks the tip, no rounded bleed at 225°
-        // (keeping .round here would add a bubble at the arc start too)
+        // Fills: flat start at 225° (a round lineCap would add a bubble there
+        // too), rounded head at the tip. The outer ring gets its head from the
+        // needle dot; the inner ring's head is part of its filled shape.
 
         // Both rings share the same status colour — driven by whichever metric
         // is worse. Inner ring stays dimmed (45%) when healthy so the outer
@@ -94,10 +95,10 @@ public enum GaugeImageMaker {
         if pct2 > 0 {
             let isWarning = colorPct >= 0.85
             let alpha2: CGFloat = isWarning ? 0.65 : 0.45
-            ctx.setStrokeColor(sharedColor.copy(alpha: alpha2) ?? sharedColor)
-            ctx.addArc(center: CGPoint(x: cx, y: cy), radius: r2,
-                       startAngle: deg(225), endAngle: deg(225.0 - pct2 * 270.0), clockwise: true)
-            ctx.strokePath()
+            ctx.setFillColor(sharedColor.copy(alpha: alpha2) ?? sharedColor)
+            ctx.addPath(roundHeadedArc(center: CGPoint(x: cx, y: cy), radius: r2, lineWidth: lw,
+                                       startAngle: deg(225), endAngle: deg(225.0 - pct2 * 270.0)))
+            ctx.fillPath()
         }
 
         // ── Sparkle ────────────────────────────────────────────────────────
@@ -130,6 +131,21 @@ public enum GaugeImageMaker {
         } else {
             return CGColor(red: 1.0, green: 1.0, blue: 1.0,  alpha: 1)   // white
         }
+    }
+
+    /// A clockwise arc band with a flat start and a semicircular head, built as
+    /// one filled outline. A round-capped stroke would also round the start, and
+    /// a separate head circle would double the alpha where it overlaps the band.
+    static func roundHeadedArc(center c: CGPoint, radius r: CGFloat, lineWidth: CGFloat,
+                               startAngle: CGFloat, endAngle: CGFloat) -> CGPath {
+        let half = lineWidth / 2
+        let tip = CGPoint(x: c.x + r * cos(endAngle), y: c.y + r * sin(endAngle))
+        let path = CGMutablePath()
+        path.addArc(center: c, radius: r + half, startAngle: startAngle, endAngle: endAngle, clockwise: true)
+        path.addArc(center: tip, radius: half, startAngle: endAngle, endAngle: endAngle - .pi, clockwise: true)
+        path.addArc(center: c, radius: r - half, startAngle: endAngle, endAngle: startAngle, clockwise: false)
+        path.closeSubpath()
+        return path
     }
 
     private static func deg(_ d: Double) -> CGFloat { CGFloat(d * .pi / 180) }
