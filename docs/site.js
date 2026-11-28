@@ -201,3 +201,45 @@ if (getDialog && typeof getDialog.showModal === "function") {
     }
   });
 }
+
+// Mock captions shrink to fit their line, the way the apps' widgets scale text
+// down, so longer translations of "5h reset in 2h 14m" stay on one line.
+const fitCaptions = () => {
+  document.querySelectorAll(".widget__reset, .widget__foot, .aq-acct--sm .aq-acct__cap").forEach((caption) => {
+    caption.style.fontSize = "";
+    let size = parseFloat(getComputedStyle(caption).fontSize);
+    while (caption.scrollWidth > caption.clientWidth + 0.5 && size > 7) {
+      size -= 0.25;
+      caption.style.fontSize = `${size}px`;
+    }
+  });
+};
+
+fitCaptions();
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(fitCaptions);
+}
+window.addEventListener("resize", fitCaptions, { passive: true });
+
+// Language picker: remember a pick so English pages stop sending this visitor
+// to their browser's language, and close the list on Escape or an outside click.
+const languageStorageKey = "aiquota-language";
+
+document.querySelectorAll("[data-lang-picker]").forEach((picker) => {
+  picker.querySelectorAll("a[data-lang]").forEach((link) => {
+    link.addEventListener("click", () => writeStorage(languageStorageKey, link.dataset.lang));
+  });
+
+  document.addEventListener("click", (event) => {
+    if (picker.open && !picker.contains(event.target)) {
+      picker.open = false;
+    }
+  });
+
+  picker.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && picker.open) {
+      picker.open = false;
+      picker.querySelector("summary").focus();
+    }
+  });
+});

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Politique de confidentialité d’AIQuota</title>
+    <meta
+      name="description"
+      content="Politique de confidentialité d’AIQuota, l’app macOS de suivi des quotas Codex et Claude Code."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0b060f" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+    <link rel="canonical" href="https://aiquota.app/fr/privacy/" />
+    <link rel="alternate" hreflang="en" href="https://aiquota.app/privacy/" />
+    <link rel="alternate" hreflang="de" href="https://aiquota.app/de/privacy/" />
+    <link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/privacy/" />
+    <link rel="alternate" hreflang="es" href="https://aiquota.app/es/privacy/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/privacy/" />
+    <link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/privacy/" />
+    <link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/privacy/" />
+    <link rel="alternate" hreflang="x-default" href="https://aiquota.app/privacy/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:title" content="Politique de confidentialité d’AIQuota" />
+    <meta
+      property="og:description"
+      content="Politique de confidentialité d’AIQuota, l’app macOS de suivi des quotas Codex et Claude Code."
+    />
+    <meta property="og:url" content="https://aiquota.app/fr/privacy/" />
+    <meta property="og:site_name" content="AIQuota" />
+    <meta
+      property="og:image"
+      content="https://aiquota.app/assets/aiquota-social-card.png?v=0ce949bc530a"
+    />
+    <meta
+      property="og:image:secure_url"
+      content="https://aiquota.app/assets/aiquota-social-card.png?v=0ce949bc530a"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Icône de l’app AIQuota." />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Politique de confidentialité d’AIQuota" />
+    <meta
+      name="twitter:description"
+      content="Politique de confidentialité d’AIQuota, l’app macOS de suivi des quotas Codex et Claude Code."
+    />
+    <meta name="twitter:url" content="https://aiquota.app/fr/privacy/" />
+    <meta name="twitter:site" content="@AiQuotaApp" />
+    <meta name="twitter:creator" content="@AiQuotaApp" />
+    <meta
+      name="twitter:image"
+      content="https://aiquota.app/assets/aiquota-social-card.png?v=0ce949bc530a"
+    />
+    <meta name="twitter:image:alt" content="Icône de l’app AIQuota." />
+    <script>
+      // Language: English pages send a visitor to their language's version,
+      // using the language they picked in the footer, else the browser's.
+      (() => {
+        const languages = ["de", "fr", "es", "pt-br", "ja", "ko"];
+        if (document.documentElement.lang !== "en") return;
+        let choice = null;
+        try {
+          choice = window.localStorage.getItem("aiquota-language");
+        } catch (error) {}
+        if (!choice) {
+          for (const tag of navigator.languages || [navigator.language || ""]) {
+            const base = String(tag).toLowerCase().split("-")[0];
+            if (base === "en") break;
+            const match = base === "pt" ? "pt-br" : base;
+            if (languages.includes(match)) {
+              choice = match;
+              break;
+            }
+          }
+        }
+        if (languages.includes(choice)) {
+          window.location.replace("/" + choice + window.location.pathname + window.location.search + window.location.hash);
+        }
+      })();
+    </script>
+    <script>
+      (() => {
+        let storedTheme = null;
+        try {
+          storedTheme =
+            window.localStorage.getItem("aiquota-theme") ??
+            window.localStorage.getItem("aiquota-docs-theme");
+        } catch (error) {}
+        const resolvedTheme =
+          storedTheme === "light" || storedTheme === "dark"
+            ? storedTheme
+            : window.matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark";
+        document.documentElement.dataset.theme = resolvedTheme;
+        document.documentElement.classList.add("js");
+      })();
+    </script>
+    <link rel="stylesheet" href="../../site.css" />
+    <script src="../../site.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Aller au contenu</a>
+    <header class="site-nav">
+      <div class="site-nav__inner">
+        <nav class="aq-nav aq-glass" aria-label="Principal" data-nav>
+          <a class="aq-nav__brand" href="../"><img src="../../assets/aiquota-app-icon.png" alt="" width="28" height="28" />AIQuota</a>
+          <div class="aq-nav__links">
+            <a class="aq-nav__link" href="../">Présentation</a>
+            <a class="aq-nav__link" href="../releases/">Versions</a>
+            <a class="aq-nav__link" href="../faq/">FAQ</a>
+            <a class="aq-nav__link" href="https://github.com/niederme/ai-quota">GitHub <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="aq-theme aq-glass aq-theme--compact" role="group" aria-label="Apparence" data-theme-picker>
+            <button type="button" aria-pressed="false" data-theme-choice="system"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5"></rect><path d="M5.5 14h5M8 11.5V14"></path></svg><span>Système</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"></circle><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"></path></svg><span>Clair</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"></path></svg><span>Sombre</span></button>
+          </div>
+          <a class="aq-btn aq-btn--primary" href="../#download" aria-haspopup="dialog" data-get-open>Télécharger</a>
+          <button class="site-nav__menu" type="button" aria-label="Menu" aria-expanded="false" aria-controls="site-menu" data-menu-toggle>
+            <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 6h12M3 12h12"></path></svg>
+          </button>
+        </nav>
+        <div class="site-menu aq-glass" id="site-menu" hidden>
+          <a href="../">Présentation</a>
+          <a href="../releases/">Versions</a>
+          <a href="../faq/">FAQ</a>
+          <a href="https://github.com/niederme/ai-quota">GitHub <span aria-hidden="true">↗</span></a>
+          <div class="site-menu__appearance">
+            <span>Apparence</span>
+            <div class="aq-theme aq-glass" role="group" aria-label="Apparence" data-theme-picker>
+              <button type="button" aria-pressed="false" data-theme-choice="system"><span>Système</span></button>
+              <button type="button" aria-pressed="false" data-theme-choice="light"><span>Clair</span></button>
+              <button type="button" aria-pressed="false" data-theme-choice="dark"><span>Sombre</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="policy-main aq-wash">
+        <section class="policy-hero page-hero">
+          <div class="container policy-container">
+            <h1 class="policy-title">Politique de confidentialité</h1>
+            <p class="policy-date">Dernière mise à jour : 17 avril 2026</p>
+            <p class="policy-note">Cette traduction est fournie à titre indicatif. En cas de divergence, la version anglaise fait foi.</p>
+          </div>
+        </section>
+
+        <section>
+          <div class="container policy-container">
+            <article class="policy-card">
+              <p class="policy-lede">
+                AIQuota est une app macOS native qui vous aide à surveiller vos quotas Codex et Claude Code. Cette politique explique ce qu’AIQuota stocke, ce qu’il lit et ce qui quitte votre appareil.
+              </p>
+
+              <h2>Ce à quoi AIQuota accède</h2>
+              <p>Selon les services que vous connectez, AIQuota peut accéder :</p>
+              <ul>
+                <li>aux informations de votre session OpenAI, utilisées pour lire les données de quota Codex.</li>
+                <li>aux informations de votre session Anthropic ou Claude, utilisées pour lire les données de quota Claude Code.</li>
+                <li>aux détails du compte liés aux quotas, comme les fenêtres d’utilisation, les heures de réinitialisation, les noms de forfaits et les crédits.</li>
+                <li>aux réglages de notification et aux préférences d’interface que vous choisissez dans l’app.</li>
+              </ul>
+
+              <h2>Utilisation de ces informations</h2>
+              <p>AIQuota utilise ces informations uniquement pour fournir les fonctions essentielles de l’app :</p>
+              <ul>
+                <li>Afficher l’état actuel de vos quotas dans la barre des menus et les widgets.</li>
+                <li>Afficher les heures de réinitialisation, les niveaux d’alerte et les détails du forfait.</li>
+                <li>Envoyer des notifications facultatives quand le quota est bas, critique ou réinitialisé.</li>
+                <li>Restaurer vos services connectés et vos préférences d’un lancement à l’autre.</li>
+              </ul>
+              <p>AIQuota n’utilise pas vos données pour la publicité, le profilage, la revente de statistiques ou l’attribution marketing.</p>
+
+              <h2>Statistiques anonymes facultatives</h2>
+              <p>AIQuota propose un réglage facultatif appelé « Partager des données d’utilisation anonymes ». Ce réglage est désactivé par défaut.</p>
+              <p>Si vous choisissez de l’activer, AIQuota envoie de simples mesures anonymes sur le produit : ouverture de l’app, utilisation active quotidienne, version de l’app, connexion d’un service et fin de la configuration. Ces événements peuvent être traités par Google Firebase Analytics. Ils n’incluent ni prompts, ni jetons d’authentification, ni cookies, ni informations personnelles.</p>
+
+              <h2>Où les données sont stockées</h2>
+              <p>AIQuota est conçu pour garder les données sur l’appareil autant que possible.</p>
+              <ul>
+                <li>Les informations de session sensibles sont stockées dans le trousseau de macOS.</li>
+                <li>Les préférences de l’app et l’état destiné aux widgets peuvent être stockés dans le stockage local de l’app ou dans le stockage partagé du groupe d’apps.</li>
+                <li>Des valeurs de quota en cache peuvent être stockées localement pour les widgets et des actualisations rapides.</li>
+              </ul>
+
+              <h2>Ce qui quitte votre appareil</h2>
+              <p>AIQuota n’exploite pas son propre serveur pour le suivi des quotas.</p>
+              <p>Quand AIQuota actualise votre état, les requêtes partent directement de votre appareil vers le service que vous avez connecté, par exemple les points de terminaison d’OpenAI ou d’Anthropic nécessaires pour récupérer les données de compte liées aux quotas.</p>
+
+              <h2>Tiers</h2>
+              <p>AIQuota ne fait appel à des services tiers que lorsque c’est nécessaire au fonctionnement de l’app :</p>
+              <ul>
+                <li>OpenAI, quand vous connectez le suivi des quotas Codex.</li>
+                <li>Anthropic, quand vous connectez le suivi des quotas Claude Code.</li>
+                <li>Google Firebase Analytics, uniquement si vous acceptez les statistiques d’utilisation anonymes.</li>
+                <li>Les services de la plateforme Apple utilisés pour l’app, les widgets, les notifications et le stockage local sécurisé.</li>
+              </ul>
+
+              <h2>Sécurité</h2>
+              <p>AIQuota utilise les fonctions de sécurité de la plateforme, comme le stockage dans le trousseau et les requêtes HTTPS le cas échéant. Aucune méthode de stockage ou de transmission n’est parfaite, mais l’app est conçue pour limiter le traitement de données inutile et éviter tout serveur distinct exploité par AIQuota.</p>
+
+              <h2>Vos choix</h2>
+              <ul>
+                <li>Vous pouvez déconnecter des services dans l’app.</li>
+                <li>Vous pouvez désactiver les notifications à tout moment.</li>
+                <li>Vous pouvez laisser les statistiques anonymes désactivées, ou changer d’avis plus tard dans les réglages.</li>
+                <li>Vous pouvez supprimer l’app et ses données locales de votre Mac.</li>
+              </ul>
+
+              <h2>Modifications de cette politique</h2>
+              <p>Cette politique de confidentialité peut être mise à jour à mesure qu’AIQuota évolue. La date en haut de cette page indique la dernière révision.</p>
+
+              <h2>Contact</h2>
+              <p>Pour toute question sur la confidentialité, écrivez à <a href="mailto:help@aiquota.app">help@aiquota.app</a>.</p>
+            </article>
+          </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <div class="site-footer__meta">
+          <a class="site-footer__owner" href="https://nieder.me/">&copy; John Niedermeyer</a>
+          <p>Besoin d’aide ? Écrivez à <a href="mailto:help@aiquota.app?subject=AIQuota%20Issue%20Report">help@aiquota.app</a></p>
+        </div>
+        <div class="site-footer__end">
+          <nav class="site-footer__links" aria-label="Mentions légales">
+            <a href="./">Politique de confidentialité</a>
+            <a href="../terms/">Conditions d’utilisation</a>
+            <a href="../accessibility/">Accessibilité</a>
+            <a href="https://github.com/niederme/ai-quota">GitHub</a>
+          </nav>
+          <div class="aq-theme aq-glass" role="group" aria-label="Apparence" data-theme-picker>
+            <button type="button" aria-pressed="false" data-theme-choice="system"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5"></rect><path d="M5.5 14h5M8 11.5V14"></path></svg><span>Système</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"></circle><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"></path></svg><span>Clair</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"></path></svg><span>Sombre</span></button>
+          </div>
+          <details class="lang-picker" data-lang-picker>
+            <summary class="aq-glass"><svg class="lang-picker__globe" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M1.5 8h13M8 1.5c1.9 2 2.8 4.1 2.8 6.5S9.9 12.5 8 14.5C6.1 12.5 5.2 10.4 5.2 8S6.1 3.5 8 1.5z"></path></svg><span class="visually-hidden">Langue : </span><span data-lang-current>Français</span><svg class="lang-picker__chevron" viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 6.2 5 3.7l2.5 2.5"></path></svg></summary>
+            <ul class="lang-picker__menu aq-glass" translate="no" data-i18n-skip><li><a href="../../privacy/" hreflang="en" lang="en" data-lang="en">English</a></li><li><a href="../../de/privacy/" hreflang="de" lang="de" data-lang="de">Deutsch</a></li><li><a href="./" hreflang="fr" lang="fr" data-lang="fr" aria-current="true">Français</a></li><li><a href="../../es/privacy/" hreflang="es" lang="es" data-lang="es">Español</a></li><li><a href="../../pt-br/privacy/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br">Português (Brasil)</a></li><li><a href="../../ja/privacy/" hreflang="ja" lang="ja" data-lang="ja">日本語</a></li><li><a href="../../ko/privacy/" hreflang="ko" lang="ko" data-lang="ko">한국어</a></li></ul>
+          </details>
+        </div>
+      </div>
+    </footer>
+
+    <dialog class="get-dialog" id="get-aiquota" aria-labelledby="get-aiquota-title">
+      <div class="get-dialog__panel">
+        <button class="get-dialog__close" type="button" aria-label="Fermer" data-get-close><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8"></path></svg></button>
+        <img src="../../assets/aiquota-app-icon.png" alt="" width="80" height="80" />
+        <h2 id="get-aiquota-title">Obtenez AIQuota</h2>
+        <p>Pour iPhone, iPad et Mac.</p>
+        <div class="badges badges--center"><a class="aq-badge" href="#" data-app-store-link aria-label="Télécharger dans l’App Store"><span class="aq-badge__chip aq-glass" aria-hidden="true"><img class="aq-badge__t aq-badge__t--dark" src="../../assets/badges/app-store-type-on-dark.png" alt="" /><img class="aq-badge__t aq-badge__t--light" src="../../assets/badges/app-store-type-on-light.png" alt="" /></span></a><a class="aq-badge aq-badge--mac" href="#" data-mac-app-store-link aria-label="Télécharger dans le Mac App Store"><span class="aq-badge__chip aq-glass" aria-hidden="true"><img class="aq-badge__t aq-badge__t--dark" src="../../assets/badges/mac-app-store-type-on-dark.png" alt="" /><img class="aq-badge__t aq-badge__t--light" src="../../assets/badges/mac-app-store-type-on-light.png" alt="" /></span></a></div>
+        <p class="direct-link direct-link--center">Ou <a class="aq-direct" href="https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip">téléchargez-le directement pour Mac</a>.</p>
+      </div>
+    </dialog>
+  </body>
+</html>

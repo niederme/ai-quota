@@ -16,6 +16,14 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
     <link rel="canonical" href="https://aiquota.app/" />
+    <link rel="alternate" hreflang="en" href="https://aiquota.app/" />
+    <link rel="alternate" hreflang="de" href="https://aiquota.app/de/" />
+    <link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/" />
+    <link rel="alternate" hreflang="es" href="https://aiquota.app/es/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/" />
+    <link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/" />
+    <link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/" />
+    <link rel="alternate" hreflang="x-default" href="https://aiquota.app/" />
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:title" content="Claude Code &amp; Codex Usage Tracker for macOS | AIQuota" />
@@ -97,6 +105,32 @@
           }
         ]
       }
+    </script>
+    <script>
+      // Language: English pages send a visitor to their language's version,
+      // using the language they picked in the footer, else the browser's.
+      (() => {
+        const languages = ["de", "fr", "es", "pt-br", "ja", "ko"];
+        if (document.documentElement.lang !== "en") return;
+        let choice = null;
+        try {
+          choice = window.localStorage.getItem("aiquota-language");
+        } catch (error) {}
+        if (!choice) {
+          for (const tag of navigator.languages || [navigator.language || ""]) {
+            const base = String(tag).toLowerCase().split("-")[0];
+            if (base === "en") break;
+            const match = base === "pt" ? "pt-br" : base;
+            if (languages.includes(match)) {
+              choice = match;
+              break;
+            }
+          }
+        }
+        if (languages.includes(choice)) {
+          window.location.replace("/" + choice + window.location.pathname + window.location.search + window.location.hash);
+        }
+      })();
     </script>
     <script>
       (() => {
@@ -410,6 +444,10 @@
             <button type="button" aria-pressed="false" data-theme-choice="light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"></circle><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"></path></svg><span>Light</span></button>
             <button type="button" aria-pressed="false" data-theme-choice="dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"></path></svg><span>Dark</span></button>
           </div>
+          <details class="lang-picker" data-lang-picker>
+            <summary class="aq-glass"><svg class="lang-picker__globe" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M1.5 8h13M8 1.5c1.9 2 2.8 4.1 2.8 6.5S9.9 12.5 8 14.5C6.1 12.5 5.2 10.4 5.2 8S6.1 3.5 8 1.5z"></path></svg><span class="visually-hidden">Language: </span><span data-lang-current>English</span><svg class="lang-picker__chevron" viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 6.2 5 3.7l2.5 2.5"></path></svg></summary>
+            <ul class="lang-picker__menu aq-glass" translate="no" data-i18n-skip><li><a href="./" hreflang="en" lang="en" data-lang="en" aria-current="true">English</a></li><li><a href="./de/" hreflang="de" lang="de" data-lang="de">Deutsch</a></li><li><a href="./fr/" hreflang="fr" lang="fr" data-lang="fr">Français</a></li><li><a href="./es/" hreflang="es" lang="es" data-lang="es">Español</a></li><li><a href="./pt-br/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br">Português (Brasil)</a></li><li><a href="./ja/" hreflang="ja" lang="ja" data-lang="ja">日本語</a></li><li><a href="./ko/" hreflang="ko" lang="ko" data-lang="ko">한국어</a></li></ul>
+          </details>
         </div>
       </div>
     </footer>

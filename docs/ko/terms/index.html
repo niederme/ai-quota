@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AIQuota 서비스 약관</title>
+    <meta
+      name="description"
+      content="Codex와 Claude Code 사용량을 추적하는 macOS 앱 AIQuota의 서비스 약관."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0b060f" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+    <link rel="canonical" href="https://aiquota.app/ko/terms/" />
+    <link rel="alternate" hreflang="en" href="https://aiquota.app/terms/" />
+    <link rel="alternate" hreflang="de" href="https://aiquota.app/de/terms/" />
+    <link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/terms/" />
+    <link rel="alternate" hreflang="es" href="https://aiquota.app/es/terms/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/terms/" />
+    <link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/terms/" />
+    <link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/terms/" />
+    <link rel="alternate" hreflang="x-default" href="https://aiquota.app/terms/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:title" content="AIQuota 서비스 약관" />
+    <meta
+      property="og:description"
+      content="Codex와 Claude Code 사용량을 추적하는 macOS 앱 AIQuota의 서비스 약관."
+    />
+    <meta property="og:url" content="https://aiquota.app/ko/terms/" />
+    <meta property="og:site_name" content="AIQuota" />
+    <meta
+      property="og:image"
+      content="https://aiquota.app/assets/aiquota-social-card.png?v=0ce949bc530a"
+    />
+    <meta
+      property="og:image:secure_url"
+      content="https://aiquota.app/assets/aiquota-social-card.png?v=0ce949bc530a"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="AIQuota 앱 아이콘." />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AIQuota 서비스 약관" />
+    <meta
+      name="twitter:description"
+      content="Codex와 Claude Code 사용량을 추적하는 macOS 앱 AIQuota의 서비스 약관."
+    />
+    <meta name="twitter:url" content="https://aiquota.app/ko/terms/" />
+    <meta name="twitter:site" content="@AiQuotaApp" />
+    <meta name="twitter:creator" content="@AiQuotaApp" />
+    <meta
+      name="twitter:image"
+      content="https://aiquota.app/assets/aiquota-social-card.png?v=0ce949bc530a"
+    />
+    <meta name="twitter:image:alt" content="AIQuota 앱 아이콘." />
+    <script>
+      // Language: English pages send a visitor to their language's version,
+      // using the language they picked in the footer, else the browser's.
+      (() => {
+        const languages = ["de", "fr", "es", "pt-br", "ja", "ko"];
+        if (document.documentElement.lang !== "en") return;
+        let choice = null;
+        try {
+          choice = window.localStorage.getItem("aiquota-language");
+        } catch (error) {}
+        if (!choice) {
+          for (const tag of navigator.languages || [navigator.language || ""]) {
+            const base = String(tag).toLowerCase().split("-")[0];
+            if (base === "en") break;
+            const match = base === "pt" ? "pt-br" : base;
+            if (languages.includes(match)) {
+              choice = match;
+              break;
+            }
+          }
+        }
+        if (languages.includes(choice)) {
+          window.location.replace("/" + choice + window.location.pathname + window.location.search + window.location.hash);
+        }
+      })();
+    </script>
+    <script>
+      (() => {
+        let storedTheme = null;
+        try {
+          storedTheme =
+            window.localStorage.getItem("aiquota-theme") ??
+            window.localStorage.getItem("aiquota-docs-theme");
+        } catch (error) {}
+        const resolvedTheme =
+          storedTheme === "light" || storedTheme === "dark"
+            ? storedTheme
+            : window.matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark";
+        document.documentElement.dataset.theme = resolvedTheme;
+        document.documentElement.classList.add("js");
+      })();
+    </script>
+    <link rel="stylesheet" href="../../site.css" />
+    <script src="../../site.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+    <header class="site-nav">
+      <div class="site-nav__inner">
+        <nav class="aq-nav aq-glass" aria-label="주 메뉴" data-nav>
+          <a class="aq-nav__brand" href="../"><img src="../../assets/aiquota-app-icon.png" alt="" width="28" height="28" />AIQuota</a>
+          <div class="aq-nav__links">
+            <a class="aq-nav__link" href="../">개요</a>
+            <a class="aq-nav__link" href="../releases/">릴리스</a>
+            <a class="aq-nav__link" href="../faq/">FAQ</a>
+            <a class="aq-nav__link" href="https://github.com/niederme/ai-quota">GitHub <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="aq-theme aq-glass aq-theme--compact" role="group" aria-label="화면 모드" data-theme-picker>
+            <button type="button" aria-pressed="false" data-theme-choice="system"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5"></rect><path d="M5.5 14h5M8 11.5V14"></path></svg><span>시스템</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"></circle><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"></path></svg><span>라이트</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"></path></svg><span>다크</span></button>
+          </div>
+          <a class="aq-btn aq-btn--primary" href="../#download" aria-haspopup="dialog" data-get-open>다운로드</a>
+          <button class="site-nav__menu" type="button" aria-label="메뉴" aria-expanded="false" aria-controls="site-menu" data-menu-toggle>
+            <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 6h12M3 12h12"></path></svg>
+          </button>
+        </nav>
+        <div class="site-menu aq-glass" id="site-menu" hidden>
+          <a href="../">개요</a>
+          <a href="../releases/">릴리스</a>
+          <a href="../faq/">FAQ</a>
+          <a href="https://github.com/niederme/ai-quota">GitHub <span aria-hidden="true">↗</span></a>
+          <div class="site-menu__appearance">
+            <span>화면 모드</span>
+            <div class="aq-theme aq-glass" role="group" aria-label="화면 모드" data-theme-picker>
+              <button type="button" aria-pressed="false" data-theme-choice="system"><span>시스템</span></button>
+              <button type="button" aria-pressed="false" data-theme-choice="light"><span>라이트</span></button>
+              <button type="button" aria-pressed="false" data-theme-choice="dark"><span>다크</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="policy-main aq-wash">
+        <section class="policy-hero page-hero">
+          <div class="container policy-container">
+            <h1 class="policy-title">서비스 약관</h1>
+            <p class="policy-date">최종 업데이트: 2026년 4월 7일</p>
+            <p class="policy-note">이 번역은 참고용으로 제공됩니다. 영어 원문과 다른 경우 영어 원문이 우선합니다.</p>
+          </div>
+        </section>
+
+        <section>
+          <div class="container policy-container">
+            <article class="policy-card">
+              <p class="policy-lede">
+                이 서비스 약관은 앱, 웹사이트, 관련 릴리스 자료를 포함한 AIQuota의 사용에 적용됩니다. AIQuota를 사용하면 이 약관에 동의하는 것으로 간주됩니다.
+              </p>
+
+              <h2>앱 사용</h2>
+              <p>AIQuota는 지원되는 제3자 서비스의 사용량 정보를 확인하는 macOS 유틸리티로 제공됩니다. 이 앱은 관련 법률과 연결하는 제3자 서비스의 약관을 준수하는 범위에서만 사용할 수 있습니다.</p>
+
+              <h2>사용자 계정</h2>
+              <p>AIQuota에 연결하는 제3자 계정과 해당 계정에 대한 접근 유지는 사용자의 책임입니다. AIQuota는 OpenAI, Anthropic 또는 기타 제3자 서비스에 대해 각 제공업체가 이미 허용한 범위를 넘어서는 권리를 부여하지 않습니다.</p>
+
+              <h2>제3자 제공업체와 무관함</h2>
+              <p>AIQuota는 독립적인 제품으로, 각 회사의 플랫폼 및 서비스와의 호환성을 설명하는 데 필요한 경우를 제외하고 OpenAI, Anthropic 또는 Apple의 보증이나 후원을 받지 않으며 제휴 관계도 없습니다.</p>
+
+              <h2>가용성 및 정확성</h2>
+              <p>AIQuota는 유용한 사용량 정보를 제공하는 것을 목표로 하지만, 사용량 값, 초기화 시간, 요금제 세부 사항은 궁극적으로 해당 데이터를 제공하는 제3자 서비스에 달려 있습니다. 이러한 값은 바뀌거나 어긋나거나 제공되지 않을 수 있습니다.</p>
+
+              <h2>허용되는 사용</h2>
+              <p>다른 사람의 권리를 침해하거나, 앱 또는 웹사이트를 방해하거나, 무단 접근을 시도하거나, 연결된 제3자 서비스를 오용하는 데 AIQuota를 사용할 수 없습니다.</p>
+
+              <h2>지식 재산권</h2>
+              <p>달리 명시되지 않는 한 AIQuota와 관련 브랜드, 문구, 소프트웨어는 John Niedermeyer의 소유이며, 프로젝트의 라이선스 조건과 소스 저장소에 포함된 고지에 따라 제공됩니다.</p>
+
+              <h2>면책 조항</h2>
+              <p>AIQuota는 ‘있는 그대로’ 및 ‘이용 가능한 범위에서’ 제공되며, 상품성, 특정 목적에의 적합성, 비침해에 대한 보증을 포함해 명시적이든 묵시적이든 어떠한 종류의 보증도 하지 않습니다.</p>
+
+              <h2>책임의 제한</h2>
+              <p>법률이 허용하는 최대 범위에서 John Niedermeyer는 AIQuota 사용으로 인해 또는 그와 관련하여 발생하는 간접적, 부수적, 특별, 결과적 또는 징벌적 손해나 데이터, 수익, 영업권 또는 서비스 접근의 손실에 대해 책임을 지지 않습니다.</p>
+
+              <h2>변경</h2>
+              <p>이 약관은 수시로 업데이트될 수 있습니다. 업데이트 후에도 AIQuota를 계속 사용하면 개정된 약관에 동의하는 것으로 간주됩니다.</p>
+
+              <h2>문의</h2>
+              <p>이 약관에 관한 문의는 <a href="mailto:help@aiquota.app">help@aiquota.app</a>로 이메일을 보내 주세요.</p>
+            </article>
+          </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <div class="site-footer__meta">
+          <a class="site-footer__owner" href="https://nieder.me/">&copy; John Niedermeyer</a>
+          <p>도움이 필요하신가요? <a href="mailto:help@aiquota.app?subject=AIQuota%20Issue%20Report">help@aiquota.app</a>로 이메일을 보내 주세요</p>
+        </div>
+        <div class="site-footer__end">
+          <nav class="site-footer__links" aria-label="법적 고지">
+            <a href="../privacy/">개인정보 처리방침</a>
+            <a href="./">서비스 약관</a>
+            <a href="../accessibility/">손쉬운 사용</a>
+            <a href="https://github.com/niederme/ai-quota">GitHub</a>
+          </nav>
+          <div class="aq-theme aq-glass" role="group" aria-label="화면 모드" data-theme-picker>
+            <button type="button" aria-pressed="false" data-theme-choice="system"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5"></rect><path d="M5.5 14h5M8 11.5V14"></path></svg><span>시스템</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"></circle><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"></path></svg><span>라이트</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"></path></svg><span>다크</span></button>
+          </div>
+          <details class="lang-picker" data-lang-picker>
+            <summary class="aq-glass"><svg class="lang-picker__globe" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M1.5 8h13M8 1.5c1.9 2 2.8 4.1 2.8 6.5S9.9 12.5 8 14.5C6.1 12.5 5.2 10.4 5.2 8S6.1 3.5 8 1.5z"></path></svg><span class="visually-hidden">언어: </span><span data-lang-current>한국어</span><svg class="lang-picker__chevron" viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 6.2 5 3.7l2.5 2.5"></path></svg></summary>
+            <ul class="lang-picker__menu aq-glass" translate="no" data-i18n-skip><li><a href="../../terms/" hreflang="en" lang="en" data-lang="en">English</a></li><li><a href="../../de/terms/" hreflang="de" lang="de" data-lang="de">Deutsch</a></li><li><a href="../../fr/terms/" hreflang="fr" lang="fr" data-lang="fr">Français</a></li><li><a href="../../es/terms/" hreflang="es" lang="es" data-lang="es">Español</a></li><li><a href="../../pt-br/terms/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br">Português (Brasil)</a></li><li><a href="../../ja/terms/" hreflang="ja" lang="ja" data-lang="ja">日本語</a></li><li><a href="./" hreflang="ko" lang="ko" data-lang="ko" aria-current="true">한국어</a></li></ul>
+          </details>
+        </div>
+      </div>
+    </footer>
+
+    <dialog class="get-dialog" id="get-aiquota" aria-labelledby="get-aiquota-title">
+      <div class="get-dialog__panel">
+        <button class="get-dialog__close" type="button" aria-label="닫기" data-get-close><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8"></path></svg></button>
+        <img src="../../assets/aiquota-app-icon.png" alt="" width="80" height="80" />
+        <h2 id="get-aiquota-title">AIQuota 받기</h2>
+        <p>iPhone, iPad, Mac용.</p>
+        <div class="badges badges--center"><a class="aq-badge" href="#" data-app-store-link aria-label="App Store에서 다운로드"><span class="aq-badge__chip aq-glass" aria-hidden="true"><img class="aq-badge__t aq-badge__t--dark" src="../../assets/badges/app-store-type-on-dark.png" alt="" /><img class="aq-badge__t aq-badge__t--light" src="../../assets/badges/app-store-type-on-light.png" alt="" /></span></a><a class="aq-badge aq-badge--mac" href="#" data-mac-app-store-link aria-label="Mac App Store에서 다운로드"><span class="aq-badge__chip aq-glass" aria-hidden="true"><img class="aq-badge__t aq-badge__t--dark" src="../../assets/badges/mac-app-store-type-on-dark.png" alt="" /><img class="aq-badge__t aq-badge__t--light" src="../../assets/badges/mac-app-store-type-on-light.png" alt="" /></span></a></div>
+        <p class="direct-link direct-link--center">또는 <a class="aq-direct" href="https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip">Mac용으로 직접 다운로드</a>하세요.</p>
+      </div>
+    </dialog>
+  </body>
+</html>
