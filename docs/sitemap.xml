@@ -1,18 +1,465 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://aiquota.app/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/" />
   </url>
   <url>
     <loc>https://aiquota.app/releases/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/releases/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/releases/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/releases/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/releases/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/releases/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/releases/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/releases/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/releases/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/faq/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/faq/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/faq/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/faq/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/faq/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/faq/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/faq/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/faq/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/faq/" />
   </url>
   <url>
     <loc>https://aiquota.app/privacy/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/privacy/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/privacy/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/privacy/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/privacy/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/privacy/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/privacy/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/privacy/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/privacy/" />
   </url>
   <url>
     <loc>https://aiquota.app/terms/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/terms/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/terms/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/terms/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/terms/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/terms/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/terms/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/terms/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/terms/" />
   </url>
   <url>
     <loc>https://aiquota.app/accessibility/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/accessibility/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/de/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/de/releases/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/releases/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/releases/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/releases/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/releases/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/releases/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/releases/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/releases/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/releases/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/de/faq/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/faq/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/faq/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/faq/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/faq/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/faq/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/faq/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/faq/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/faq/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/de/privacy/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/privacy/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/privacy/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/privacy/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/privacy/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/privacy/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/privacy/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/privacy/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/privacy/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/de/terms/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/terms/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/terms/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/terms/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/terms/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/terms/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/terms/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/terms/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/terms/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/de/accessibility/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/accessibility/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/fr/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/fr/releases/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/releases/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/releases/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/releases/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/releases/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/releases/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/releases/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/releases/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/releases/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/fr/faq/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/faq/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/faq/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/faq/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/faq/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/faq/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/faq/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/faq/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/faq/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/fr/privacy/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/privacy/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/privacy/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/privacy/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/privacy/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/privacy/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/privacy/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/privacy/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/privacy/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/fr/terms/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/terms/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/terms/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/terms/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/terms/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/terms/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/terms/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/terms/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/terms/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/fr/accessibility/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/accessibility/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/es/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/es/releases/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/releases/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/releases/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/releases/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/releases/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/releases/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/releases/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/releases/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/releases/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/es/faq/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/faq/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/faq/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/faq/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/faq/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/faq/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/faq/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/faq/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/faq/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/es/privacy/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/privacy/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/privacy/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/privacy/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/privacy/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/privacy/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/privacy/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/privacy/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/privacy/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/es/terms/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/terms/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/terms/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/terms/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/terms/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/terms/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/terms/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/terms/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/terms/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/es/accessibility/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/accessibility/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/pt-br/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/pt-br/releases/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/releases/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/releases/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/releases/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/releases/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/releases/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/releases/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/releases/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/releases/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/pt-br/faq/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/faq/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/faq/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/faq/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/faq/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/faq/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/faq/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/faq/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/faq/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/pt-br/privacy/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/privacy/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/privacy/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/privacy/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/privacy/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/privacy/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/privacy/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/privacy/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/privacy/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/pt-br/terms/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/terms/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/terms/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/terms/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/terms/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/terms/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/terms/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/terms/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/terms/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/pt-br/accessibility/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/accessibility/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/ja/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/ja/releases/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/releases/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/releases/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/releases/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/releases/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/releases/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/releases/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/releases/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/releases/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/ja/faq/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/faq/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/faq/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/faq/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/faq/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/faq/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/faq/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/faq/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/faq/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/ja/privacy/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/privacy/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/privacy/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/privacy/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/privacy/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/privacy/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/privacy/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/privacy/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/privacy/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/ja/terms/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/terms/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/terms/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/terms/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/terms/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/terms/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/terms/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/terms/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/terms/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/ja/accessibility/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/accessibility/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/ko/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/ko/releases/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/releases/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/releases/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/releases/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/releases/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/releases/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/releases/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/releases/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/releases/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/ko/faq/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/faq/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/faq/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/faq/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/faq/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/faq/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/faq/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/faq/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/faq/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/ko/privacy/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/privacy/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/privacy/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/privacy/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/privacy/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/privacy/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/privacy/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/privacy/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/privacy/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/ko/terms/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/terms/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/terms/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/terms/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/terms/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/terms/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/terms/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/terms/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/terms/" />
+  </url>
+  <url>
+    <loc>https://aiquota.app/ko/accessibility/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://aiquota.app/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="de" href="https://aiquota.app/de/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="es" href="https://aiquota.app/es/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/accessibility/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://aiquota.app/accessibility/" />
   </url>
 </urlset>

@@ -85,22 +85,27 @@ missing = []
 for index, release in enumerate(stable_releases[:4]):
     version = release["tag_name"].removeprefix("v")
     tag_url = f"https://github.com/niederme/ai-quota/releases/tag/{release['tag_name']}"
+    # A tag like v2.0.0 may be written "2.0" on the page.
+    names = {version}
+    if version.count(".") == 2 and version.endswith(".0"):
+        names.add(version.removesuffix(".0"))
 
     if index == 0:
-        required_tokens = [
-            f"AIQuota {version}",
-            f"Download {version}",
-            tag_url,
+        required = [
+            [f"AIQuota {name}" for name in names],
+            [f"download {name}" for name in names],
+            [tag_url],
         ]
     else:
-        required_tokens = [
-            f"Version {version}",
-            tag_url,
+        required = [
+            [f"Version {name}" for name in names],
+            [tag_url],
         ]
 
-    for token in required_tokens:
-        if token not in page_html:
-            missing.append(token)
+    page_lower = page_html.lower()
+    for options in required:
+        if not any(option.lower() in page_lower for option in options):
+            missing.append(" or ".join(options))
 
     valid_dates = release_dates(release["published_at"])
     if not any(date in page_html for date in valid_dates):
@@ -114,9 +119,9 @@ if missing:
 PY
 }
 
-check_contains "/" "Know your limits before they break your flow."
-check_contains "/" "AIQuota gives you clear visibility into Codex and Claude Code usage with Menu Bar"
-check_contains "/" "gauges, desktop widgets, reset timers, and warning states."
+check_contains "/" "Know your limits<br />before they break<br />your flow."
+check_contains "/" "AIQuota shows how much of your Codex and Claude allowance is left, with reset times"
+check_contains "/" "and alerts, in your menu bar, on your Home Screen and on your Lock Screen."
 check_contains "/" "<title>Claude Code &amp; Codex Usage Tracker for macOS | AIQuota</title>"
 check_contains "/" "Track Claude Code and OpenAI Codex usage, quota windows, reset times, and alerts"
 check_contains "/" "\"@id\": \"https://aiquota.app/#software\""
@@ -124,14 +129,16 @@ check_contains "/" "\"@type\": \"SoftwareApplication\""
 check_contains "/" "\"@id\": \"https://nieder.me/#person\""
 check_contains "/" "\"operatingSystem\": \"macOS 15 or later\""
 check_contains "/" "\"downloadUrl\": \"https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip\""
-check_contains "/" "Single or dual Menu Bar gauges across available 5-hour and 7-day windows"
-check_contains "/" "Desktop widgets for background visibility"
 check_contains "/" "Reset timers, plan details, and warning states"
 check_contains "/releases/" "<h1>Releases</h1>"
 check_contains "/privacy/" "<h1 class=\"policy-title\">Privacy Policy</h1>"
+check_contains "/faq/" "<h1 class=\"page-title\">Questions?</h1>"
+check_contains "/faq/" "<link rel=\"canonical\" href=\"https://aiquota.app/faq/\" />"
 check_contains "/terms/" "<h1 class=\"policy-title\">Terms of Service</h1>"
 check_contains "/accessibility/" "<h1 class=\"policy-title\">Accessibility</h1>"
 check_release_page_matches_github
+check_contains "/releases/" "download 2.0 directly for Mac</a>."
+check_status "/assets/aiquota-2.0-mac.webp"
 
 check_status "/site.css"
 check_status "/site.js"
@@ -140,6 +147,11 @@ check_status "/robots.txt"
 check_status "/sitemap.xml"
 check_status "/assets/aiquota-demo-inline.mp4"
 check_status "/assets/aiquota-video-poster.png"
+check_status "/assets/ios-lockscreen.webp"
+check_status "/assets/badges/app-store-type-on-dark.png"
+check_status "/assets/badges/app-store-type-on-light.png"
+check_status "/assets/badges/mac-app-store-type-on-dark.png"
+check_status "/assets/badges/mac-app-store-type-on-light.png"
 
 video_size="$(wc -c < "$SITE_DIR/assets/aiquota-demo-inline.mp4" | tr -d '[:space:]')"
 if (( video_size > 1048576 )); then
@@ -153,6 +165,7 @@ check_contains "/llms.txt" "AIQuota is a native macOS menu bar app for monitorin
 check_contains "/llms.txt" "[Latest Download](https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip)"
 check_contains "/sitemap.xml" "<loc>https://aiquota.app/</loc>"
 check_contains "/sitemap.xml" "<loc>https://aiquota.app/releases/</loc>"
+check_contains "/sitemap.xml" "<loc>https://aiquota.app/faq/</loc>"
 check_contains "/sitemap.xml" "<loc>https://aiquota.app/privacy/</loc>"
 check_contains "/sitemap.xml" "<loc>https://aiquota.app/terms/</loc>"
 check_contains "/sitemap.xml" "<loc>https://aiquota.app/accessibility/</loc>"
@@ -161,26 +174,64 @@ grep -Fq 'RewriteCond %{HTTP_HOST} !^aiquota\.app$ [NC,OR]' "$SITE_DIR/.htaccess
 grep -Fq 'RewriteCond %{HTTP:X-Forwarded-Proto} !https [NC]' "$SITE_DIR/.htaccess"
 grep -Fq 'Strict-Transport-Security "max-age=31536000; includeSubDomains"' "$SITE_DIR/.htaccess"
 
-check_contains "/" "hero-demo-media"
-check_contains "/" "faq-panel"
-check_contains "/" "faq-panel-header"
-check_contains "/" "Questions?"
-check_contains "/" "The quick answers on tracking, sign-in, privacy, widgets, and getting set up on"
-check_contains "/" "your Mac."
-check_contains "/" "Need help?"
-check_contains "/" "want to report a bug."
-check_contains "/" "mailto:help@aiquota.app"
-check_contains "/site.css" ".hero-demo-media"
-check_contains "/site.css" ".faq-panel"
-check_contains "/site.css" ".faq-panel-header"
+# Shared shell: nav with the current page marked, footer help line, theme picker.
+for page in "/" "/releases/" "/faq/" "/privacy/" "/terms/" "/accessibility/"; do
+  check_contains "$page" "class=\"aq-nav aq-glass\""
+  check_contains "$page" "data-theme-picker"
+  check_contains "$page" "data-get-open>Download</a>"
+  check_contains "$page" "id=\"get-aiquota\""
+  check_contains "$page" "Need help? Email"
+  check_contains "$page" "mailto:help@aiquota.app"
+  check_contains "$page" "localStorage.getItem(\"aiquota-theme\")"
+done
+# Translations: generated pages are current, every language serves every page
+# with its own lang, canonical URL, hreflang set and footer language picker.
+python3 scripts/build-site-translations.py --check
+check_contains "/" "<link rel=\"alternate\" hreflang=\"x-default\" href=\"https://aiquota.app/\" />"
+check_contains "/" "data-lang-picker"
+check_contains "/" "localStorage.getItem(\"aiquota-language\")"
+for lang in "de:de" "fr:fr" "es:es" "pt-br:pt-BR" "ja:ja" "ko:ko"; do
+  slug="${lang%%:*}"
+  code="${lang#*:}"
+  for page in "" "releases/" "faq/" "privacy/" "terms/" "accessibility/"; do
+    path="/${slug}/${page}"
+    check_contains "$path" "<html lang=\"${code}\">"
+    check_contains "$path" "<link rel=\"canonical\" href=\"https://aiquota.app${path}\" />"
+    check_contains "$path" "<link rel=\"alternate\" hreflang=\"en\" href=\"https://aiquota.app/${page}\" />"
+    check_contains "$path" "data-lang=\"${slug}\" aria-current=\"true\""
+    check_contains "$path" "class=\"aq-nav aq-glass\""
+    check_contains "$path" "mailto:help@aiquota.app"
+  done
+  check_contains "/sitemap.xml" "<loc>https://aiquota.app/${slug}/</loc>"
+done
 
-if curl -fsS "$BASE_URL/" | grep -q "faq-layout"; then
-  echo "Expected old split FAQ layout class to be removed from homepage"
-  exit 1
-fi
+check_contains "/" "<a class=\"aq-nav__link\" href=\"./\" aria-current=\"page\">Overview</a>"
+check_contains "/releases/" "<a class=\"aq-nav__link\" href=\"../releases/\" aria-current=\"page\">Releases</a>"
+check_contains "/faq/" "<a class=\"aq-nav__link\" href=\"../faq/\" aria-current=\"page\">FAQ</a>"
 
-if curl -fsS "$BASE_URL/" | grep -q "Need help? Email"; then
-  echo "Expected footer help line to be removed from homepage"
+# Overview: hero, features bento, devices, FAQ pointer, download band.
+check_contains "/" "AIQuota 2.0 · Now on Mac, iPhone and iPad"
+check_contains "/" "class=\"bento\""
+check_contains "/" "Your allowance, wherever you’re working."
+check_contains "/" "href=\"./faq/\">Read the FAQ</a>"
+check_contains "/" "Get AIQuota 2.0"
+check_contains "/" "aria-label=\"Download on the App Store\""
+check_contains "/" "aria-label=\"Download on the Mac App Store\""
+check_contains "/" "download directly for Mac</a>."
+check_contains "/" "<dialog class=\"get-dialog\" id=\"get-aiquota\""
+check_contains "/" "data-get-open>Download</a>"
+check_contains "/" "<p class=\"aq-acct__cap\">\$65.57 of \$100</p>"
+check_contains "/" "66% 30d used"
+
+# FAQ page: one accordion, first answer open.
+check_contains "/faq/" "The quick answers on tracking, sign-in, privacy, widgets, and getting set up on your Mac, iPhone or iPad."
+check_contains "/faq/" "<details class=\"faq-item\" name=\"faq\" open>"
+check_contains "/faq/" "Do my Mac and iPhone share a connection?"
+check_contains "/faq/" "Need help?"
+check_contains "/faq/" "want to report a bug."
+
+if curl -fsS "$BASE_URL/" | grep -q "faq-item"; then
+  echo "Expected the FAQ to live on /faq/, not the homepage"
   exit 1
 fi
 
@@ -192,134 +243,44 @@ import sys
 css = Path(sys.argv[1]).read_text()
 
 def selector_block(selector: str) -> str:
-    match = re.search(re.escape(selector) + r"\s*\{([^}]*)\}", css)
+    match = re.search(r"(?:^|[}\s,])" + re.escape(selector) + r"\s*\{([^}]*)\}", css)
     if not match:
         raise SystemExit(f"Missing selector block: {selector}")
     return match.group(1)
 
 def expect(selector: str, pattern: str, message: str) -> None:
-    block = selector_block(selector)
-    if not re.search(pattern, block):
+    if not re.search(pattern, selector_block(selector)):
         raise SystemExit(f"Missing {message} in {selector}")
 
-def reject(selector: str, pattern: str, message: str) -> None:
-    block = selector_block(selector)
-    if re.search(pattern, block):
-        raise SystemExit(f"Unexpected {message} in {selector}")
+def media_block(query: str) -> str:
+    match = re.search(r"@media\s*\((?:" + query + r")\)\s*\{(.*?\})\s*\}", css, re.S)
+    if not match:
+        raise SystemExit(f"Missing media query: {query}")
+    return match.group(1)
 
-color = r"(?:white|#fff|#ffffff)\s*,\s*(?:black|#000|#000000)"
+# Design-system foundation (tokens.css + bundle.css) is merged into site.css.
+for token in ("--canvas", "--surface", "--accent-ink", "--brand", "--radius-card", "--font-sans"):
+    if not re.search(re.escape(token) + r"\s*:", css):
+        raise SystemExit(f"Missing design token {token}")
+for selector in (".aq-nav", ".aq-btn", ".aq-card", ".aq-dial", ".aq-notice", ".aq-heat", ".aq-theme", ".aq-wash"):
+    selector_block(selector)
+if not re.search(r'\[data-theme="?light"?\]', css):
+    raise SystemExit("Missing light theme override")
 
-for selector in (".visual-card", ".visual-frame", ".hero-demo-media"):
-    expect(selector, r"isolation\s*:\s*isolate", "isolation")
-    expect(
-        selector,
-        rf"-webkit-mask-image\s*:\s*-webkit-radial-gradient\(\s*{color}\s*\)",
-        "webkit mask",
-    )
-    expect(
-        selector,
-        rf"mask-image\s*:\s*radial-gradient\(\s*{color}\s*\)",
-        "mask-image",
-    )
+expect(".hero h1", r"font-size\s*:\s*clamp\(\s*40px\s*,\s*4\.9vw\s*,\s*58px\s*\)", "hero headline clamp")
+expect(".hero h1", r"text-wrap\s*:\s*initial", "hero headline wrap reset")
+expect(".bento", r"grid-auto-flow\s*:\s*dense", "dense bento flow")
+expect(".site-nav", r"position\s*:\s*fixed", "fixed nav")
 
-expect(".hero-demo-media", r"border-radius\s*:\s*inherit", "inherited border radius")
-expect(".hero-demo-video", r"object-position\s*:\s*center\s+top", "object-position")
-expect(
-    ".faq-panel-header .feature-kicker",
-    r"font-size\s*:\s*0?\.94rem",
-    "FAQ kicker scale",
-)
-reject(
-    ".faq-panel-header .feature-kicker",
-    r"width\s*:\s*fit-content",
-    "FAQ kicker pill width",
-)
-reject(
-    ".faq-panel-header .feature-kicker",
-    r"padding\s*:\s*8px\s+12px",
-    "FAQ kicker pill padding",
-)
-expect(
-    ".faq-item[open] summary",
-    r"padding-bottom\s*:\s*12px",
-    "FAQ open-state spacing",
-)
-expect(
-    ".faq-item summary",
-    r"font-size\s*:\s*clamp\(\s*1\.16rem\s*,\s*1\.34vw\s*,\s*1\.24rem\s*\)",
-    "FAQ question font size",
-)
-expect(
-    ".faq-item p",
-    r"font-size\s*:\s*clamp\(\s*1\.03rem\s*,\s*1\.15vw\s*,\s*1\.12rem\s*\)",
-    "FAQ answer font size",
-)
-expect(
-    ".hero h1",
-    r"font-size\s*:\s*clamp\(\s*46px\s*,\s*6\.8vw\s*,\s*72px\s*\)",
-    "hero headline clamp",
-)
-
-media_1080 = re.search(
-    r"@media\s*\((?:max-width:\s*1080px|width\s*<=\s*1080px)\)\s*\{(.*?)\}\s*@media",
-    css,
-    re.S,
-)
-if not media_1080:
-    raise SystemExit("Missing 1080px media query")
-
-media_1080_css = media_1080.group(1)
-
-def expect_in_css(source: str, pattern: str, message: str) -> None:
-    if not re.search(pattern, source, re.S):
-        raise SystemExit(f"Missing {message}")
-
-expect_in_css(media_1080_css, r"\.hero-grid\s*\{[^}]*gap\s*:\s*30px", "mid-range hero gap")
-expect_in_css(
-    media_1080_css,
-    r"\.hero-visual\s*\{[^}]*width\s*:\s*min\(\s*100%\s*,\s*clamp\(\s*520px\s*,\s*68vw\s*,\s*620px\s*\)\s*\)",
-    "mid-range hero visual width clamp",
-)
-expect_in_css(
-    media_1080_css,
-    r"\.hero-visual\s*\{[^}]*justify-self\s*:\s*center",
-    "mid-range hero visual centering",
-)
-expect_in_css(
-    media_1080_css,
-    r"\.hero-visual\s*\{[^}]*margin-inline\s*:\s*auto",
-    "mid-range hero visual margin centering",
-)
-expect_in_css(
-    media_1080_css,
-    r"\.hero-copy\s*\{[^}]*max-width\s*:\s*640px",
-    "mid-range hero copy max width",
-)
-expect_in_css(
-    media_1080_css,
-    r"\.hero-copy\s*\{[^}]*margin-inline\s*:\s*auto",
-    "mid-range hero copy centering",
-)
-
-media_720 = re.search(
-    r"@media\s*\((?:max-width:\s*720px|width\s*<=\s*720px)\)\s*\{(.*)\}\s*$",
-    css,
-    re.S,
-)
-if not media_720:
-    raise SystemExit("Missing 720px media query")
-
-media_720_css = media_720.group(1)
-expect_in_css(
-    media_720_css,
-    r"\.hero-visual\s*\{[^}]*width\s*:\s*100%",
-    "mobile hero visual full width",
-)
-expect_in_css(
-    media_720_css,
-    r"\.hero-visual\s*\{[^}]*max-width\s*:\s*none",
-    "mobile hero visual max-width reset",
-)
+lg = media_block(r"min-width:\s*1000px|width\s*>=\s*1000px")
+if not re.search(r"\.bento\s*\{[^}]*repeat\(\s*6\s*,", lg):
+    raise SystemExit("Missing six-column bento at 1000px")
+md = media_block(r"min-width:\s*680px|width\s*>=\s*680px")
+if not re.search(r"\.bento\s*\{[^}]*repeat\(\s*2\s*,", md):
+    raise SystemExit("Missing two-column bento at 680px")
+narrow = media_block(r"max-width:\s*759px|width\s*<=\s*759px")
+if not re.search(r"\.site-nav__menu\s*\{[^}]*display\s*:\s*grid", narrow):
+    raise SystemExit("Missing narrow-screen menu button")
 PY
 
 python3 - "$BASE_URL/" <<'PY'

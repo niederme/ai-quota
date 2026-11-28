@@ -58,9 +58,17 @@ done
 
 PUBLIC_DIRS=(
   accessibility
+  faq
   privacy
   releases
   terms
+  # Translated copies of every page (scripts/build-site-translations.py).
+  de
+  fr
+  es
+  pt-br
+  ja
+  ko
 )
 
 for dir in "${PUBLIC_DIRS[@]}"; do

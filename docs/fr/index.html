@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Suivi de l’utilisation de Claude Code et Codex pour macOS | AIQuota</title>
+    <meta
+      name="description"
+      content="Suivez l’utilisation de Claude Code et d’OpenAI Codex, les fenêtres de quota, les heures de réinitialisation et les alertes depuis la barre des menus de macOS et des widgets de bureau avec AIQuota."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0b060f" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+    <link rel="canonical" href="https://aiquota.app/fr/" />
+    <link rel="alternate" hreflang="en" href="https://aiquota.app/" />
+    <link rel="alternate" hreflang="de" href="https://aiquota.app/de/" />
+    <link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/" />
+    <link rel="alternate" hreflang="es" href="https://aiquota.app/es/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/" />
+    <link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/" />
+    <link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/" />
+    <link rel="alternate" hreflang="x-default" href="https://aiquota.app/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:title" content="Suivi de l’utilisation de Claude Code et Codex pour macOS | AIQuota" />
+    <meta
+      property="og:description"
+      content="Suivez l’utilisation de Claude Code et d’OpenAI Codex, les fenêtres de quota, les heures de réinitialisation et les alertes depuis la barre des menus de macOS et des widgets de bureau avec AIQuota."
+    />
+    <meta property="og:url" content="https://aiquota.app/fr/" />
+    <meta property="og:site_name" content="AIQuota" />
+    <meta
+      property="og:image"
+      content="https://aiquota.app/assets/aiquota-social-card.png?v=0ce949bc530a"
+    />
+    <meta
+      property="og:image:secure_url"
+      content="https://aiquota.app/assets/aiquota-social-card.png?v=0ce949bc530a"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Icône de l’app AIQuota." />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Suivi de l’utilisation de Claude Code et Codex pour macOS | AIQuota"
+    />
+    <meta
+      name="twitter:description"
+      content="Suivez l’utilisation de Claude Code et d’OpenAI Codex, les fenêtres de quota, les heures de réinitialisation et les alertes depuis la barre des menus de macOS et des widgets de bureau avec AIQuota."
+    />
+    <meta name="twitter:url" content="https://aiquota.app/fr/" />
+    <meta name="twitter:site" content="@AiQuotaApp" />
+    <meta name="twitter:creator" content="@AiQuotaApp" />
+    <meta
+      name="twitter:image"
+      content="https://aiquota.app/assets/aiquota-social-card.png?v=0ce949bc530a"
+    />
+    <meta name="twitter:image:alt" content="Icône de l’app AIQuota." />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "SoftwareApplication",
+            "@id": "https://aiquota.app/#software",
+            "name": "AIQuota",
+            "url": "https://aiquota.app/",
+            "description": "Suivez l’utilisation de Claude Code et d’OpenAI Codex, les fenêtres de quota, les heures de réinitialisation et les alertes depuis la barre des menus de macOS et des widgets de bureau avec AIQuota.",
+            "applicationCategory": "DeveloperApplication",
+            "applicationSubCategory": "Developer Tools",
+            "operatingSystem": "macOS 15 ou version ultérieure",
+            "softwareVersion": "1.9.21",
+            "downloadUrl": "https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip",
+            "image": "https://aiquota.app/assets/aiquota-social-card.png",
+            "screenshot": "https://aiquota.app/assets/aiquota-video-poster.png",
+            "featureList": [
+              "Suivi des quotas Codex et Claude Code",
+              "Jauges dans la barre des menus pour les fenêtres de 5 heures et de 7 jours disponibles",
+              "Widgets de bureau",
+              "Comptes à rebours de réinitialisation, détails du forfait et niveaux d’alerte"
+            ],
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            },
+            "author": {
+              "@id": "https://nieder.me/#person"
+            },
+            "sameAs": "https://github.com/niederme/ai-quota"
+          },
+          {
+            "@type": "Person",
+            "@id": "https://nieder.me/#person",
+            "name": "John Niedermeyer",
+            "url": "https://nieder.me/",
+            "sameAs": "https://github.com/niederme"
+          }
+        ]
+      }
+    </script>
+    <script>
+      // Language: English pages send a visitor to their language's version,
+      // using the language they picked in the footer, else the browser's.
+      (() => {
+        const languages = ["de", "fr", "es", "pt-br", "ja", "ko"];
+        if (document.documentElement.lang !== "en") return;
+        let choice = null;
+        try {
+          choice = window.localStorage.getItem("aiquota-language");
+        } catch (error) {}
+        if (!choice) {
+          for (const tag of navigator.languages || [navigator.language || ""]) {
+            const base = String(tag).toLowerCase().split("-")[0];
+            if (base === "en") break;
+            const match = base === "pt" ? "pt-br" : base;
+            if (languages.includes(match)) {
+              choice = match;
+              break;
+            }
+          }
+        }
+        if (languages.includes(choice)) {
+          window.location.replace("/" + choice + window.location.pathname + window.location.search + window.location.hash);
+        }
+      })();
+    </script>
+    <script>
+      (() => {
+        let storedTheme = null;
+        try {
+          storedTheme =
+            window.localStorage.getItem("aiquota-theme") ??
+            window.localStorage.getItem("aiquota-docs-theme");
+        } catch (error) {}
+        const resolvedTheme =
+          storedTheme === "light" || storedTheme === "dark"
+            ? storedTheme
+            : window.matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark";
+        document.documentElement.dataset.theme = resolvedTheme;
+        document.documentElement.classList.add("js");
+      })();
+    </script>
+    <link rel="stylesheet" href="../site.css" />
+    <script src="../site.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Aller au contenu</a>
+    <svg class="visually-hidden" aria-hidden="true" focusable="false"><defs><symbol id="logo-openai" viewBox="0 0 127 125"><path fill="currentColor" d="m48.3749 45.4998v-11.8751c0-1.0001.3754-1.7504 1.2499-2.2498l23.8757-13.75c3.25-1.8749 7.1251-2.7495 11.1246-2.7495 14.9997 0 24.4999 11.6253 24.4999 23.9998 0 .8748 0 1.8749-.125 2.875l-24.7501-14.5003c-1.4998-.8745-3.0003-.8745-4.5001 0zm55.7501 46.2504v-28.3757c0-1.7504-.751-3.0003-2.25-3.8751l-31.3751-18.2499 10.25-5.8754c.8748-.4994 1.6251-.4994 2.4999 0l23.8752 13.75c6.876 4.0005 11.5 12.5 11.5 20.7495 0 9.4997-5.624 18.2502-14.5 21.8755zm-63.1251-24.9999-10.25-5.9997c-.8745-.4994-1.2499-1.2499-1.2499-2.25v-27.4998c0-13.3746 10.25-23.5003 24.1253-23.5003 5.2507 0 10.1247 1.7504 14.2507 4.8753l-24.625 14.2504c-1.4995.8746-2.2498 2.1245-2.2498 3.8752v36.25zm22.0628 12.7496-14.6878-8.2497v-17.4994l14.6878-8.2497 14.6868 8.2497v17.4994zm9.4374 38.0011c-5.2504 0-10.1244-1.751-14.2504-4.875l24.6247-14.2512c1.4998-.8745 2.2501-2.1245 2.2501-3.8752v-36.2499l10.3755 5.9997c.8746.4994 1.25 1.2497 1.25 2.25v27.4998c0 13.3748-10.3756 23.4998-24.2499 23.4998zm-29.6252-27.8754-23.8758-13.7497c-6.8755-4.0007-11.4999-12.5-11.4999-20.7498 0-9.625 5.7501-18.2499 14.6246-21.8752v28.4999c0 1.7504.7505 3.0003 2.25 3.8751l31.2507 18.1243-10.25 5.8754c-.8746.4995-1.6251.4995-2.4996 0zm-1.3743 20.5004c-14.1251 0-24.5004-10.6255-24.5004-23.7505 0-1.0002.1253-2.0003.2496-3.0004l24.6249 14.2505c1.4996.8748 3.0004.8748 4.4999 0l31.3749-18.1244v11.8751c0 1.0001-.3751 1.7504-1.2499 2.2498l-23.8755 13.7499c-3.2502 1.875-7.1253 2.75-11.1248 2.75zm30.9995 14.874c15.1253 0 27.7499-10.75 30.6259-25.0001 14-3.6253 23-16.7504 23-30.125 0-8.7504-3.75-17.2497-10.5-23.375.625-2.6252 1-5.2504 1-7.8743 0-17.8748-14.5-31.25067-31.2507-31.25067-3.3742 0-6.6243.49941-9.8745 1.6251-5.6259-5.50026-13.3759-9.00003-21.8755-9.00003-15.125 0-27.7493 10.7494-30.6254 24.9998-13.99987 3.6254-22.9999 16.7504-22.9999 30.125 0 8.7505 3.7496 17.2498 10.4998 23.375-.62496 2.6252-1.0001 5.2504-1.0001 7.8746 0 17.8746 14.5003 31.2506 31.2504 31.2506 3.3744 0 6.6246-.5 9.8748-1.625 5.6246 5.5 13.3746 9 21.8752 9z"></path></symbol><symbol id="logo-claude" viewBox="0 0 125 125"><path fill="currentColor" d="m54.375 118.75 1.75-7.75 2-10 1.625-8 1.5-9.875.875-3.25-.125-.25-.625.125-7.5 10.25-11.375 15.375-9 9.5-2.125.875-3.75-1.875.375-3.5 2.125-3 12.375-15.875 7.5-9.875 4.875-5.625-.125-.75h-.25l-33 21.5-5.875.75-2.625-2.375.375-3.875 1.25-1.25 9.875-6.875 24.625-13.75.375-1.25-.375-.625h-1.25l-4.125-.25-14-.375-12.125-.5-11.875-.625-3-.625-2.75-3.75.25-1.875 2.5-1.625 3.625.25 7.875.625 11.875.75 8.625.5 12.75 1.375h2l.25-.875-.625-.5-.5-.5-12.375-8.25-13.25-8.75-7-5.125-3.75-2.625-1.875-2.375-.75-5.25 3.375-3.75 4.625.375 1.125.25 4.625 3.625 9.875 7.625 13 9.625 1.875 1.5.875-.5v-.375l-.875-1.375-7-12.75-7.5-13-3.375-5.375-.875-3.25c-.3333-1.125-.5-2.375-.5-3.75l3.875-5.249994 2.125-.750006 5.25.750006 2.125 1.874994 3.25 7.375 5.125 11.625 8.125 15.75 2.375 4.75 1.25 4.25.5 1.375h.875v-.75l.625-9 1.25-10.875 1.25-14 .375-4 2-4.75 3.875-2.49999 3 1.37499 2.5 3.625-.375 2.25-1.375 9.625-3 15.125-1.875 10.25h1.125l1.25-1.375 5.125-6.75 8.625-10.75 3.75-4.25 4.5-4.75 2.875-2.25h5.375l3.875 5.875-1.75 6.125-5.5 7-4.625 5.875-6.625 8.875-4 7.125.375.5h.875l14.875-3.25 8.125-1.375 9.5-1.625 4.375 2 .5 2-1.75 4.25-10.25 2.5-12 2.375-17.875 4.25-.25.125.25.375 8 .75 3.5.25h8.5l15.75 1.125 4.125 2.75 2.375 3.25-.375 2.625-6.375 3.125-8.5-2-20-4.75-6.75-1.625h-1v.5l5.75 5.625 10.375 9.375 13.125 12.125.625 3-1.625 2.5-1.75-.25-11.5-8.75-4.5-3.875-10-8.375h-.625v.875l2.25 3.375 12.25 18.375.625 5.625-.875 1.75-3.25 1.125-3.375-.625-7.25-10-7.375-11.375-6-10.125-.625.5-3.625 37.75-1.625 1.875-3.75 1.5-3.125-2.375z"></path></symbol></defs></svg>
+    <header class="site-nav">
+      <div class="site-nav__inner">
+        <nav class="aq-nav aq-glass" aria-label="Principal" data-nav>
+          <a class="aq-nav__brand" href="./"><img src="../assets/aiquota-app-icon.png" alt="" width="28" height="28" />AIQuota</a>
+          <div class="aq-nav__links">
+            <a class="aq-nav__link" href="./" aria-current="page">Présentation</a>
+            <a class="aq-nav__link" href="./releases/">Versions</a>
+            <a class="aq-nav__link" href="./faq/">FAQ</a>
+            <a class="aq-nav__link" href="https://github.com/niederme/ai-quota">GitHub <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="aq-theme aq-glass aq-theme--compact" role="group" aria-label="Apparence" data-theme-picker>
+            <button type="button" aria-pressed="false" data-theme-choice="system"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5"></rect><path d="M5.5 14h5M8 11.5V14"></path></svg><span>Système</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"></circle><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"></path></svg><span>Clair</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"></path></svg><span>Sombre</span></button>
+          </div>
+          <a class="aq-btn aq-btn--primary" href="./#download" aria-haspopup="dialog" data-get-open>Télécharger</a>
+          <button class="site-nav__menu" type="button" aria-label="Menu" aria-expanded="false" aria-controls="site-menu" data-menu-toggle>
+            <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 6h12M3 12h12"></path></svg>
+          </button>
+        </nav>
+        <div class="site-menu aq-glass" id="site-menu" hidden>
+          <a href="./" aria-current="page">Présentation</a>
+          <a href="./releases/">Versions</a>
+          <a href="./faq/">FAQ</a>
+          <a href="https://github.com/niederme/ai-quota">GitHub <span aria-hidden="true">↗</span></a>
+          <div class="site-menu__appearance">
+            <span>Apparence</span>
+            <div class="aq-theme aq-glass" role="group" aria-label="Apparence" data-theme-picker>
+              <button type="button" aria-pressed="false" data-theme-choice="system"><span>Système</span></button>
+              <button type="button" aria-pressed="false" data-theme-choice="light"><span>Clair</span></button>
+              <button type="button" aria-pressed="false" data-theme-choice="dark"><span>Sombre</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+
+      <section class="hero aq-wash">
+        <div class="container hero-grid">
+          <div class="hero-copy">
+            <p class="aq-eyebrow">AIQuota 2.0 · Désormais sur Mac, iPhone et iPad</p>
+            <h1 class="aq-display">Vos limites,<br />avant qu’elles<br />ne vous arrêtent.</h1>
+            <p class="aq-lead">AIQuota indique ce qu’il reste de votre quota Codex et Claude, avec les heures de réinitialisation et des alertes, dans la barre des menus, sur l’écran d’accueil et sur l’écran verrouillé.</p>
+            <div class="badges"><a class="aq-badge" href="#" data-app-store-link aria-label="Télécharger dans l’App Store"><span class="aq-badge__chip aq-glass" aria-hidden="true"><img class="aq-badge__t aq-badge__t--dark" src="../assets/badges/app-store-type-on-dark.png" alt="" /><img class="aq-badge__t aq-badge__t--light" src="../assets/badges/app-store-type-on-light.png" alt="" /></span></a><a class="aq-badge aq-badge--mac" href="#" data-mac-app-store-link aria-label="Télécharger dans le Mac App Store"><span class="aq-badge__chip aq-glass" aria-hidden="true"><img class="aq-badge__t aq-badge__t--dark" src="../assets/badges/mac-app-store-type-on-dark.png" alt="" /><img class="aq-badge__t aq-badge__t--light" src="../assets/badges/mac-app-store-type-on-light.png" alt="" /></span></a></div>
+            <div class="hero-download">
+              <p class="direct-link">Ou <a class="aq-direct" href="https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip">téléchargez-le directement pour Mac</a>.</p>
+              <p class="fine-print">macOS 15 ou version ultérieure. iOS et iPadOS 17 ou version ultérieure.</p>
+            </div>
+          </div>
+
+          <div class="hero-visual">
+            <div class="hero-notice" data-notice><svg class="notice-info" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.4"></circle><path d="M10 9v5.2"></path><circle class="notice-info__dot" cx="10" cy="6.1" r="1.05"></circle></svg><div class="hero-notice__text"><p class="hero-notice__title">Réinitialisation de l’utilisation de Codex annoncée</p><a class="hero-notice__link" href="https://codex-resets.com/">En savoir plus sur Codex Resets <span aria-hidden="true">↗</span></a></div><button class="hero-notice__close" type="button" aria-label="Masquer l’annonce de réinitialisation" data-notice-dismiss><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 2.5l5 5M7.5 2.5l-5 5"></path></svg></button></div>
+            <article class="aq-acct aq-acct--heat"><div class="aq-acct__row"><div class="aq-adial" style="--size: 140px" role="img" aria-label="54 % de la fenêtre de 7 jours utilisés"><svg viewBox="-5 -5 118 118" aria-hidden="true"><circle class="aq-adial__track" cx="54" cy="54" r="54" stroke-width="10" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="75 100"></circle><circle class="aq-adial__fill" cx="54" cy="54" r="54" stroke-width="10" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="40.50 100"></circle></svg><div class="aq-adial__values" aria-hidden="true"><svg class="aq-adial__logo"><use href="#logo-openai"></use></svg><div class="aq-adial__lines"><span>54 % 7 j</span></div></div></div><div class="aq-acct__body"><div class="aq-acct__head"><h3 class="aq-acct__name">Codex</h3><span class="aq-acct__chev" aria-hidden="true"><svg viewBox="0 0 10 10"><path d="M3.8 2 6.8 5 3.8 8"></path></svg></span></div><p class="aq-acct__sub">Forfait Pro · Perso</p><p class="aq-acct__cap">7 j : réinit. jeu. 13:09</p></div></div><div class="acct-heat" role="img" aria-label="Exemple : activité quotidienne de tokens Codex sur les 52 dernières semaines"><div class="aq-heat"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="l1"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="l1"></i><i class="l1"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i class="l1"></i><i></i><i></i><i></i><i></i><i></i><i class="l1"></i><i class="l4"></i><i class="l1"></i><i></i><i class="l4"></i><i class="l3"></i><i class="l2"></i><i></i><i class="l2"></i><i class="l1"></i><i class="l4"></i><i class="l1"></i><i class="l3"></i><i class="l3"></i><i class="l3"></i><i class="l3"></i><i class="l1"></i><i class="l3"></i><i class="l2"></i><i class="l2"></i><i class="l2"></i><i></i><i></i><i class="l4"></i><i class="l4"></i><i class="l2"></i><i class="l4"></i><i></i><i class="l1"></i><i class="l3"></i><i class="l3"></i><i class="l1"></i><i class="l2"></i><i></i><i class="l4"></i><i class="l1"></i><i class="l4"></i><i class="l4"></i><i class="l2"></i><i class="l2"></i><i class="l2"></i><i class="l4"></i><i class="l1"></i><i class="l4"></i><i class="l3"></i><i class="l3"></i><i class="l3"></i><i class="l2"></i><i></i><i class="l2"></i><i class="l1"></i><i></i><i class="l1"></i><i class="l4"></i><i class="l1"></i><i class="l1"></i><i class="l3"></i><i class="l1"></i><i class="l1"></i><i class="l1"></i><i class="l1"></i><i class="l1"></i><i class="l3"></i><i class="l3"></i><i class="l3"></i><i></i><i class="l1"></i><i class="l1"></i><i class="l4"></i><i class="l3"></i><i class="l3"></i><i class="l3"></i><i class="l2"></i><i></i><i class="l1"></i><i class="l1"></i><i></i><i class="l1"></i><i class="l3"></i><i class="l2"></i><i class="l3"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><i class="l3"></i><i class="l1"></i><i class="l4"></i><i class="l1"></i><i></i><i></i><i class="l2"></i><i class="l2"></i><i class="l4"></i><i class="l3"></i><i class="l3"></i><i class="l4"></i><i class="l3"></i><i class="l2"></i><i class="l3"></i><i></i><i class="l4"></i><i class="l4"></i><i></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><i class="l2"></i><i class="l4"></i><i></i><i></i><i class="l4"></i><i class="l3"></i><i class="l1"></i><i class="l4"></i><i class="l3"></i><i></i><i class="l3"></i><i></i><i></i><i></i><i class="l2"></i><i class="l2"></i><i class="l1"></i><i class="l1"></i><i class="l2"></i><i class="l2"></i><i class="l1"></i><i class="l3"></i><i class="l1"></i><i class="l3"></i><i></i><i class="l2"></i><i class="l4"></i><i></i><i class="l4"></i><i class="l2"></i><i class="l3"></i><i></i><i class="l2"></i><i class="l4"></i><i class="l2"></i><i class="l3"></i><i></i><i></i><i class="l2"></i><i class="l2"></i><i class="l3"></i><i></i><i></i><i class="l4"></i><i class="l4"></i><i class="l4"></i><i class="l3"></i><i class="l1"></i><i class="l1"></i><i class="l1"></i><i class="l3"></i><i class="l1"></i><i class="l2"></i><i class="l4"></i><i class="l1"></i><i class="l4"></i><i class="l1"></i><i class="l4"></i><i class="l4"></i><i></i><i class="l4"></i><i></i><i class="l3"></i><i></i><i class="l4"></i><i class="l1"></i><i class="l4"></i><i class="l4"></i><i class="l4"></i><i class="l3"></i><i class="l1"></i><i class="l4"></i><i class="l4"></i><i class="l4"></i><i class="l1"></i><i class="l4"></i><i class="l2"></i><i class="l4"></i><i></i><i class="l1"></i><i class="l3"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i></i><i class="l4"></i><i class="l4"></i><i class="l4"></i><i class="l1"></i><i class="l1"></i><i class="l4"></i><i class="l1"></i><i></i><i class="l3"></i><i class="l2"></i><i class="l1"></i><i></i><i class="l4"></i><i class="l2"></i><i class="l1"></i><i class="l3"></i><i class="l3"></i><i class="l4"></i><i class="l4"></i><i></i><i class="l3"></i><i class="l3"></i><i class="l1"></i><i class="l1"></i><i></i><i class="l2"></i><i class="l4"></i><i></i><i class="l2"></i><i class="l3"></i><i class="l1"></i><i class="l4"></i><i class="l2"></i><i class="l2"></i><i class="l4"></i><i></i><i class="l2"></i><i class="l4"></i><i class="l1"></i><i></i><i class="l3"></i><i class="l4"></i><i class="l3"></i><i class="l4"></i><i class="l2"></i><i class="l4"></i><i class="l4"></i><i class="l4"></i><i class="l4"></i><i class="l4"></i><i class="l4"></i><i class="l4"></i><i class="l1"></i><i class="l4"></i><i class="l4"></i><i class="l1"></i><i class="l3"></i><i class="l4"></i><i class="l1"></i><i class="l4"></i><i class="l4"></i><i class="l2"></i><i class="l4"></i><i class="l2"></i><i class="l2"></i><i class="l4"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><i class="l3"></i><i class="l4"></i><i class="l4"></i><i class="l2"></i><i class="l2"></i><i class="l2"></i><i class="l2"></i><i></i><i class="l4"></i><i class="l3"></i><i class="l4"></i><i class="l2"></i><i class="l4"></i><i class="l4"></i><i class="l2"></i><i class="l4"></i><i class="l4"></i><i class="l4"></i><i></i><i></i><i class="l4"></i><i class="l3"></i><i class="l4"></i><i class="l4"></i><i class="l2"></i><i class="l4"></i><i></i><i class="l3"></i><i class="l4"></i><i class="l2"></i><i class="l4"></i><i class="l4"></i><i class="l1"></i><i class="gap"></i></div></div></article>
+            <article class="aq-acct"><div class="aq-acct__row"><div class="aq-adial aq-adial--critical" style="--size: 140px" role="img" aria-label="96 % de la fenêtre de 5 heures utilisés, 32 % de la fenêtre de 7 jours utilisés"><svg viewBox="-5 -5 118 118" aria-hidden="true"><circle class="aq-adial__track" cx="54" cy="54" r="54" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="75 100"></circle><circle class="aq-adial__fill" cx="54" cy="54" r="54" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="72.00 100"></circle><circle class="aq-adial__track" cx="54" cy="54" r="45" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="75 100"></circle><circle class="aq-adial__fill aq-adial__fill--secondary" cx="54" cy="54" r="45" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="24.00 100"></circle></svg><div class="aq-adial__values aq-adial__values--dual" aria-hidden="true"><svg class="aq-adial__logo"><use href="#logo-claude"></use></svg><div class="aq-adial__lines"><span>96 % 5 h</span><span>32 % 7 j</span></div></div></div><div class="aq-acct__body"><div class="aq-acct__head"><h3 class="aq-acct__name">Claude</h3><span class="aq-acct__chev" aria-hidden="true"><svg viewBox="0 0 10 10"><path d="M3.8 2 6.8 5 3.8 8"></path></svg></span></div><p class="aq-acct__sub">Forfait Max · Perso</p><p class="aq-acct__cap">5 h : réinit. 22:00</p><p class="aq-acct__cap">7 j : réinit. mer. 14:00</p></div></div></article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="features">
+        <div class="container features">
+          <div class="section-head">
+            <p class="aq-eyebrow">Nouveau dans la 2.0</p>
+            <h2 class="section-title">Votre quota, où que vous travailliez.</h2>
+            <p class="aq-lead">AIQuota arrive sur iPhone et iPad, avec des widgets, l’historique Codex et d’autres façons de voir ce qu’il vous reste.</p>
+          </div>
+
+          <div class="bento">
+            <article class="tile tile--iphone">
+              <div class="tile__text">
+                <p class="tile__label">iPhone et iPad</p>
+                <h3 class="tile__title tile__title--lg">Votre quota, dans votre poche.</h3>
+                <p class="tile__body">Codex et Claude sur des cartes à double anneau, avec les heures de réinitialisation, les détails du forfait et l’heure de la dernière actualisation. Tirez pour actualiser, ou laissez l’app vérifier tant qu’elle est ouverte.</p>
+                <div class="badges badges--single"><a class="aq-badge" href="#" data-app-store-link aria-label="Télécharger dans l’App Store"><span class="aq-badge__chip aq-glass" aria-hidden="true"><img class="aq-badge__t aq-badge__t--dark" src="../assets/badges/app-store-type-on-dark.png" alt="" /><img class="aq-badge__t aq-badge__t--light" src="../assets/badges/app-store-type-on-light.png" alt="" /></span></a></div>
+              </div>
+              <div class="phone-stage">
+                <div class="phone">
+                  <div class="phone__screen">
+                    <div class="phone__island"></div>
+                    <p class="phone__title">AIQuota</p>
+                    <article class="aq-acct aq-acct--sm"><div class="aq-acct__row"><div class="aq-adial" style="--size: 92px" role="img" aria-label="38 % de la fenêtre de 5 heures utilisés, 61 % de la fenêtre de 7 jours utilisés"><svg viewBox="-5 -5 118 118" aria-hidden="true"><circle class="aq-adial__track" cx="54" cy="54" r="54" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="75 100"></circle><circle class="aq-adial__fill" cx="54" cy="54" r="54" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="28.50 100"></circle><circle class="aq-adial__track" cx="54" cy="54" r="45" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="75 100"></circle><circle class="aq-adial__fill aq-adial__fill--secondary" cx="54" cy="54" r="45" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="45.75 100"></circle></svg><div class="aq-adial__values aq-adial__values--dual" aria-hidden="true"><svg class="aq-adial__logo"><use href="#logo-openai"></use></svg><div class="aq-adial__lines"><span>38 % 5 h</span><span>61 % 7 j</span></div></div></div><div class="aq-acct__body"><div class="aq-acct__head"><h4 class="aq-acct__name">Codex</h4><span class="aq-acct__chev" aria-hidden="true"><svg viewBox="0 0 10 10"><path d="M3.8 2 6.8 5 3.8 8"></path></svg></span></div><p class="aq-acct__sub">Forfait Pro</p><p class="aq-acct__cap">5 h : réinit. 10:01</p><p class="aq-acct__cap">7 j : réinit. lun. 08:01</p></div></div></article>
+                    <article class="aq-acct aq-acct--sm"><div class="aq-acct__row"><div class="aq-adial" style="--size: 92px" role="img" aria-label="72 % de la fenêtre de 5 heures utilisés, 44 % de la fenêtre de 7 jours utilisés"><svg viewBox="-5 -5 118 118" aria-hidden="true"><circle class="aq-adial__track" cx="54" cy="54" r="54" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="75 100"></circle><circle class="aq-adial__fill" cx="54" cy="54" r="54" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="54.00 100"></circle><circle class="aq-adial__track" cx="54" cy="54" r="45" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="75 100"></circle><circle class="aq-adial__fill aq-adial__fill--secondary" cx="54" cy="54" r="45" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="33.00 100"></circle></svg><div class="aq-adial__values aq-adial__values--dual" aria-hidden="true"><svg class="aq-adial__logo"><use href="#logo-claude"></use></svg><div class="aq-adial__lines"><span>72 % 5 h</span><span>44 % 7 j</span></div></div></div><div class="aq-acct__body"><div class="aq-acct__head"><h4 class="aq-acct__name">Claude</h4><span class="aq-acct__chev" aria-hidden="true"><svg viewBox="0 0 10 10"><path d="M3.8 2 6.8 5 3.8 8"></path></svg></span></div><p class="aq-acct__sub">Forfait Max</p><p class="aq-acct__cap">5 h : réinit. 10:01</p><p class="aq-acct__cap">7 j : réinit. lun. 08:01</p></div></div></article>
+                    <p class="phone__note">Actualisé il y a 2 minutes</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="tile tile--widgets">
+              <div class="lockscreen-window">
+                <div class="lockscreen-phone">
+                  <img src="../assets/ios-lockscreen.webp" alt="Un écran verrouillé d’iPhone avec des widgets AIQuota." width="630" height="1368" loading="lazy" decoding="async" />
+                </div>
+              </div>
+              <div class="tile__text">
+                <p class="tile__label">Widgets</p>
+                <h3 class="tile__title">Écran d’accueil et écran verrouillé.</h3>
+                <p class="tile__body">Des widgets pour l’écran d’accueil, pour un compte ou plusieurs, dans toutes les tailles, et des widgets pour l’écran verrouillé à configurer à votre façon.</p>
+              </div>
+            </article>
+
+            <article class="tile tile--notifications">
+              <div class="tile__text">
+                <p class="tile__label">Notifications</p>
+                <h3 class="tile__title">Une alerte à votre seuil.</h3>
+                <p class="tile__body">Une alerte par période quand l’utilisation atteint le niveau de votre choix, plus des rappels de réinitialisation : seulement près de la limite, ou à chaque réinitialisation.</p>
+              </div>
+              <div class="notifications" role="img" aria-label="Exemples de notifications AIQuota">
+                <div class="notification-stack">
+                  <div class="notification aq-glass">
+                    <img src="../assets/aiquota-app-icon.png" alt="" width="38" height="38" />
+                    <div class="notification__text">
+                      <div class="notification__head"><span class="notification__title">Codex Pro : utilisation sur 5 heures à 85 %</span><span class="notification__time">maintenant</span></div>
+                      <span class="notification__body">Votre seuil de 85 % a été atteint. Réinitialisation dans 1 heure et 12 minutes.</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="notification aq-glass">
+                  <img src="../assets/aiquota-app-icon.png" alt="" width="38" height="38" />
+                  <div class="notification__text">
+                    <div class="notification__head"><span class="notification__title">Claude Max : fenêtre de 5 heures réinitialisée</span><span class="notification__time">il y a 2 h</span></div>
+                    <span class="notification__body">La fenêtre de 5 heures de Claude Max a été réinitialisée. Vous disposez à nouveau de toute votre capacité.</span>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="tile tile--mac">
+              <div class="mac-desktop" data-theme="dark">
+                <div class="mac-menubar" role="img" aria-label="Exemple : la barre des menus du Mac avec le Wi-Fi, trois jauges AIQuota, dont une proche de sa limite, et la batterie">
+                  <svg viewBox="0 0 20 16" width="20" height="16" aria-hidden="true"><path d="M10 13.6a1.6 1.6 0 1 1 0 .01z"></path><path d="M5.6 10.2a6.3 6.3 0 0 1 8.8 0l-1.3 1.3a4.5 4.5 0 0 0-6.2 0z"></path><path d="M2.6 7.2a10.5 10.5 0 0 1 14.8 0l-1.3 1.3a8.7 8.7 0 0 0-12.2 0z"></path><path d="M-.4 4.2a14.8 14.8 0 0 1 20.8 0L19.1 5.5a13 13 0 0 0-18.2 0z"></path></svg>
+                  <div class="mac-menubar__gauges">
+                  <svg viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.02" fill="none" stroke-width="2.64" pathLength="100" transform="rotate(135 11 11)" stroke="var(--ink)" stroke-opacity="0.2" stroke-dasharray="75 100"></circle><circle cx="11" cy="11" r="6.38" fill="none" stroke-width="2.64" pathLength="100" transform="rotate(135 11 11)" stroke="var(--ink)" stroke-opacity="0.12" stroke-dasharray="75 100"></circle><circle cx="11" cy="11" r="9.02" fill="none" stroke-width="2.64" pathLength="100" transform="rotate(135 11 11)" stroke="var(--ink)" stroke-dasharray="28.50 100"></circle><path d="M5.56 16.44A7.7 7.7 0 0 1 14.82 4.31A1.32 1.32 0 0 1 13.51 6.60A5.06 5.06 0 0 0 7.42 14.58Z" fill="var(--ink)" fill-opacity="0.45"></path><circle cx="6.17" cy="3.38" r="1.32" fill="var(--ink)" fill-opacity="0.95"></circle><path d="M11.00 7.92L11.48 10.52L14.08 11.00L11.48 11.48L11.00 14.08L10.52 11.48L7.92 11.00L10.52 10.52Z" fill="var(--ink)" fill-opacity="0.9"></path></svg>
+                  <svg viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.02" fill="none" stroke-width="2.64" pathLength="100" transform="rotate(135 11 11)" stroke="var(--ink)" stroke-opacity="0.2" stroke-dasharray="75 100"></circle><circle cx="11" cy="11" r="6.38" fill="none" stroke-width="2.64" pathLength="100" transform="rotate(135 11 11)" stroke="var(--ink)" stroke-opacity="0.12" stroke-dasharray="75 100"></circle><circle cx="11" cy="11" r="9.02" fill="none" stroke-width="2.64" pathLength="100" transform="rotate(135 11 11)" stroke="var(--ink)" stroke-dasharray="54.00 100"></circle><path d="M5.56 16.44A7.7 7.7 0 0 1 8.85 3.61A1.32 1.32 0 0 1 9.59 6.14A5.06 5.06 0 0 0 7.42 14.58Z" fill="var(--ink)" fill-opacity="0.45"></path><circle cx="18.76" cy="6.41" r="1.32" fill="var(--ink)" fill-opacity="0.95"></circle><path d="M11.00 7.92L11.48 10.52L14.08 11.00L11.48 11.48L11.00 14.08L10.52 11.48L7.92 11.00L10.52 10.52Z" fill="var(--ink)" fill-opacity="0.9"></path></svg>
+                  <svg viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.02" fill="none" stroke-width="2.64" pathLength="100" transform="rotate(135 11 11)" stroke="var(--ink)" stroke-opacity="0.2" stroke-dasharray="75 100"></circle><circle cx="11" cy="11" r="6.38" fill="none" stroke-width="2.64" pathLength="100" transform="rotate(135 11 11)" stroke="var(--ink)" stroke-opacity="0.12" stroke-dasharray="75 100"></circle><circle cx="11" cy="11" r="9.02" fill="none" stroke-width="2.64" pathLength="100" transform="rotate(135 11 11)" stroke="rgb(255, 166, 0)" stroke-dasharray="68.25 100"></circle><path d="M5.56 16.44A7.7 7.7 0 0 1 13.83 3.84A1.32 1.32 0 0 1 12.86 6.30A5.06 5.06 0 0 0 7.42 14.58Z" fill="rgb(255, 166, 0)" fill-opacity="0.65"></path><circle cx="19.44" cy="14.19" r="1.32" fill="#ffffff" fill-opacity="0.95"></circle><path d="M11.00 7.92L11.48 10.52L14.08 11.00L11.48 11.48L11.00 14.08L10.52 11.48L7.92 11.00L10.52 10.52Z" fill="rgb(255, 166, 0)" fill-opacity="0.9"></path></svg>
+                  </div>
+                  <svg viewBox="0 0 27 13" width="27" height="13" aria-hidden="true"><rect x="0.6" y="0.6" width="22.8" height="11.8" rx="3.4" fill="none" stroke="currentColor" stroke-opacity="0.45" stroke-width="1.2"></rect><rect x="2.4" y="2.4" width="15.5" height="8.2" rx="1.9" fill="currentColor"></rect><path d="M24.9 4.4v4.2a2 2 0 0 0 0-4.2z" fill="currentColor" fill-opacity="0.45"></path></svg>
+                  <span class="mac-menubar__clock">09:41</span>
+                </div>
+                <div class="mac-desktop__icons">
+                  <div class="mac-drive" aria-hidden="true">
+                    <svg viewBox="0 0 64 48" width="60" height="45"><defs><linearGradient id="hd-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1f0f4"></stop><stop offset="1" stop-color="#b9b7c0"></stop></linearGradient></defs><rect x="3" y="8" width="58" height="34" rx="6" fill="url(#hd-g)"></rect><rect x="3" y="30" width="58" height="12" rx="0" fill="#9e9ba6" fill-opacity="0.35"></rect><circle cx="52" cy="36" r="1.8" fill="#4cd964"></circle><rect x="9" y="35" width="20" height="2" rx="1" fill="#7d7a85"></rect></svg>
+                    <span>Macintosh HD</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mac-head">
+                <div class="tile__text">
+                  <p class="tile__label">Mac</p>
+                  <h3 class="tile__title tile__title--lg">L’utilisation en un coup d’œil, dans la barre des menus.</h3>
+                </div>
+                <p class="tile__body">Une jauge pour chaque compte choisi, qui passe à l’ambre à l’approche de la limite. Sans un clic.</p>
+              </div>
+            </article>
+
+            <article class="tile tile--history">
+              <div class="tile__text">
+                <p class="tile__label">Historique Codex</p>
+                <h3 class="tile__title">Voyez les jours où vous comptez sur Codex.</h3>
+                <p class="tile__body">L’utilisation quotidienne dans la carte Codex, avec le détail par modèle et par app.</p>
+              </div>
+              <div class="heat-block">
+                <div class="aq-heatwrap">
+                  <div class="aq-heat" role="img" aria-label="Exemple : utilisation quotidienne de Codex, de juin à novembre">
+                    <i class="l3"></i><i></i><i class="l2"></i><i class="l1"></i><i class="l3"></i><i></i><i></i><i class="l3"></i><i></i><i class="l1"></i><i class="l1"></i><i class="l3"></i><i></i><i></i>
+                    <i class="l4"></i><i class="l2"></i><i class="l1"></i><i class="l3"></i><i class="l2"></i><i></i><i class="l1"></i><i class="l3"></i><i class="l1"></i><i class="l2"></i><i class="l1"></i><i class="l2"></i><i class="l1"></i><i></i>
+                    <i class="l2"></i><i class="l3"></i><i class="l1"></i><i class="l1"></i><i></i><i></i><i class="l2"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><i class="l2"></i><i class="l1"></i><i class="l1"></i><i></i>
+                    <i class="l4"></i><i class="l4"></i><i class="l4"></i><i class="l3"></i><i></i><i></i><i></i><i class="l2"></i><i class="l4"></i><i class="l4"></i><i></i><i class="l3"></i><i></i><i></i>
+                    <i class="l2"></i><i class="l3"></i><i class="l1"></i><i class="l4"></i><i class="l1"></i><i></i><i class="l2"></i><i class="l4"></i><i class="l4"></i><i class="l1"></i><i></i><i></i><i class="l2"></i><i class="l1"></i>
+                    <i class="l1"></i><i class="l3"></i><i></i><i class="l1"></i><i class="l4"></i><i></i><i></i><i></i><i class="l1"></i><i class="l1"></i><i class="l2"></i><i></i><i class="l1"></i><i class="l1"></i>
+                    <i class="l4"></i><i class="l2"></i><i class="l1"></i><i class="l1"></i><i></i><i></i><i></i><i></i><i class="l2"></i><i class="l3"></i><i class="l3"></i><i class="l1"></i><i class="l2"></i><i class="l2"></i>
+                    <i class="l2"></i><i class="l4"></i><i class="l3"></i><i class="l4"></i><i class="l3"></i><i class="l2"></i><i class="l1"></i><i></i><i class="l3"></i><i class="l2"></i><i class="l4"></i><i class="l2"></i><i class="l2"></i><i></i>
+                    <i class="l2"></i><i class="l3"></i><i class="l3"></i><i class="l1"></i><i class="l2"></i><i></i><i class="l2"></i><i></i><i class="l1"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i></i><i class="l1"></i>
+                    <i class="l2"></i><i class="l3"></i><i></i><i class="l3"></i><i class="l2"></i><i class="l1"></i><i></i><i></i><i class="l2"></i><i class="l4"></i><i></i><i class="l1"></i><i></i><i></i>
+                    <i class="l4"></i><i class="l1"></i><i class="l2"></i><i class="l1"></i><i class="l3"></i><i></i><i class="l2"></i><i class="l2"></i><i class="l4"></i><i class="l1"></i><i class="l1"></i><i class="l3"></i><i class="l1"></i><i></i>
+                    <i class="l1"></i><i class="l3"></i><i class="l3"></i><i class="l3"></i><i class="l3"></i><i class="l2"></i><i></i><i class="l3"></i><i class="l1"></i><i class="l4"></i><i class="l3"></i><i class="l3"></i><i></i><i></i>
+                    <i class="l2"></i><i class="l4"></i><i class="l2"></i><i class="l2"></i><i></i><i class="l1"></i><i></i><i class="l1"></i><i class="l2"></i><i class="l4"></i><i class="l3"></i><i class="gap"></i><i class="gap"></i><i class="gap"></i>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="tile tile--desktop">
+              <div class="tile__text">
+                <p class="tile__label">Widgets de bureau</p>
+                <h3 class="tile__title">Votre quota sur le bureau.</h3>
+                <p class="tile__body">De petites jauges pour un service, des formats moyens avec forfait et dépenses, et une grande vue d’ensemble des deux.</p>
+              </div>
+              <div class="desktop-widgets">
+                <div class="widget widget--small" data-theme="dark">
+                  <div class="aq-adial aq-adial--widget" style="--size: 84px" role="img" aria-label="72 % de la fenêtre de 5 heures utilisés, 44 % de la fenêtre de 7 jours utilisés"><svg viewBox="-5 -5 118 118" aria-hidden="true"><circle class="aq-adial__track" cx="54" cy="54" r="54" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="75 100"></circle><circle class="aq-adial__fill" cx="54" cy="54" r="54" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="54.00 100"></circle><circle class="aq-adial__track" cx="54" cy="54" r="45" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="75 100"></circle><circle class="aq-adial__fill aq-adial__fill--secondary" cx="54" cy="54" r="45" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="33.00 100"></circle></svg><div class="aq-adial__values aq-adial__values--dual" aria-hidden="true"><svg class="aq-adial__logo"><use href="#logo-claude"></use></svg><div class="aq-adial__lines"><span>72 % <small>5 h</small></span><span>44 % <small>7 j</small></span></div></div></div>
+                  <p class="widget__name">Claude Max</p>
+                  <p class="widget__reset">5 h : réinit. dans 2 h 14 min<br />7 j : réinit. dans 1 j 6 h</p>
+                </div>
+                <div class="widget widget--medium" data-theme="dark">
+                  <div class="widget__gauge">
+                    <div class="aq-adial aq-adial--widget" style="--size: 88px" role="img" aria-label="38 % de la fenêtre de 5 heures utilisés, 61 % de la fenêtre de 7 jours utilisés"><svg viewBox="-5 -5 118 118" aria-hidden="true"><circle class="aq-adial__track" cx="54" cy="54" r="54" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="75 100"></circle><circle class="aq-adial__fill" cx="54" cy="54" r="54" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="28.50 100"></circle><circle class="aq-adial__track" cx="54" cy="54" r="45" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="75 100"></circle><circle class="aq-adial__fill aq-adial__fill--secondary" cx="54" cy="54" r="45" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="45.75 100"></circle></svg><div class="aq-adial__values aq-adial__values--dual" aria-hidden="true"><svg class="aq-adial__logo"><use href="#logo-openai"></use></svg><div class="aq-adial__lines"><span>38 % <small>5 h</small></span><span>61 % <small>7 j</small></span></div></div></div>
+                    <p class="widget__name">Codex Pro</p>
+                    <p class="widget__reset">5 h : réinit. dans 1 h 12 min</p>
+                  </div>
+                  <span class="widget__divider" aria-hidden="true"></span>
+                  <div class="widget__rows">
+                    <div class="widget__row widget__row--accent"><svg class="widget__icon" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.5l1.1 3.4 3.4 1.1-3.4 1.1L6 10.5 4.9 7.1 1.5 6l3.4-1.1z"></path></svg><span>Utilisé :</span><span>61 %</span></div>
+                    <div class="widget__row"><svg class="widget__icon" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="3.6" r="2.4"></circle><path d="M1.6 10.6c.4-2.3 2.2-3.6 4.4-3.6s4 1.3 4.4 3.6z"></path></svg><span>Forfait :</span><span>Pro</span></div>
+                    <div class="widget__row"><svg class="widget__icon" viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="2.4" width="10" height="7.2" rx="1.4"></rect><rect class="widget__icon-cut" x="1" y="4" width="10" height="1.4"></rect></svg><span>Solde :</span><span>10,44 $</span></div>
+                    <div class="widget__row widget__row--overage"><svg class="widget__icon" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5"></circle><path class="widget__icon-cut" d="M6 3.5v5M3.5 6h5"></path></svg><span>Dépensé :</span><span>150,90 $</span></div>
+                    <p class="widget__foot">7 j : réinit. dans 3 j 4 h</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="tile tile--resets">
+              <div class="tile__text">
+                <p class="tile__label">Annonces de réinitialisation</p>
+                <h3 class="tile__title">Ne manquez aucune réinitialisation surprise de Codex.</h3>
+                <p class="tile__body">Quand <strong>@thsottiaux</strong> annonce sur X une réinitialisation de l’utilisation de Codex, AIQuota affiche un avis, d’après Codex Resets. Vos relevés restent tels que communiqués.</p>
+              </div>
+              <div class="tile__foot">
+                <div class="aq-notice" data-notice data-notice-restorable><svg class="notice-info" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8.4"></circle><path d="M10 9v5.2"></path><circle class="notice-info__dot" cx="10" cy="6.1" r="1.05"></circle></svg><div class="aq-notice__text"><p class="aq-notice__title">Réinitialisation de l’utilisation de Codex annoncée</p><a class="aq-notice__link" href="https://codex-resets.com/">En savoir plus sur Codex Resets <span aria-hidden="true">↗</span></a></div><button class="aq-notice__close" type="button" aria-label="Masquer l’annonce de réinitialisation" data-notice-dismiss><svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 2.5l5 5M7.5 2.5l-5 5"></path></svg></button></div>
+                <div class="notice-dismissed" data-notice-dismissed hidden>
+                  <span>Masqué pour cette annonce.</span>
+                  <button class="aq-btn aq-btn--plain" type="button" data-notice-restore>Afficher à nouveau</button>
+                </div>
+              </div>
+            </article>
+
+            <article class="tile tile--accounts">
+              <div class="tile__text">
+                <p class="tile__label">Perso et Enterprise</p>
+                <h3 class="tile__title tile__title--lg">Votre compte pro, à côté du vôtre.</h3>
+                <p class="tile__body">Connectez Claude Enterprise à côté de Pro ou Max et nommez chaque compte. Les forfaits personnels affichent l’utilisation supplémentaire à côté des limites, Enterprise ajoute les dépenses mensuelles et l’activité des skills de votre organisation.</p>
+              </div>
+              <div class="card-stack">
+                <article class="aq-acct"><div class="aq-acct__row"><div class="aq-adial" style="--size: 124px" role="img" aria-label="38 % de la fenêtre de 5 heures utilisés, 61 % de la fenêtre de 7 jours utilisés"><svg viewBox="-5 -5 118 118" aria-hidden="true"><circle class="aq-adial__track" cx="54" cy="54" r="54" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="75 100"></circle><circle class="aq-adial__fill" cx="54" cy="54" r="54" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="28.50 100"></circle><circle class="aq-adial__track" cx="54" cy="54" r="45" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="75 100"></circle><circle class="aq-adial__fill aq-adial__fill--secondary" cx="54" cy="54" r="45" stroke-width="7" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="45.75 100"></circle></svg><div class="aq-adial__values aq-adial__values--dual" aria-hidden="true"><svg class="aq-adial__logo"><use href="#logo-claude"></use></svg><div class="aq-adial__lines"><span>38 % 5 h</span><span>61 % 7 j</span></div></div></div><div class="aq-acct__body"><div class="aq-acct__head"><h4 class="aq-acct__name">Claude</h4><span class="aq-acct__chev" aria-hidden="true"><svg viewBox="0 0 10 10"><path d="M3.8 2 6.8 5 3.8 8"></path></svg></span></div><p class="aq-acct__sub">Forfait Max · Perso</p><p class="aq-acct__cap">5 h : réinit. 10:01</p><p class="aq-acct__cap">7 j : réinit. lun. 08:01</p></div></div></article>
+                <article class="aq-acct"><div class="aq-acct__row"><div class="aq-adial" style="--size: 124px" role="img" aria-label="66 % de la fenêtre de 30 jours utilisés"><svg viewBox="-5 -5 118 118" aria-hidden="true"><circle class="aq-adial__track" cx="54" cy="54" r="54" stroke-width="10" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="75 100"></circle><circle class="aq-adial__fill" cx="54" cy="54" r="54" stroke-width="10" pathLength="100" transform="rotate(135 54 54)" stroke-dasharray="49.50 100"></circle></svg><div class="aq-adial__values" aria-hidden="true"><svg class="aq-adial__logo"><use href="#logo-claude"></use></svg><div class="aq-adial__lines"><span>66 % 30 j</span></div></div></div><div class="aq-acct__body"><div class="aq-acct__head"><h4 class="aq-acct__name">Claude</h4><span class="aq-acct__chev" aria-hidden="true"><svg viewBox="0 0 10 10"><path d="M3.8 2 6.8 5 3.8 8"></path></svg></span></div><p class="aq-acct__sub">Forfait Enterprise · Travail</p><p class="aq-acct__cap">65,57 $ sur 100 $</p><p class="aq-acct__cap">30 j : réinit. 1er déc., 00:00</p></div></div></article>
+              </div>
+            </article>
+
+            <article class="tile tile--privacy">
+              <div class="tile__text">
+                <p class="tile__label">Confidentiel par nature</p>
+                <h3 class="tile__title">Votre connexion reste sur l’appareil.</h3>
+                <p class="tile__body">Les identifiants restent dans le trousseau de l’appareil, partagés uniquement avec les widgets d’AIQuota. Aucune clé d’API, aucun prompt lu, et les statistiques anonymes restent désactivées tant que vous ne les activez pas.</p>
+              </div>
+              <div class="tile__foot">
+                <a class="aq-btn aq-btn--plain aq-btn--link" href="./privacy/">Lire la politique de confidentialité <span aria-hidden="true">↗</span></a>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq-pointer">
+        <p><span>Des questions sur la connexion, la confidentialité ou les widgets ?</span> <a class="aq-btn aq-btn--plain aq-btn--link" href="./faq/">Lire la FAQ</a></p>
+      </section>
+
+      <section class="download-band" id="download">
+        <div class="download-band__card aq-wash">
+          <img src="../assets/aiquota-app-icon.png" alt="" width="112" height="112" />
+          <h2 class="section-title">Obtenez AIQuota 2.0</h2>
+          <p>Dans la barre des menus sur Mac, et sur l’écran d’accueil sur iPhone et iPad.</p>
+          <div class="badges badges--center"><a class="aq-badge" href="#" data-app-store-link aria-label="Télécharger dans l’App Store"><span class="aq-badge__chip aq-glass" aria-hidden="true"><img class="aq-badge__t aq-badge__t--dark" src="../assets/badges/app-store-type-on-dark.png" alt="" /><img class="aq-badge__t aq-badge__t--light" src="../assets/badges/app-store-type-on-light.png" alt="" /></span></a><a class="aq-badge aq-badge--mac" href="#" data-mac-app-store-link aria-label="Télécharger dans le Mac App Store"><span class="aq-badge__chip aq-glass" aria-hidden="true"><img class="aq-badge__t aq-badge__t--dark" src="../assets/badges/mac-app-store-type-on-dark.png" alt="" /><img class="aq-badge__t aq-badge__t--light" src="../assets/badges/mac-app-store-type-on-light.png" alt="" /></span></a></div>
+          <p class="direct-link direct-link--center">Ou <a class="aq-direct" href="https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip">téléchargez-le directement pour Mac</a>.</p>
+          <p class="fine-print">macOS 15 ou version ultérieure. iOS et iPadOS 17 ou version ultérieure.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <div class="site-footer__meta">
+          <a class="site-footer__owner" href="https://nieder.me/">&copy; John Niedermeyer</a>
+          <p>Besoin d’aide ? Écrivez à <a href="mailto:help@aiquota.app?subject=AIQuota%20Issue%20Report">help@aiquota.app</a></p>
+        </div>
+        <div class="site-footer__end">
+          <nav class="site-footer__links" aria-label="Mentions légales">
+            <a href="./privacy/">Politique de confidentialité</a>
+            <a href="./terms/">Conditions d’utilisation</a>
+            <a href="./accessibility/">Accessibilité</a>
+            <a href="https://github.com/niederme/ai-quota">GitHub</a>
+          </nav>
+          <div class="aq-theme aq-glass" role="group" aria-label="Apparence" data-theme-picker>
+            <button type="button" aria-pressed="false" data-theme-choice="system"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5"></rect><path d="M5.5 14h5M8 11.5V14"></path></svg><span>Système</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"></circle><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"></path></svg><span>Clair</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"></path></svg><span>Sombre</span></button>
+          </div>
+          <details class="lang-picker" data-lang-picker>
+            <summary class="aq-glass"><svg class="lang-picker__globe" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M1.5 8h13M8 1.5c1.9 2 2.8 4.1 2.8 6.5S9.9 12.5 8 14.5C6.1 12.5 5.2 10.4 5.2 8S6.1 3.5 8 1.5z"></path></svg><span class="visually-hidden">Langue : </span><span data-lang-current>Français</span><svg class="lang-picker__chevron" viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 6.2 5 3.7l2.5 2.5"></path></svg></summary>
+            <ul class="lang-picker__menu aq-glass" translate="no" data-i18n-skip><li><a href="../" hreflang="en" lang="en" data-lang="en">English</a></li><li><a href="../de/" hreflang="de" lang="de" data-lang="de">Deutsch</a></li><li><a href="./" hreflang="fr" lang="fr" data-lang="fr" aria-current="true">Français</a></li><li><a href="../es/" hreflang="es" lang="es" data-lang="es">Español</a></li><li><a href="../pt-br/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br">Português (Brasil)</a></li><li><a href="../ja/" hreflang="ja" lang="ja" data-lang="ja">日本語</a></li><li><a href="../ko/" hreflang="ko" lang="ko" data-lang="ko">한국어</a></li></ul>
+          </details>
+        </div>
+      </div>
+    </footer>
+
+    <dialog class="get-dialog" id="get-aiquota" aria-labelledby="get-aiquota-title">
+      <div class="get-dialog__panel">
+        <button class="get-dialog__close" type="button" aria-label="Fermer" data-get-close><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8"></path></svg></button>
+        <img src="../assets/aiquota-app-icon.png" alt="" width="80" height="80" />
+        <h2 id="get-aiquota-title">Obtenez AIQuota</h2>
+        <p>Pour iPhone, iPad et Mac.</p>
+        <div class="badges badges--center"><a class="aq-badge" href="#" data-app-store-link aria-label="Télécharger dans l’App Store"><span class="aq-badge__chip aq-glass" aria-hidden="true"><img class="aq-badge__t aq-badge__t--dark" src="../assets/badges/app-store-type-on-dark.png" alt="" /><img class="aq-badge__t aq-badge__t--light" src="../assets/badges/app-store-type-on-light.png" alt="" /></span></a><a class="aq-badge aq-badge--mac" href="#" data-mac-app-store-link aria-label="Télécharger dans le Mac App Store"><span class="aq-badge__chip aq-glass" aria-hidden="true"><img class="aq-badge__t aq-badge__t--dark" src="../assets/badges/mac-app-store-type-on-dark.png" alt="" /><img class="aq-badge__t aq-badge__t--light" src="../assets/badges/mac-app-store-type-on-light.png" alt="" /></span></a></div>
+        <p class="direct-link direct-link--center">Ou <a class="aq-direct" href="https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip">téléchargez-le directement pour Mac</a>.</p>
+      </div>
+    </dialog>
+  </body>
+</html>

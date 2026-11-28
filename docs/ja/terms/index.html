@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AIQuotaの利用規約</title>
+    <meta
+      name="description"
+      content="CodexとClaude Codeの使用量を確認するmacOSアプリ、AIQuotaの利用規約。"
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0b060f" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+    <link rel="canonical" href="https://aiquota.app/ja/terms/" />
+    <link rel="alternate" hreflang="en" href="https://aiquota.app/terms/" />
+    <link rel="alternate" hreflang="de" href="https://aiquota.app/de/terms/" />
+    <link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/terms/" />
+    <link rel="alternate" hreflang="es" href="https://aiquota.app/es/terms/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/terms/" />
+    <link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/terms/" />
+    <link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/terms/" />
+    <link rel="alternate" hreflang="x-default" href="https://aiquota.app/terms/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="ja_JP" />
+    <meta property="og:title" content="AIQuotaの利用規約" />
+    <meta
+      property="og:description"
+      content="CodexとClaude Codeの使用量を確認するmacOSアプリ、AIQuotaの利用規約。"
+    />
+    <meta property="og:url" content="https://aiquota.app/ja/terms/" />
+    <meta property="og:site_name" content="AIQuota" />
+    <meta
+      property="og:image"
+      content="https://aiquota.app/assets/aiquota-social-card.png?v=0ce949bc530a"
+    />
+    <meta
+      property="og:image:secure_url"
+      content="https://aiquota.app/assets/aiquota-social-card.png?v=0ce949bc530a"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="AIQuotaのアプリアイコン。" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AIQuotaの利用規約" />
+    <meta
+      name="twitter:description"
+      content="CodexとClaude Codeの使用量を確認するmacOSアプリ、AIQuotaの利用規約。"
+    />
+    <meta name="twitter:url" content="https://aiquota.app/ja/terms/" />
+    <meta name="twitter:site" content="@AiQuotaApp" />
+    <meta name="twitter:creator" content="@AiQuotaApp" />
+    <meta
+      name="twitter:image"
+      content="https://aiquota.app/assets/aiquota-social-card.png?v=0ce949bc530a"
+    />
+    <meta name="twitter:image:alt" content="AIQuotaのアプリアイコン。" />
+    <script>
+      // Language: English pages send a visitor to their language's version,
+      // using the language they picked in the footer, else the browser's.
+      (() => {
+        const languages = ["de", "fr", "es", "pt-br", "ja", "ko"];
+        if (document.documentElement.lang !== "en") return;
+        let choice = null;
+        try {
+          choice = window.localStorage.getItem("aiquota-language");
+        } catch (error) {}
+        if (!choice) {
+          for (const tag of navigator.languages || [navigator.language || ""]) {
+            const base = String(tag).toLowerCase().split("-")[0];
+            if (base === "en") break;
+            const match = base === "pt" ? "pt-br" : base;
+            if (languages.includes(match)) {
+              choice = match;
+              break;
+            }
+          }
+        }
+        if (languages.includes(choice)) {
+          window.location.replace("/" + choice + window.location.pathname + window.location.search + window.location.hash);
+        }
+      })();
+    </script>
+    <script>
+      (() => {
+        let storedTheme = null;
+        try {
+          storedTheme =
+            window.localStorage.getItem("aiquota-theme") ??
+            window.localStorage.getItem("aiquota-docs-theme");
+        } catch (error) {}
+        const resolvedTheme =
+          storedTheme === "light" || storedTheme === "dark"
+            ? storedTheme
+            : window.matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark";
+        document.documentElement.dataset.theme = resolvedTheme;
+        document.documentElement.classList.add("js");
+      })();
+    </script>
+    <link rel="stylesheet" href="../../site.css" />
+    <script src="../../site.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">本文へスキップ</a>
+    <header class="site-nav">
+      <div class="site-nav__inner">
+        <nav class="aq-nav aq-glass" aria-label="メイン" data-nav>
+          <a class="aq-nav__brand" href="../"><img src="../../assets/aiquota-app-icon.png" alt="" width="28" height="28" />AIQuota</a>
+          <div class="aq-nav__links">
+            <a class="aq-nav__link" href="../">概要</a>
+            <a class="aq-nav__link" href="../releases/">リリース</a>
+            <a class="aq-nav__link" href="../faq/">よくある質問</a>
+            <a class="aq-nav__link" href="https://github.com/niederme/ai-quota">GitHub <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="aq-theme aq-glass aq-theme--compact" role="group" aria-label="外観" data-theme-picker>
+            <button type="button" aria-pressed="false" data-theme-choice="system"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5"></rect><path d="M5.5 14h5M8 11.5V14"></path></svg><span>システム</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"></circle><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"></path></svg><span>ライト</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"></path></svg><span>ダーク</span></button>
+          </div>
+          <a class="aq-btn aq-btn--primary" href="../#download" aria-haspopup="dialog" data-get-open>ダウンロード</a>
+          <button class="site-nav__menu" type="button" aria-label="メニュー" aria-expanded="false" aria-controls="site-menu" data-menu-toggle>
+            <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 6h12M3 12h12"></path></svg>
+          </button>
+        </nav>
+        <div class="site-menu aq-glass" id="site-menu" hidden>
+          <a href="../">概要</a>
+          <a href="../releases/">リリース</a>
+          <a href="../faq/">よくある質問</a>
+          <a href="https://github.com/niederme/ai-quota">GitHub <span aria-hidden="true">↗</span></a>
+          <div class="site-menu__appearance">
+            <span>外観</span>
+            <div class="aq-theme aq-glass" role="group" aria-label="外観" data-theme-picker>
+              <button type="button" aria-pressed="false" data-theme-choice="system"><span>システム</span></button>
+              <button type="button" aria-pressed="false" data-theme-choice="light"><span>ライト</span></button>
+              <button type="button" aria-pressed="false" data-theme-choice="dark"><span>ダーク</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" class="policy-main aq-wash">
+        <section class="policy-hero page-hero">
+          <div class="container policy-container">
+            <h1 class="policy-title">利用規約</h1>
+            <p class="policy-date">最終更新日: 2026年4月7日</p>
+            <p class="policy-note">この翻訳は参考として提供しています。英語版と内容が異なる場合は、英語版が優先されます。</p>
+          </div>
+        </section>
+
+        <section>
+          <div class="container policy-container">
+            <article class="policy-card">
+              <p class="policy-lede">
+                この利用規約は、アプリ、Webサイト、関連するリリース資料を含むAIQuotaの利用に適用されます。AIQuotaを利用することで、本規約に同意したものとみなされます。
+              </p>
+
+              <h2>アプリの利用</h2>
+              <p>AIQuotaは、対応する第三者のサービスの使用量情報を確認するためのmacOSユーティリティとして提供されます。本アプリは、適用される法律と、接続する第三者のサービスの規約に従ってのみ利用できます。</p>
+
+              <h2>アカウント</h2>
+              <p>AIQuotaに接続する第三者のアカウントと、それらのアカウントへのアクセスの維持については、ユーザーが責任を負います。AIQuotaは、OpenAI、Anthropic、その他の第三者のサービスについて、各提供者がすでに認めている範囲を超える権利を付与しません。</p>
+
+              <h2>第三者の提供者との関係</h2>
+              <p>AIQuotaは独立した製品であり、各社のプラットフォームやサービスとの互換性を説明するために必要な場合を除き、OpenAI、Anthropic、Appleによる承認や後援を受けておらず、提携関係もありません。</p>
+
+              <h2>可用性と正確性</h2>
+              <p>AIQuotaは役立つ使用量情報の提供を目指していますが、使用量の値、リセット時刻、プランの詳細は、最終的にそのデータを提供する第三者のサービスに依存します。これらの値は変更されたり、ずれたり、取得できなかったりする場合があります。</p>
+
+              <h2>禁止事項</h2>
+              <p>他者の権利を侵害すること、アプリやWebサイトを妨害すること、不正アクセスを試みること、接続した第三者のサービスを不正に利用することを目的としてAIQuotaを使用することはできません。</p>
+
+              <h2>知的財産</h2>
+              <p>別段の記載がない限り、AIQuotaおよび関連するブランド、文章、ソフトウェアはJohn Niedermeyerが所有し、プロジェクトのライセンス条件とソースリポジトリに含まれる告知に従って提供されます。</p>
+
+              <h2>免責事項</h2>
+              <p>AIQuotaは「現状のまま」かつ「提供可能な範囲で」提供され、商品性、特定目的への適合性、権利の非侵害の保証を含め、明示または黙示を問わずいかなる保証もありません。</p>
+
+              <h2>責任の制限</h2>
+              <p>法律で認められる最大限の範囲で、John Niedermeyerは、AIQuotaの利用に起因または関連する間接的、付随的、特別、結果的、懲罰的な損害、またはデータ、利益、信用、サービスへのアクセスの喪失について責任を負いません。</p>
+
+              <h2>変更</h2>
+              <p>本規約は随時更新される場合があります。更新後もAIQuotaを引き続き利用した場合、改訂後の規約に同意したものとみなされます。</p>
+
+              <h2>お問い合わせ</h2>
+              <p>本規約に関するご質問は、<a href="mailto:help@aiquota.app">help@aiquota.app</a> までメールでお寄せください。</p>
+            </article>
+          </div>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <div class="site-footer__meta">
+          <a class="site-footer__owner" href="https://nieder.me/">&copy; John Niedermeyer</a>
+          <p>お困りの場合は <a href="mailto:help@aiquota.app?subject=AIQuota%20Issue%20Report">help@aiquota.app</a> までご連絡ください</p>
+        </div>
+        <div class="site-footer__end">
+          <nav class="site-footer__links" aria-label="法的情報">
+            <a href="../privacy/">プライバシーポリシー</a>
+            <a href="./">利用規約</a>
+            <a href="../accessibility/">アクセシビリティ</a>
+            <a href="https://github.com/niederme/ai-quota">GitHub</a>
+          </nav>
+          <div class="aq-theme aq-glass" role="group" aria-label="外観" data-theme-picker>
+            <button type="button" aria-pressed="false" data-theme-choice="system"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5"></rect><path d="M5.5 14h5M8 11.5V14"></path></svg><span>システム</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"></circle><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"></path></svg><span>ライト</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"></path></svg><span>ダーク</span></button>
+          </div>
+          <details class="lang-picker" data-lang-picker>
+            <summary class="aq-glass"><svg class="lang-picker__globe" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M1.5 8h13M8 1.5c1.9 2 2.8 4.1 2.8 6.5S9.9 12.5 8 14.5C6.1 12.5 5.2 10.4 5.2 8S6.1 3.5 8 1.5z"></path></svg><span class="visually-hidden">言語: </span><span data-lang-current>日本語</span><svg class="lang-picker__chevron" viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 6.2 5 3.7l2.5 2.5"></path></svg></summary>
+            <ul class="lang-picker__menu aq-glass" translate="no" data-i18n-skip><li><a href="../../terms/" hreflang="en" lang="en" data-lang="en">English</a></li><li><a href="../../de/terms/" hreflang="de" lang="de" data-lang="de">Deutsch</a></li><li><a href="../../fr/terms/" hreflang="fr" lang="fr" data-lang="fr">Français</a></li><li><a href="../../es/terms/" hreflang="es" lang="es" data-lang="es">Español</a></li><li><a href="../../pt-br/terms/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br">Português (Brasil)</a></li><li><a href="./" hreflang="ja" lang="ja" data-lang="ja" aria-current="true">日本語</a></li><li><a href="../../ko/terms/" hreflang="ko" lang="ko" data-lang="ko">한국어</a></li></ul>
+          </details>
+        </div>
+      </div>
+    </footer>
+
+    <dialog class="get-dialog" id="get-aiquota" aria-labelledby="get-aiquota-title">
+      <div class="get-dialog__panel">
+        <button class="get-dialog__close" type="button" aria-label="閉じる" data-get-close><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8"></path></svg></button>
+        <img src="../../assets/aiquota-app-icon.png" alt="" width="80" height="80" />
+        <h2 id="get-aiquota-title">AIQuotaを入手</h2>
+        <p>iPhone、iPad、Mac向け。</p>
+        <div class="badges badges--center"><a class="aq-badge" href="#" data-app-store-link aria-label="App Storeからダウンロード"><span class="aq-badge__chip aq-glass" aria-hidden="true"><img class="aq-badge__t aq-badge__t--dark" src="../../assets/badges/app-store-type-on-dark.png" alt="" /><img class="aq-badge__t aq-badge__t--light" src="../../assets/badges/app-store-type-on-light.png" alt="" /></span></a><a class="aq-badge aq-badge--mac" href="#" data-mac-app-store-link aria-label="Mac App Storeからダウンロード"><span class="aq-badge__chip aq-glass" aria-hidden="true"><img class="aq-badge__t aq-badge__t--dark" src="../../assets/badges/mac-app-store-type-on-dark.png" alt="" /><img class="aq-badge__t aq-badge__t--light" src="../../assets/badges/mac-app-store-type-on-light.png" alt="" /></span></a></div>
+        <p class="direct-link direct-link--center">または<a class="aq-direct" href="https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip">Mac版を直接ダウンロード</a>。</p>
+      </div>
+    </dialog>
+  </body>
+</html>

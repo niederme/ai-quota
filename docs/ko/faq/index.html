@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AIQuota FAQ</title>
+    <meta
+      name="description"
+      content="AIQuota에 대한 답변: 추적하는 항목, 로그인 방식, 개인정보 보호, 위젯, Mac·iPhone·iPad에서 사용하는 데 필요한 사항."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0b060f" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+
+    <link rel="canonical" href="https://aiquota.app/ko/faq/" />
+    <link rel="alternate" hreflang="en" href="https://aiquota.app/faq/" />
+    <link rel="alternate" hreflang="de" href="https://aiquota.app/de/faq/" />
+    <link rel="alternate" hreflang="fr" href="https://aiquota.app/fr/faq/" />
+    <link rel="alternate" hreflang="es" href="https://aiquota.app/es/faq/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://aiquota.app/pt-br/faq/" />
+    <link rel="alternate" hreflang="ja" href="https://aiquota.app/ja/faq/" />
+    <link rel="alternate" hreflang="ko" href="https://aiquota.app/ko/faq/" />
+    <link rel="alternate" hreflang="x-default" href="https://aiquota.app/faq/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:title" content="AIQuota FAQ" />
+    <meta
+      property="og:description"
+      content="AIQuota에 대한 답변: 추적하는 항목, 로그인 방식, 개인정보 보호, 위젯, Mac·iPhone·iPad에서 사용하는 데 필요한 사항."
+    />
+    <meta property="og:url" content="https://aiquota.app/ko/faq/" />
+    <meta property="og:site_name" content="AIQuota" />
+    <meta
+      property="og:image"
+      content="https://aiquota.app/assets/aiquota-social-card.png?v=0ce949bc530a"
+    />
+    <meta
+      property="og:image:secure_url"
+      content="https://aiquota.app/assets/aiquota-social-card.png?v=0ce949bc530a"
+    />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="AIQuota 앱 아이콘." />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AIQuota FAQ" />
+    <meta
+      name="twitter:description"
+      content="AIQuota에 대한 답변: 추적하는 항목, 로그인 방식, 개인정보 보호, 위젯, Mac·iPhone·iPad에서 사용하는 데 필요한 사항."
+    />
+    <meta name="twitter:url" content="https://aiquota.app/ko/faq/" />
+    <meta name="twitter:site" content="@AiQuotaApp" />
+    <meta name="twitter:creator" content="@AiQuotaApp" />
+    <meta
+      name="twitter:image"
+      content="https://aiquota.app/assets/aiquota-social-card.png?v=0ce949bc530a"
+    />
+    <meta name="twitter:image:alt" content="AIQuota 앱 아이콘." />
+    <script>
+      // Language: English pages send a visitor to their language's version,
+      // using the language they picked in the footer, else the browser's.
+      (() => {
+        const languages = ["de", "fr", "es", "pt-br", "ja", "ko"];
+        if (document.documentElement.lang !== "en") return;
+        let choice = null;
+        try {
+          choice = window.localStorage.getItem("aiquota-language");
+        } catch (error) {}
+        if (!choice) {
+          for (const tag of navigator.languages || [navigator.language || ""]) {
+            const base = String(tag).toLowerCase().split("-")[0];
+            if (base === "en") break;
+            const match = base === "pt" ? "pt-br" : base;
+            if (languages.includes(match)) {
+              choice = match;
+              break;
+            }
+          }
+        }
+        if (languages.includes(choice)) {
+          window.location.replace("/" + choice + window.location.pathname + window.location.search + window.location.hash);
+        }
+      })();
+    </script>
+    <script>
+      (() => {
+        let storedTheme = null;
+        try {
+          storedTheme =
+            window.localStorage.getItem("aiquota-theme") ??
+            window.localStorage.getItem("aiquota-docs-theme");
+        } catch (error) {}
+        const resolvedTheme =
+          storedTheme === "light" || storedTheme === "dark"
+            ? storedTheme
+            : window.matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark";
+        document.documentElement.dataset.theme = resolvedTheme;
+        document.documentElement.classList.add("js");
+      })();
+    </script>
+    <link rel="stylesheet" href="../../site.css" />
+    <script src="../../site.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">본문으로 건너뛰기</a>
+    <header class="site-nav">
+      <div class="site-nav__inner">
+        <nav class="aq-nav aq-glass" aria-label="주 메뉴" data-nav>
+          <a class="aq-nav__brand" href="../"><img src="../../assets/aiquota-app-icon.png" alt="" width="28" height="28" />AIQuota</a>
+          <div class="aq-nav__links">
+            <a class="aq-nav__link" href="../">개요</a>
+            <a class="aq-nav__link" href="../releases/">릴리스</a>
+            <a class="aq-nav__link" href="./" aria-current="page">FAQ</a>
+            <a class="aq-nav__link" href="https://github.com/niederme/ai-quota">GitHub <span aria-hidden="true">↗</span></a>
+          </div>
+          <div class="aq-theme aq-glass aq-theme--compact" role="group" aria-label="화면 모드" data-theme-picker>
+            <button type="button" aria-pressed="false" data-theme-choice="system"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5"></rect><path d="M5.5 14h5M8 11.5V14"></path></svg><span>시스템</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"></circle><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"></path></svg><span>라이트</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"></path></svg><span>다크</span></button>
+          </div>
+          <a class="aq-btn aq-btn--primary" href="../#download" aria-haspopup="dialog" data-get-open>다운로드</a>
+          <button class="site-nav__menu" type="button" aria-label="메뉴" aria-expanded="false" aria-controls="site-menu" data-menu-toggle>
+            <svg viewBox="0 0 18 18" aria-hidden="true"><path d="M3 6h12M3 12h12"></path></svg>
+          </button>
+        </nav>
+        <div class="site-menu aq-glass" id="site-menu" hidden>
+          <a href="../">개요</a>
+          <a href="../releases/">릴리스</a>
+          <a href="./" aria-current="page">FAQ</a>
+          <a href="https://github.com/niederme/ai-quota">GitHub <span aria-hidden="true">↗</span></a>
+          <div class="site-menu__appearance">
+            <span>화면 모드</span>
+            <div class="aq-theme aq-glass" role="group" aria-label="화면 모드" data-theme-picker>
+              <button type="button" aria-pressed="false" data-theme-choice="system"><span>시스템</span></button>
+              <button type="button" aria-pressed="false" data-theme-choice="light"><span>라이트</span></button>
+              <button type="button" aria-pressed="false" data-theme-choice="dark"><span>다크</span></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+
+      <section class="faq-hero aq-wash">
+        <div class="container faq-layout">
+          <div class="faq-intro">
+            <p class="aq-eyebrow">FAQ</p>
+            <h1 class="page-title">궁금한 점이 있나요?</h1>
+            <p>사용량 추적, 로그인, 개인정보 보호, 위젯, Mac·iPhone·iPad 설정에 대한 간단한 답변입니다.</p>
+          </div>
+          <div class="faq-list" data-faq>
+              <details class="faq-item" name="faq" open>
+                <summary><span>AIQuota는 정확히 무엇을 추적하나요?</span><span class="faq-item__chevron" aria-hidden="true"><svg viewBox="0 0 14 14"><path d="M3 5.5 7 9.5 11 5.5"></path></svg></span></summary>
+                <p>AIQuota는 Codex와 Claude의 사용 기간, 초기화 시간, 경고 상태를 Mac 메뉴 막대, iPhone 및 iPad 앱, 위젯에 보여 줍니다. 여유가 있는지, 한도에 가까운지, 이미 한도에 도달했는지 한눈에 알 수 있습니다.</p>
+              </details>
+              <details class="faq-item" name="faq">
+                <summary><span>Codex와 Claude를 모두 연결해야 하나요?</span><span class="faq-item__chevron" aria-hidden="true"><svg viewBox="0 0 14 14"><path d="M3 5.5 7 9.5 11 5.5"></path></svg></span></summary>
+                <p>아니요. Codex만, Claude만, 또는 둘 다 연결해 AIQuota를 사용할 수 있습니다. 하나의 서비스만 연결하면 앱과 위젯이 두 번째 서비스를 위한 빈 공간 없이 그 구성에 맞춰집니다.</p>
+              </details>
+              <details class="faq-item" name="faq">
+                <summary><span>로그인은 어떻게 하나요?</span><span class="faq-item__chevron" aria-hidden="true"><svg viewBox="0 0 14 14"><path d="M3 5.5 7 9.5 11 5.5"></path></svg></span></summary>
+                <p>Mac에서는 AIQuota가 기존의 ChatGPT 및 Claude 브라우저 세션을 사용합니다. iPhone과 iPad에서는 앱 안에서 각 서비스에 로그인합니다. API 키를 붙여 넣을 필요가 없습니다. 자격 증명은 각 기기의 키체인에 저장되며 AIQuota 위젯과만 공유됩니다.</p>
+              </details>
+              <details class="faq-item" name="faq">
+                <summary><span>Mac과 iPhone이 연결을 공유하나요?</span><span class="faq-item__chevron" aria-hidden="true"><svg viewBox="0 0 14 14"><path d="M3 5.5 7 9.5 11 5.5"></path></svg></span></summary>
+                <p>아니요. 각 기기가 Codex와 Claude에 따로 연결하며, 측정값은 기기 간에 동기화되지 않습니다.</p>
+              </details>
+              <details class="faq-item" name="faq">
+                <summary><span>AIQuota가 제 프롬프트나 코드를 읽나요?</span><span class="faq-item__chevron" aria-hidden="true"><svg viewBox="0 0 14 14"><path d="M3 5.5 7 9.5 11 5.5"></path></svg></span></summary>
+                <p>AIQuota는 사용량 상태를 확인하기 위한 앱이며, 대화 내용을 살펴보지 않습니다. 사용량 정보를 가져오려면 계정 접근이 필요하지만, 게이지, 초기화 시간, 알림을 보여 주는 데 프롬프트 기록은 필요하지 않습니다. 자세한 내용은 <a href="../privacy/">개인정보 처리방침</a>에서 확인하세요.</p>
+              </details>
+              <details class="faq-item" name="faq">
+                <summary><span>AIQuota가 사용 분석 데이터를 수집하나요?</span><span class="faq-item__chevron" aria-hidden="true"><svg viewBox="0 0 14 14"><path d="M3 5.5 7 9.5 11 5.5"></path></svg></span></summary>
+                <p>기본적으로는 수집하지 않습니다. AIQuota에는 ‘익명 사용 데이터 공유’라는 선택 설정이 있으며, Mac, iPhone, iPad 모두에서 처음에는 꺼져 있습니다. 이 설정을 켜면 AIQuota는 앱 실행, 일일 활성 사용, 앱 버전, 서비스 연결, 설정 완료 같은 간단한 익명 지표를 보냅니다. 이 이벤트는 Google Firebase Analytics에서 처리될 수 있습니다. 프롬프트, 토큰, 쿠키 또는 개인정보는 포함되지 않습니다.</p>
+              </details>
+              <details class="faq-item" name="faq">
+                <summary><span>위젯과 알림이 두 서비스를 모두 지원하나요?</span><span class="faq-item__chevron" aria-hidden="true"><svg viewBox="0 0 14 14"><path d="M3 5.5 7 9.5 11 5.5"></path></svg></span></summary>
+                <p>네. Mac에는 소형, 중형, 대형 데스크탑 위젯이 있습니다. iPhone과 iPad에는 하나 또는 두 서비스를 위한 네 가지 홈 화면 레이아웃과 잠금 화면 위젯이 있습니다. 사용량이 부족하거나 한도에 도달하거나 초기화되면 알림으로 알려 주므로 작업 중에 당황할 일이 없습니다.</p>
+              </details>
+              <details class="faq-item" name="faq">
+                <summary><span>사용하려면 무엇이 필요한가요?</span><span class="faq-item__chevron" aria-hidden="true"><svg viewBox="0 0 14 14"><path d="M3 5.5 7 9.5 11 5.5"></path></svg></span></summary>
+                <p>Mac용 AIQuota에는 macOS 15 이상이 필요합니다. 공증된 빌드를 다운로드해 응용 프로그램 폴더로 옮긴 다음 안내에 따라 설정하세요. iPhone 및 iPad용 AIQuota에는 iOS 또는 iPadOS 17 이상이 필요합니다.</p>
+              </details>
+              <details class="faq-item" name="faq">
+                <summary><span>도움이 필요하신가요?</span><span class="faq-item__chevron" aria-hidden="true"><svg viewBox="0 0 14 14"><path d="M3 5.5 7 9.5 11 5.5"></path></svg></span></summary>
+                <p>문제가 생기거나 궁금한 점이 있거나 버그를 신고하려면 <a href="mailto:help@aiquota.app?subject=AIQuota%20Issue%20Report">help@aiquota.app</a>로 이메일을 보내 주세요.</p>
+              </details>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container site-footer__inner">
+        <div class="site-footer__meta">
+          <a class="site-footer__owner" href="https://nieder.me/">&copy; John Niedermeyer</a>
+          <p>도움이 필요하신가요? <a href="mailto:help@aiquota.app?subject=AIQuota%20Issue%20Report">help@aiquota.app</a>로 이메일을 보내 주세요</p>
+        </div>
+        <div class="site-footer__end">
+          <nav class="site-footer__links" aria-label="법적 고지">
+            <a href="../privacy/">개인정보 처리방침</a>
+            <a href="../terms/">서비스 약관</a>
+            <a href="../accessibility/">손쉬운 사용</a>
+            <a href="https://github.com/niederme/ai-quota">GitHub</a>
+          </nav>
+          <div class="aq-theme aq-glass" role="group" aria-label="화면 모드" data-theme-picker>
+            <button type="button" aria-pressed="false" data-theme-choice="system"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="9" rx="1.5"></rect><path d="M5.5 14h5M8 11.5V14"></path></svg><span>시스템</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="light"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"></circle><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1"></path></svg><span>라이트</span></button>
+            <button type="button" aria-pressed="false" data-theme-choice="dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.5A5.5 5.5 0 0 1 6.5 2.5a5.5 5.5 0 1 0 7 7z"></path></svg><span>다크</span></button>
+          </div>
+          <details class="lang-picker" data-lang-picker>
+            <summary class="aq-glass"><svg class="lang-picker__globe" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M1.5 8h13M8 1.5c1.9 2 2.8 4.1 2.8 6.5S9.9 12.5 8 14.5C6.1 12.5 5.2 10.4 5.2 8S6.1 3.5 8 1.5z"></path></svg><span class="visually-hidden">언어: </span><span data-lang-current>한국어</span><svg class="lang-picker__chevron" viewBox="0 0 10 10" aria-hidden="true"><path d="M2.5 6.2 5 3.7l2.5 2.5"></path></svg></summary>
+            <ul class="lang-picker__menu aq-glass" translate="no" data-i18n-skip><li><a href="../../faq/" hreflang="en" lang="en" data-lang="en">English</a></li><li><a href="../../de/faq/" hreflang="de" lang="de" data-lang="de">Deutsch</a></li><li><a href="../../fr/faq/" hreflang="fr" lang="fr" data-lang="fr">Français</a></li><li><a href="../../es/faq/" hreflang="es" lang="es" data-lang="es">Español</a></li><li><a href="../../pt-br/faq/" hreflang="pt-BR" lang="pt-BR" data-lang="pt-br">Português (Brasil)</a></li><li><a href="../../ja/faq/" hreflang="ja" lang="ja" data-lang="ja">日本語</a></li><li><a href="./" hreflang="ko" lang="ko" data-lang="ko" aria-current="true">한국어</a></li></ul>
+          </details>
+        </div>
+      </div>
+    </footer>
+
+    <dialog class="get-dialog" id="get-aiquota" aria-labelledby="get-aiquota-title">
+      <div class="get-dialog__panel">
+        <button class="get-dialog__close" type="button" aria-label="닫기" data-get-close><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 3l8 8M11 3l-8 8"></path></svg></button>
+        <img src="../../assets/aiquota-app-icon.png" alt="" width="80" height="80" />
+        <h2 id="get-aiquota-title">AIQuota 받기</h2>
+        <p>iPhone, iPad, Mac용.</p>
+        <div class="badges badges--center"><a class="aq-badge" href="#" data-app-store-link aria-label="App Store에서 다운로드"><span class="aq-badge__chip aq-glass" aria-hidden="true"><img class="aq-badge__t aq-badge__t--dark" src="../../assets/badges/app-store-type-on-dark.png" alt="" /><img class="aq-badge__t aq-badge__t--light" src="../../assets/badges/app-store-type-on-light.png" alt="" /></span></a><a class="aq-badge aq-badge--mac" href="#" data-mac-app-store-link aria-label="Mac App Store에서 다운로드"><span class="aq-badge__chip aq-glass" aria-hidden="true"><img class="aq-badge__t aq-badge__t--dark" src="../../assets/badges/mac-app-store-type-on-dark.png" alt="" /><img class="aq-badge__t aq-badge__t--light" src="../../assets/badges/mac-app-store-type-on-light.png" alt="" /></span></a></div>
+        <p class="direct-link direct-link--center">또는 <a class="aq-direct" href="https://github.com/niederme/ai-quota/releases/latest/download/AIQuota.zip">Mac용으로 직접 다운로드</a>하세요.</p>
+      </div>
+    </dialog>
+  </body>
+</html>
