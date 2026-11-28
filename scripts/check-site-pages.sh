@@ -184,6 +184,27 @@ for page in "/" "/releases/" "/faq/" "/privacy/" "/terms/" "/accessibility/"; do
   check_contains "$page" "mailto:help@aiquota.app"
   check_contains "$page" "localStorage.getItem(\"aiquota-theme\")"
 done
+# Translations: generated pages are current, every language serves every page
+# with its own lang, canonical URL, hreflang set and footer language picker.
+python3 scripts/build-site-translations.py --check
+check_contains "/" "<link rel=\"alternate\" hreflang=\"x-default\" href=\"https://aiquota.app/\" />"
+check_contains "/" "data-lang-picker"
+check_contains "/" "localStorage.getItem(\"aiquota-language\")"
+for lang in "de:de" "fr:fr" "es:es" "pt-br:pt-BR" "ja:ja" "ko:ko"; do
+  slug="${lang%%:*}"
+  code="${lang#*:}"
+  for page in "" "releases/" "faq/" "privacy/" "terms/" "accessibility/"; do
+    path="/${slug}/${page}"
+    check_contains "$path" "<html lang=\"${code}\">"
+    check_contains "$path" "<link rel=\"canonical\" href=\"https://aiquota.app${path}\" />"
+    check_contains "$path" "<link rel=\"alternate\" hreflang=\"en\" href=\"https://aiquota.app/${page}\" />"
+    check_contains "$path" "data-lang=\"${slug}\" aria-current=\"true\""
+    check_contains "$path" "class=\"aq-nav aq-glass\""
+    check_contains "$path" "mailto:help@aiquota.app"
+  done
+  check_contains "/sitemap.xml" "<loc>https://aiquota.app/${slug}/</loc>"
+done
+
 check_contains "/" "<a class=\"aq-nav__link\" href=\"./\" aria-current=\"page\">Overview</a>"
 check_contains "/releases/" "<a class=\"aq-nav__link\" href=\"../releases/\" aria-current=\"page\">Releases</a>"
 check_contains "/faq/" "<a class=\"aq-nav__link\" href=\"../faq/\" aria-current=\"page\">FAQ</a>"

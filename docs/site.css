@@ -342,6 +342,34 @@ a:not(.aq-btn):hover { color: var(--accent-ink); text-decoration: underline; }
 .site-footer__links a { color: var(--ink-2); text-decoration: none; }
 .site-footer .aq-theme { box-shadow: inset 0 0 0 1px var(--line); }
 
+/* Footer language picker: a pill like the theme picker; the list opens above it. */
+.lang-picker { position: relative; }
+.lang-picker summary { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px 0 12px; border-radius: var(--radius-pill); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink-2); font: 500 13px/18px var(--font-sans); cursor: pointer; list-style: none; -webkit-user-select: none; user-select: none; }
+.lang-picker summary::-webkit-details-marker { display: none; }
+.lang-picker summary:hover, .lang-picker[open] summary { color: var(--ink); }
+.lang-picker summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lang-picker svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
+.lang-picker__globe { width: 15px; height: 15px; stroke-width: 1.4; }
+.lang-picker__chevron { width: 10px; height: 10px; stroke-width: 1.6; transition: transform .15s ease; }
+.lang-picker:not([open]) .lang-picker__chevron { transform: rotate(180deg); }
+.lang-picker__menu { position: absolute; right: 0; bottom: calc(100% + 8px); z-index: 20; min-width: 200px; margin: 0; padding: 6px; list-style: none; border-radius: 16px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line), 0 12px 32px rgb(0 0 0 / .24); }
+.lang-picker__menu a { display: block; padding: 8px 12px; border-radius: 10px; color: var(--ink-2); font: 400 15px/20px var(--font-sans); text-decoration: none; white-space: nowrap; }
+.lang-picker__menu a:hover { background: var(--surface-2); color: var(--ink); }
+.lang-picker__menu a[aria-current="true"] { color: var(--ink); font-weight: 600; }
+.lang-picker__menu a:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+@media (max-width: 759px) { .lang-picker__menu { right: auto; left: 0; } }
+
+/* Translated pages. */
+/* Mock captions keep one line each and shrink to fit, like the apps' widgets (site.js). */
+.widget__reset, .widget__foot, .aq-acct--sm .aq-acct__cap { white-space: nowrap; }
+.policy-note { margin: 12px 0 0; font: 400 13px/18px var(--font-sans); color: var(--ink-2); }
+:lang(ko) { word-break: keep-all; overflow-wrap: anywhere; }
+:lang(ja) { line-break: strict; }
+/* Longer window keys ("5 Std.", "5時間", "5시간") still fit inside the inner ring. */
+:lang(de) .aq-adial__values--dual .aq-adial__lines, :lang(ja) .aq-adial__values--dual .aq-adial__lines, :lang(ko) .aq-adial__values--dual .aq-adial__lines { font-size: 0.8em; }
+:lang(ja) h1, :lang(ja) h2, :lang(ja) h3 { word-break: auto-phrase; }
+:lang(ja) h1, :lang(ja) h2, :lang(ja) h3, :lang(ko) h1, :lang(ko) h2, :lang(ko) h3 { letter-spacing: 0; }
+
 /* Page headers on the hero wash. */
 .page-hero { padding: clamp(120px, 14vw, 160px) 0 clamp(48px, 6vw, 80px); }
 .page-title, .release-hero h1 { margin: 0; font: 700 clamp(40px, 5vw, 56px)/1.05 var(--font-sans); letter-spacing: -0.03em; }
@@ -541,6 +569,7 @@ html:has(.get-dialog[open]) { overflow: hidden; }
 .widget__row--overage { --icon: #ffa600; }
 .widget__row--overage span { color: #ffa600 !important; }
 .widget__row span:first-child { color: var(--ink-2); }
+.widget__row span { white-space: nowrap; }
 .widget__row span:last-child { font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
 .widget__foot { margin: 4px 0 0; font: 500 10px/13px var(--font-sans); color: var(--ink-2); }
 
